@@ -6,5 +6,6 @@
     <string name="custom_url_scheme">com.moranjianghu.game</string>
     <string name="github_oauth_custom_host">oauth</string>
     <string name="github_oauth_app_link_host">msjh.bacon.de5.net</string>
+    <string name="github_oauth_custom_callback_path">/github/callback</string>
     <string name="github_oauth_callback_path">/oauth/github/callback</string>
 </resources>

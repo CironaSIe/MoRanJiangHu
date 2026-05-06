@@ -31,7 +31,7 @@
                 <data
                     android:scheme="@string/custom_url_scheme"
                     android:host="@string/github_oauth_custom_host"
-                    android:path="@string/github_oauth_callback_path" />
+                    android:path="@string/github_oauth_custom_callback_path" />
             </intent-filter>
 
             <intent-filter android:autoVerify="true">

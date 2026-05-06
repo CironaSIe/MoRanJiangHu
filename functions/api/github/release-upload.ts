@@ -27,6 +27,39 @@ const isValidUploadUrl = (value: string): boolean => {
     }
 };
 
+const decodeBase64 = (value: string): Uint8Array => {
+    const normalized = value.replace(/\s+/g, '');
+    const binary = atob(normalized);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+};
+
+const readUploadBody = async (request: Request, fallbackContentType: string): Promise<{ body: ArrayBuffer; contentType: string }> => {
+    const encoding = request.headers.get('X-WuXia-Upload-Encoding')?.trim().toLowerCase() || '';
+    if (encoding === 'base64-json') {
+        const payload = await request.json().catch(() => null) as { base64?: unknown; contentType?: unknown } | null;
+        const base64 = typeof payload?.base64 === 'string' ? payload.base64 : '';
+        if (!base64.trim()) {
+            throw new Error('Missing base64 upload body');
+        }
+        const bytes = decodeBase64(base64);
+        return {
+            body: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+            contentType: typeof payload?.contentType === 'string' && payload.contentType.trim()
+                ? payload.contentType.trim()
+                : fallbackContentType
+        };
+    }
+
+    return {
+        body: await request.arrayBuffer(),
+        contentType: fallbackContentType
+    };
+};
+
 export async function onRequestOptions(): Promise<Response> {
     return new Response(null, {
         status: 204,
@@ -48,8 +81,8 @@ export async function onRequestPost({ request }: any): Promise<Response> {
             return buildJsonResponse({ error: 'Invalid GitHub upload URL' }, 400);
         }
 
-        const zipBuffer = await request.arrayBuffer();
-        if (!zipBuffer || zipBuffer.byteLength === 0) {
+        const uploadBody = await readUploadBody(request, contentType);
+        if (!uploadBody.body || uploadBody.body.byteLength === 0) {
             return buildJsonResponse({ error: 'Empty upload body' }, 400);
         }
 
@@ -57,12 +90,12 @@ export async function onRequestPost({ request }: any): Promise<Response> {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': contentType,
+                'Content-Type': uploadBody.contentType,
                 'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28',
                 'User-Agent': 'WuXia-Cloud-Sync'
             },
-            body: zipBuffer
+            body: uploadBody.body
         });
 
         const responseText = await upstreamResponse.text();

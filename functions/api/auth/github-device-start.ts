@@ -1,4 +1,4 @@
-import { buildAuthJsonResponse, handleAuthOptions } from './_shared';
+import { buildAuthJsonResponse, handleAuthOptions, postGitHubOAuthForm } from './_shared';
 
 export function onRequestOptions(): Response {
     return handleAuthOptions();
@@ -11,19 +11,11 @@ export async function onRequestPost({ env }: any) {
             return buildAuthJsonResponse({ error: 'Missing GITHUB_CLIENT_ID env variable in Cloudflare' }, 500);
         }
 
-        const response = await fetch('https://github.com/login/device/code', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                client_id: GITHUB_CLIENT_ID,
-                scope: 'repo'
-            })
+        const { response, data } = await postGitHubOAuthForm('https://github.com/login/device/code', {
+            client_id: GITHUB_CLIENT_ID,
+            scope: 'repo'
         });
 
-        const data = await response.json();
         if (!response.ok) {
             return buildAuthJsonResponse({ error: data.error_description || data.error || 'Failed to start GitHub device flow' }, response.status);
         }

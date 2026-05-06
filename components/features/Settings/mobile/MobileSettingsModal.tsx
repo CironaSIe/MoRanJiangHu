@@ -18,6 +18,7 @@ const TavernPresetSettings = React.lazy(() => lazyImportWithReload('mobile-setti
 const MemorySettings = React.lazy(() => lazyImportWithReload('mobile-settings-memory', () => import('../MemorySettings')));
 const HistoryViewer = React.lazy(() => lazyImportWithReload('mobile-settings-history-viewer', () => import('../HistoryViewer')));
 const ContextViewer = React.lazy(() => lazyImportWithReload('mobile-settings-context-viewer', () => import('../ContextViewer')));
+const LogViewer = React.lazy(() => lazyImportWithReload('mobile-settings-log-viewer', () => import('../LogViewer')));
 const RecallModelSettings = React.lazy(() => lazyImportWithReload('mobile-settings-recall-model', () => import('../RecallModelSettings')));
 const MemorySummaryModelSettings = React.lazy(() => lazyImportWithReload('mobile-settings-memory-summary-model', () => import('../MemorySummaryModelSettings')));
 const PolishModelSettings = React.lazy(() => lazyImportWithReload('mobile-settings-polish-model', () => import('../PolishModelSettings')));
@@ -31,7 +32,7 @@ const MusicSettings = React.lazy(() => lazyImportWithReload('mobile-settings-mus
 const NpcManager = React.lazy(() => lazyImportWithReload('mobile-settings-npc-manager', () => import('../NpcManager')));
 const VariableManager = React.lazy(() => lazyImportWithReload('mobile-settings-variable-manager', () => import('../VariableManager')));
 
-type SettingsTab = 'api' | 'image_generation' | 'recall' | 'memory_summary_model' | 'polish' | 'world_evolution' | 'variable_model' | 'planning_model' | 'independent_api_gpt' | 'novel_decomposition' | 'novel_decomposition_runtime' | 'prompt' | 'storage' | 'theme' | 'visual' | 'world' | 'game' | 'reality' | 'tavern_preset' | 'memory' | 'history' | 'context' | 'music' | 'npc_management' | 'variable_manager';
+type SettingsTab = 'api' | 'image_generation' | 'recall' | 'memory_summary_model' | 'polish' | 'world_evolution' | 'variable_model' | 'planning_model' | 'independent_api_gpt' | 'novel_decomposition' | 'novel_decomposition_runtime' | 'prompt' | 'storage' | 'theme' | 'visual' | 'world' | 'game' | 'reality' | 'tavern_preset' | 'memory' | 'history' | 'context' | 'logs' | 'music' | 'npc_management' | 'variable_manager';
 type RuntimeStateSections = Record<'角色' | '环境' | '社交' | '世界' | '战斗' | '剧情' | '女主剧情规划' | '玩家门派' | '任务列表' | '约定列表' | '记忆系统', unknown>;
 
 type ContextSection = {
@@ -110,6 +111,7 @@ const MobileSettingsModal: React.FC<Props> = ({
         { id: 'music', label: '音乐' },
         { id: 'history', label: '历史' },
         { id: 'context', label: '上下文' },
+        { id: 'logs', label: '日志' },
         { id: 'api', label: '接口' },
         { id: 'image_generation', label: '文生图' },
         { id: 'recall', label: '回忆' },
@@ -125,6 +127,10 @@ const MobileSettingsModal: React.FC<Props> = ({
         { id: 'theme', label: '风格' },
         { id: 'storage', label: '存储' }
     ] as const;
+    const diagnosticsEnabled = (gameConfig as any)?.启用研发诊断模式 === true;
+    const visibleTabItems = diagnosticsEnabled
+        ? tabItems
+        : tabItems.filter((item) => !['npc_management', 'variable_manager', 'logs', 'context', 'history'].includes(item.id));
 
     const 设置加载占位 = (
         <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-wuxia-gold/10 bg-black/20 text-xs tracking-[0.18em] text-wuxia-gold/70">
@@ -182,6 +188,7 @@ const MobileSettingsModal: React.FC<Props> = ({
         if (activeTab === 'music') return <MusicSettings />;
         if (activeTab === 'storage') return <StorageManager requestConfirm={requestConfirm} />;
         if (activeTab === 'history') return <HistoryViewer history={history} memorySystem={memorySystem} />;
+        if (activeTab === 'logs') return <LogViewer />;
         if (activeTab === 'context' && contextSnapshot) {
             return (
                 <ContextViewer
@@ -236,7 +243,7 @@ const MobileSettingsModal: React.FC<Props> = ({
                     </div>
                     <div className="mt-3 overflow-x-auto no-scrollbar">
                         <div className="flex items-center gap-2 min-w-max">
-                            {tabItems.map(item => (
+                            {visibleTabItems.map(item => (
                                 <button
                                     key={`mobile-tab-${item.id}`}
                                     onClick={() => onTabChange(item.id as any)}

@@ -335,8 +335,9 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
                     if (msg.role === 'assistant') {
                         const shouldCollapseThinking = visualConfig?.AI思考流式折叠 !== false;
                         const streamDisplay = 解析流式草稿显示(msg.content || '');
+                        const liveDraftText = (streamDisplay.正文内容 || streamDisplay.原始内容 || msg.content || '').trim();
                         const displayText = shouldCollapseThinking
-                            ? (streamDisplay.正文内容 || (streamDisplay.是否思考中 ? '' : (msg.content || '...')))
+                            ? (streamDisplay.正文内容 || liveDraftText || (msg.content || '...'))
                             : (msg.content || '...');
 
                         return (

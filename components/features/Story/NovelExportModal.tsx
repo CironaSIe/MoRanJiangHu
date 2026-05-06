@@ -12,6 +12,7 @@ interface Props {
 
 type ExportMode = 'raw' | 'polish';
 type PersonMode = 'third' | 'first' | 'second' | 'mixed';
+type DirectExportMode = 'plain' | 'chaptered';
 
 type StylePreset = {
     id: string;
@@ -124,6 +125,149 @@ const composeStoryText = (materials: StoryMaterial[]): string => {
     }).join('\n\n').trim();
 };
 
+const CHAPTER_KEYWORDS = [
+    { title: '风波初起', keywords: ['初入', '初到', '相逢', '遇见', '启程', '开局'] },
+    { title: '暗潮生变', keywords: ['暗', '疑', '查', '线索', '踪迹', '秘密', '异样'] },
+    { title: '刀光剑影', keywords: ['战', '杀', '剑', '刀', '拳', '敌', '伤', '血'] },
+    { title: '人心难测', keywords: ['信任', '背叛', '试探', '承诺', '情', '心', '约定'] },
+    { title: '江湖夜雨', keywords: ['夜', '雨', '客栈', '酒', '街', '城', '镇'] },
+    { title: '旧事重提', keywords: ['旧', '往事', '记忆', '师门', '家', '故人'] },
+    { title: '秘境余波', keywords: ['秘境', '遗迹', '洞府', '宝', '机关', '残卷'] },
+    { title: '山河未定', keywords: ['官府', '宗门', '天下', '江湖', '局势', '风云'] },
+];
+
+const stripGameLabels = (text: string): string => (
+    text
+        .replace(/^#+\s*/gm, '')
+        .replace(/^\s*(玩家输入|用户|助手|AI|系统)\s*[:：]/gm, '')
+        .trim()
+);
+
+const scoreTitle = (text: string, keywords: string[]) => keywords.reduce((sum, keyword) => (
+    sum + (text.includes(keyword) ? 1 : 0)
+), 0);
+
+const buildChapterTitle = (chapterMaterials: StoryMaterial[], chapterIndex: number): string => {
+    const text = chapterMaterials.map((item) => `${item.userInput}\n${item.assistantReply}`).join('\n');
+    const matched = CHAPTER_KEYWORDS
+        .map((item) => ({ title: item.title, score: scoreTitle(text, item.keywords) }))
+        .sort((a, b) => b.score - a.score)[0];
+    const title = matched && matched.score > 0 ? matched.title : `江湖纪事${chapterIndex}`;
+    return `第${chapterIndex}章 ${title}`;
+};
+
+const composeChapteredStoryText = (materials: StoryMaterial[], turnsPerChapter = 6): string => {
+    const chunks: string[] = [];
+    const safeTurnsPerChapter = Math.max(3, Math.floor(turnsPerChapter));
+    for (let index = 0; index < materials.length; index += safeTurnsPerChapter) {
+        const chapterMaterials = materials.slice(index, index + safeTurnsPerChapter);
+        const title = buildChapterTitle(chapterMaterials, chunks.length + 1);
+        const body = stripGameLabels(composeStoryText(chapterMaterials));
+        if (!body) continue;
+        chunks.push(`${title}\n\n${body}`);
+    }
+    return chunks.join('\n\n').trim();
+};
+
+const buildFormalNovelDocument = (
+    body: string,
+    options: { title: string; volume: string; protagonist: string; note: string; turnCount: number; characterCount: number; includeTitlePage: boolean; includeExportInfo: boolean; }
+): string => {
+    const parts: string[] = [];
+    if (options.includeTitlePage) {
+        parts.push([
+            options.title || '墨色江湖长卷',
+            '',
+            options.volume || '无名卷',
+            options.protagonist ? `主角：${options.protagonist}` : '',
+            options.note ? `导出说明：${options.note}` : '',
+        ].filter(Boolean).join('\n'));
+    }
+    if (options.includeExportInfo) {
+        parts.push([
+            `导出时间：${new Date().toLocaleString('zh-CN')}`,
+            `导出范围：${options.turnCount} 回合`,
+            `正文估算：${options.characterCount.toLocaleString('zh-CN')} 中文字符`,
+        ].join(' | '));
+    }
+    parts.push(body);
+    return parts.filter((part) => part.trim()).join('\n\n');
+};
+
+const extractChapterTitles = (body: string): string[] => (
+    (body || '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => /^第[0-9零一二三四五六七八九十百千万两〇○]+章/.test(line))
+);
+
+const buildOfficialExportPackageText = (
+    body: string,
+    options: {
+        title: string;
+        volume: string;
+        protagonist: string;
+        note: string;
+        turnCount: number;
+        characterCount: number;
+        includeTitlePage: boolean;
+        includeExportInfo: boolean;
+        includeCatalog: boolean;
+        includeTurnStats: boolean;
+        includeVersionInfo: boolean;
+        format: 'txt' | 'md';
+    }
+): string => {
+    const chapters = extractChapterTitles(body);
+    const isMarkdown = options.format === 'md';
+    const heading = (level: number, text: string) => `${isMarkdown ? `${'#'.repeat(level)} ` : ''}${text}`;
+    const divider = isMarkdown ? '\n---\n' : '\n------------------------------\n';
+    const parts: string[] = [];
+
+    if (options.includeTitlePage) {
+        parts.push([
+            heading(1, options.title || '墨色江湖长卷'),
+            options.volume ? heading(2, options.volume) : '',
+            options.protagonist ? `主角：${options.protagonist}` : '',
+            options.note ? `导出说明：${options.note}` : ''
+        ].filter(Boolean).join('\n\n'));
+    }
+
+    if (options.includeCatalog && chapters.length > 0) {
+        parts.push([
+            heading(2, '目录'),
+            chapters.map((title, index) => `${isMarkdown ? `${index + 1}. ` : `${index + 1}. `}${title}`).join('\n')
+        ].join('\n\n'));
+    }
+
+    if (options.includeTurnStats) {
+        const stats = [
+            ['回合数量', `${options.turnCount}`],
+            ['章节数量', `${Math.max(1, chapters.length)}`],
+            ['正文估算', `${options.characterCount.toLocaleString('zh-CN')} 中文字符`],
+            ['导出格式', isMarkdown ? 'Markdown' : 'TXT']
+        ];
+        parts.push([
+            heading(2, '回合范围统计'),
+            isMarkdown
+                ? ['| 项目 | 数值 |', '| --- | --- |', ...stats.map(([key, value]) => `| ${key} | ${value} |`)].join('\n')
+                : stats.map(([key, value]) => `${key}：${value}`).join('\n')
+        ].join('\n\n'));
+    }
+
+    if (options.includeExportInfo || options.includeVersionInfo) {
+        const info = [
+            options.includeExportInfo ? `导出时间：${new Date().toLocaleString('zh-CN')}` : '',
+            options.includeVersionInfo ? '导出工具：墨色江湖 小说正式出稿包 v1' : '',
+            options.includeVersionInfo ? '生成方式：本地直接整理，未调用 AI 润色模型' : ''
+        ].filter(Boolean).join('\n');
+        if (info) parts.push([heading(2, '导出信息'), info].join('\n\n'));
+    }
+
+    parts.push([heading(2, '正文'), body].join('\n\n'));
+    return parts.filter((part) => part.trim()).join(divider);
+};
+
 const countChineseCharacters = (text: string): number => {
     return (text.match(/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/g) || []).length;
 };
@@ -158,8 +302,8 @@ const encodeBase64 = (content: string): string => {
     return btoa(unescape(encodeURIComponent(content)));
 };
 
-const saveTextFile = async (content: string, prefix: string): Promise<ExportSaveResult> => {
-    const fileName = `${buildFileName(prefix)}.txt`;
+const saveTextFile = async (content: string, prefix: string, extension: 'txt' | 'md' = 'txt'): Promise<ExportSaveResult> => {
+    const fileName = `${buildFileName(prefix)}.${extension}`;
     const runtime = typeof window !== 'undefined' ? (window as any) : undefined;
     const filesystem = runtime?.Capacitor?.Plugins?.Filesystem;
 
@@ -182,7 +326,7 @@ const saveTextFile = async (content: string, prefix: string): Promise<ExportSave
     }
 
     if (typeof document !== 'undefined') {
-        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const blob = new Blob([content], { type: extension === 'md' ? 'text/markdown;charset=utf-8' : 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -225,6 +369,16 @@ const NovelExportModal: React.FC<Props> = ({
     onOpenPolishSettings
 }) => {
     const [mode, setMode] = React.useState<ExportMode>('raw');
+    const [directExportMode, setDirectExportMode] = React.useState<DirectExportMode>('chaptered');
+    const [bookTitle, setBookTitle] = React.useState('墨色江湖长卷');
+    const [volumeTitle, setVolumeTitle] = React.useState('江湖行卷');
+    const [protagonistName, setProtagonistName] = React.useState('');
+    const [exportNote, setExportNote] = React.useState('由墨色江湖自动整理导出');
+    const [includeTitlePage, setIncludeTitlePage] = React.useState(true);
+    const [includeExportInfo, setIncludeExportInfo] = React.useState(true);
+    const [includeCatalog, setIncludeCatalog] = React.useState(true);
+    const [includeTurnStats, setIncludeTurnStats] = React.useState(true);
+    const [includeVersionInfo, setIncludeVersionInfo] = React.useState(true);
     const [selectedStyleId, setSelectedStyleId] = React.useState<string>(STYLE_PRESETS[0].id);
     const [personMode, setPersonMode] = React.useState<PersonMode>('third');
     const [customPrompt, setCustomPrompt] = React.useState('');
@@ -236,8 +390,47 @@ const NovelExportModal: React.FC<Props> = ({
 
     const materials = React.useMemo(() => extractStoryMaterials(history), [history]);
     const rawStoryText = React.useMemo(() => composeStoryText(materials), [materials]);
+    const chapteredStoryText = React.useMemo(() => composeChapteredStoryText(materials), [materials]);
     const validTurns = materials.length;
     const totalCharacters = React.useMemo(() => countChineseCharacters(rawStoryText), [rawStoryText]);
+    const directBodyText = React.useMemo(
+        () => directExportMode === 'chaptered' ? (chapteredStoryText || rawStoryText) : rawStoryText,
+        [chapteredStoryText, directExportMode, rawStoryText]
+    );
+    const formalDirectText = React.useMemo(() => buildOfficialExportPackageText(
+        directBodyText,
+        {
+            title: bookTitle,
+            volume: volumeTitle,
+            protagonist: protagonistName,
+            note: exportNote,
+            turnCount: validTurns,
+            characterCount: totalCharacters,
+            includeTitlePage,
+            includeExportInfo,
+            includeCatalog,
+            includeTurnStats,
+            includeVersionInfo,
+            format: 'txt',
+        }
+    ), [bookTitle, directBodyText, exportNote, includeCatalog, includeExportInfo, includeTitlePage, includeTurnStats, includeVersionInfo, protagonistName, totalCharacters, validTurns, volumeTitle]);
+    const markdownDirectText = React.useMemo(() => buildOfficialExportPackageText(
+        directBodyText,
+        {
+            title: bookTitle,
+            volume: volumeTitle,
+            protagonist: protagonistName,
+            note: exportNote,
+            turnCount: validTurns,
+            characterCount: totalCharacters,
+            includeTitlePage,
+            includeExportInfo,
+            includeCatalog,
+            includeTurnStats,
+            includeVersionInfo,
+            format: 'md',
+        }
+    ), [bookTitle, directBodyText, exportNote, includeCatalog, includeExportInfo, includeTitlePage, includeTurnStats, includeVersionInfo, protagonistName, totalCharacters, validTurns, volumeTitle]);
     const estimatedSegments = React.useMemo(() => Math.max(1, Math.ceil(rawStoryText.length / 3000)), [rawStoryText]);
     const selectedStyle = React.useMemo(
         () => STYLE_PRESETS.find((item) => item.id === selectedStyleId) || STYLE_PRESETS[0],
@@ -267,12 +460,27 @@ const NovelExportModal: React.FC<Props> = ({
         try {
             setError(null);
             setSuccessMessage(null);
-            const result = await saveTextFile(rawStoryText, '墨染江湖_原始小说');
+            const result = await saveTextFile(formalDirectText, directExportMode === 'chaptered' ? '墨染江湖_章节正文' : '墨染江湖_原始小说');
             setSuccessMessage(result.message);
         } catch (exportError) {
             setError(`导出失败：${exportError instanceof Error ? exportError.message : '未知错误'}`);
         }
-    }, [rawStoryText]);
+    }, [directExportMode, formalDirectText, rawStoryText]);
+
+    const handleExportMarkdown = React.useCallback(async () => {
+        if (!rawStoryText.trim()) {
+            setError('当前没有可导出的剧情内容。');
+            return;
+        }
+        try {
+            setError(null);
+            setSuccessMessage(null);
+            const result = await saveTextFile(markdownDirectText, directExportMode === 'chaptered' ? '墨染江湖_章节正文' : '墨染江湖_原始小说', 'md');
+            setSuccessMessage(result.message);
+        } catch (exportError) {
+            setError(`导出失败：${exportError instanceof Error ? exportError.message : '未知错误'}`);
+        }
+    }, [directExportMode, markdownDirectText, rawStoryText]);
 
     const handlePolishExport = React.useCallback(async () => {
         if (!rawStoryText.trim()) {
@@ -493,6 +701,70 @@ const NovelExportModal: React.FC<Props> = ({
                             </section>
                         )}
 
+                        {mode === 'raw' && (
+                            <section className="rounded-3xl border border-white/5 bg-white/[0.03] p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-[11px] tracking-[0.3em] text-gray-500">正式文档</div>
+                                        <div className="mt-1 text-xs leading-5 text-gray-500">直接导出也会整理成可读长卷，可选择章节化或保留原始顺序。</div>
+                                    </div>
+                                </div>
+                                <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDirectExportMode('chaptered')}
+                                        className={`rounded-2xl border px-4 py-3 text-left transition-all ${directExportMode === 'chaptered' ? 'border-wuxia-gold/60 bg-wuxia-gold/10 text-wuxia-gold' : 'border-gray-800 bg-black/20 text-gray-300 hover:border-gray-600'}`}
+                                    >
+                                        <div className="text-sm font-semibold">章节化正文</div>
+                                        <div className="mt-1 text-xs leading-5 text-gray-500">自动按回合拆章，并根据关键词生成章节标题。</div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDirectExportMode('plain')}
+                                        className={`rounded-2xl border px-4 py-3 text-left transition-all ${directExportMode === 'plain' ? 'border-wuxia-gold/60 bg-wuxia-gold/10 text-wuxia-gold' : 'border-gray-800 bg-black/20 text-gray-300 hover:border-gray-600'}`}
+                                    >
+                                        <div className="text-sm font-semibold">原始长卷</div>
+                                        <div className="mt-1 text-xs leading-5 text-gray-500">保留当前剧情顺序，只加标题页和导出信息。</div>
+                                    </button>
+                                </div>
+                                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                    <input value={bookTitle} onChange={(event) => setBookTitle(event.target.value)} className="rounded-2xl border border-gray-800 bg-black/30 px-4 py-3 text-sm text-gray-200 outline-none focus:border-wuxia-gold/35" placeholder="书名" />
+                                    <input value={volumeTitle} onChange={(event) => setVolumeTitle(event.target.value)} className="rounded-2xl border border-gray-800 bg-black/30 px-4 py-3 text-sm text-gray-200 outline-none focus:border-wuxia-gold/35" placeholder="卷名" />
+                                    <input value={protagonistName} onChange={(event) => setProtagonistName(event.target.value)} className="rounded-2xl border border-gray-800 bg-black/30 px-4 py-3 text-sm text-gray-200 outline-none focus:border-wuxia-gold/35" placeholder="主角名（可选）" />
+                                    <input value={exportNote} onChange={(event) => setExportNote(event.target.value)} className="rounded-2xl border border-gray-800 bg-black/30 px-4 py-3 text-sm text-gray-200 outline-none focus:border-wuxia-gold/35" placeholder="导出说明" />
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-300">
+                                    <label className="flex items-center gap-2 rounded-full border border-gray-800 bg-black/25 px-3 py-2">
+                                        <input type="checkbox" checked={includeTitlePage} onChange={(event) => setIncludeTitlePage(event.target.checked)} />
+                                        包含标题页
+                                    </label>
+                                    <label className="flex items-center gap-2 rounded-full border border-gray-800 bg-black/25 px-3 py-2">
+                                        <input type="checkbox" checked={includeExportInfo} onChange={(event) => setIncludeExportInfo(event.target.checked)} />
+                                        包含导出信息
+                                    </label>
+                                    <label className="flex items-center gap-2 rounded-full border border-gray-800 bg-black/25 px-3 py-2">
+                                        <input type="checkbox" checked={includeCatalog} onChange={(event) => setIncludeCatalog(event.target.checked)} />
+                                        包含章节目录
+                                    </label>
+                                    <label className="flex items-center gap-2 rounded-full border border-gray-800 bg-black/25 px-3 py-2">
+                                        <input type="checkbox" checked={includeTurnStats} onChange={(event) => setIncludeTurnStats(event.target.checked)} />
+                                        包含回合统计
+                                    </label>
+                                    <label className="flex items-center gap-2 rounded-full border border-gray-800 bg-black/25 px-3 py-2">
+                                        <input type="checkbox" checked={includeVersionInfo} onChange={(event) => setIncludeVersionInfo(event.target.checked)} />
+                                        包含版本信息
+                                    </label>
+                                </div>
+                                <div className="mt-4 rounded-2xl border border-gray-800 bg-black/30 p-4">
+                                    <div className="mb-2 text-[11px] tracking-[0.3em] text-gray-500">导出预览</div>
+                                    <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap text-sm leading-7 text-gray-300 no-scrollbar">
+                                        {formalDirectText.slice(0, 2200)}
+                                        {formalDirectText.length > 2200 ? '\n\n……预览已截断，完整内容请导出查看。' : ''}
+                                    </pre>
+                                </div>
+                            </section>
+                        )}
+
                         {isProcessing && (
                             <section className="rounded-3xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-100">
                                 <div className="flex items-center justify-between gap-3">
@@ -568,13 +840,22 @@ const NovelExportModal: React.FC<Props> = ({
                 {rawStoryText.trim() && (
                     <div className="shrink-0 border-t border-white/5 bg-black/70 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] pt-4 md:px-6 md:pb-5">
                         {mode === 'raw' ? (
-                            <button
-                                type="button"
-                                onClick={() => void handleExportRaw()}
-                                className="w-full rounded-2xl border border-wuxia-gold/40 bg-wuxia-gold/15 px-4 py-3 text-sm font-semibold tracking-[0.18em] text-wuxia-gold transition-colors hover:bg-wuxia-gold/22"
-                            >
-                                直接导出 TXT
-                            </button>
+                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                <button
+                                    type="button"
+                                    onClick={() => void handleExportRaw()}
+                                    className="w-full rounded-2xl border border-wuxia-gold/40 bg-wuxia-gold/15 px-4 py-3 text-sm font-semibold tracking-[0.18em] text-wuxia-gold transition-colors hover:bg-wuxia-gold/22"
+                                >
+                                    导出正式 TXT
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => void handleExportMarkdown()}
+                                    className="w-full rounded-2xl border border-sky-400/35 bg-sky-500/10 px-4 py-3 text-sm font-semibold tracking-[0.18em] text-sky-100 transition-colors hover:bg-sky-500/20"
+                                >
+                                    导出 Markdown
+                                </button>
+                            </div>
                         ) : (
                             <button
                                 type="button"

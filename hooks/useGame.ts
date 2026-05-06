@@ -3077,7 +3077,8 @@ export const useGame = () => {
         setters: {
             setShowSettings, setShowInventory, setShowEquipment, setShowBattle, setShowSocial, setShowTeam, setShowKungfu, setShowWorld, setShowMap, setShowSect, setShowTask, setShowAgreement, setShowStory, setShowHeroinePlan, setShowMemory, setShowSaveLoad,
             setActiveTab, setCurrentTheme,
-            setApiConfig, setVisualConfig, setImageManagerConfig, setPrompts
+            setApiConfig, setVisualConfig, setImageManagerConfig, setPrompts,
+            setCharacter: 设置角色
         },
         actions: {
             handleSend,

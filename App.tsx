@@ -20,6 +20,8 @@ import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImp
 import { 小说拆分后台调度服务 } from './services/novelDecompositionScheduler';
 import { checkForAppUpdate, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
 import { RELEASE_INFO } from './data/releaseInfo';
+import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 从剧情响应构建拍卖行投放参数, type 拍卖行状态 } from './services/auctionHouse';
+import './services/diagnosticLog';
 
 const RELEASE_NOTES_SUPPRESS_DATE_KEY = 'moranjianghu.releaseNotesSuppressDate';
 
@@ -81,6 +83,7 @@ const NpcMemorySummaryFlowMobileModal = 创建可预加载懒组件('mobile-npc-
 const SaveLoadModal = 创建可预加载懒组件('save-load-modal', () => import('./components/features/SaveLoad/SaveLoadModal'));
 const MobileMusicPlayer = 创建可预加载懒组件('mobile-music-player', () => import('./components/features/Music/mobile/MobileMusicPlayer'));
 const NovelDecompositionWorkbenchModal = 创建可预加载懒组件('novel-decomposition-workbench-modal', () => import('./components/features/NovelDecomposition/NovelDecompositionWorkbenchModal'));
+const AuctionHouseModal = 创建可预加载懒组件('auction-house-modal', () => import('./components/features/AuctionHouse/AuctionHouseModal'));
 
 const 懒加载占位: React.FC = () => (
     <div className="fixed inset-0 z-[260] flex items-center justify-center bg-black/45 px-6 py-10 text-center backdrop-blur-[2px]">
@@ -164,6 +167,8 @@ const App: React.FC = () => {
     const [showWorldbookManager, setShowWorldbookManager] = React.useState(false);
     const [showNovelDecompositionWorkbench, setShowNovelDecompositionWorkbench] = React.useState(false);
     const [showNovelExport, setShowNovelExport] = React.useState(false);
+    const [showAuctionHouse, setShowAuctionHouse] = React.useState(false);
+    const [auctionHouseState, setAuctionHouseState] = React.useState<拍卖行状态>(() => 读取拍卖行状态());
     const [showMobileMusic, setShowMobileMusic] = React.useState(false);
     const [chatContentHidden, setChatContentHidden] = React.useState(false);
     const [sceneQuickGenHint, setSceneQuickGenHint] = React.useState(false);
@@ -201,6 +206,12 @@ const App: React.FC = () => {
     }, []);
 
     React.useEffect(() => subscribeAppUpdateProgress(setAppUpdateProgress), []);
+    React.useEffect(() => {
+        const next = 清理并补货(读取拍卖行状态());
+        setAuctionHouseState(next);
+        保存拍卖行状态(next);
+    }, []);
+    const auctionBridgeHandledRef = React.useRef<Set<string>>(new Set());
     function handleMobileMenuAction(menu: string) {
         const isActive = activeMobileWindowId === menu;
         closeAllPanels();
@@ -256,6 +267,9 @@ const App: React.FC = () => {
                 break;
             case 'export_novel':
                 setShowNovelExport(true);
+                break;
+            case 'auction_house':
+                setShowAuctionHouse(true);
                 break;
             case 'image_manager':
                 void openImageManagerWithCheck();
@@ -507,6 +521,7 @@ const App: React.FC = () => {
                 MobileTask,
                 MobileStory,
                 NovelExportModal,
+                AuctionHouseModal,
                 MobileSettingsModal,
                 MobileMemory,
                 MobileWorldModal,
@@ -520,6 +535,7 @@ const App: React.FC = () => {
                 TaskModal,
                 StoryModal,
                 NovelExportModal,
+                AuctionHouseModal,
                 SettingsModal,
                 MemoryModal,
                 WorldModal,
@@ -741,6 +757,24 @@ const App: React.FC = () => {
             : [],
         [latestAssistantMessage]
     );
+    React.useEffect(() => {
+        const response = latestAssistantMessage?.structuredResponse;
+        if (!response) return;
+        const signature = `${latestAssistantMessage.timestamp || 0}-${latestAssistantMessage.gameTime || ''}`;
+        if (auctionBridgeHandledRef.current.has(signature)) return;
+        auctionBridgeHandledRef.current.add(signature);
+        const bridge = 从剧情响应构建拍卖行投放参数(response, {
+            gameTime: latestAssistantMessage.gameTime || currentEnvTime,
+            place: state.环境?.具体地点 || state.环境?.小地点 || state.环境?.中地点 || state.环境?.大地点 || ''
+        });
+        if (!bridge.shouldDispatch || !bridge.params) return;
+        setAuctionHouseState((prev) => {
+            const next = 投放事件拍卖品(prev, bridge.params!);
+            保存拍卖行状态(next);
+            return next;
+        });
+        console.info('[拍卖行桥接] 已从剧情回合投放事件货品', bridge.reason, bridge.params.事件名称);
+    }, [latestAssistantMessage, currentEnvTime, state.环境]);
 
     const activeMobileWindow =
         showCharacter ? '角色' :
@@ -759,6 +793,7 @@ const App: React.FC = () => {
         state.showHeroinePlan ? '规划' :
         state.showMemory ? '记忆' :
         showNovelExport ? '导出小说' :
+        showAuctionHouse ? '拍卖行' :
         showImageManager ? '图册' :
         showNovelDecompositionWorkbench ? '小说分解' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? '保存' : '读取') :
@@ -783,6 +818,7 @@ const App: React.FC = () => {
         state.showHeroinePlan ? 'plan' :
         state.showMemory ? 'memory' :
         showNovelExport ? 'export_novel' :
+        showAuctionHouse ? 'auction_house' :
         showImageManager ? 'image_manager' :
         showNovelDecompositionWorkbench ? 'novel_decomposition' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? 'save' : 'load') :
@@ -807,6 +843,7 @@ const App: React.FC = () => {
         setters.setShowHeroinePlan(false);
         setters.setShowMemory(false);
         setShowNovelExport(false);
+        setShowAuctionHouse(false);
         setShowImageManager(false);
         setShowNovelDecompositionWorkbench(false);
         setters.setShowSaveLoad({ show: false, mode: 'save' });
@@ -838,6 +875,7 @@ const App: React.FC = () => {
     const openStory = React.useCallback(() => setters.setShowStory(true), [setters]);
     const openHeroinePlan = React.useCallback(() => setters.setShowHeroinePlan(true), [setters]);
     const openMemory = React.useCallback(() => setters.setShowMemory(true), [setters]);
+    const openAuctionHouse = React.useCallback(() => setShowAuctionHouse(true), []);
     const openNovelExport = React.useCallback(() => setShowNovelExport(true), []);
     const openSave = React.useCallback(() => setters.setShowSaveLoad({ show: true, mode: 'save' }), [setters]);
     const openLoad = React.useCallback(() => setters.setShowSaveLoad({ show: true, mode: 'load' }), [setters]);
@@ -1471,6 +1509,7 @@ const App: React.FC = () => {
                                 onOpenHeroinePlan={openHeroinePlan}
                                 onOpenMemory={openMemory}
                                 onOpenNovelExport={openNovelExport}
+                                onOpenAuctionHouse={openAuctionHouse}
                                 onOpenImageManager={openImageManagerWithCheck}
                                 onOpenNovelDecomposition={() => { void openNovelDecompositionWorkbench(); }}
                                 worldEvolutionEnabled={meta.worldEvolutionEnabled}
@@ -2017,6 +2056,23 @@ const App: React.FC = () => {
                         </懒加载边界>
                     )}
 
+                    {showAuctionHouse && (
+                        <懒加载边界>
+                            <AuctionHouseModal
+                                character={state.角色}
+                                auctionState={auctionHouseState}
+                                onAuctionStateChange={setAuctionHouseState}
+                                onCharacterChange={(nextCharacter: any) => {
+                                    setters.setCharacter(nextCharacter);
+                                    void actions.performAutoSave?.({ role: nextCharacter, force: true });
+                                }}
+                                onNotify={(title, message, tone) => actions.pushNotification({ title, message, tone })}
+                                onClose={() => setShowAuctionHouse(false)}
+                                isMobile={isMobile}
+                            />
+                        </懒加载边界>
+                    )}
+
                     {showCharacter && (
                         <懒加载边界>
                             {isMobile ? (
@@ -2183,12 +2239,16 @@ const App: React.FC = () => {
                                 <MobileMapModal
                                     world={state.世界}
                                     env={state.环境}
+                                    socialList={state.社交}
+                                    debugEnabled={(state.gameConfig as any)?.启用研发诊断模式 === true}
                                     onClose={() => setters.setShowMap(false)}
                                 />
                             ) : (
                                 <MapModal
                                     world={state.世界}
                                     env={state.环境}
+                                    socialList={state.社交}
+                                    debugEnabled={(state.gameConfig as any)?.启用研发诊断模式 === true}
                                     onClose={() => setters.setShowMap(false)}
                                 />
                             )}

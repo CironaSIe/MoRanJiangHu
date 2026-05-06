@@ -208,6 +208,18 @@ export interface 发现图片后端记录结构 {
     source: 'registry';
 }
 
+export type 生图配置档适用范围 = 'npc' | 'scene' | 'item';
+
+export interface 生图配置档结构 {
+    id: string;
+    名称: string;
+    适用范围: 生图配置档适用范围;
+    说明?: string;
+    配置: Partial<功能模型占位配置结构>;
+    createdAt: number;
+    updatedAt: number;
+}
+
 export interface 功能模型占位配置结构 {
     主剧情使用模型: string;
     剧情回忆独立模型开关: boolean;
@@ -323,6 +335,10 @@ export interface 功能模型占位配置结构 {
     NPC生图启用: boolean;
     NPC生图性别筛选: 生图筛选性别类型;
     NPC生图重要性筛选: 生图筛选重要性类型;
+    生图配置档列表?: 生图配置档结构[];
+    当前NPC生图配置档ID?: string;
+    当前场景生图配置档ID?: string;
+    当前物品生图配置档ID?: string;
 }
 
 export interface 接口设置结构 {

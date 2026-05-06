@@ -69,8 +69,25 @@ const parseNumericValue = (value: string): number | null => {
     return match ? Number(match[0]) : null;
 };
 
+const JUDGMENT_RESULT_PATTERN = /^(?:结果=)?(成功|失败|大成功|大失败|极成功|极失败|胜利|落败|锁定|偏离|致残|重创|肢残|骨折|破防|截脉|格挡|僵持)$/;
+const JUDGMENT_FIELD_NAMES = new Set(['触发对象', '对象', '判定值', '难度', '胜方', '败方', '差值', '伤害值', '消耗', '剩余', '后果', '发现度']);
+
+const 剥离串入正文 = (text: string): string => {
+    const source = String(text || '');
+    const senderMarkerRegex = /(^|[\n｜\s])(?:【\s*)?([^\s【】｜\n:：]{1,16})(?:\s*】)?[:：]/g;
+    let match: RegExpExecArray | null = null;
+    while ((match = senderMarkerRegex.exec(source)) !== null) {
+        const sender = (match[2] || '').trim();
+        if (!sender || JUDGMENT_FIELD_NAMES.has(sender)) continue;
+        const before = source.slice(0, match.index).trim();
+        if (!before || !/(成功|失败|大成功|大失败|极成功|极失败|胜利|落败|锁定|偏离|致残|重创|肢残|骨折|破防|截脉|格挡|僵持)/.test(before)) continue;
+        return before;
+    }
+    return source;
+};
+
 const parseJudgmentText = (text: string): ParsedJudgment => {
-    const parts = text.split('｜').map(s => s.trim()).filter(Boolean);
+    const parts = 剥离串入正文(text).split('｜').map(s => s.trim()).filter(Boolean);
     if (parts.length === 0) return createEmptyJudgment();
 
     const rawEventName = parts[0] || '判定事件';
@@ -86,7 +103,7 @@ const parseJudgmentText = (text: string): ParsedJudgment => {
         eventName: cleanEventName || '判定事件'
     };
 
-    const isResultToken = (token: string) => /(?:结果=)?(成功|失败|大成功|大失败|极成功|极失败|胜利|落败|锁定|偏离|致残|重创|肢残|骨折|破防|截脉|格挡|僵持)/.test(token);
+    const isResultToken = (token: string) => JUDGMENT_RESULT_PATTERN.test(token);
     
     for (const part of parts) {
         if (part.startsWith('结果=')) {

@@ -5,14 +5,17 @@ import { 环境信息结构 } from '../../../models/environment';
 interface Props {
     world: 世界数据结构;
     env: 环境信息结构;
+    socialList?: any[];
+    debugEnabled?: boolean;
     onClose: () => void;
 }
 
 const 归一化文本 = (value: string | undefined | null) => (value || '').trim().replace(/\s+/g, '').toLowerCase();
 
-const MapModal: React.FC<Props> = ({ world, env, onClose }) => {
+const MapModal: React.FC<Props> = ({ world, env, socialList = [], debugEnabled = false, onClose }) => {
     const maps = Array.isArray(world?.地图) ? world.地图 : [];
     const buildings = Array.isArray(world?.建筑) ? world.建筑 : [];
+    const [showNpcDebug, setShowNpcDebug] = useState(false);
     const 当前地点归一 = 归一化文本(env?.具体地点 || '');
     const 当前层级 = {
         大: 归一化文本(env?.大地点 || ''),
@@ -67,6 +70,58 @@ const MapModal: React.FC<Props> = ({ world, env, onClose }) => {
                 || 名称归一.includes(当前地点归一);
         });
     }, [buildings, 当前地点归一]);
+
+    const npcDebugRows = useMemo(() => {
+        const currentKeys = [
+            env?.具体地点,
+            env?.小地点,
+            env?.中地点,
+            env?.大地点,
+            当前地图?.名称,
+            ...(当前地图内部建筑名 || [])
+        ].map((item) => 归一化文本(String(item || ''))).filter(Boolean);
+        const rows = (Array.isArray(socialList) ? socialList : []).map((npc: any, index: number) => {
+            const rawLocationText = [
+                npc?.当前位置,
+                npc?.所在地点,
+                npc?.具体地点,
+                npc?.地点,
+                npc?.位置,
+                npc?.归属?.大地点,
+                npc?.归属?.中地点,
+                npc?.归属?.小地点
+            ].map((item) => String(item || '')).filter(Boolean).join(' / ');
+            const normalizedLocation = 归一化文本(rawLocationText);
+            const normalizedNpcText = 归一化文本(JSON.stringify({
+                位置: rawLocationText,
+                简介: npc?.简介,
+                身份: npc?.身份
+            }));
+            const hitKeys = currentKeys.filter((key) => (
+                Boolean(key) && (
+                    normalizedLocation.includes(key)
+                    || (normalizedLocation && key.includes(normalizedLocation))
+                    || normalizedNpcText.includes(key)
+                )
+            ));
+            const explicitPresent = npc?.是否在场 === true;
+            return {
+                id: npc?.id || npc?.姓名 || `npc-debug-${index}`,
+                姓名: npc?.姓名 || '未命名',
+                身份: npc?.身份 || '未知身份',
+                rawLocationText,
+                explicitPresent,
+                hitKeys,
+                finalVisible: explicitPresent || hitKeys.length > 0
+            };
+        });
+        return {
+            candidates: rows,
+            matched: rows.filter((item) => item.hitKeys.length > 0),
+            explicitPresent: rows.filter((item) => item.explicitPresent),
+            finalVisible: rows.filter((item) => item.finalVisible)
+        };
+    }, [socialList, env?.具体地点, env?.小地点, env?.中地点, env?.大地点, 当前地图?.名称, 当前地图内部建筑名]);
 
     return (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[220] flex items-center justify-center p-4 animate-fadeIn">
@@ -247,7 +302,13 @@ const MapModal: React.FC<Props> = ({ world, env, onClose }) => {
                                 <div className="flex items-center gap-2">
                                     <span className="text-wuxia-gold/50 text-xs">◈</span> 命格交汇区
                                 </div>
-                                <span className="text-[10px] tracking-widest text-gray-500 border border-gray-700 bg-black/50 px-2 py-0.5 rounded">前端裁定注入量</span>
+                                {debugEnabled && <button
+                                    type="button"
+                                    onClick={() => setShowNpcDebug((prev) => !prev)}
+                                    className={`text-[10px] tracking-widest border px-2 py-0.5 rounded transition-colors ${showNpcDebug ? 'border-wuxia-gold/50 bg-wuxia-gold/10 text-wuxia-gold' : 'border-gray-700 bg-black/50 text-gray-500 hover:text-gray-300'}`}
+                                >
+                                    NPC 调试
+                                </button>}
                             </div>
                             <div className="text-[11px] text-gray-400 tracking-wider flex items-center gap-2">
                                 <span className="text-gray-500">寻源锚点：</span>
@@ -258,6 +319,41 @@ const MapModal: React.FC<Props> = ({ world, env, onClose }) => {
                         </div>
 
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-5 relative z-10">
+                            {showNpcDebug && (
+                                <div className="mb-4 rounded-xl border border-sky-500/25 bg-sky-950/15 p-4">
+                                    <div className="mb-3 flex items-center justify-between gap-3">
+                                        <div>
+                                            <div className="text-sm font-bold text-sky-200">地图人物调试</div>
+                                            <div className="mt-1 text-[11px] text-sky-100/55">用于排查 NPC 为什么没有出现在当前地图或场景。</div>
+                                        </div>
+                                        <div className="grid grid-cols-4 gap-2 text-center text-[10px]">
+                                            <div className="rounded border border-white/10 bg-black/25 px-2 py-1"><div className="text-gray-500">候选</div><div className="text-gray-100">{npcDebugRows.candidates.length}</div></div>
+                                            <div className="rounded border border-white/10 bg-black/25 px-2 py-1"><div className="text-gray-500">地点命中</div><div className="text-sky-200">{npcDebugRows.matched.length}</div></div>
+                                            <div className="rounded border border-white/10 bg-black/25 px-2 py-1"><div className="text-gray-500">在场</div><div className="text-emerald-200">{npcDebugRows.explicitPresent.length}</div></div>
+                                            <div className="rounded border border-white/10 bg-black/25 px-2 py-1"><div className="text-gray-500">最终</div><div className="text-wuxia-gold">{npcDebugRows.finalVisible.length}</div></div>
+                                        </div>
+                                    </div>
+                                    <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                                        {npcDebugRows.candidates.map((npc) => (
+                                            <div key={npc.id} className={`rounded-lg border p-2 text-xs ${npc.finalVisible ? 'border-emerald-500/25 bg-emerald-950/10' : 'border-white/10 bg-black/25'}`}>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="font-semibold text-gray-100">{npc.姓名}</span>
+                                                    <span className={npc.finalVisible ? 'text-emerald-300' : 'text-gray-500'}>{npc.finalVisible ? '会显示' : '未命中'}</span>
+                                                </div>
+                                                <div className="mt-1 text-gray-500">身份：{npc.身份}</div>
+                                                <div className="mt-1 text-gray-500">位置：{npc.rawLocationText || '未写入位置字段'}</div>
+                                                <div className="mt-1 flex flex-wrap gap-1">
+                                                    {npc.explicitPresent && <span className="rounded border border-emerald-400/30 bg-emerald-950/30 px-1.5 py-0.5 text-emerald-200">是否在场</span>}
+                                                    {npc.hitKeys.map((key) => <span key={key} className="rounded border border-sky-400/30 bg-sky-950/30 px-1.5 py-0.5 text-sky-200">命中 {key}</span>)}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {npcDebugRows.candidates.length === 0 && (
+                                            <div className="rounded-lg border border-dashed border-white/10 py-6 text-center text-xs text-gray-500">暂无 NPC 候选数据</div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             {命中建筑列表.length > 0 ? (
                                 <div className="space-y-4">
                                     <div className="text-[10px] text-wuxia-gold/70 text-center mb-4 tracking-widest font-serif flex items-center gap-3">

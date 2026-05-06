@@ -22,6 +22,7 @@ interface Props {
     onOpenNovelExport?: () => void;
     onOpenImageManager?: () => void;
     onOpenNovelDecomposition?: () => void;
+    onOpenAuctionHouse?: () => void;
     worldEvolutionEnabled?: boolean;
     worldEvolutionUpdating?: boolean;
     enableHeroinePlan?: boolean;
@@ -50,6 +51,7 @@ const RightPanel: React.FC<Props> = ({
     onOpenNovelExport,
     onOpenImageManager,
     onOpenNovelDecomposition,
+    onOpenAuctionHouse,
     worldEvolutionEnabled = false,
     worldEvolutionUpdating = false,
     enableHeroinePlan = false,
@@ -85,6 +87,7 @@ const RightPanel: React.FC<Props> = ({
         ...(enableHeroinePlan ? [{ label: '规划', action: onOpenHeroinePlan, color: 'primary' as const }] : []),
         { label: '记忆', action: onOpenMemory, color: 'primary' as const },
         ...(onOpenNovelExport ? [{ label: '导出小说', action: onOpenNovelExport, color: 'secondary' as const }] : []),
+        ...(onOpenAuctionHouse ? [{ label: '拍卖行', action: onOpenAuctionHouse, color: 'secondary' as const }] : []),
         ...(onOpenImageManager ? [{ label: '图册', action: onOpenImageManager, color: 'secondary' as const }] : []),
         ...(onOpenNovelDecomposition ? [{ label: '小说分解', action: onOpenNovelDecomposition, color: 'secondary' as const }] : []),
     ];

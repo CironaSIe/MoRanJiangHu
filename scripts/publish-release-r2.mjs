@@ -66,8 +66,20 @@ const runWrangler = (args) => {
   }
 };
 
-runWrangler(['r2', 'object', 'put', latestKey, '--file', apkPath, '--content-type', 'application/vnd.android.package-archive', '--remote']);
-runWrangler(['r2', 'object', 'put', versionedKey, '--file', apkPath, '--content-type', 'application/vnd.android.package-archive', '--remote']);
+runWrangler([
+  'r2', 'object', 'put', latestKey,
+  '--file', apkPath,
+  '--content-type', 'application/vnd.android.package-archive',
+  '--cache-control', 'no-store,no-cache,max-age=0,must-revalidate',
+  '--remote'
+]);
+runWrangler([
+  'r2', 'object', 'put', versionedKey,
+  '--file', apkPath,
+  '--content-type', 'application/vnd.android.package-archive',
+  '--cache-control', 'no-store,no-cache,max-age=0,must-revalidate',
+  '--remote'
+]);
 runWrangler([
   'r2', 'object', 'put', manifestKey,
   '--file', manifestPath,

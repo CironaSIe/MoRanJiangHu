@@ -1,4 +1,6 @@
+import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
+import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
 
 export type 通用消息角色 = 'system' | 'user' | 'assistant';
 
@@ -15,6 +17,32 @@ export type 通用流式选项 = {
 } | undefined;
 
 type 请求协议类型 = 'openai' | 'deepseek';
+
+type 原生聊天流事件 = {
+    requestId?: string;
+    type?: 'meta' | 'chunk' | 'done' | 'error';
+    text?: string;
+    message?: string;
+    status?: number;
+    contentType?: string;
+    byteLength?: number;
+};
+
+type 原生聊天流插件 = {
+    streamChat(options: {
+        requestId: string;
+        endpoint: string;
+        headers: Record<string, string>;
+        body: string;
+    }): Promise<void>;
+    cancelStream(options: { requestId: string }): Promise<void>;
+    addListener(
+        eventName: 'chatStream',
+        listenerFunc: (event: 原生聊天流事件) => void
+    ): Promise<PluginListenerHandle>;
+};
+
+const 原生聊天流 = registerPlugin<原生聊天流插件>('NativeChatStreamer');
 
 export class 协议请求错误 extends Error {
     status?: number;
@@ -396,19 +424,12 @@ export const 读取失败详情文本 = async (response: Response, maxLen = 600)
     }
 };
 
-const 解析SSE文本 = async (
-    response: Response,
+const 创建SSE文本处理器 = (
     extractDelta: 增量提取器,
-    onDelta?: (delta: string, accumulated: string) => void,
-    emptyBodyError = 'Stream body is empty'
-): Promise<string> => {
-    if (!response.body) throw new Error(emptyBodyError);
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
+    onDelta?: (delta: string, accumulated: string) => void
+) => {
     let rawBuffer = '';
     let accumulated = '';
-    let rawStreamText = '';
     let sawSseFrame = false;
     let doneSignal = false;
     let pendingJsonPayload = '';
@@ -487,21 +508,13 @@ const 解析SSE文本 = async (
         }
     };
 
-    try {
-        while (!doneSignal) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            const chunkText = decoder.decode(value, { stream: true });
-            rawStreamText += chunkText;
-            rawBuffer += chunkText;
-            刷新事件缓冲(false);
-        }
+    const 追加文本 = (chunkText: string) => {
+        if (!chunkText || doneSignal) return;
+        rawBuffer += chunkText;
+        刷新事件缓冲(false);
+    };
 
-        const tail = decoder.decode();
-        if (tail) {
-            rawStreamText += tail;
-            rawBuffer += tail;
-        }
+    const 完成 = () => {
         刷新事件缓冲(true);
 
         if (pendingJsonPayload) {
@@ -513,6 +526,52 @@ const 解析SSE文本 = async (
             const tailDelta = extractDelta.finalize();
             emitDelta(tailDelta);
         }
+
+        if (!sawSseFrame) {
+            throw new Error('Stream response did not contain text/event-stream data frames');
+        }
+
+        return accumulated.trim();
+    };
+
+    return {
+        追加文本,
+        完成,
+        是否完成: () => doneSignal
+    };
+};
+
+const 解析SSE文本 = async (
+    response: Response,
+    extractDelta: 增量提取器,
+    onDelta?: (delta: string, accumulated: string) => void,
+    emptyBodyError = 'Stream body is empty'
+): Promise<string> => {
+    if (!response.body) throw new Error(emptyBodyError);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    const processor = 创建SSE文本处理器(extractDelta, onDelta);
+
+    try {
+        while (!processor.是否完成()) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            const chunkText = decoder.decode(value, { stream: true });
+            写入流式诊断日志('fetch stream chunk', {
+                byteLength: value.byteLength,
+                textLength: chunkText.length
+            });
+            processor.追加文本(chunkText);
+        }
+
+        const tail = decoder.decode();
+        if (tail) {
+            写入流式诊断日志('fetch stream tail', {
+                textLength: tail.length
+            });
+            processor.追加文本(tail);
+        }
     } finally {
         try {
             reader.releaseLock();
@@ -521,19 +580,246 @@ const 解析SSE文本 = async (
         }
     }
 
-    if (!sawSseFrame) {
-        const plainPayload = rawStreamText.trim();
-        if (plainPayload) {
-            emitDelta(plainPayload);
+    return processor.完成();
+};
+
+const 支持XHR流式请求 = (): boolean => {
+    return typeof XMLHttpRequest !== 'undefined' && typeof window !== 'undefined';
+};
+
+const 支持原生流式请求 = (): boolean => {
+    return isNativeCapacitorEnvironment();
+};
+
+const 生成原生流请求ID = (): string => {
+    const randomPart = Math.random().toString(36).slice(2, 10);
+    return `chat-${Date.now()}-${randomPart}`;
+};
+
+const 解析SSE文本原生 = async (
+    endpoint: string,
+    headers: Record<string, string>,
+    body: string,
+    signal: AbortSignal | undefined,
+    extractDelta: 增量提取器,
+    onDelta?: (delta: string, accumulated: string) => void
+): Promise<string> => {
+    const requestId = 生成原生流请求ID();
+    const processor = 创建SSE文本处理器(extractDelta, onDelta);
+    let listenerHandle: PluginListenerHandle | null = null;
+    let settled = false;
+
+    const cleanup = () => {
+        signal?.removeEventListener('abort', abortHandler);
+        if (listenerHandle) {
+            void listenerHandle.remove();
+            listenerHandle = null;
         }
+    };
+
+    const abortHandler = () => {
+        if (settled) return;
+        settled = true;
+        void 原生聊天流.cancelStream({ requestId });
+        cleanup();
+    };
+
+    if (signal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
     }
 
-    return accumulated.trim();
+    return new Promise<string>(async (resolve, reject) => {
+        const settleResolve = (value: string) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(value);
+        };
+
+        const settleReject = (error: unknown) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(error);
+        };
+
+        try {
+            signal?.addEventListener('abort', () => {
+                abortHandler();
+                reject(new DOMException('Aborted', 'AbortError'));
+            }, { once: true });
+
+            listenerHandle = await 原生聊天流.addListener('chatStream', (event) => {
+                if (event.requestId !== requestId) return;
+
+                if (event.type === 'meta') {
+                    写入流式诊断日志('native stream meta', {
+                        status: event.status || 0,
+                        contentType: event.contentType || ''
+                    });
+                    return;
+                }
+
+                if (event.type === 'chunk') {
+                    const chunk = event.text || '';
+                    写入流式诊断日志('native stream chunk', {
+                        byteLength: event.byteLength || 0,
+                        textLength: chunk.length
+                    });
+                    processor.追加文本(chunk);
+                    return;
+                }
+
+                if (event.type === 'done') {
+                    settleResolve(processor.完成());
+                    return;
+                }
+
+                if (event.type === 'error') {
+                    settleReject(new 协议请求错误(
+                        event.message || 'API Error: native stream failed',
+                        event.status || undefined
+                    ));
+                }
+            });
+
+            await 原生聊天流.streamChat({
+                requestId,
+                endpoint,
+                headers,
+                body
+            });
+        } catch (error) {
+            settleReject(error);
+        }
+    });
+};
+
+const 解析SSE文本XHR = (
+    endpoint: string,
+    headers: Record<string, string>,
+    body: string,
+    signal: AbortSignal | undefined,
+    extractDelta: 增量提取器,
+    onDelta?: (delta: string, accumulated: string) => void
+): Promise<string> => new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const processor = 创建SSE文本处理器(extractDelta, onDelta);
+    let consumedLength = 0;
+    let settled = false;
+
+    const settleReject = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+    };
+
+    const settleResolve = (value: string) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+    };
+
+    const consumeAvailableText = () => {
+        const text = xhr.responseText || '';
+        if (text.length <= consumedLength) return;
+        const chunk = text.slice(consumedLength);
+        consumedLength = text.length;
+        写入流式诊断日志('xhr stream chunk', {
+            textLength: chunk.length,
+            totalTextLength: consumedLength,
+            readyState: xhr.readyState,
+            status: xhr.status || 0
+        });
+        processor.追加文本(chunk);
+    };
+
+    const abortHandler = () => {
+        try {
+            xhr.abort();
+        } catch {
+            // ignore abort errors
+        }
+        settleReject(new DOMException('Aborted', 'AbortError'));
+    };
+
+    if (signal?.aborted) {
+        abortHandler();
+        return;
+    }
+    signal?.addEventListener('abort', abortHandler, { once: true });
+
+    xhr.open('POST', endpoint, true);
+    xhr.responseType = 'text';
+    Object.entries(headers).forEach(([key, value]) => {
+        xhr.setRequestHeader(key, value);
+    });
+
+    xhr.onprogress = () => {
+        try {
+            consumeAvailableText();
+        } catch (error) {
+            settleReject(error);
+        }
+    };
+
+    xhr.onerror = () => {
+        写入流式诊断日志('xhr stream network error', {
+            readyState: xhr.readyState,
+            status: xhr.status || 0
+        });
+        settleReject(new 协议请求错误('API Error: network error during stream request'));
+    };
+
+    xhr.ontimeout = () => {
+        写入流式诊断日志('xhr stream timeout', {
+            readyState: xhr.readyState,
+            status: xhr.status || 0
+        });
+        settleReject(new 协议请求错误('API Error: stream request timeout'));
+    };
+
+    xhr.onload = () => {
+        signal?.removeEventListener('abort', abortHandler);
+        try {
+            const contentType = (xhr.getResponseHeader('content-type') || '').toLowerCase();
+            写入流式诊断日志('xhr stream load', {
+                status: xhr.status,
+                contentType,
+                totalTextLength: (xhr.responseText || '').length
+            });
+            if (xhr.status < 200 || xhr.status >= 300) {
+                const detail = (xhr.responseText || '').trim();
+                settleReject(new 协议请求错误(`API Error: ${xhr.status}${detail ? ` - ${detail}` : ''}`, xhr.status, detail));
+                return;
+            }
+            if (!contentType.includes('text/event-stream')) {
+                settleReject(new 协议请求错误(`API Error: stream unsupported (content-type=${contentType || 'unknown'})`));
+                return;
+            }
+            consumeAvailableText();
+            settleResolve(processor.完成());
+        } catch (error) {
+            settleReject(error);
+        }
+    };
+
+    xhr.send(body);
+});
+
+const 写入流式诊断日志 = (message: string, detail?: Record<string, unknown>) => {
+    const payload = detail || {};
+    try {
+        if (typeof console !== 'undefined') {
+            console.info('[MoRanJiangHu stream]', message, payload);
+        }
+    } catch {
+        // ignore console failures
+    }
 };
 
 const 非流式回填流式回调 = (text: string, streamOptions?: 通用流式选项) => {
-    if (!streamOptions?.stream || !streamOptions?.onDelta || !text) return;
-    streamOptions.onDelta(text, text);
+    return;
 };
 
 const 解析可能是JSON字符串 = (text: string): any | null => {
@@ -602,14 +888,72 @@ const 请求OpenAI家族文本 = async (
         if (responseFormat === 'json_object') {
             body.response_format = { type: 'json_object' };
         }
+        const requestHeaders: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiConfig.apiKey}`
+        };
+        const requestBody = JSON.stringify(body);
+
+        if (useStream && 支持原生流式请求()) {
+            写入流式诊断日志('use native stream transport', {
+                endpoint,
+                model: apiConfig.model,
+                supplier: apiConfig.供应商
+            });
+            try {
+                return await 解析SSE文本原生(
+                    endpoint,
+                    requestHeaders,
+                    requestBody,
+                    signal,
+                    创建OpenAI流增量提取器(),
+                    streamOptions?.onDelta
+                );
+            } catch (error) {
+                写入流式诊断日志('native stream failed', {
+                    message: 读取错误消息(error)
+                });
+                if (!downgradedFromStream && 错误疑似不支持流式(error)) {
+                    useStream = false;
+                    downgradedFromStream = true;
+                    continue;
+                }
+                throw error;
+            }
+        }
+
+        if (useStream && 支持XHR流式请求()) {
+            写入流式诊断日志('use xhr stream transport', {
+                endpoint,
+                model: apiConfig.model,
+                supplier: apiConfig.供应商
+            });
+            try {
+                return await 解析SSE文本XHR(
+                    endpoint,
+                    requestHeaders,
+                    requestBody,
+                    signal,
+                    创建OpenAI流增量提取器(),
+                    streamOptions?.onDelta
+                );
+            } catch (error) {
+                写入流式诊断日志('xhr stream failed', {
+                    message: 读取错误消息(error)
+                });
+                if (!downgradedFromStream && 错误疑似不支持流式(error)) {
+                    useStream = false;
+                    downgradedFromStream = true;
+                    continue;
+                }
+                throw error;
+            }
+        }
 
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiConfig.apiKey}`
-            },
-            body: JSON.stringify(body),
+            headers: requestHeaders,
+            body: requestBody,
             signal
         });
 
@@ -643,6 +987,12 @@ const 请求OpenAI家族文本 = async (
         }
 
         try {
+            写入流式诊断日志('use fetch stream transport', {
+                endpoint,
+                model: apiConfig.model,
+                supplier: apiConfig.供应商,
+                contentType
+            });
             return await 解析SSE文本(response, 创建OpenAI流增量提取器(), streamOptions?.onDelta, 'Stream body is empty');
         } catch (error) {
             if (!downgradedFromStream && 错误疑似不支持流式(error)) {

@@ -709,6 +709,74 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
         });
         return summary;
     }, [chapterProgressList]);
+    const chapterDiagnosis = useMemo(() => {
+        const rawText = String(selectedDataset?.原始文本 || '');
+        const rawLength = rawText.trim().length;
+        const chapterCount = previewChapters.length;
+        const titleSamples = previewChapters.slice(0, 8).map((chapter: any) => String(chapter?.标题 || '').trim()).filter(Boolean);
+        const numberedTitleCount = titleSamples.filter((title) => /^第[0-9零一二三四五六七八九十百千万两〇○]+[章节回卷部篇册季集辑节话幕]/u.test(title)).length;
+        const numericTitleCount = titleSamples.filter((title) => /^\d{1,4}[.)、\s]/u.test(title)).length;
+        const dividerTitleCount = titleSamples.filter((title) => /^(chapter|chap\.|卷|幕|序章|楔子|尾声)/iu.test(title)).length;
+        const mode = numberedTitleCount >= Math.max(1, Math.ceil(titleSamples.length * 0.45))
+            ? '中文章回标题'
+            : numericTitleCount >= Math.max(1, Math.ceil(titleSamples.length * 0.45))
+                ? '数字序号标题'
+                : dividerTitleCount > 0
+                    ? '混合标题'
+                    : chapterCount > 1
+                        ? '弱标题/自然分段'
+                        : '未识别';
+        const lengths = previewChapters.map((chapter: any) => Number(chapter?.字数 || String(chapter?.内容 || '').length || 0)).filter((value) => value > 0);
+        const averageLength = lengths.length > 0 ? Math.round(lengths.reduce((sum, value) => sum + value, 0) / lengths.length) : 0;
+        const shortChapterCount = lengths.filter((value) => value > 0 && value < 500).length;
+        const shortRatio = lengths.length > 0 ? shortChapterCount / lengths.length : 0;
+        const issues: string[] = [];
+        const suggestions: string[] = [];
+
+        if (rawLength <= 0) {
+            issues.push('当前数据集没有原始正文。');
+            suggestions.push('重新导入 TXT / EPUB，或导入带原文的分解分享包。');
+        }
+        if (rawLength > 0 && chapterCount <= 1) {
+            issues.push('正文只识别出 1 章或没有章节边界。');
+            suggestions.push('检查标题是否独立成行，并尽量使用“第1章 标题”或“第一章 标题”格式。');
+        }
+        if (chapterCount > 1 && shortRatio > 0.35) {
+            issues.push('短章节比例偏高，目录、作者的话或分隔符可能被当成章节。');
+            suggestions.push('在章节筛选页删除目录页、说明页和过短番外后再开始任务。');
+        }
+        if (chapterCount > 1 && averageLength > 18000) {
+            issues.push('平均章节很长，可能存在多章合并。');
+            suggestions.push('确认章节标题前后有换行，必要时把每章标题改为统一格式。');
+        }
+        if (mode === '弱标题/自然分段') {
+            issues.push('章节标题规律不强，自动识别稳定性一般。');
+            suggestions.push('建议统一标题格式，减少纯装饰分隔线。');
+        }
+        if (issues.length === 0) {
+            suggestions.push('章节结构稳定，可直接进入筛选或开始拆分任务。');
+        }
+
+        const risk: 'low' | 'medium' | 'high' = rawLength <= 0 || chapterCount <= 1 || shortRatio > 0.5
+            ? 'high'
+            : mode === '弱标题/自然分段' || shortRatio > 0.25 || averageLength > 18000
+                ? 'medium'
+                : 'low';
+        const quality = risk === 'low' ? '良好' : risk === 'medium' ? '需检查' : '高风险';
+        return {
+            rawLength,
+            chapterCount,
+            averageLength,
+            shortChapterCount,
+            shortRatio,
+            mode,
+            risk,
+            quality,
+            issues,
+            suggestions,
+            titleSamples
+        };
+    }, [previewChapters, selectedDataset?.原始文本]);
     const 已全选章节 = previewChapters.length > 0 && selectedChapterIds.length === previewChapters.length;
 
     useEffect(() => {
@@ -1905,6 +1973,59 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                             <div className="rounded-lg border border-white/5 bg-black/30 p-4">
                                 <div className="text-[10px] text-red-500/80 uppercase tracking-wider mb-1">失败章节</div>
                                 <div className="text-lg font-bold text-red-400">{chapterProgressSummary.failed}</div>
+                            </div>
+                        </div>
+
+                        <div className={`rounded-xl border p-4 shrink-0 ${
+                            chapterDiagnosis.risk === 'low'
+                                ? 'border-emerald-500/25 bg-emerald-950/10'
+                                : chapterDiagnosis.risk === 'medium'
+                                    ? 'border-amber-500/30 bg-amber-950/10'
+                                    : 'border-red-500/30 bg-red-950/10'
+                        }`}>
+                            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                                <div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-sm font-semibold text-gray-100">拆章诊断</span>
+                                        <span className={`rounded-full border px-2 py-0.5 text-[10px] ${
+                                            chapterDiagnosis.risk === 'low'
+                                                ? 'border-emerald-400/40 text-emerald-200'
+                                                : chapterDiagnosis.risk === 'medium'
+                                                    ? 'border-amber-400/40 text-amber-200'
+                                                    : 'border-red-400/50 text-red-200'
+                                        }`}>{chapterDiagnosis.quality}</span>
+                                        <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-[10px] text-gray-400">{chapterDiagnosis.mode}</span>
+                                    </div>
+                                    <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-gray-400">
+                                        <span>原文 {chapterDiagnosis.rawLength.toLocaleString('zh-CN')} 字</span>
+                                        <span>章节 {chapterDiagnosis.chapterCount} 章</span>
+                                        <span>均章 {chapterDiagnosis.averageLength.toLocaleString('zh-CN')} 字</span>
+                                        <span>短章 {chapterDiagnosis.shortChapterCount} 章</span>
+                                    </div>
+                                </div>
+                                {chapterDiagnosis.titleSamples.length > 0 && (
+                                    <div className="md:max-w-sm text-[11px] text-gray-500">
+                                        标题样例：{chapterDiagnosis.titleSamples.slice(0, 3).join(' / ')}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                <div className="rounded-lg border border-white/5 bg-black/25 p-3">
+                                    <div className="mb-1 text-[10px] tracking-widest text-gray-500">风险原因</div>
+                                    <div className="space-y-1 text-xs leading-5 text-gray-300">
+                                        {(chapterDiagnosis.issues.length > 0 ? chapterDiagnosis.issues : ['未发现明显拆章风险。']).map((item) => (
+                                            <div key={item}>• {item}</div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="rounded-lg border border-white/5 bg-black/25 p-3">
+                                    <div className="mb-1 text-[10px] tracking-widest text-gray-500">处理建议</div>
+                                    <div className="space-y-1 text-xs leading-5 text-gray-300">
+                                        {chapterDiagnosis.suggestions.map((item) => (
+                                            <div key={item}>• {item}</div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

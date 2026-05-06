@@ -192,6 +192,20 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
             <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
                 <div className="flex items-center justify-between gap-4">
                     <div>
+                        <div className="text-sm text-wuxia-cyan font-bold">研发 / 诊断模式</div>
+                        <div className="text-xs text-gray-400 mt-1">开启后显示运行日志、NPC 管理、变量管理、地图 NPC 调试等高级排错入口；关闭后普通玩家界面更干净。</div>
+                    </div>
+                    <ToggleSwitch
+                        checked={(form as any).启用研发诊断模式 === true}
+                        onChange={(next) => 实时应用更新({ 启用研发诊断模式: next } as any)}
+                        ariaLabel="切换研发诊断模式"
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div>
                         <div className="text-sm text-wuxia-cyan font-bold">行动选项功能</div>
                         <div className="text-xs text-gray-400 mt-1">开启后，将在上下文注入“行动选项规范”，并要求输出 \`&lt;行动选项&gt;\` 标签。</div>
                     </div>

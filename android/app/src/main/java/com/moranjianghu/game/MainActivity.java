@@ -37,6 +37,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         WebView.setWebContentsDebuggingEnabled(true);
         registerPlugin(ApkUpdaterPlugin.class);
+        registerPlugin(NativeChatStreamerPlugin.class);
         super.onCreate(savedInstanceState);
         configureWindowSurface();
         applyImmersiveMode();

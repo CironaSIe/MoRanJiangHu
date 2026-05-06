@@ -587,6 +587,22 @@ const 规范化日志发送者 = (senderRaw: string): string => {
     return sender;
 };
 
+const 是否判定类日志发送者 = (senderRaw: string): boolean => {
+    return /^(【)?(?:判定|NSFW判定|先机|瞄准|接战|对撞|对抗|防御|化解|伤害|态势|反击|反馈|消耗|洞察|衰退)(】)?$/.test((senderRaw || '').trim());
+};
+
+const 解析无括号正文发送者行 = (line: string): { sender: string; text: string } | null => {
+    const match = (line || '').trim().match(/^([^\s【】｜:：]{1,16})[:：]\s*(.*)$/);
+    if (!match) return null;
+    const sender = (match[1] || '').trim();
+    if (!sender) return null;
+    if (/^(触发对象|对象|判定值|难度|胜方|败方|差值|伤害值|消耗|剩余|后果|发现度)$/.test(sender)) return null;
+    return {
+        sender: 规范化日志发送者(sender),
+        text: (match[2] || '').trim()
+    };
+};
+
 const 提取正文中的Judge区块 = (body: string): { cleanBody: string; judgeBlocks: GameResponse['judge_blocks'] } => {
     const source = (body || '').replace(/\r\n/g, '\n');
     if (!source.trim()) {
@@ -637,6 +653,15 @@ const 解析正文日志 = (body: string): Array<{ sender: string; text: string 
             const sender = 规范化日志发送者(match[1]);
             const text = (match[2] || '').trim();
             current = { sender, text };
+            logs.push(current);
+            continue;
+        }
+
+        const plainSenderLine = current && 是否判定类日志发送者(current.sender)
+            ? 解析无括号正文发送者行(line)
+            : null;
+        if (plainSenderLine) {
+            current = plainSenderLine;
             logs.push(current);
             continue;
         }

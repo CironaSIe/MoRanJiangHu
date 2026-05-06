@@ -18,6 +18,7 @@ type MenuId =
     | 'plan'
     | 'memory'
     | 'export_novel'
+    | 'auction_house'
     | 'image_manager'
     | 'novel_decomposition'
     | 'save'
@@ -83,6 +84,7 @@ const MENU_META: Record<Exclude<MenuId, 'more'>, MenuMeta> = {
     export_novel: { id: 'export_novel', label: '导出', icon: 'novel' },
     image_manager: { id: 'image_manager', label: '图册', icon: 'grid' },
     novel_decomposition: { id: 'novel_decomposition', label: '分解', icon: 'novel' },
+    auction_house: { id: 'auction_house', label: '拍卖', icon: 'grid' },
     save: { id: 'save', label: '保存', icon: 'save' },
     load: { id: 'load', label: '读取', icon: 'load' },
     settings: { id: 'settings', label: '设置', icon: 'settings' },
@@ -140,6 +142,7 @@ const MobileQuickMenu: React.FC<Props> = ({
         ...(enableHeroinePlan ? [MENU_META.plan] : []),
         MENU_META.memory,
         MENU_META.export_novel,
+        MENU_META.auction_house,
         ...(enableImageManager ? [MENU_META.image_manager] : []),
         ...(enableNovelDecomposition ? [MENU_META.novel_decomposition] : []),
         MENU_META.save,

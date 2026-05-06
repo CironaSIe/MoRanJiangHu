@@ -141,6 +141,12 @@ type 下载附件结果 = {
     previewText: string | null;
 };
 
+type 附件上传结果 = {
+    id?: number;
+    name?: string;
+    size?: number;
+};
+
 export type 云同步恢复结果 = {
     success: boolean;
     stage: 云同步恢复阶段;
@@ -248,6 +254,15 @@ const 解码Base64字节 = (value: string): Uint8Array => {
         bytes[index] = binary.charCodeAt(index);
     }
     return bytes;
+};
+
+const 编码Base64字节 = (bytes: Uint8Array): string => {
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let index = 0; index < bytes.length; index += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+    }
+    return btoa(binary);
 };
 
 const 解析原生HTTP二进制 = (data: unknown): Uint8Array => {
@@ -421,11 +436,26 @@ const 拼接分卷 = (parts: Uint8Array[]): Uint8Array => {
 };
 
 const 构建分卷文件名 = (index: number): string => `${云同步分卷前缀}${String(index + 1).padStart(3, '0')}`;
+const 分卷附件名正则 = new RegExp(`^${云同步分卷前缀.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\d+)$`);
 
-const 解析分卷清单 = (input: string): 云同步分卷清单 => {
-    const parsed = JSON.parse(input) as 云同步分卷清单;
+const 读取分卷附件序号 = (name: string): number | null => {
+    const matched = 读取文本(name).match(分卷附件名正则);
+    if (!matched) return null;
+    const value = Number(matched[1]);
+    return Number.isFinite(value) && value > 0 ? value : null;
+};
+
+const 解析分卷清单 = (input: string, previewText?: string | null): 云同步分卷清单 => {
+    let parsed: 云同步分卷清单;
+    try {
+        parsed = JSON.parse(input) as 云同步分卷清单;
+    } catch {
+        const preview = previewText || input.replace(/\s+/g, ' ').trim().slice(0, 180);
+        throw new Error(`云同步分卷清单无效：JSON 解析失败${preview ? `，内容预览：${preview}` : ''}`);
+    }
     if (parsed?.format !== 'wuxia-cloud-sync-multipart' || !Array.isArray(parsed.parts) || parsed.parts.length === 0) {
-        throw new Error('云同步分卷清单无效');
+        const format = typeof (parsed as any)?.format === 'string' ? (parsed as any).format : '未知';
+        throw new Error(`云同步分卷清单无效：format=${format}`);
     }
     return parsed;
 };
@@ -561,9 +591,79 @@ const 查找分卷清单附件 = (release: ReleaseInfo | null | undefined): Rele
 const 查找分卷附件列表 = (release: ReleaseInfo | null | undefined): ReleaseAsset[] => {
     const assets = Array.isArray(release?.assets) ? release.assets : [];
     return assets
-        .filter((asset) => 读取文本(asset?.name).startsWith(云同步分卷前缀))
-        .sort((a, b) => 读取文本(a.name).localeCompare(读取文本(b.name), 'en'));
+        .filter((asset) => 读取分卷附件序号(读取文本(asset?.name)) !== null)
+        .sort((a, b) => (读取分卷附件序号(读取文本(a.name)) || 0) - (读取分卷附件序号(读取文本(b.name)) || 0));
 };
+
+const 查找旧版整包附件 = (release: ReleaseInfo | null | undefined): ReleaseAsset | null => {
+    const assets = Array.isArray(release?.assets) ? release.assets : [];
+    return assets.find((asset) => asset?.name === CLOUD_ZIP_FILENAME) || null;
+};
+
+const 查找旧版整包下载地址 = (release: ReleaseInfo | null | undefined): { asset: ReleaseAsset; url: string } | null => {
+    const asset = 查找旧版整包附件(release);
+    const url = 读取文本(asset?.url) || 读取文本(asset?.browser_download_url);
+    return asset && url ? { asset, url } : null;
+};
+
+const 从Release附件重建分卷清单 = (release: ReleaseInfo | null | undefined): 云同步分卷清单 | null => {
+    const partAssets = 查找分卷附件列表(release);
+    if (partAssets.length === 0) return null;
+    const sizes = partAssets.map((asset) => Math.max(0, Number(asset.size) || 0));
+    const totalSize = sizes.reduce((sum, size) => sum + size, 0);
+    const updatedAtList = partAssets
+        .map((asset) => 读取文本(asset.updated_at))
+        .filter(Boolean)
+        .sort();
+    const newestUpdatedAt = updatedAtList.length > 0 ? updatedAtList[updatedAtList.length - 1] : '';
+    return {
+        format: 'wuxia-cloud-sync-multipart',
+        version: 云同步ZIP版本,
+        exportedAt: newestUpdatedAt || new Date().toISOString(),
+        fileName: CLOUD_ZIP_FILENAME,
+        totalSize,
+        partSize: Math.max(...sizes, 0),
+        partCount: partAssets.length,
+        parts: partAssets.map((asset, index) => ({
+            name: 读取文本(asset.name),
+            size: Math.max(0, Number(asset.size) || 0),
+            index
+        }))
+    };
+};
+
+const 是否无效ZIP错误 = (result: 云同步恢复结果): boolean => {
+    return result.success !== true && /invalid zip data|zip|压缩包|压缩/.test(`${result.error || ''} ${result.stageLabel || ''}`);
+};
+
+const 是否ZIP文件头 = (bytes: Uint8Array): boolean => {
+    if (bytes.length < 4) return false;
+    return bytes[0] === 0x50 && bytes[1] === 0x4b && (
+        (bytes[2] === 0x03 && bytes[3] === 0x04) ||
+        (bytes[2] === 0x05 && bytes[3] === 0x06) ||
+        (bytes[2] === 0x07 && bytes[3] === 0x08)
+    );
+};
+
+const 构建云同步恢复失败结果 = (stage: 云同步恢复阶段, error: string): 云同步恢复结果 => ({
+    success: false,
+    stage,
+    stageLabel: 获取恢复阶段文案(stage),
+    error,
+    saveCount: 0,
+    settingCount: 0,
+    assetCount: 0,
+    importedSaveCount: 0,
+    importedSettingCount: 0,
+    importedAssetCount: 0,
+    exportedAt: null,
+    manifestVersion: null,
+    timestamp: new Date().toISOString()
+});
+
+const 拼接错误 = (...items: Array<string | null | undefined>): string => (
+    items.map((item) => 读取文本(item)).filter(Boolean).join('；')
+);
 
 const 删除附件 = async (token: string, config: RepoConfig, assetId: number): Promise<void> => {
     const res = await githubFetch(token, `${仓库API前缀(config)}/releases/assets/${assetId}`, {
@@ -628,6 +728,31 @@ const 执行Release附件上传 = async (
     contentType = 'application/octet-stream',
     onProgress?: 附件上传进度回调
 ): Promise<Response> => {
+    if (是否原生Capacitor环境()) {
+        onProgress?.(0, bytes.length);
+        const response = await CapacitorHttp.request({
+            url: 构建同步API地址(RELEASE_UPLOAD_PROXY_PATH),
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-GitHub-Token': token,
+                'X-GitHub-Upload-Url': uploadUrl,
+                'X-WuXia-Upload-Encoding': 'base64-json'
+            },
+            data: {
+                contentType,
+                base64: 编码Base64字节(bytes)
+            },
+            connectTimeout: 30000,
+            readTimeout: 单分卷上传超时毫秒
+        });
+        onProgress?.(bytes.length, bytes.length);
+        const responseText = typeof response.data === 'string'
+            ? response.data
+            : JSON.stringify(response.data ?? {});
+        return new Response(responseText, { status: response.status });
+    }
+
     const body = new Blob([bytes.slice().buffer], { type: contentType });
     if (typeof XMLHttpRequest !== 'undefined') {
         return 使用XHR上传附件(token, uploadUrl, body, contentType, onProgress);
@@ -659,6 +784,12 @@ const 上传单个附件 = async (
     if (!res.ok) {
         const detailText = await res.text().catch(() => '');
         throw new Error(`上传附件失败：${fileName} - ${res.status}${detailText ? ` - ${detailText.slice(0, 260)}` : ''}`);
+    }
+
+    const uploaded = await res.json().catch(() => null) as 附件上传结果 | null;
+    const uploadedSize = Number(uploaded?.size);
+    if (!Number.isFinite(uploadedSize) || uploadedSize !== bytes.length) {
+        throw new Error(`上传附件校验失败：${fileName} 期望 ${bytes.length} 字节，云端记录 ${Number.isFinite(uploadedSize) ? uploadedSize : '未知'} 字节`);
     }
 };
 
@@ -1188,12 +1319,82 @@ export async function downloadFromCloud(token: string, onProgress?: 云同步进
     const manifestAsset = 查找分卷清单附件(release);
     const manifestUrl = 读取文本(manifestAsset?.url) || 读取文本(manifestAsset?.browser_download_url);
     if (!manifestAsset || !manifestUrl) {
-        throw new Error('未在私有仓库 Release 中找到云同步分卷清单');
+        const rebuiltManifest = 从Release附件重建分卷清单(release);
+        if (rebuiltManifest) {
+            const rebuiltResult = await 下载分卷并恢复(token, release, rebuiltManifest, emit, '未找到分卷清单，已根据云端分卷附件继续恢复');
+            if (rebuiltResult.success || !是否无效ZIP错误(rebuiltResult)) return rebuiltResult;
+
+            const legacyResult = await 尝试旧版整包恢复(token, release, emit, '分卷内容不可用，正在改用旧版云端存档整包...');
+            if (legacyResult?.success) return legacyResult;
+            return {
+                ...rebuiltResult,
+                error: 拼接错误(
+                    rebuiltResult.error || 'invalid zip data',
+                    legacyResult?.error ? `旧版整包也无法恢复：${legacyResult.error}` : null,
+                    '云端分卷内容不是有效存档压缩包，可能是上一次上传中断或云端附件不完整；请在仍有完整本地存档的设备上重新上传一次云存档。'
+                )
+            };
+        }
+
+        const legacyResult = await 尝试旧版整包恢复(token, release, emit, '正在读取旧版云端存档整包...');
+        if (!legacyResult) {
+            throw new Error('未在私有仓库 Release 中找到云同步分卷清单或旧版云存档整包');
+        }
+        return legacyResult;
     }
 
     emit({ direction: 'download', stage: 'downloading', message: '正在读取云端分卷清单...', totalBytes: 0, transferredBytes: 0 });
     const manifestDownload = await 下载Release附件二进制(token, manifestUrl);
-    const manifest = 解析分卷清单(strFromU8(manifestDownload.bytes));
+    let manifest: 云同步分卷清单;
+    try {
+        manifest = 解析分卷清单(strFromU8(manifestDownload.bytes), manifestDownload.previewText);
+    } catch (manifestError) {
+        const rebuiltManifest = 从Release附件重建分卷清单(release);
+        if (rebuiltManifest) {
+            const rebuiltResult = await 下载分卷并恢复(token, release, rebuiltManifest, emit, '分卷清单不可用，已根据云端分卷附件继续恢复');
+            if (rebuiltResult.success || !是否无效ZIP错误(rebuiltResult)) return rebuiltResult;
+
+            const legacyResult = await 尝试旧版整包恢复(token, release, emit, '分卷内容不可用，正在改用旧版云端存档整包...');
+            if (legacyResult?.success) return legacyResult;
+            return {
+                ...rebuiltResult,
+                error: 拼接错误(
+                    rebuiltResult.error || 'invalid zip data',
+                    legacyResult?.error ? `旧版整包也无法恢复：${legacyResult.error}` : null,
+                    '云端分卷内容不是有效存档压缩包，可能是上一次上传中断或云端附件不完整；请在仍有完整本地存档的设备上重新上传一次云存档。'
+                )
+            };
+        }
+
+        const legacyResult = await 尝试旧版整包恢复(token, release, emit, '分卷清单不可用，正在改用旧版云端存档整包...');
+        if (legacyResult) return legacyResult;
+        throw manifestError;
+    }
+    const multipartResult = await 下载分卷并恢复(token, release, manifest, emit);
+    if (multipartResult.success) return multipartResult;
+
+    const legacyResult = await 尝试旧版整包恢复(token, release, emit, '分卷内容不可用，正在改用旧版云端存档整包...');
+    if (legacyResult?.success) return legacyResult;
+
+    return {
+        ...multipartResult,
+        error: 拼接错误(
+            multipartResult.error,
+            legacyResult?.error ? `旧版整包也无法恢复：${legacyResult.error}` : null,
+            是否无效ZIP错误(multipartResult)
+                ? '云端分卷内容不是有效存档压缩包，可能是上一次上传中断或云端附件不完整；请在仍有完整本地存档的设备上重新上传一次云存档。'
+                : null
+        )
+    };
+}
+
+const 下载分卷并恢复 = async (
+    token: string,
+    release: ReleaseInfo,
+    manifest: 云同步分卷清单,
+    emit: (patch: Partial<云同步进度状态>) => void,
+    firstMessage?: string
+): Promise<云同步恢复结果> => {
     const assetMap = new Map((release.assets || []).map((asset) => [asset.name, asset]));
 
     let transferredBytes = 0;
@@ -1208,7 +1409,7 @@ export async function downloadFromCloud(token: string, onProgress?: 云同步进
         emit({
             direction: 'download',
             stage: 'downloading',
-            message: `正在下载分卷 ${index + 1}/${manifest.partCount}`,
+            message: index === 0 && firstMessage ? firstMessage : `正在下载分卷 ${index + 1}/${manifest.partCount}`,
             totalBytes: manifest.totalSize,
             transferredBytes,
             partIndex: index + 1,
@@ -1262,6 +1463,15 @@ export async function downloadFromCloud(token: string, onProgress?: 云同步进
     });
 
     const zipBytes = 拼接分卷(parts);
+    if (!是否ZIP文件头(zipBytes)) {
+        const preview = 提取文本预览(zipBytes, 'text/plain');
+        const result = 构建云同步恢复失败结果(
+            'reading_archive',
+            `云端分卷拼接后不是有效 zip data${preview ? `，内容预览：${preview}` : ''}`
+        );
+        记录最近云同步恢复诊断(result);
+        return result;
+    }
     const restored = await restoreSyncData(zipBytes);
     emit({
         direction: 'download',
@@ -1273,4 +1483,28 @@ export async function downloadFromCloud(token: string, onProgress?: 云同步进
         partCount: manifest.partCount
     });
     return restored;
-}
+};
+
+const 尝试旧版整包恢复 = async (
+    token: string,
+    release: ReleaseInfo,
+    emit: (patch: Partial<云同步进度状态>) => void,
+    startMessage: string
+): Promise<云同步恢复结果 | null> => {
+    const legacy = 查找旧版整包下载地址(release);
+    if (!legacy) return null;
+
+    emit({ direction: 'download', stage: 'downloading', message: startMessage, totalBytes: Number(legacy.asset.size) || 0, transferredBytes: 0 });
+    const legacyDownload = await 下载Release附件二进制(token, legacy.url);
+    const restored = await restoreSyncData(legacyDownload.bytes);
+    emit({
+        direction: 'download',
+        stage: 'idle',
+        message: restored.success ? '旧版云同步恢复完成' : `旧版云同步恢复失败：${restored.stageLabel}${restored.error ? ` - ${restored.error}` : ''}`,
+        totalBytes: legacyDownload.bytes.length,
+        transferredBytes: legacyDownload.bytes.length,
+        partIndex: 1,
+        partCount: 1
+    });
+    return restored;
+};

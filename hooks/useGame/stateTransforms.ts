@@ -45,6 +45,171 @@ const 规范化整数 = (value: unknown, fallback = 0): number => {
 const 规范化文本 = (value: unknown, fallback = ''): string => (
     typeof value === 'string' ? value.trim() : fallback
 );
+const 未命名物品正则 = /^(未命名|未知物品|未知|无名|杂物|物品|\?+|n\/a)$/i;
+const 秘籍残卷正则 = /残卷|残篇|残本|残页|残章/;
+const 储物容器名称正则 = /储物袋|乾坤袋|须弥袋|百宝囊|行囊|纳戒|储物戒|储物镯|储物手镯/;
+const 规范化非负数 = (value: unknown, fallback = 0): number => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(0, n);
+};
+const 取首个有效文本片段 = (...values: unknown[]): string => {
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+    return '';
+};
+const 生成物品名称 = (item: any): string => {
+    const rawName = 规范化文本(item?.名称);
+    if (rawName && !未命名物品正则.test(rawName)) return rawName;
+    const desc = 规范化文本(item?.描述);
+    if (!desc) return '';
+    const wrappedMatch = desc.match(/[《「『【“"']([^》」』】”"']{1,24})[》」』】”"']/);
+    const base = wrappedMatch?.[1]?.trim()
+        || desc
+            .split(/[，。；、,.!！?？\n\r]/)
+            .map((part) => part.trim())
+            .find(Boolean)
+        || desc.slice(0, 24).trim();
+    if (!base) return '';
+    if (item?.类型 === '秘籍' && !/秘籍|残卷|残篇|残本|残页|残章/.test(base)) {
+        return `${base}秘籍`;
+    }
+    return base;
+};
+const 是否为秘籍残卷 = (item: any): boolean => {
+    const text = `${规范化文本(item?.名称)} ${规范化文本(item?.描述)}`;
+    return 秘籍残卷正则.test(text);
+};
+const 估算容器容量 = (item: any): number => {
+    const existing = 规范化非负数(item?.容器属性?.最大容量, 0);
+    if (existing > 0) return existing;
+    const text = `${规范化文本(item?.名称)} ${规范化文本(item?.描述)}`;
+    const matched = text.match(/(?:可容纳|可盛放|容量|可装下|可收纳)\s*(\d+(?:\.\d+)?)\s*斤/);
+    if (matched) return 规范化非负数(matched[1], 0);
+    if (/纳戒|储物戒/.test(text)) return 160;
+    if (/储物镯|储物手镯/.test(text)) return 140;
+    if (/储物袋|乾坤袋|须弥袋/.test(text)) return 120;
+    if (/百宝囊|行囊/.test(text)) return 80;
+    return 0;
+};
+const 是否为储物容器 = (item: any): boolean => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+    const text = `${规范化文本(item?.名称)} ${规范化文本(item?.描述)}`;
+    return 储物容器名称正则.test(text) || 估算容器容量(item) > 0;
+};
+const 计算物品总重量 = (item: any): number => {
+    const weight = 规范化非负数(item?.重量, 0);
+    const count = Math.max(1, 规范化整数(item?.堆叠数量, 1));
+    return weight * count;
+};
+const 规范化单个物品 = (rawItem: any, idx: number): any | null => {
+    if (!rawItem || typeof rawItem !== 'object' || Array.isArray(rawItem)) return null;
+    const item = { ...rawItem } as any;
+    const 名称 = 生成物品名称(item);
+    const 描述 = 规范化文本(item?.描述);
+    if (!名称 && !描述) return null;
+    item.ID = typeof item?.ID === 'string' && item.ID.trim().length > 0
+        ? item.ID.trim()
+        : `itm_auto_${idx}`;
+    item.名称 = 名称 || 描述.slice(0, 12);
+    item.描述 = 描述;
+    item.类型 = 取首个有效文本片段(item?.类型, '杂物');
+    item.品质 = 取首个有效文本片段(item?.品质, '凡品');
+    item.重量 = 规范化非负数(item?.重量, 0);
+    item.堆叠数量 = Math.max(1, 规范化整数(item?.堆叠数量, 1));
+    item.是否可堆叠 = Boolean(item?.是否可堆叠);
+    item.价值 = 规范化非负数(item?.价值, 0);
+    item.当前耐久 = 规范化非负数(item?.当前耐久, 0);
+    item.最大耐久 = 规范化非负数(item?.最大耐久, 0);
+    item.词条列表 = Array.isArray(item?.词条列表) ? item.词条列表 : [];
+    if (item.类型 === '秘籍' && !是否为秘籍残卷(item)) {
+        item.堆叠数量 = 1;
+        item.是否可堆叠 = false;
+    }
+    delete item.当前容器ID;
+    delete item.占用空间;
+    if (是否为储物容器(item)) {
+        const 最大容量 = 估算容器容量(item);
+        item.容器属性 = {
+            最大容量,
+            已用容量: 0,
+            容器类型: 取首个有效文本片段(item?.容器属性?.容器类型, '储物容器')
+        };
+    } else {
+        delete item.容器属性;
+    }
+    return item;
+};
+const 自动整理超重物品 = (items: any[], equippedByItemId: Map<string, 装备槽位>, maxCarry: number) => {
+    items.forEach((item) => {
+        delete item.当前容器ID;
+        delete item.占用空间;
+        if (item?.容器属性) {
+            item.容器属性 = {
+                ...item.容器属性,
+                最大容量: 规范化非负数(item.容器属性?.最大容量, 0),
+                已用容量: 0
+            };
+        }
+    });
+    const round1 = (value: number) => Math.round(value * 10) / 10;
+    const calcCarry = () => round1(items.reduce((sum, item) => {
+        if (item?.当前容器ID) return sum;
+        return sum + 计算物品总重量(item);
+    }, 0));
+    let currentCarry = calcCarry();
+    if (currentCarry <= maxCarry) return currentCarry;
+    const containers = items
+        .filter((item) => item?.容器属性?.最大容量 > 0)
+        .sort((a, b) => (b.容器属性?.最大容量 || 0) - (a.容器属性?.最大容量 || 0));
+    const canStore = (item: any) => {
+        if (!item || item?.当前容器ID) return false;
+        if (equippedByItemId.has(item.ID)) return false;
+        if (item?.容器属性?.最大容量 > 0) return false;
+        return 计算物品总重量(item) > 0;
+    };
+    for (const container of containers) {
+        if (currentCarry <= maxCarry) break;
+        const capacity = 规范化非负数(container?.容器属性?.最大容量, 0);
+        let remaining = round1(capacity - 规范化非负数(container?.容器属性?.已用容量, 0));
+        if (remaining <= 0) continue;
+        for (const item of items) {
+            if (currentCarry <= maxCarry || remaining <= 0) break;
+            if (!canStore(item)) continue;
+            const itemWeight = 规范化非负数(item?.重量, 0);
+            const stackCount = Math.max(1, 规范化整数(item?.堆叠数量, 1));
+            const totalWeight = round1(itemWeight * stackCount);
+            if (totalWeight <= 0) continue;
+            if (item.是否可堆叠 && stackCount > 1 && itemWeight > 0 && totalWeight > remaining) {
+                const movableCount = Math.min(stackCount, Math.floor((remaining + 1e-6) / itemWeight));
+                if (movableCount <= 0) continue;
+                item.堆叠数量 = stackCount - movableCount;
+                const storedItem = {
+                    ...item,
+                    ID: `${item.ID}__stored_${container.ID}_${stackCount - movableCount}`,
+                    堆叠数量: movableCount,
+                    当前容器ID: container.ID,
+                    占用空间: round1(itemWeight * movableCount)
+                };
+                items.push(storedItem);
+                remaining = round1(remaining - storedItem.占用空间);
+                container.容器属性.已用容量 = round1((container.容器属性.已用容量 || 0) + storedItem.占用空间);
+                currentCarry = calcCarry();
+                continue;
+            }
+            if (totalWeight > remaining) continue;
+            item.当前容器ID = container.ID;
+            item.占用空间 = totalWeight;
+            remaining = round1(remaining - totalWeight);
+            container.容器属性.已用容量 = round1((container.容器属性.已用容量 || 0) + totalWeight);
+            currentCarry = calcCarry();
+        }
+    }
+    return currentCarry;
+};
 const 规范化角色身体部位字段 = (role: any) => {
     角色身体部位列表.forEach((part) => {
         const rawPart = role?.[part];
@@ -403,12 +568,12 @@ const 规范化角色物品容器映射 = (rawRole?: any): 角色数据结构 =>
     const deduped: any[] = [];
     const seenIds = new Set<string>();
     sourceList.forEach((item: any, idx: number) => {
-        const id = typeof item?.ID === 'string' && item.ID.trim().length > 0
-            ? item.ID.trim()
-            : `itm_auto_${idx}`;
+        const normalizedItem = 规范化单个物品(item, idx);
+        if (!normalizedItem) return;
+        const id = normalizedItem.ID;
         if (seenIds.has(id)) return;
         seenIds.add(id);
-        deduped.push({ ...item, ID: id });
+        deduped.push(normalizedItem);
     });
 
     const itemById = new Map<string, any>(deduped.map((item) => [item.ID, item]));
@@ -501,21 +666,13 @@ const 规范化角色物品容器映射 = (rawRole?: any): 角色数据结构 =>
         } else {
             delete item.当前装备部位;
         }
-        // 清理旧容器字段
-        delete item.当前容器ID;
-        delete item.容器属性;
-        delete item.占用空间;
     });
 
-    // 重新计算负重 (Weight Recalculation)
-    const totalWeight = deduped.reduce((sum, item) => {
-        const weight = Number(item.重量) || 0;
-        const count = Number(item.堆叠数量) || 1;
-        return sum + (weight * count);
-    }, 0);
-    
-    // 保留一位小数
-    role.当前负重 = Math.round(totalWeight * 10) / 10;
+    role.当前负重 = 自动整理超重物品(
+        deduped,
+        equippedByItemId,
+        Math.max(0, 规范化数值(role?.最大负重, 0))
+    );
 
     const 图片档案 = (() => {
         const source = role?.图片档案 && typeof role.图片档案 === 'object' && !Array.isArray(role.图片档案)

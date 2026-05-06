@@ -119,6 +119,9 @@ public class ApkUpdaterPlugin extends Plugin {
             connection.setConnectTimeout(15000);
             connection.setReadTimeout(60000);
             connection.setRequestMethod("GET");
+            connection.setUseCaches(false);
+            connection.setRequestProperty("Cache-Control", "no-cache, no-store, max-age=0");
+            connection.setRequestProperty("Pragma", "no-cache");
             connection.connect();
 
             int responseCode = connection.getResponseCode();

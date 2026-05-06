@@ -1135,6 +1135,85 @@ export interface StorageBreakdown {
     }
 }
 
+export interface 本地数据体检报告 {
+    存档数量: number;
+    自动存档数量: number;
+    手动存档数量: number;
+    设置数量: number;
+    图片资源数量: number;
+    图片引用数量: number;
+    孤儿图片数量: number;
+    缺失图片引用数量: number;
+    孤儿图片示例: string[];
+    缺失图片引用示例: string[];
+    建议列表: string[];
+}
+
+export const 获取本地数据体检报告 = async (): Promise<本地数据体检报告> => {
+    const db = await 初始化数据库();
+    const [saves, settings, imageAssets, referencedIds] = await Promise.all([
+        new Promise<any[]>((resolve, reject) => {
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.getAll();
+            request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result : []);
+            request.onerror = () => reject(request.error);
+        }),
+        new Promise<Array<{ key: string; value: any }>>((resolve, reject) => {
+            const transaction = db.transaction([SETTINGS_STORE], 'readonly');
+            const store = transaction.objectStore(SETTINGS_STORE);
+            const request = store.getAll();
+            request.onsuccess = () => resolve(
+                (Array.isArray(request.result) ? request.result : [])
+                    .filter((item: any) => typeof item?.key === 'string')
+                    .map((item: any) => ({ key: item.key, value: item.value }))
+            );
+            request.onerror = () => reject(request.error);
+        }),
+        读取全部图片资源记录(),
+        读取已引用图片资源ID集合()
+    ]);
+    const assetIds = new Set(imageAssets.map((item) => item.id));
+    const referencedList = Array.from(referencedIds);
+    const orphanIds = imageAssets.map((item) => item.id).filter((id) => !referencedIds.has(id));
+    const missingIds = referencedList.filter((id) => !assetIds.has(id));
+    const 自动存档数量 = saves.filter((save) => save?.类型 === 'auto').length;
+    const 手动存档数量 = saves.filter((save) => save?.类型 !== 'auto').length;
+    const 建议列表 = [
+        orphanIds.length > 0 ? `发现 ${orphanIds.length} 个未被存档或设置引用的图片资源，可安全清理。` : '',
+        missingIds.length > 0 ? `发现 ${missingIds.length} 个图片引用缺失，相关头像或场景图可能显示为空。` : '',
+        saves.length <= 0 ? '当前没有本地存档，建议进入游戏后手动保存一次。' : '',
+        referencedList.length > 0 && imageAssets.length <= 0 ? '存在图片引用但图片资源库为空，可能是旧设备迁移不完整。' : '',
+    ].filter(Boolean);
+    if (建议列表.length === 0) {
+        建议列表.push('本地数据状态正常，暂未发现需要修复的问题。');
+    }
+    return {
+        存档数量: saves.length,
+        自动存档数量,
+        手动存档数量,
+        设置数量: settings.length,
+        图片资源数量: imageAssets.length,
+        图片引用数量: referencedList.length,
+        孤儿图片数量: orphanIds.length,
+        缺失图片引用数量: missingIds.length,
+        孤儿图片示例: orphanIds.slice(0, 5),
+        缺失图片引用示例: missingIds.slice(0, 5),
+        建议列表,
+    };
+};
+
+export const 修复本地数据体检问题 = async (): Promise<{ 清理孤儿图片数量: number; 缺失图片引用数量: number }> => {
+    const before = await 获取本地数据体检报告();
+    const cleaned = await 清理未引用图片资源();
+    清空图片资源缓存();
+    await 预热图片资源缓存().catch(() => 0);
+    return {
+        清理孤儿图片数量: cleaned,
+        缺失图片引用数量: before.缺失图片引用数量,
+    };
+};
+
 export const 获取详细存储信息 = async (): Promise<StorageBreakdown> => {
     const db = await 初始化数据库();
 

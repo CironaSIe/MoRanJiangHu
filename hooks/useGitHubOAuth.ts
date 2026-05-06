@@ -189,6 +189,38 @@ const isMatchingCallbackUrl = (urlValue: string, redirectUris: string[]) => {
     return redirectUris.some((redirectUri) => normalizedUrl === serializeCallbackUrl(redirectUri));
 };
 
+const hasOAuthCallbackParams = (url: URL) => (
+    Boolean(readEnvString(url.searchParams.get('code')) || readEnvString(url.searchParams.get('error'))) &&
+    Boolean(readEnvString(url.searchParams.get('state')))
+);
+
+const isRootOAuthCallbackFallback = (url: URL) => (
+    url.pathname === '/' && hasOAuthCallbackParams(url)
+);
+
+const normalizeOAuthCallbackUrl = (callbackUrl: string, pendingState: PendingOAuthState | null) => {
+    let url: URL;
+    try {
+        url = new URL(callbackUrl);
+    } catch {
+        return callbackUrl;
+    }
+
+    if (!pendingState || !isRootOAuthCallbackFallback(url)) {
+        return callbackUrl;
+    }
+
+    const redirectUri = pendingState.expectedCallbackUris[0] || pendingState.redirectUri;
+    try {
+        const normalized = new URL(redirectUri);
+        normalized.search = url.search;
+        normalized.hash = url.hash;
+        return normalized.toString();
+    } catch {
+        return callbackUrl;
+    }
+};
+
 const getNativeDirectRedirectUri = () => {
     const configured = readEnvString((import.meta as any).env?.VITE_GITHUB_OAUTH_REDIRECT_URI);
     return configured || DEFAULT_NATIVE_DEEP_LINK;
@@ -288,7 +320,7 @@ export function useGitHubOAuth() {
 
         try {
             const url = new URL(callbackUrl);
-            if (url.origin === window.location.origin && url.pathname === WEB_CALLBACK_PATH) {
+            if (url.origin === window.location.origin && (url.pathname === WEB_CALLBACK_PATH || isRootOAuthCallbackFallback(url))) {
                 window.history.replaceState({}, document.title, '/');
             }
         } catch {
@@ -306,7 +338,7 @@ export function useGitHubOAuth() {
             return false;
         }
 
-        if (url.pathname !== WEB_CALLBACK_PATH) {
+        if (url.pathname !== WEB_CALLBACK_PATH && !isRootOAuthCallbackFallback(url)) {
             return false;
         }
 
@@ -325,27 +357,32 @@ export function useGitHubOAuth() {
             return;
         }
 
-        if (bridgeBrowserCallbackToNativeApp(callbackUrl)) {
+        const pendingState = readPendingOAuthState();
+        if (!pendingState) {
+            if (bridgeBrowserCallbackToNativeApp(callbackUrl)) {
+                return;
+            }
             return;
         }
 
-        const pendingState = readPendingOAuthState();
-        if (!pendingState) {
+        const normalizedCallbackUrl = normalizeOAuthCallbackUrl(callbackUrl, pendingState);
+
+        if (bridgeBrowserCallbackToNativeApp(normalizedCallbackUrl)) {
             return;
         }
 
         let url: URL;
         try {
-            url = new URL(callbackUrl);
+            url = new URL(normalizedCallbackUrl);
         } catch {
             return;
         }
 
-        if (!isMatchingCallbackUrl(callbackUrl, pendingState.expectedCallbackUris)) {
+        if (!isMatchingCallbackUrl(normalizedCallbackUrl, pendingState.expectedCallbackUris)) {
             return;
         }
 
-        handledCallbackUrlRef.current = callbackUrl;
+        handledCallbackUrlRef.current = normalizedCallbackUrl;
         setIsLoggingIn(true);
         void closeGitHubAuthPageIfPossible();
 

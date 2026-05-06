@@ -206,10 +206,13 @@ const formatChanges = (changes?: string[]) => {
 };
 
 const installUpdateInNativeApp = async (manifest: UpdateManifest) => {
-    const targetUrl = manifest.apkUrl || RELEASE_INFO.apkDownloadUrl;
-    if (!targetUrl) {
+    const rawTargetUrl = manifest.apkUrl || RELEASE_INFO.apkDownloadUrl;
+    if (!rawTargetUrl) {
         throw new Error('缺少 APK 下载地址。');
     }
+    const targetUrlObject = new URL(rawTargetUrl, typeof window !== 'undefined' ? window.location.href : 'https://msjh.bacon.de5.net');
+    targetUrlObject.searchParams.set('downloadAt', String(Date.now()));
+    const targetUrl = targetUrlObject.toString();
 
     const versionName = manifest.versionName || RELEASE_INFO.versionName;
     const listenerHandle = await NativeApkUpdater.addListener('updateProgress', (progress) => {

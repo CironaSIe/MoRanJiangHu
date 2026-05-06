@@ -3,6 +3,8 @@ import {
     接口设置结构,
     功能模型占位配置结构,
     单接口配置结构,
+    生图配置档结构,
+    生图配置档适用范围,
     画师串预设结构,
     词组转化器提示词预设结构,
     PNG画风预设结构,
@@ -23,7 +25,7 @@ interface Props {
 }
 
 type 生图模型字段 = '文生图模型使用模型' | '场景生图模型使用模型' | '词组转化器使用模型' | 'PNG提炼使用模型';
-type 设置分页 = 'basic' | 'backend' | 'provider' | 'transformer' | 'presets' | 'automation';
+type 设置分页 = 'basic' | 'backend' | 'provider' | 'transformer' | 'presets' | 'profiles' | 'automation';
 type 画师串适用页签 = 'npc' | 'scene';
 type 词组预设页签 = 'nai' | 'npc' | 'scene';
 
@@ -46,6 +48,7 @@ const 基础页面选项: Array<{ value: 设置分页; label: string }> = [
     { value: 'backend', label: '接口' },
     { value: 'provider', label: '后端设置' },
     { value: 'transformer', label: '转化器' },
+    { value: 'profiles', label: '配置档' },
     { value: 'automation', label: '自动任务' }
 ];
 
@@ -149,6 +152,11 @@ const 创建空词组预设 = (scope: 词组预设页签): 词组转化器提示
         updatedAt: now
     };
 };
+const 生图配置档范围选项: Array<{ value: 生图配置档适用范围; label: string }> = [
+    { value: 'npc', label: '角色 / NPC' },
+    { value: 'scene', label: '场景' },
+    { value: 'item', label: '物品' }
+];
 
 const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const [form, setForm] = useState<接口设置结构>(() => 规范化接口设置(settings));
@@ -158,6 +166,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const [activePage, setActivePage] = useState<设置分页>('basic');
     const [artistPresetScope, setArtistPresetScope] = useState<画师串适用页签>('npc');
     const [transformerPresetScope, setTransformerPresetScope] = useState<词组预设页签>('nai');
+    const [profileScope, setProfileScope] = useState<生图配置档适用范围>('npc');
     const [message, setMessage] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
     const [discoveredBackends, setDiscoveredBackends] = useState<发现图片后端记录结构[]>([]);
@@ -175,6 +184,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         setActivePage('basic');
         setArtistPresetScope('npc');
         setTransformerPresetScope('nai');
+        setProfileScope('npc');
         setDiscoveredBackends([]);
         setDiscoveryError('');
     }, [settings]);
@@ -264,6 +274,19 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         () => discoveredBackends.find((item) => item.id === form.功能模型占位.当前场景图片后端发现ID) || null,
         [discoveredBackends, form.功能模型占位.当前场景图片后端发现ID]
     );
+    const imageProfiles = useMemo<生图配置档结构[]>(
+        () => Array.isArray((form.功能模型占位 as any).生图配置档列表) ? (form.功能模型占位 as any).生图配置档列表 : [],
+        [form.功能模型占位]
+    );
+    const scopedImageProfiles = useMemo(
+        () => imageProfiles.filter((item) => item?.适用范围 === profileScope),
+        [imageProfiles, profileScope]
+    );
+    const currentProfileId = profileScope === 'scene'
+        ? ((form.功能模型占位 as any).当前场景生图配置档ID || '')
+        : profileScope === 'item'
+            ? ((form.功能模型占位 as any).当前物品生图配置档ID || '')
+            : ((form.功能模型占位 as any).当前NPC生图配置档ID || '');
 
     const refreshDiscoveredBackends = React.useCallback(async () => {
         if (当前后端 !== 'comfyui' && 当前场景后端 !== 'comfyui') {
@@ -333,6 +356,124 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             return;
         }
         updatePlaceholder('当前NPC词组转化器提示词预设ID', presetId);
+    };
+
+    const 取当前配置档ID字段 = (scope: 生图配置档适用范围) => (
+        scope === 'scene' ? '当前场景生图配置档ID' : scope === 'item' ? '当前物品生图配置档ID' : '当前NPC生图配置档ID'
+    );
+
+    const 构建当前生图配置档 = (scope: 生图配置档适用范围): Partial<功能模型占位配置结构> => {
+        const feature = form.功能模型占位;
+        const sharedKeys: Array<keyof 功能模型占位配置结构> = [
+            '文生图功能启用',
+            '文生图后端类型',
+            '文生图模型使用模型',
+            '文生图模型API地址',
+            '文生图模型API密钥',
+            '文生图接口路径模式',
+            '文生图预设接口路径',
+            '文生图接口路径',
+            '文生图响应格式',
+            '文生图OpenAI自定义格式',
+            '当前图片后端发现ID',
+            'ComfyUI工作流JSON',
+            'NovelAI启用自定义参数',
+            'NovelAI采样器',
+            'NovelAI噪点表',
+            'NovelAI步数',
+            'NovelAI负面提示词',
+            'NPC生图使用词组转化器',
+            '词组转化兼容模式',
+            '词组转化器启用独立模型',
+            '词组转化器使用模型',
+            '词组转化器API地址',
+            '词组转化器API密钥',
+            '当前NAI词组转化器提示词预设ID',
+        ];
+        const scopeKeys: Record<生图配置档适用范围, Array<keyof 功能模型占位配置结构>> = {
+            npc: ['NPC生图启用', '自动NPC生图画风', '当前NPC画师串预设ID', '当前NPCPNG画风预设ID', '当前NPC词组转化器提示词预设ID', 'NPC生图性别筛选', 'NPC生图重要性筛选'],
+            scene: ['场景生图启用', '自动场景生图画风', '自动场景生图构图要求', '自动场景生图横竖屏', '自动场景生图分辨率', '当前场景画师串预设ID', '当前场景PNG画风预设ID', '当前场景词组转化器提示词预设ID', '当前场景判定提示词预设ID', '场景生图独立接口启用', '场景生图后端类型', '场景生图模型使用模型', '场景生图模型API地址', '场景生图模型API密钥', '当前场景图片后端发现ID', '场景ComfyUI工作流JSON'],
+            item: ['文生图功能启用', '自动NPC生图画风', '当前NPC画师串预设ID', '当前NPCPNG画风预设ID', '当前NPC词组转化器提示词预设ID'],
+        };
+        const result: Partial<功能模型占位配置结构> = {};
+        [...sharedKeys, ...scopeKeys[scope]].forEach((key) => {
+            (result as any)[key] = (feature as any)[key];
+        });
+        return result;
+    };
+
+    const handleSaveImageProfile = () => {
+        const now = Date.now();
+        const scopeLabel = 生图配置档范围选项.find((item) => item.value === profileScope)?.label || '生图';
+        const profile: 生图配置档结构 = {
+            id: 生成预设ID('image_profile'),
+            名称: `${scopeLabel}配置 ${new Date(now).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`,
+            适用范围: profileScope,
+            说明: '从当前文生图设置保存',
+            配置: 构建当前生图配置档(profileScope),
+            createdAt: now,
+            updatedAt: now
+        };
+        const idKey = 取当前配置档ID字段(profileScope);
+        setForm((prev) => ({
+            ...prev,
+            功能模型占位: {
+                ...prev.功能模型占位,
+                生图配置档列表: [...(Array.isArray((prev.功能模型占位 as any).生图配置档列表) ? (prev.功能模型占位 as any).生图配置档列表 : []), profile],
+                [idKey]: profile.id
+            } as 功能模型占位配置结构
+        }));
+        setMessage(`已保存「${profile.名称}」`);
+    };
+
+    const handleApplyImageProfile = (profileId: string) => {
+        const profile = imageProfiles.find((item) => item.id === profileId);
+        if (!profile) return;
+        const idKey = 取当前配置档ID字段(profile.适用范围);
+        setForm((prev) => ({
+            ...prev,
+            功能模型占位: {
+                ...prev.功能模型占位,
+                ...profile.配置,
+                [idKey]: profile.id
+            } as 功能模型占位配置结构
+        }));
+        setProfileScope(profile.适用范围);
+        setMessage(`已应用「${profile.名称}」`);
+    };
+
+    const handleDuplicateImageProfile = (profile: 生图配置档结构) => {
+        const now = Date.now();
+        const duplicated: 生图配置档结构 = {
+            ...profile,
+            id: 生成预设ID('image_profile'),
+            名称: `${profile.名称} 副本`,
+            createdAt: now,
+            updatedAt: now
+        };
+        setForm((prev) => ({
+            ...prev,
+            功能模型占位: {
+                ...prev.功能模型占位,
+                生图配置档列表: [...imageProfiles, duplicated]
+            } as 功能模型占位配置结构
+        }));
+        setMessage(`已复制「${profile.名称}」`);
+    };
+
+    const handleDeleteImageProfile = (profileId: string) => {
+        const target = imageProfiles.find((item) => item.id === profileId);
+        if (!target) return;
+        const idKey = 取当前配置档ID字段(target.适用范围);
+        setForm((prev) => ({
+            ...prev,
+            功能模型占位: {
+                ...prev.功能模型占位,
+                生图配置档列表: imageProfiles.filter((item) => item.id !== profileId),
+                [idKey]: currentProfileId === profileId ? '' : (prev.功能模型占位 as any)[idKey]
+            } as 功能模型占位配置结构
+        }));
+        setMessage(`已删除「${target.名称}」`);
     };
 
     const updateArtistPreset = (presetId: string, updater: (preset: 画师串预设结构) => 画师串预设结构) => {
@@ -1643,6 +1784,87 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         );
     };
 
+    const renderProfilesPage = () => (
+        <div className={页面容器样式}>
+            <div className={卡片样式}>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                        <h4 className={标签样式}>生图配置档</h4>
+                        <p className="mt-1 text-xs leading-5 text-gray-400">
+                            将角色、场景、物品三类生图常用配置打包保存，可快速切换后端、模型、画师串、PNG 画风和词组转化器预设。
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {生图配置档范围选项.map((item) => (
+                            <button
+                                key={item.value}
+                                type="button"
+                                onClick={() => setProfileScope(item.value)}
+                                className={`rounded-lg border px-3 py-2 text-xs transition-colors ${profileScope === item.value ? 'border-fuchsia-400 bg-fuchsia-500/20 text-white' : 'border-white/10 bg-black/30 text-gray-300 hover:border-fuchsia-400/40'}`}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="rounded-xl border border-fuchsia-500/20 bg-fuchsia-950/10 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <div className="text-sm font-semibold text-fuchsia-100">
+                                当前页签：{生图配置档范围选项.find((item) => item.value === profileScope)?.label}
+                            </div>
+                            <div className="mt-1 text-xs text-gray-400">
+                                保存后会记录当前设置中的连接、模型、预设选择；API 密钥也会随现有设置一起保存。
+                            </div>
+                        </div>
+                        <GameButton onClick={handleSaveImageProfile} variant="secondary" className="px-4 py-2 text-sm">
+                            保存当前为配置档
+                        </GameButton>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                    {scopedImageProfiles.map((profile) => {
+                        const backend = (profile.配置 as any).场景生图后端类型 || (profile.配置 as any).文生图后端类型 || 'openai';
+                        const model = (profile.配置 as any).场景生图模型使用模型 || (profile.配置 as any).文生图模型使用模型 || '未指定模型';
+                        const isActive = currentProfileId === profile.id;
+                        return (
+                            <div key={profile.id} className={`rounded-xl border p-4 ${isActive ? 'border-fuchsia-400/60 bg-fuchsia-950/20' : 'border-white/10 bg-black/25'}`}>
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h5 className="truncate text-sm font-bold text-white">{profile.名称}</h5>
+                                            {isActive && <span className="rounded border border-emerald-400/40 bg-emerald-950/30 px-2 py-0.5 text-[10px] text-emerald-200">当前</span>}
+                                        </div>
+                                        <div className="mt-1 text-[11px] text-gray-500">{profile.说明 || '未填写说明'}</div>
+                                    </div>
+                                </div>
+                                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-gray-400">
+                                    <div className="rounded border border-white/10 bg-black/30 px-2 py-1.5">后端：<span className="text-gray-200">{backend}</span></div>
+                                    <div className="rounded border border-white/10 bg-black/30 px-2 py-1.5">模型：<span className="text-gray-200">{model}</span></div>
+                                    <div className="rounded border border-white/10 bg-black/30 px-2 py-1.5">画师串：<span className="text-gray-200">{(profile.配置 as any).当前场景画师串预设ID || (profile.配置 as any).当前NPC画师串预设ID || '未绑定'}</span></div>
+                                    <div className="rounded border border-white/10 bg-black/30 px-2 py-1.5">词组：<span className="text-gray-200">{(profile.配置 as any).当前场景词组转化器提示词预设ID || (profile.配置 as any).当前NPC词组转化器提示词预设ID || (profile.配置 as any).当前NAI词组转化器提示词预设ID || '未绑定'}</span></div>
+                                </div>
+                                <div className="mt-4 grid grid-cols-3 gap-2">
+                                    <button type="button" onClick={() => handleApplyImageProfile(profile.id)} className="rounded-lg border border-fuchsia-400/40 bg-fuchsia-950/30 px-3 py-2 text-xs text-fuchsia-100 hover:bg-fuchsia-900/40">应用</button>
+                                    <button type="button" onClick={() => handleDuplicateImageProfile(profile)} className="rounded-lg border border-sky-400/30 bg-sky-950/25 px-3 py-2 text-xs text-sky-100 hover:bg-sky-900/35">复制</button>
+                                    <button type="button" onClick={() => handleDeleteImageProfile(profile.id)} className="rounded-lg border border-red-400/30 bg-red-950/25 px-3 py-2 text-xs text-red-100 hover:bg-red-900/35">删除</button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {scopedImageProfiles.length === 0 && (
+                    <div className="rounded-xl border border-dashed border-white/10 py-10 text-center text-sm text-gray-500">
+                        当前分类还没有配置档。
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-6 text-sm animate-fadeIn">
             <div className="rounded-2xl border border-fuchsia-500/30 bg-[radial-gradient(circle_at_top_left,_rgba(217,70,239,0.18),_transparent_42%),linear-gradient(180deg,rgba(16,16,24,0.96),rgba(5,5,10,0.96))] p-5">
@@ -1678,6 +1900,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             {activePage === 'provider' && renderProviderPage()}
             {activePage === 'transformer' && renderTransformerPage()}
             {activePage === 'presets' && renderPresetsPage()}
+            {activePage === 'profiles' && renderProfilesPage()}
             {activePage === 'automation' && renderAutomationPage()}
 
             {message && <p className="animate-pulse text-xs text-wuxia-cyan">{message}</p>}

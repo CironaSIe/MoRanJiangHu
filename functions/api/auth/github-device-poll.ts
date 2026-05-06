@@ -1,4 +1,4 @@
-import { buildAuthJsonResponse, handleAuthOptions } from './_shared';
+import { buildAuthJsonResponse, handleAuthOptions, postGitHubOAuthForm } from './_shared';
 
 export function onRequestOptions(): Response {
     return handleAuthOptions();
@@ -16,20 +16,12 @@ export async function onRequestPost({ request, env }: any) {
             return buildAuthJsonResponse({ error: 'Missing GITHUB_CLIENT_ID env variable in Cloudflare' }, 500);
         }
 
-        const response = await fetch('https://github.com/login/oauth/access_token', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                client_id: GITHUB_CLIENT_ID,
-                device_code: deviceCode,
-                grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
-            })
+        const { response, data } = await postGitHubOAuthForm('https://github.com/login/oauth/access_token', {
+            client_id: GITHUB_CLIENT_ID,
+            device_code: deviceCode,
+            grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
         });
 
-        const data = await response.json();
         if (!response.ok) {
             return buildAuthJsonResponse({ error: data.error_description || data.error || 'Failed to poll GitHub device flow' }, response.status);
         }

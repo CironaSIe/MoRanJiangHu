@@ -10,6 +10,14 @@ interface Props {
     requestConfirm?: (options: { title?: string; message: string; confirmText?: string; cancelText?: string; danger?: boolean }) => Promise<boolean>;
 }
 
+const DiagnosisCard: React.FC<{ label: string; value: string; sub: string; warning?: boolean }> = ({ label, value, sub, warning }) => (
+    <div className={`rounded-lg border p-3 ${warning ? 'border-amber-500/40 bg-amber-950/20' : 'border-gray-700/60 bg-black/30'}`}>
+        <div className="text-[10px] uppercase tracking-wider text-gray-400">{label}</div>
+        <div className={`mt-1 text-lg font-mono font-bold ${warning ? 'text-amber-200' : 'text-gray-100'}`}>{value}</div>
+        <div className="mt-1 text-[11px] text-gray-500">{sub}</div>
+    </div>
+);
+
 const StorageManager: React.FC<Props> = ({ requestConfirm }) => {
     const [info, setInfo] = useState<dbService.StorageBreakdown>({
         usage: 0,
@@ -17,6 +25,7 @@ const StorageManager: React.FC<Props> = ({ requestConfirm }) => {
         details: { saves: 0, settings: 0, prompts: 0, api: 0, imageAssets: 0, cache: 0 }
     });
     const [managedSettings, setManagedSettings] = useState<dbService.设置管理项[]>([]);
+    const [diagnosis, setDiagnosis] = useState<dbService.本地数据体检报告 | null>(null);
     const [protectApiKey, setProtectApiKey] = useState(false);
     const [protectCustomPreset, setProtectCustomPreset] = useState(false);
     const [protectSaves, setProtectSaves] = useState(false);
@@ -53,14 +62,16 @@ const StorageManager: React.FC<Props> = ({ requestConfirm }) => {
     };
 
     const refreshStorageView = async () => {
-        const [storageInfo, settingsInfo, savedProtect] = await Promise.all([
+        const [storageInfo, settingsInfo, savedProtect, diagnosisInfo] = await Promise.all([
             dbService.获取详细存储信息(),
             dbService.获取设置管理清单(),
-            dbService.读取存档保护状态()
+            dbService.读取存档保护状态(),
+            dbService.获取本地数据体检报告()
         ]);
         setInfo(storageInfo);
         setManagedSettings(settingsInfo);
         setProtectSaves(savedProtect);
+        setDiagnosis(diagnosisInfo);
     };
 
     useEffect(() => {
@@ -225,6 +236,34 @@ const StorageManager: React.FC<Props> = ({ requestConfirm }) => {
             confirmText: '清除',
             onRun: async () => {
                 await dbService.清除系统缓存();
+            }
+        });
+    };
+
+    const handleRunDiagnosis = async () => {
+        if (runningAction) return;
+        try {
+            setRunningAction('diagnosis');
+            const report = await dbService.获取本地数据体检报告();
+            setDiagnosis(report);
+            pushNotice('success', '本地数据体检完成');
+        } catch (error: any) {
+            pushNotice('error', `体检失败：${error?.message || '未知错误'}`);
+        } finally {
+            setRunningAction(null);
+        }
+    };
+
+    const handleRepairDiagnosis = async () => {
+        await runWithConfirm('repair_diagnosis', {
+            title: '修复本地数据问题',
+            message: '将清理未被任何存档或设置引用的孤儿图片资源，并刷新图片资源缓存。缺失图片引用会保留并在报告中提示，避免误删存档内容。是否继续？',
+            confirmText: '开始修复',
+            onRun: async () => {
+                const result = await dbService.修复本地数据体检问题();
+                const report = await dbService.获取本地数据体检报告();
+                setDiagnosis(report);
+                pushNotice('success', `修复完成：清理 ${result.清理孤儿图片数量} 个孤儿图片资源。`);
             }
         });
     };
@@ -427,6 +466,74 @@ const StorageManager: React.FC<Props> = ({ requestConfirm }) => {
                         <span className="text-xs font-mono text-gray-300">{formatBytes(info.details.cache)}</span>
                     </div>
                 </div>
+            </div>
+
+            <div className="bg-black/30 p-5 border border-gray-700/50 rounded-lg space-y-4">
+                <div className="flex items-end justify-between gap-3">
+                    <div>
+                        <h4 className="text-wuxia-gold font-serif font-bold">一键体检与安全修复</h4>
+                        <div className="text-xs text-gray-400 mt-1">
+                            检查存档、设置与图片资源引用关系，优先处理长期游玩后最容易堆积的孤儿图片资源。
+                        </div>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                        <button
+                            type="button"
+                            onClick={() => { void handleRunDiagnosis(); }}
+                            className="px-3 py-1.5 border border-wuxia-gold/30 bg-black/40 text-xs text-wuxia-gold hover:bg-wuxia-gold/10 disabled:opacity-50"
+                            disabled={Boolean(runningAction)}
+                        >
+                            {runningAction === 'diagnosis' ? '体检中...' : '重新体检'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { void handleRepairDiagnosis(); }}
+                            className="px-3 py-1.5 border border-emerald-500/40 bg-emerald-950/30 text-xs text-emerald-200 hover:bg-emerald-900/30 disabled:opacity-50"
+                            disabled={Boolean(runningAction) || !diagnosis || diagnosis.孤儿图片数量 <= 0}
+                        >
+                            安全修复
+                        </button>
+                    </div>
+                </div>
+
+                {diagnosis ? (
+                    <>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
+                            <DiagnosisCard label="存档" value={`${diagnosis.存档数量}`} sub={`${diagnosis.手动存档数量} 手动 / ${diagnosis.自动存档数量} 自动`} />
+                            <DiagnosisCard label="设置项" value={`${diagnosis.设置数量}`} sub="IndexedDB 设置记录" />
+                            <DiagnosisCard label="图片资源" value={`${diagnosis.图片资源数量}`} sub={`${diagnosis.图片引用数量} 个引用`} />
+                            <DiagnosisCard
+                                label="待处理"
+                                value={`${diagnosis.孤儿图片数量 + diagnosis.缺失图片引用数量}`}
+                                sub={`${diagnosis.孤儿图片数量} 孤儿 / ${diagnosis.缺失图片引用数量} 缺失`}
+                                warning={diagnosis.孤儿图片数量 + diagnosis.缺失图片引用数量 > 0}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            {diagnosis.建议列表.map((text, index) => (
+                                <div key={`${index}-${text}`} className="rounded border border-gray-700/60 bg-black/30 px-3 py-2 text-xs leading-5 text-gray-300">
+                                    {text}
+                                </div>
+                            ))}
+                        </div>
+                        {(diagnosis.孤儿图片示例.length > 0 || diagnosis.缺失图片引用示例.length > 0) && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] text-gray-500">
+                                <div className="rounded border border-gray-800 bg-black/30 p-2">
+                                    <div className="mb-1 text-gray-300">孤儿图片示例</div>
+                                    <div className="font-mono break-all">{diagnosis.孤儿图片示例.join('、') || '无'}</div>
+                                </div>
+                                <div className="rounded border border-gray-800 bg-black/30 p-2">
+                                    <div className="mb-1 text-gray-300">缺失引用示例</div>
+                                    <div className="font-mono break-all">{diagnosis.缺失图片引用示例.join('、') || '无'}</div>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="rounded border border-dashed border-gray-700 px-3 py-4 text-sm text-gray-500">
+                        尚未生成体检报告。
+                    </div>
+                )}
             </div>
 
             <div className="bg-black/30 p-5 border border-gray-700/50 rounded-lg space-y-3">

@@ -20,6 +20,7 @@ const TavernPresetSettings = React.lazy(() => lazyImportWithReload('settings-tav
 const MemorySettings = React.lazy(() => lazyImportWithReload('settings-memory', () => import('./MemorySettings')));
 const HistoryViewer = React.lazy(() => lazyImportWithReload('settings-history-viewer', () => import('./HistoryViewer')));
 const ContextViewer = React.lazy(() => lazyImportWithReload('settings-context-viewer', () => import('./ContextViewer')));
+const LogViewer = React.lazy(() => lazyImportWithReload('settings-log-viewer', () => import('./LogViewer')));
 const RecallModelSettings = React.lazy(() => lazyImportWithReload('settings-recall-model', () => import('./RecallModelSettings')));
 const MemorySummaryModelSettings = React.lazy(() => lazyImportWithReload('settings-memory-summary-model', () => import('./MemorySummaryModelSettings')));
 const PolishModelSettings = React.lazy(() => lazyImportWithReload('settings-polish-model', () => import('./PolishModelSettings')));
@@ -33,7 +34,7 @@ const MusicSettings = React.lazy(() => lazyImportWithReload('settings-music', ()
 const NpcManager = React.lazy(() => lazyImportWithReload('settings-npc-manager', () => import('./NpcManager')));
 const VariableManager = React.lazy(() => lazyImportWithReload('settings-variable-manager', () => import('./VariableManager')));
 
-type SettingsTab = 'api' | 'image_generation' | 'recall' | 'memory_summary_model' | 'polish' | 'world_evolution' | 'variable_model' | 'planning_model' | 'independent_api_gpt' | 'novel_decomposition' | 'novel_decomposition_runtime' | 'prompt' | 'storage' | 'theme' | 'visual' | 'world' | 'game' | 'reality' | 'tavern_preset' | 'memory' | 'history' | 'context' | 'music' | 'npc_management' | 'variable_manager';
+type SettingsTab = 'api' | 'image_generation' | 'recall' | 'memory_summary_model' | 'polish' | 'world_evolution' | 'variable_model' | 'planning_model' | 'independent_api_gpt' | 'novel_decomposition' | 'novel_decomposition_runtime' | 'prompt' | 'storage' | 'theme' | 'visual' | 'world' | 'game' | 'reality' | 'tavern_preset' | 'memory' | 'history' | 'context' | 'logs' | 'music' | 'npc_management' | 'variable_manager';
 type RuntimeStateSections = Record<'角色' | '环境' | '社交' | '世界' | '战斗' | '剧情' | '女主剧情规划' | '玩家门派' | '任务列表' | '约定列表' | '记忆系统', unknown>;
 
 type ContextSection = {
@@ -120,6 +121,7 @@ const SettingsModal: React.FC<Props> = ({
         { id: 'music', label: '背景音乐' },
         { id: 'history', label: '互动历史' },
         { id: 'context', label: '上下文' },
+        { id: 'logs', label: '运行日志' },
         { id: 'api', label: '接口连接' },
         { id: 'image_generation', label: '文生图' },
         { id: 'recall', label: '剧情回忆' },
@@ -135,6 +137,10 @@ const SettingsModal: React.FC<Props> = ({
         { id: 'theme', label: '界面风格' },
         { id: 'storage', label: '数据存储' }
     ] as const;
+    const diagnosticsEnabled = (gameConfig as any)?.启用研发诊断模式 === true;
+    const visibleTabItems = diagnosticsEnabled
+        ? tabItems
+        : tabItems.filter((item) => !['npc_management', 'variable_manager', 'logs', 'context', 'history'].includes(item.id));
 
     const 设置加载占位 = (
         <div className="flex min-h-[240px] items-center justify-center rounded-xl border border-wuxia-gold/10 bg-black/20 text-sm tracking-[0.2em] text-wuxia-gold/70">
@@ -192,6 +198,7 @@ const SettingsModal: React.FC<Props> = ({
         if (activeTab === 'music') return <MusicSettings />;
         if (activeTab === 'storage') return <StorageManager requestConfirm={requestConfirm} />;
         if (activeTab === 'history') return <HistoryViewer history={history} memorySystem={memorySystem} />;
+        if (activeTab === 'logs') return <LogViewer />;
         if (activeTab === 'context' && contextSnapshot) {
             return (
                 <ContextViewer
@@ -224,7 +231,7 @@ const SettingsModal: React.FC<Props> = ({
                     <div className="hidden md:flex w-[220px] lg:w-[236px] bg-black/40 border-r border-wuxia-gold/10 flex-col pt-9 relative z-10 min-h-0">
                         <h2 className="text-xl text-wuxia-gold font-serif font-black px-5 mb-6 italic" style={{ fontFamily: 'var(--ui-页面标题-font-family, inherit)', fontSize: 'var(--ui-页面标题-font-size, 28px)' }}>设置</h2>
                         <div className="flex-1 overflow-y-auto custom-scrollbar">
-                            {tabItems.map(item => (
+                            {visibleTabItems.map(item => (
                                 <button 
                                     key={item.id}
                                     onClick={() => onTabChange(item.id as any)}
