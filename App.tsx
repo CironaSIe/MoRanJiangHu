@@ -24,6 +24,58 @@ import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放�
 import './services/diagnosticLog';
 
 const RELEASE_NOTES_SUPPRESS_DATE_KEY = 'moranjianghu.releaseNotesSuppressDate';
+const DESKTOP_DETAIL_WIDTHS_STORAGE_KEY = 'moranjianghu.desktopRightDetailWidths';
+const DESKTOP_DETAIL_MIN_WIDTH = 420;
+const DESKTOP_DETAIL_MAX_WIDTH = 980;
+const DESKTOP_DETAIL_RIGHT_GAP = 12;
+
+const getDesktopDetailDefaultWidth = (panelId: string | null): number => {
+    switch (panelId) {
+        case 'equipment':
+            return 760;
+        case 'social':
+            return 820;
+        case 'character':
+        case 'map':
+        case 'settings':
+        case 'image_manager':
+            return 760;
+        case 'novel_decomposition':
+        case 'export_novel':
+            return 900;
+        case 'inventory':
+        case 'team':
+        case 'world':
+            return 720;
+        default:
+            return 680;
+    }
+};
+
+const clampDesktopDetailWidth = (value: number): number => {
+    const viewportLimit = typeof window === 'undefined'
+        ? DESKTOP_DETAIL_MAX_WIDTH
+        : Math.max(DESKTOP_DETAIL_MIN_WIDTH, window.innerWidth - 200);
+    return Math.round(Math.max(
+        DESKTOP_DETAIL_MIN_WIDTH,
+        Math.min(value, DESKTOP_DETAIL_MAX_WIDTH, viewportLimit)
+    ));
+};
+
+const readDesktopDetailWidths = (): Record<string, number> => {
+    if (typeof window === 'undefined') return {};
+    try {
+        const parsed = JSON.parse(window.localStorage.getItem(DESKTOP_DETAIL_WIDTHS_STORAGE_KEY) || '{}');
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+        return Object.entries(parsed).reduce<Record<string, number>>((acc, [key, value]) => {
+            const numeric = Number(value);
+            if (Number.isFinite(numeric)) acc[key] = clampDesktopDetailWidth(numeric);
+            return acc;
+        }, {});
+    } catch {
+        return {};
+    }
+};
 
 type 可预加载组件<T extends React.ComponentType<any>> = React.LazyExoticComponent<T> & {
     preload?: () => Promise<unknown>;
@@ -179,6 +231,11 @@ const App: React.FC = () => {
     const [appUpdateProgress, setAppUpdateProgress] = React.useState<AppUpdateProgressState | null>(null);
     const [selectedSocialNpcId, setSelectedSocialNpcId] = React.useState<string | null>(null);
     const [desktopDetailFullscreen, setDesktopDetailFullscreen] = React.useState(false);
+    const [desktopDetailWidths, setDesktopDetailWidths] = React.useState<Record<string, number>>(() => readDesktopDetailWidths());
+    const [viewportWidth, setViewportWidth] = React.useState<number>(() => {
+        if (typeof window === 'undefined') return 1280;
+        return window.innerWidth;
+    });
     const [isMobile, setIsMobile] = React.useState<boolean>(() => {
         if (typeof window === 'undefined') return false;
         return window.matchMedia('(max-width: 767px)').matches;
@@ -492,6 +549,14 @@ const App: React.FC = () => {
         update();
         mq.addEventListener('change', update);
         return () => mq.removeEventListener('change', update);
+    }, []);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const update = () => setViewportWidth(window.innerWidth);
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
     }, []);
 
     React.useEffect(() => {
@@ -850,9 +915,50 @@ const App: React.FC = () => {
         || safeShowSaveLoad.show
         || state.showSettings
     );
+    const desktopRightDetailId = activeMobileWindowId || 'detail';
     const desktopRightDetailClass = state.view === 'game' && !isMobile
-        ? `desktop-right-detail-modal${desktopDetailFullscreen ? ' desktop-right-detail-modal--fullscreen' : ''}`
+        ? `desktop-right-detail-modal desktop-right-detail-modal--${desktopRightDetailId}${desktopDetailFullscreen ? ' desktop-right-detail-modal--fullscreen' : ''}`
         : undefined;
+    const desktopRightDetailWidth = React.useMemo(() => clampDesktopDetailWidth(
+        desktopDetailWidths[desktopRightDetailId] ?? getDesktopDetailDefaultWidth(desktopRightDetailId)
+    ), [desktopDetailWidths, desktopRightDetailId, viewportWidth]);
+    const appRootStyleVars = React.useMemo(() => ({
+        ...appUiStyleVars,
+        ['--desktop-right-detail-width' as any]: `${desktopRightDetailWidth}px`
+    }), [appUiStyleVars, desktopRightDetailWidth]);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(DESKTOP_DETAIL_WIDTHS_STORAGE_KEY, JSON.stringify(desktopDetailWidths));
+    }, [desktopDetailWidths]);
+
+    const resetDesktopDetailWidth = React.useCallback(() => {
+        setDesktopDetailWidths(prev => {
+            const next = { ...prev };
+            delete next[desktopRightDetailId];
+            return next;
+        });
+    }, [desktopRightDetailId]);
+
+    const startDesktopDetailResize = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        if (desktopDetailFullscreen) return;
+        event.preventDefault();
+        const panelId = desktopRightDetailId;
+        const updateWidth = (clientX: number) => {
+            const nextWidth = clampDesktopDetailWidth(window.innerWidth - clientX - DESKTOP_DETAIL_RIGHT_GAP);
+            setDesktopDetailWidths(prev => ({ ...prev, [panelId]: nextWidth }));
+        };
+        updateWidth(event.clientX);
+        const handlePointerMove = (moveEvent: PointerEvent) => updateWidth(moveEvent.clientX);
+        const handlePointerUp = () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+            document.body.classList.remove('desktop-detail-resizing');
+        };
+        document.body.classList.add('desktop-detail-resizing');
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp, { once: true });
+    }, [desktopDetailFullscreen, desktopRightDetailId]);
 
     const closeAllPanels = React.useCallback(() => {
         setDesktopDetailFullscreen(false);
@@ -1365,7 +1471,7 @@ const App: React.FC = () => {
 
     return (
         <MusicProvider visualConfig={effectiveVisualConfig} onSaveVisual={actions.saveVisualSettings}>
-            <div className={`h-screen w-screen overflow-hidden bg-ink-black relative flex flex-col transition-colors duration-500 ${isMobile ? 'p-0' : 'p-3'}`} style={appUiStyleVars}>
+            <div className={`h-screen w-screen overflow-hidden bg-ink-black relative flex flex-col transition-colors duration-500 ${isMobile ? 'p-0' : 'p-3'}`} style={appRootStyleVars}>
                 {fontFaceStyleText && <style>{fontFaceStyleText}</style>}
             
             {/* View Switching */}
@@ -2504,32 +2610,33 @@ const App: React.FC = () => {
                 </div>
             )}
             {desktopRightDetailPanelOpen && (
-                <button
-                    type="button"
-                    onClick={() => setDesktopDetailFullscreen(prev => !prev)}
-                    className="desktop-detail-expand-toggle"
-                    aria-label={desktopDetailFullscreen ? '退出详情全屏' : '展开详情全屏'}
-                    title={desktopDetailFullscreen ? '退出详情全屏' : '展开详情全屏'}
-                >
-                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                        {desktopDetailFullscreen ? (
-                            <>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v6H3" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 3v6h6" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 21v-6H3" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 21v-6h6" />
-                            </>
-                        ) : (
-                            <>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H3v5" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16 3h5v5" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 21H3v-5" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16 21h5v-5" />
-                            </>
-                        )}
-                    </svg>
-                    <span>{desktopDetailFullscreen ? '收起' : '展开'}</span>
-                </button>
+                <>
+                    {!desktopDetailFullscreen && (
+                        <div
+                            className="desktop-detail-resize-handle"
+                            role="separator"
+                            aria-label="拖拽调整详情栏宽度"
+                            title="拖拽调整详情栏宽度，双击恢复本页默认宽度"
+                            onPointerDown={startDesktopDetailResize}
+                            onDoubleClick={resetDesktopDetailWidth}
+                        />
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => setDesktopDetailFullscreen(prev => !prev)}
+                        className={`desktop-detail-expand-toggle${desktopDetailFullscreen ? ' desktop-detail-expand-toggle--fullscreen' : ''}`}
+                        aria-label={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
+                        title={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
+                    >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                            {desktopDetailFullscreen ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+                            ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m15 6-6 6 6 6" />
+                            )}
+                        </svg>
+                    </button>
+                </>
             )}
         </div>
     </MusicProvider>
