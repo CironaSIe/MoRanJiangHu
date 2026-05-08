@@ -506,6 +506,13 @@
     flex-direction: column !important;
   }
 
+  .desktop-right-detail-modal--social .fixed > div > .flex-1.flex.overflow-hidden.relative > .w-0 {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
   .desktop-right-detail-modal--social .fixed > div [class*="p-6"][class*="gap-6"] {
     padding: 1rem !important;
     gap: 1rem !important;
@@ -527,6 +534,78 @@
   .desktop-right-detail-modal--social .fixed > div span,
   .desktop-right-detail-modal--social .fixed > div div {
     overflow-wrap: anywhere;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-body {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-filter-panel {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.25fr) minmax(14rem, 0.75fr) !important;
+    align-items: start !important;
+    gap: 0.75rem !important;
+    border-right-width: 0 !important;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.12) !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-filter-panel > :first-child {
+    grid-column: 1 / -1 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-category-grid {
+    grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)) !important;
+    align-content: start !important;
+    align-items: start !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-category-grid > button {
+    height: auto !important;
+    min-height: 2.35rem !important;
+    padding: 0.5rem 0.65rem !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-market-panel {
+    margin-top: 0 !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-market-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)) !important;
+    gap: 0.5rem !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-list-panel {
+    min-height: 22rem !important;
+    overflow: visible !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-list-panel > .mb-3 {
+    grid-template-columns: minmax(10rem, 1fr) repeat(2, minmax(6.5rem, 8rem)) minmax(7rem, 8rem) auto !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-item-grid {
+    grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr)) !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-trade-panel {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(15.5rem, 1fr)) !important;
+    align-items: start !important;
+    gap: 0.75rem !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border-left-width: 0 !important;
+    border-top: 1px solid rgba(212, 175, 55, 0.12) !important;
+    padding: 0.75rem !important;
+  }
+
+  .desktop-right-detail-modal--auction_house:not(.desktop-right-detail-modal--fullscreen) .auction-house-trade-panel > section {
+    margin-top: 0 !important;
+    min-width: 0 !important;
   }
 
   .desktop-right-detail-modal--fullscreen .fixed {

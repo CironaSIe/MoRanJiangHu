@@ -262,13 +262,13 @@ const AuctionHouseModal: React.FC<Props> = ({
                     </div>
                 </div>
 
-                <div className={`min-h-0 flex-1 ${isMobile ? 'flex flex-col' : 'grid grid-cols-[250px_minmax(0,1fr)_360px]'}`}>
-                    <aside className={`${isMobile ? 'shrink-0 border-b' : 'border-r'} border-wuxia-gold/10 bg-[#0e0b08] p-3`}>
+                <div className={`auction-house-body min-h-0 flex-1 ${isMobile ? 'flex flex-col' : 'grid grid-cols-[250px_minmax(0,1fr)_360px]'}`}>
+                    <aside className={`auction-house-filter-panel ${isMobile ? 'shrink-0 border-b' : 'border-r'} border-wuxia-gold/10 bg-[#0e0b08] p-3`}>
                         <div className="mb-3 flex items-center justify-between text-xs text-wuxia-gold/60">
                             <span>分类</span>
                             <span>{activeAuctions.length} 件在售</span>
                         </div>
-                        <div className={`${isMobile ? 'flex overflow-x-auto no-scrollbar' : 'grid grid-cols-2 gap-2'} gap-2`}>
+                        <div className={`auction-house-category-grid ${isMobile ? 'flex overflow-x-auto no-scrollbar' : 'grid grid-cols-2 gap-2'} gap-2`}>
                             {分类列表.map((category) => (
                                 <button key={category} type="button" onClick={() => setActiveCategory(category)} className={`shrink-0 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${activeCategory === category ? 'border-wuxia-gold/55 bg-[#332812] text-wuxia-gold' : 'border-white/8 bg-[#151515] text-gray-300 hover:border-wuxia-gold/30'}`}>
                                     {category}
@@ -276,9 +276,9 @@ const AuctionHouseModal: React.FC<Props> = ({
                             ))}
                         </div>
 
-                        <div className="mt-4 rounded-xl border border-wuxia-gold/15 bg-[#11100d] p-3">
+                        <div className="auction-house-market-panel mt-4 rounded-xl border border-wuxia-gold/15 bg-[#11100d] p-3">
                             <div className="mb-2 text-xs font-semibold tracking-[0.18em] text-wuxia-gold/75">今日行情</div>
-                            <div className="space-y-2">
+                            <div className="auction-house-market-list space-y-2">
                                 {(auctionState.行情列表 || []).map((market) => (
                                     <div key={market.ID} className="rounded-lg border border-amber-400/20 bg-[#2c1c08] p-2">
                                         <div className="flex items-center justify-between gap-2 text-xs">
@@ -294,7 +294,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                         </div>
                     </aside>
 
-                    <main className="min-h-0 overflow-y-auto p-3 custom-scrollbar">
+                    <main className="auction-house-list-panel min-h-0 overflow-y-auto p-3 custom-scrollbar">
                         <div className="mb-3 grid gap-2 md:grid-cols-[1fr_120px_120px_130px_auto]">
                             <select value={sortBy} onChange={(event) => setSortBy(event.target.value as 排序)} className="rounded border border-wuxia-gold/20 bg-[#0d0d0d] px-2 py-2 text-xs text-wuxia-gold outline-none">
                                 <option>热点优先</option>
@@ -312,7 +312,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                             <div className="rounded border border-wuxia-gold/15 bg-[#11100d] px-3 py-2 text-xs text-wuxia-gold/65">{displayAuctions.length} 件</div>
                         </div>
 
-                        <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 xl:grid-cols-3'}`}>
+                        <div className={`auction-house-item-grid grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 xl:grid-cols-3'}`}>
                             {displayAuctions.map((entry) => {
                                 const styles = getRarityStyles(entry.物品?.品质 || '');
                                 const selected = selectedAuction?.ID === entry.ID;
@@ -346,7 +346,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                         )}
                     </main>
 
-                    <aside className={`${isMobile ? 'max-h-[44vh] border-t' : 'border-l'} border-wuxia-gold/10 bg-[#0e0b08] p-4 overflow-y-auto custom-scrollbar`}>
+                    <aside className={`auction-house-trade-panel ${isMobile ? 'max-h-[44vh] border-t' : 'border-l'} border-wuxia-gold/10 bg-[#0e0b08] p-4 overflow-y-auto custom-scrollbar`}>
                         <section className="rounded-xl border border-wuxia-gold/15 bg-[#11100d] p-3">
                             <div className="mb-2 text-sm font-semibold text-wuxia-gold">货品详情</div>
                             {selectedAuction ? (
