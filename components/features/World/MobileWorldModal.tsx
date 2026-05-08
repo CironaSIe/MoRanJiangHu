@@ -85,7 +85,7 @@ const MobileWorldModal: React.FC<Props> = ({
 
     return (
         <div className="fixed inset-0 z-[220] bg-black/95 backdrop-blur-md md:hidden">
-            <div className="flex h-full flex-col bg-gradient-to-b from-[#050505] via-black to-[#090909] text-gray-100">
+            <div className="world-modal-body flex h-full flex-col bg-gradient-to-b from-[#050505] via-black to-[#090909] text-gray-100">
                 <div className="shrink-0 border-b border-wuxia-gold/15 bg-black/70 px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)]">
                     <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">

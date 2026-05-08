@@ -81,6 +81,19 @@ const MobileSocial: React.FC<Props> = ({
         }
         return '';
     };
+    const 格式化生日 = (value: string): string => {
+        const text = value.trim();
+        if (!text) return '';
+        const monthDayText = text.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日?/);
+        const separatedText = text.match(/^(?:\d{2,4}\s*[-/.年]\s*)?0?(\d{1,2})\s*[-/.:\s]\s*0?(\d{1,2})\s*(?:日)?$/);
+        const compactText = text.match(/^0?(\d{1,2})(\d{2})$/);
+        const match = monthDayText || separatedText || compactText;
+        if (!match) return text;
+        const month = Number(match[1]);
+        const day = Number(match[2]);
+        if (!Number.isInteger(month) || !Number.isInteger(day) || month < 1 || month > 12 || day < 1 || day > 31) return text;
+        return `${month}月${day}日`;
+    };
     const 读取外貌 = (npc: NPC结构): string => 取首个非空文本(
         (npc as any).外貌描写,
         (npc as any).外貌,
@@ -99,11 +112,11 @@ const MobileSocial: React.FC<Props> = ({
         (npc as any).档案?.衣着风格,
         (npc as any).档案?.衣着要点
     );
-    const 读取生日 = (npc: NPC结构): string => 取首个非空文本(
+    const 读取生日 = (npc: NPC结构): string => 格式化生日(取首个非空文本(
         (npc as any).生日,
         (npc as any).出生日期,
         (npc as any).档案?.生日
-    );
+    ));
     const 读取对主角称呼 = (npc: NPC结构): string => 取首个非空文本(
         (npc as any).对主角称呼,
         (npc as any).档案?.对主角称呼
@@ -273,7 +286,7 @@ const MobileSocial: React.FC<Props> = ({
                     </button>
                 </div>
 
-                <div className="flex-1 flex flex-col overflow-hidden relative z-0">
+                <div className="social-modal-body flex-1 flex flex-col overflow-hidden relative z-0">
                     {/* Top: Horizontal Party Selection */}
                     <div className="h-[100px] shrink-0 border-b border-white/5 bg-gradient-to-b from-black/80 to-black/90 relative z-[90] pt-1 pb-2 shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
                         <div className="text-[9px] text-wuxia-gold/50 tracking-[0.2em] uppercase mb-1 px-3 flex items-center justify-between">

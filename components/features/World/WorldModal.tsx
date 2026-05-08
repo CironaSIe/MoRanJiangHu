@@ -86,7 +86,7 @@ const WorldModal: React.FC<Props> = ({
 
     return (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fadeIn">
-            <div className="bg-ink-black/95 border border-wuxia-gold/20 w-full max-w-7xl max-h-[90vh] h-[90vh] flex flex-col shadow-[0_0_80px_rgba(0,0,0,0.9)] relative overflow-hidden rounded-2xl">
+            <div className="world-modal-body bg-ink-black/95 border border-wuxia-gold/20 w-full max-w-7xl max-h-[90vh] h-[90vh] flex flex-col shadow-[0_0_80px_rgba(0,0,0,0.9)] relative overflow-hidden rounded-2xl">
                 <div className="h-20 shrink-0 border-b border-wuxia-gold/10 bg-gradient-to-r from-black/80 to-black/40 flex items-center justify-between px-8 relative z-50">
                     <div>
                         <div className="text-wuxia-gold font-serif font-bold text-2xl tracking-[0.4em]">天下大势</div>

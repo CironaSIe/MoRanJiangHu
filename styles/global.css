@@ -29,6 +29,100 @@
   text-orientation: upright;
 }
 
+/* Social page readability */
+.social-modal-body,
+.social-modal-body * {
+  font-style: normal !important;
+}
+
+.social-modal-body .text-\[8px\],
+.social-modal-body .text-\[9px\],
+.social-modal-body .text-\[10px\] {
+  font-size: 0.75rem !important;
+  line-height: 1.45 !important;
+}
+
+.social-modal-body .text-\[11px\],
+.social-modal-body .text-xs {
+  font-size: 0.8125rem !important;
+  line-height: 1.5 !important;
+}
+
+.social-modal-body [class*="text-gray-400"],
+.social-modal-body [class*="text-gray-500"],
+.social-modal-body [class*="text-gray-600"] {
+  color: rgba(220, 215, 204, 0.92) !important;
+}
+
+.social-modal-body [class*="text-pink-100"],
+.social-modal-body [class*="text-pink-200"],
+.social-modal-body [class*="text-pink-300"],
+.social-modal-body [class*="text-pink-400"],
+.social-modal-body [class*="text-pink-500"] {
+  color: rgba(255, 190, 218, 0.94) !important;
+}
+
+.social-modal-body [class*="text-cyan-400"],
+.social-modal-body [class*="text-cyan-500"] {
+  color: rgba(124, 231, 255, 0.94) !important;
+}
+
+/* World page readability */
+.world-modal-body {
+  color: rgba(238, 232, 218, 0.94);
+}
+
+.world-modal-body * {
+  font-style: normal !important;
+}
+
+.world-modal-body .text-\[8px\],
+.world-modal-body .text-\[9px\],
+.world-modal-body .text-\[10px\] {
+  font-size: 0.75rem !important;
+  line-height: 1.5 !important;
+}
+
+.world-modal-body .text-\[11px\],
+.world-modal-body .text-xs {
+  font-size: 0.8125rem !important;
+  line-height: 1.55 !important;
+}
+
+.world-modal-body .text-sm {
+  font-size: 0.9375rem !important;
+  line-height: 1.75 !important;
+}
+
+.world-modal-body [class*="text-gray-300"],
+.world-modal-body [class*="text-gray-400"],
+.world-modal-body [class*="text-gray-500"],
+.world-modal-body [class*="text-gray-600"] {
+  color: rgba(222, 216, 204, 0.9) !important;
+}
+
+.world-modal-body [class*="text-cyan-500"],
+.world-modal-body [class*="text-cyan-600"] {
+  color: rgba(111, 232, 255, 0.92) !important;
+}
+
+.world-modal-body [class*="text-red-900"] {
+  color: rgba(248, 113, 113, 0.86) !important;
+}
+
+.world-modal-body [class*="text-orange-500"] {
+  color: rgba(251, 170, 96, 0.92) !important;
+}
+
+.world-modal-body [class*="text-green-500"] {
+  color: rgba(99, 230, 150, 0.92) !important;
+}
+
+.world-modal-body [class*="opacity-70"],
+.world-modal-body [class*="opacity-80"] {
+  opacity: 1 !important;
+}
+
 /* P5 Style Clip Paths */
 .clip-trapezoid {
   clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);

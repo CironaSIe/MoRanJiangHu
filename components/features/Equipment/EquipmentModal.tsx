@@ -12,6 +12,46 @@ interface Props {
     onCharacterChange?: (nextCharacter: 角色数据结构) => void;
 }
 
+const 读取装备数值 = (item: any, key: string, fallback = 0): number => {
+    const value = Number(item?.[key]);
+    return Number.isFinite(value) ? value : fallback;
+};
+
+const 格式化装备数值 = (value: number): string => {
+    if (!Number.isFinite(value)) return '0';
+    return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, '');
+};
+
+const 格式化词条数值 = (mod: any): string => {
+    const value = Number(mod?.数值);
+    const safeValue = Number.isFinite(value) ? value : 0;
+    const sign = safeValue > 0 ? '+' : '';
+    const suffix = mod?.类型 === '百分比' ? '%' : '';
+    return `${sign}${格式化装备数值(safeValue)}${suffix}`;
+};
+
+const 读取词条名称 = (mod: any): string => {
+    const name = typeof mod?.名称 === 'string' ? mod.名称.trim() : '';
+    const attr = typeof mod?.属性 === 'string' ? mod.属性.trim() : '';
+    return name || attr || '未命名词条';
+};
+
+const 是否显示词条属性 = (mod: any): boolean => {
+    const name = typeof mod?.名称 === 'string' ? mod.名称.trim() : '';
+    const attr = typeof mod?.属性 === 'string' ? mod.属性.trim() : '';
+    return Boolean(name && attr && name !== attr);
+};
+
+const 读取有效词条列表 = (item: any): any[] => {
+    if (!Array.isArray(item?.词条列表)) return [];
+    return item.词条列表.filter((mod: any) => {
+        const name = typeof mod?.名称 === 'string' ? mod.名称.trim() : '';
+        const attr = typeof mod?.属性 === 'string' ? mod.属性.trim() : '';
+        const value = Number(mod?.数值);
+        return Boolean(name || attr || (Number.isFinite(value) && value !== 0));
+    });
+};
+
 const EquipmentModal: React.FC<Props> = ({ character, onClose, onCharacterChange }) => {
     const [selectedItem, setSelectedItem] = useState<游戏物品 | null>(null);
     const [actionMessage, setActionMessage] = useState('');
@@ -42,6 +82,7 @@ const EquipmentModal: React.FC<Props> = ({ character, onClose, onCharacterChange
             })
             .sort((a: any, b: any) => 计算装备评分(b) - 计算装备评分(a))[0] || null
         : null;
+    const selectedItemAffixes = selectedItem ? 读取有效词条列表(selectedItem) : [];
 
     const applyCharacterChange = (nextCharacter: 角色数据结构, nextSelectedRef?: string) => {
         onCharacterChange?.(nextCharacter);
@@ -378,13 +419,13 @@ const EquipmentModal: React.FC<Props> = ({ character, onClose, onCharacterChange
                                                     <div className="flex justify-between items-center text-base">
                                                         <span className="text-gray-100 font-serif">兵刃杀力</span>
                                                         <span className="text-2xl font-black font-mono text-red-400 drop-shadow-[0_0_5px_rgba(248,113,113,0.5)]">
-                                                            {(selectedItem as any).最小攻击}-{(selectedItem as any).最大攻击}
+                                                            {格式化装备数值(读取装备数值(selectedItem, '最小攻击'))}-{格式化装备数值(读取装备数值(selectedItem, '最大攻击'))}
                                                         </span>
                                                     </div>
                                                     <div className="h-px w-full bg-gradient-to-r from-red-900/30 via-red-900/10 to-transparent my-1"></div>
                                                     <div className="flex justify-between items-center text-base">
                                                         <span className="text-gray-100 font-serif">身法干涉</span>
-                                                        <span className="text-lg font-mono text-emerald-300">{(selectedItem as any).攻速修正}</span>
+                                                        <span className="text-lg font-mono text-emerald-300">x{格式化装备数值(读取装备数值(selectedItem, '攻速修正', 1))}</span>
                                                     </div>
                                                 </>
                                             )}
@@ -393,14 +434,14 @@ const EquipmentModal: React.FC<Props> = ({ character, onClose, onCharacterChange
                                                     <div className="flex justify-between items-center text-base">
                                                         <span className="text-gray-100 font-serif">外家护体</span>
                                                         <span className="text-2xl font-black font-mono text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]">
-                                                            +{(selectedItem as any).物理防御}
+                                                            +{格式化装备数值(读取装备数值(selectedItem, '物理防御'))}
                                                         </span>
                                                     </div>
                                                     <div className="h-px w-full bg-gradient-to-r from-blue-900/30 via-blue-900/10 to-transparent my-1"></div>
                                                     <div className="flex justify-between items-center text-base">
                                                         <span className="text-gray-100 font-serif">内劲消解</span>
                                                         <span className="text-xl font-bold font-mono text-purple-400">
-                                                            +{(selectedItem as any).内功防御}
+                                                            +{格式化装备数值(读取装备数值(selectedItem, '内功防御'))}
                                                         </span>
                                                     </div>
                                                 </>
@@ -415,19 +456,26 @@ const EquipmentModal: React.FC<Props> = ({ character, onClose, onCharacterChange
                                             <span className="w-1.5 h-1.5 rotate-45 border border-cyan-500 bg-cyan-950 shadow-[0_0_5px_currentColor]"></span>
                                             <div className="text-base text-cyan-300 uppercase tracking-[0.16em] font-serif font-bold">天启词条</div>
                                         </div>
-                                        <div className="space-y-3">
-                                            {selectedItem.词条列表.map((mod, i) => (
-                                                <div key={`mod_${i}`} className="bg-gradient-to-r from-cyan-950/20 to-black border border-cyan-800/35 p-4 rounded-xl flex justify-between items-center hover:border-cyan-600/60 transition-colors shadow-sm group">
-                                                    <span className="text-gray-50 font-serif flex items-center gap-2 text-base">
-                                                        <span className="text-cyan-600 group-hover:text-cyan-400 transition-colors">◈</span>
-                                                        {mod.名称} <span className="text-xs text-gray-300 font-mono tracking-widest ml-2">({mod.属性})</span>
-                                                    </span>
-                                                    <span className="text-cyan-300 font-mono font-bold bg-cyan-950/40 border border-cyan-900/30 px-3 py-1 rounded shadow-inner">
-                                                        {mod.数值 > 0 ? '+' : ''}{mod.数值}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
+                                        {selectedItemAffixes.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {selectedItemAffixes.map((mod, i) => (
+                                                    <div key={`mod_${i}`} className="bg-gradient-to-r from-cyan-950/20 to-black border border-cyan-800/35 p-4 rounded-xl flex justify-between items-center hover:border-cyan-600/60 transition-colors shadow-sm group">
+                                                        <span className="text-gray-50 font-serif flex items-center gap-2 text-base">
+                                                            <span className="text-cyan-600 group-hover:text-cyan-400 transition-colors">◈</span>
+                                                            {读取词条名称(mod)}
+                                                            {是否显示词条属性(mod) && <span className="text-xs text-gray-300 font-mono tracking-widest ml-2">({mod.属性})</span>}
+                                                        </span>
+                                                        <span className="text-cyan-300 font-mono font-bold bg-cyan-950/40 border border-cyan-900/30 px-3 py-1 rounded shadow-inner">
+                                                            {格式化词条数值(mod)}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="rounded-xl border border-cyan-900/25 bg-cyan-950/10 p-4 text-sm text-cyan-100/80 font-serif">
+                                                暂无有效词条
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
