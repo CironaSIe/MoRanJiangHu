@@ -186,7 +186,7 @@
     --desktop-game-top: 75px;
     --desktop-game-bottom: 57px;
     --desktop-side-menu-width: clamp(132px, 9vw, 164px);
-    --desktop-right-detail-width: 680px;
+    --desktop-right-detail-width: 980px;
   }
 
   .desktop-detail-expand-toggle {
@@ -400,35 +400,80 @@
     min-width: 0 !important;
   }
 
+  .desktop-right-detail-modal--equipment .fixed > div > .flex-1.flex.overflow-hidden.relative {
+    flex-direction: column !important;
+  }
+
+  .desktop-right-detail-modal--equipment .fixed > div > .flex-1.flex.overflow-hidden.relative > .flex-1 {
+    width: 100% !important;
+    flex: 1 1 auto !important;
+  }
+
   .desktop-right-detail-modal--equipment .fixed > div [class*="md:grid-cols-[1fr_auto_1fr]"] {
-    grid-template-columns: minmax(0, 1fr) 9rem minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 0.75rem !important;
+    justify-items: center !important;
+    align-items: start !important;
+  }
+
+  .desktop-right-detail-modal--equipment .fixed > div [class*="md:grid-cols-[1fr_auto_1fr]"] > [class*="md:w-64"] {
+    order: 1 !important;
+    width: min(100%, 12rem) !important;
+    padding-top: 0 !important;
+  }
+
+  .desktop-right-detail-modal--equipment .fixed > div [class*="md:grid-cols-[1fr_auto_1fr]"] > .w-full.flex.justify-end {
+    order: 2 !important;
+    justify-content: center !important;
+  }
+
+  .desktop-right-detail-modal--equipment .fixed > div [class*="md:grid-cols-[1fr_auto_1fr]"] > .w-full.flex.justify-start {
+    order: 3 !important;
+    justify-content: center !important;
   }
 
   .desktop-right-detail-modal--equipment .fixed > div [class*="md:max-w-[19rem]"] {
-    max-width: 12rem !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: min(100%, 30rem) !important;
+    max-width: 30rem !important;
+    gap: 0.5rem !important;
+  }
+
+  .desktop-right-detail-modal--equipment .fixed > div [class*="md:h-[82px]"] {
+    height: 4.5rem !important;
   }
 
   .desktop-right-detail-modal--equipment .fixed > div [class*="md:w-56"] {
-    width: 9rem !important;
+    width: 7.25rem !important;
   }
 
   .desktop-right-detail-modal--equipment .fixed > div [class*="md:h-[450px]"] {
-    height: 18rem !important;
-  }
-
-  .desktop-right-detail-modal--equipment .fixed > div [class*="md:gap-10"] {
-    gap: 0.75rem !important;
+    height: 12.75rem !important;
   }
 
   .desktop-right-detail-modal--equipment .fixed > div [class*="md:w-[600px]"] {
-    width: min(30rem, 96%) !important;
-    height: min(30rem, 96%) !important;
+    width: min(22rem, 74%) !important;
+    height: min(22rem, 74%) !important;
+    top: 0.5rem !important;
+    transform: translateX(-50%) !important;
   }
 
   .desktop-right-detail-modal--equipment .fixed > div [class*="md:w-[450px]"] {
-    width: min(22rem, 78%) !important;
-    height: min(22rem, 78%) !important;
+    width: min(16rem, 64%) !important;
+    height: min(16rem, 64%) !important;
+  }
+
+  .desktop-right-detail-modal--equipment .fixed > div [class*="md:max-w-sm"] {
+    max-width: 30rem !important;
+  }
+
+  .desktop-right-detail-modal--equipment .fixed > div [class*="md:w-[450px]"].shrink-0 {
+    position: relative !important;
+    width: 100% !important;
+    border-left-width: 0 !important;
+    border-top: 1px solid rgba(212, 175, 55, 0.2) !important;
+    box-shadow: 0 -16px 44px rgba(0, 0, 0, 0.55) !important;
   }
 
   .desktop-right-detail-modal--equipment .fixed > div [class*="md:text-[15px]"] {
@@ -447,19 +492,35 @@
   }
 
   .desktop-right-detail-modal--social .fixed > div .w-\[300px\] {
-    width: 17rem !important;
+    width: 100% !important;
+    max-height: 13rem !important;
+    border-right-width: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
   }
 
   .desktop-right-detail-modal--social .fixed > div .w-\[340px\] {
-    width: min(19rem, 42%) !important;
+    width: 100% !important;
+  }
+
+  .desktop-right-detail-modal--social .fixed > div > .flex-1.flex.overflow-hidden.relative {
+    flex-direction: column !important;
+  }
+
+  .desktop-right-detail-modal--social .fixed > div [class*="p-6"][class*="gap-6"] {
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+
+  .desktop-right-detail-modal--social .fixed > div [class*="p-6"][class*="flex"][class*="items-start"] {
+    flex-direction: column !important;
   }
 
   .desktop-right-detail-modal--social .fixed > div [class*="grid-cols-3"] {
-    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)) !important;
   }
 
   .desktop-right-detail-modal--social .fixed > div [class*="grid-cols-2"] {
-    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)) !important;
   }
 
   .desktop-right-detail-modal--social .fixed > div p,

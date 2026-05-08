@@ -24,32 +24,13 @@ import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放�
 import './services/diagnosticLog';
 
 const RELEASE_NOTES_SUPPRESS_DATE_KEY = 'moranjianghu.releaseNotesSuppressDate';
-const DESKTOP_DETAIL_WIDTHS_STORAGE_KEY = 'moranjianghu.desktopRightDetailWidths';
+const DESKTOP_DETAIL_WIDTHS_STORAGE_KEY = 'moranjianghu.desktopRightDetailWidths.v2';
 const DESKTOP_DETAIL_MIN_WIDTH = 420;
 const DESKTOP_DETAIL_MAX_WIDTH = 980;
 const DESKTOP_DETAIL_RIGHT_GAP = 12;
 
-const getDesktopDetailDefaultWidth = (panelId: string | null): number => {
-    switch (panelId) {
-        case 'equipment':
-            return 760;
-        case 'social':
-            return 820;
-        case 'character':
-        case 'map':
-        case 'settings':
-        case 'image_manager':
-            return 760;
-        case 'novel_decomposition':
-        case 'export_novel':
-            return 900;
-        case 'inventory':
-        case 'team':
-        case 'world':
-            return 720;
-        default:
-            return 680;
-    }
+const getDesktopDetailDefaultWidth = (_panelId: string | null): number => {
+    return DESKTOP_DETAIL_MAX_WIDTH;
 };
 
 const clampDesktopDetailWidth = (value: number): number => {
