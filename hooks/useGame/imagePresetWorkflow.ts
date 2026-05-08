@@ -526,6 +526,14 @@ export const 创建图片预设工作流 = (deps: 图片预设工作流依赖) =
             名称: options?.名称 || (typeof targetNpc?.姓名 === 'string' ? targetNpc.姓名.trim() : '角色锚点'),
             额外要求: options?.额外要求
         });
+        const currentTargetNpc = (Array.isArray(deps.获取社交列表()) ? deps.获取社交列表() : []).find((npc: any) => npc && npc.id === npcId);
+        if (
+            !currentTargetNpc
+            || (typeof currentTargetNpc?.姓名 === 'string' && typeof targetNpc?.姓名 === 'string' && currentTargetNpc.姓名 !== targetNpc.姓名)
+            || (typeof currentTargetNpc?.性别 === 'string' && typeof targetNpc?.性别 === 'string' && currentTargetNpc.性别 !== targetNpc.性别)
+        ) {
+            return null;
+        }
         if (!角色锚点含有效内容({
             正面提示词: extracted?.正面提示词,
             结构化特征: extracted?.结构化特征
@@ -571,6 +579,14 @@ export const 创建图片预设工作流 = (deps: 图片预设工作流依赖) =
             名称: options?.名称 || (typeof targetCharacter?.姓名 === 'string' ? targetCharacter.姓名.trim() : '主角角色锚点'),
             额外要求: options?.额外要求
         });
+        const currentCharacter = deps.获取角色?.();
+        if (
+            !currentCharacter
+            || (typeof currentCharacter?.姓名 === 'string' && typeof targetCharacter?.姓名 === 'string' && currentCharacter.姓名 !== targetCharacter.姓名)
+            || (typeof currentCharacter?.性别 === 'string' && typeof targetCharacter?.性别 === 'string' && currentCharacter.性别 !== targetCharacter.性别)
+        ) {
+            return null;
+        }
         if (!角色锚点含有效内容({
             正面提示词: extracted?.正面提示词,
             结构化特征: extracted?.结构化特征

@@ -60,6 +60,8 @@ type 场景生图触发工作流依赖 = {
     应用场景图片为壁纸: (imageId: string) => Promise<any> | any;
     获取当前自动应用任务ID: () => string;
     设置当前自动应用任务ID: (requestId: string) => void;
+    获取当前生图存档作用域: () => string;
+    生图存档作用域仍然有效: (scope: string) => boolean;
     记录后台场景监控: (item: { since: number; 摘要: string }) => void;
     推送右下角提示: (toast: { title: string; message: string; tone?: 'info' | 'success' | 'error' }) => void;
 };
@@ -199,6 +201,7 @@ export const 创建场景生图触发工作流 = (deps: 场景生图触发工作
             ...(characterSnapshot ? { 人物快照: characterSnapshot } : {})
         };
         const requestId = `scene_apply_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const 生图存档作用域 = deps.获取当前生图存档作用域();
         deps.设置当前自动应用任务ID(requestId);
         void deps.加载场景生图工作流()
             .then(({ 执行场景生图工作流 }) => 执行场景生图工作流(
@@ -235,7 +238,8 @@ export const 创建场景生图触发工作流 = (deps: 场景生图触发工作
                     应用场景图片为壁纸: deps.应用场景图片为壁纸,
                     当前任务允许自动应用: (requestIdToCheck?: string) => (
                         Boolean(requestIdToCheck) && requestIdToCheck === deps.获取当前自动应用任务ID()
-                    )
+                    ),
+                    当前任务允许写入: () => deps.生图存档作用域仍然有效(生图存档作用域)
                 }
             ))
             .catch((error) => {

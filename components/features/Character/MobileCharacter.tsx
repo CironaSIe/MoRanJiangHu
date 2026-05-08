@@ -10,6 +10,7 @@ import {
 import { 构建角色身份摘要 } from './identitySummary';
 import { 规范化接口设置 } from '../../../utils/apiConfig';
 import { 获取图片展示地址 } from '../../../utils/imageAssets';
+import { use图片资源回源预取 } from '../../../hooks/useImageAssetPrefetch';
 
 interface Props {
     character: 角色数据结构;
@@ -101,6 +102,7 @@ const MobileCharacter: React.FC<Props> = ({
     onRemovePlayerImageRecord,
     onClose
 }) => {
+    use图片资源回源预取(character);
     const [activeView, setActiveView] = useState<MobileCharacterView>('profile');
     const [busyAction, setBusyAction] = useState('');
     const [generateOptions, setGenerateOptions] = useState<主角生图选项>({

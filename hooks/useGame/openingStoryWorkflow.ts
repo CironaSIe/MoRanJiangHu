@@ -181,6 +181,7 @@ type 开场剧情生成依赖 = {
     估算AI输出Token: (text: string, model?: string) => number;
     计算回复耗时秒: (startedAt: number, finishedAt?: number) => number;
     触发新增NPC自动生图: (npcs: any[]) => void;
+    触发主角自动生图?: (player: 角色数据结构) => void;
     触发场景自动生图: (params: {
         response: GameResponse;
         bodyText?: string;
@@ -804,6 +805,33 @@ export const 执行开场剧情生成工作流 = async (
             tavern_commands: Array.isArray(aiData?.tavern_commands) ? [...aiData.tavern_commands] : []
         };
         let simulatedOpeningState = deps.processResponseCommands(responseForExecution, commandBaseState, { applyState: false });
+        const 渲染开场结构化正文草稿 = () => {
+            if (!useStreaming) return;
+            const draftDisplayData: GameResponse = {
+                ...aiData,
+                tavern_commands: Array.isArray(responseForExecution.tavern_commands) ? [...responseForExecution.tavern_commands] : []
+            };
+            const draftTimestamp = Date.now();
+            deps.设置历史记录(prev => prev.map(item => {
+                if (
+                    item.timestamp === streamMarker
+                    && item.role === 'assistant'
+                ) {
+                    return {
+                        ...item,
+                        content: 'Opening Story',
+                        structuredResponse: draftDisplayData,
+                        rawJson: deps.获取原始AI消息(aiResult.rawText),
+                        gameTime: 环境时间转标准串(simulatedOpeningState.环境) || item.gameTime || '未知时间',
+                        inputTokens: openingInputTokens,
+                        responseDurationSec: deps.计算回复耗时秒(openingRequestStartedAt, draftTimestamp),
+                        outputTokens: deps.估算AI输出Token(deps.获取原始AI消息(aiResult.rawText), apiForOpening?.model)
+                    };
+                }
+                return item;
+            }));
+        };
+        渲染开场结构化正文草稿();
         const 立即并入开局变量状态 = (nextResponse: GameResponse) => {
             simulatedOpeningState = deps.processResponseCommands(nextResponse, commandBaseState);
             const appliedTime = 环境时间转标准串(simulatedOpeningState.环境);
@@ -811,6 +839,12 @@ export const 执行开场剧情生成工作流 = async (
                 deps.设置游戏初始时间(appliedTime);
             }
             return simulatedOpeningState;
+        };
+        let 主角开局生图已触发 = false;
+        const 尽早触发主角开局生图 = () => {
+            if (主角开局生图已触发) return;
+            主角开局生图已触发 = true;
+            deps.触发主角自动生图?.(simulatedOpeningState.角色 || commandBaseState.角色);
         };
         let openingWorldInitUpdates: string[] = [];
 
@@ -937,6 +971,7 @@ export const 执行开场剧情生成工作流 = async (
                 text: '变量生成独立链路未启用，已跳过。'
             });
         }
+        尽早触发主角开局生图();
 
         const openingWorldApi = 获取世界演变接口配置(deps.apiConfig);
         if (接口配置是否可用(openingWorldApi)) {
@@ -1302,8 +1337,7 @@ export const 执行开场剧情生成工作流 = async (
             deps.设置历史记录(prev => prev.map(item => {
                 if (
                     item.timestamp === streamMarker &&
-                    item.role === 'assistant' &&
-                    !item.structuredResponse
+                    item.role === 'assistant'
                 ) {
                     return { ...newAiMsg };
                 }

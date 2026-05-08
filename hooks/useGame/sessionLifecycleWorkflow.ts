@@ -154,16 +154,29 @@ type 会话生命周期依赖 = {
     估算AI输出Token: (rawText: string, model?: string) => number;
     计算回复耗时秒: (startedAt: number, endedAt?: number) => number;
     触发新增NPC自动生图: (newNpcList: any[]) => void;
+    触发主角自动生图: (player: 角色数据结构) => void;
     触发场景自动生图: (params: any) => Promise<void> | void;
     提取新增NPC列表: (beforeList: any[], afterList: any[]) => any[];
     获取当前视觉设置快照: () => any;
     获取当前场景图片档案快照: () => any;
+    设置场景图片档案: (value: any) => void;
+    设置角色锚点列表: (value: any[]) => void;
+    设置当前角色锚点ID: (value: string) => void;
+    切换生图存档作用域: () => void;
 };
 
 export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖) => {
+    const 清空当前存档生图隔离态 = () => {
+        deps.切换生图存档作用域();
+        deps.设置场景图片档案({});
+        deps.设置角色锚点列表([]);
+        deps.设置当前角色锚点ID('');
+    };
+
     const handleStartNewGameWizard = () => {
         deps.清空重Roll快照();
         deps.重置自动存档状态();
+        清空当前存档生图隔离态();
         deps.设置最近开局配置(null);
         deps.setLoading(false);
         deps.设置环境(deps.创建开场空白环境());
@@ -303,6 +316,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 估算AI输出Token: deps.估算AI输出Token,
                 计算回复耗时秒: deps.计算回复耗时秒,
                 触发新增NPC自动生图: deps.触发新增NPC自动生图,
+                触发主角自动生图: deps.触发主角自动生图,
                 触发场景自动生图: deps.触发场景自动生图,
                 提取新增NPC列表: deps.提取新增NPC列表
             } as any
@@ -381,6 +395,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         const openingBase = deps.创建开场基础状态(charData, worldConfig);
         const clearedOpeningBase = deps.构建前端清空开场状态(openingBase);
         const clearedCommandBase = deps.创建开场命令基态();
+        清空当前存档生图隔离态();
         deps.设置开局配置(openingConfig ? deps.深拷贝(openingConfig) : undefined);
         deps.应用开场基态(clearedOpeningBase);
         if (deps.view !== 'game') {

@@ -20,8 +20,14 @@ import {
 } from './chatCompletionClient';
 
 import * as dbService from '../dbService';
+import { 是否图片资源引用 } from '../../utils/imageAssets';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
 import { RELEASE_INFO } from '../../data/releaseInfo';
+import {
+    判断疑似网络或跨域错误,
+    构建ComfyUI精确连接失败提示,
+    构建通用生图连接失败提示
+} from './imageGenerationDiagnostics';
 
 export interface 图片生成结果 {
     图片URL?: string;
@@ -151,7 +157,10 @@ const 构建图片端点 = (baseUrlRaw: string, customPathRaw?: string): string 
     }
     if (!base) return '';
     if (customPath) {
-        const normalizedPath = customPath.startsWith('/') ? customPath : `/${customPath}`;
+        const rawPath = customPath.startsWith('/') ? customPath : `/${customPath}`;
+        const normalizedPath = /\/v1$/i.test(base) && /^\/v1\//i.test(rawPath)
+            ? rawPath.replace(/^\/v1/i, '')
+            : rawPath;
         return `${base}${normalizedPath}`;
     }
     if (/\/images\/generations$/i.test(base)) return base;
@@ -1690,15 +1699,20 @@ const 执行ComfyUI生图 = async (
     const [width, height] = size.split('x').map((value) => Number(value));
     const workflow = 构建ComfyUI工作流(apiConfig.ComfyUI工作流JSON || '', prompt, negativePrompt, width, height, pngParams);
     const promptEndpoint = 构建图片端点(apiConfig.baseUrl, apiConfig.图片接口路径);
-    const enqueueResponse = await fetch(promptEndpoint, {
-        method: 'POST',
-        headers: 构建生图请求头(apiConfig),
-        body: JSON.stringify({
-            prompt: workflow,
-            client_id: 'wuxia-web'
-        }),
-        signal
-    });
+    let enqueueResponse: Response;
+    try {
+        enqueueResponse = await fetch(promptEndpoint, {
+            method: 'POST',
+            headers: 构建生图请求头(apiConfig),
+            body: JSON.stringify({
+                prompt: workflow,
+                client_id: 'wuxia-web'
+            }),
+            signal
+        });
+    } catch (error: any) {
+        throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
+    }
     if (!enqueueResponse.ok) {
         const detail = await 读取失败详情文本(enqueueResponse, Number.POSITIVE_INFINITY);
         throw new 协议请求错误(`ComfyUI 请求失败: ${enqueueResponse.status}${detail ? ` - ${detail}` : ''}`, enqueueResponse.status, detail);
@@ -1711,18 +1725,28 @@ const 执行ComfyUI生图 = async (
 
     const historyEndpoint = `${baseUrl}/history/${encodeURIComponent(promptId)}`;
     while (true) {
-        const historyResponse = await fetch(historyEndpoint, {
-            method: 'GET',
-            headers: 构建生图请求头(apiConfig),
-            signal
-        });
+        let historyResponse: Response;
+        try {
+            historyResponse = await fetch(historyEndpoint, {
+                method: 'GET',
+                headers: 构建生图请求头(apiConfig),
+                signal
+            });
+        } catch (error: any) {
+            throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
+        }
         if (historyResponse.ok) {
             const historyText = await historyResponse.text();
             const historyPayload = 解析可能是JSON字符串(historyText);
             const imageUrl = 提取ComfyUI图片地址(historyPayload, baseUrl);
             if (imageUrl) {
                 if (responseFormat === 'b64_json') {
-                    const imageResponse = await fetch(imageUrl, { signal });
+                    let imageResponse: Response;
+                    try {
+                        imageResponse = await fetch(imageUrl, { signal });
+                    } catch (error: any) {
+                        throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
+                    }
                     if (!imageResponse.ok) {
                         throw new Error(`ComfyUI 图片下载失败: ${imageResponse.status}`);
                     }
@@ -3487,6 +3511,12 @@ export const generateImageByPrompt = async (
         if (backendType === 'novelai') {
             throw new Error(`NovelAI 请求失败：${error?.message || '网络异常'}。如果你在本地开发环境，请确认仍在通过 Vite dev server 访问，并使用 https://image.novelai.net 作为基础地址。`);
         }
+        if (判断疑似网络或跨域错误(error)) {
+            if (backendType === 'comfyui') {
+                throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
+            }
+            throw new Error(构建通用生图连接失败提示(backendType, apiConfig.baseUrl, error));
+        }
         throw error;
     }
 
@@ -3541,7 +3571,30 @@ export const persistImageAssetLocally = async (
     result: 图片生成结果
 ): Promise<图片生成结果> => {
     const local = (result?.本地路径 || '').trim();
-    if (local) {
+    const imageUrl = (result?.图片URL || '').trim();
+    if (local && 是否图片资源引用(local)) {
+        return {
+            ...result,
+            图片URL: undefined,
+            本地路径: local
+        };
+    }
+    if (local && /^data:image\//i.test(local)) {
+        const assetRef = await dbService.保存图片资源(local);
+        return {
+            ...result,
+            图片URL: undefined,
+            本地路径: assetRef
+        };
+    }
+    if (local && /^https?:\/\//i.test(local)) {
+        return persistImageAssetLocally({
+            ...result,
+            图片URL: local,
+            本地路径: undefined
+        });
+    }
+    if (local && !imageUrl) {
         return {
             ...result,
             图片URL: undefined,
@@ -3549,12 +3602,28 @@ export const persistImageAssetLocally = async (
         };
     }
 
-    const imageUrl = (result?.图片URL || '').trim();
     if (!imageUrl) {
         throw new Error('没有可保存的图片地址');
     }
     if (/^data:image\//i.test(imageUrl)) {
         const assetRef = await dbService.保存图片资源(imageUrl);
+        return {
+            ...result,
+            图片URL: undefined,
+            本地路径: assetRef
+        };
+    }
+    if (/^blob:/i.test(imageUrl)) {
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+            throw new Error(`保存本地副本失败: ${response.status}`);
+        }
+        const blob = await response.blob();
+        const dataUrl = await blob转DataUrl(blob);
+        if (!dataUrl) {
+            throw new Error('保存本地副本失败：图片内容为空');
+        }
+        const assetRef = await dbService.保存图片资源(dataUrl);
         return {
             ...result,
             图片URL: undefined,

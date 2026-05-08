@@ -400,9 +400,11 @@ export const useGame = () => {
     const 最近变量生成上下文Ref = useRef<变量生成上下文缓存项[]>([]);
     const NPC生图进行中Ref = useRef<Set<string>>(new Set());
     const 主角生图进行中Ref = useRef<Set<string>>(new Set());
+    const 主角自动生图处理器Ref = useRef<(player: 角色数据结构) => void>(() => undefined);
     const NPC香闺秘档生图进行中Ref = useRef<Set<string>>(new Set());
     const 角色锚点补全进行中Ref = useRef<Set<string>>(new Set());
     const 主要角色资源补全签名Ref = useRef('');
+    const 生图存档作用域Ref = useRef(`image_scope_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const [NPC生图任务队列, setNPC生图任务队列] = useState<NPC生图任务记录[]>([]);
     const 场景生图自动应用任务Ref = useRef('');
     const 场景图片档案Ref = useRef<场景图片档案>({});
@@ -414,6 +416,22 @@ export const useGame = () => {
     const 已提示后台私密生图任务Ref = useRef<Set<string>>(new Set());
     const 后台场景生图监控Ref = useRef<Array<{ since: number; 摘要: string }>>([]);
     const 已提示后台场景生图任务Ref = useRef<Set<string>>(new Set());
+    const 切换生图存档作用域 = () => {
+        生图存档作用域Ref.current = `image_scope_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        场景生图自动应用任务Ref.current = '';
+        NPC生图进行中Ref.current.clear();
+        主角生图进行中Ref.current.clear();
+        NPC香闺秘档生图进行中Ref.current.clear();
+        角色锚点补全进行中Ref.current.clear();
+        setNPC生图任务队列([]);
+        set场景生图任务队列([]);
+        后台手动生图监控Ref.current = [];
+        后台私密生图监控Ref.current = [];
+        后台场景生图监控Ref.current = [];
+        已提示后台生图任务Ref.current.clear();
+        已提示后台私密生图任务Ref.current.clear();
+        已提示后台场景生图任务Ref.current.clear();
+    };
     const [右下角提示列表, set右下角提示列表] = useState<右下角提示结构[]>([]);
     const [聊天区自动滚动抑制令牌, set聊天区自动滚动抑制令牌] = useState(0);
     const [聊天区强制置底令牌, set聊天区强制置底令牌] = useState(0);
@@ -1622,6 +1640,8 @@ export const useGame = () => {
         设置当前自动应用任务ID: (requestId) => {
             场景生图自动应用任务Ref.current = requestId;
         },
+        获取当前生图存档作用域: () => 生图存档作用域Ref.current,
+        生图存档作用域仍然有效: (scope) => Boolean(scope) && scope === 生图存档作用域Ref.current,
         记录后台场景监控: (item) => {
             后台场景生图监控Ref.current.push(item);
         },
@@ -1732,7 +1752,21 @@ export const useGame = () => {
         return records.slice(-safeLimit);
     };
 
+    const 确保NPC生图前角色锚点 = async (npc: any) => {
+        const npcId = typeof npc?.id === 'string' ? npc.id.trim() : '';
+        if (!npcId || 按NPC读取角色锚点(npcId) || 角色锚点补全进行中Ref.current.has(npcId)) return;
+        角色锚点补全进行中Ref.current.add(npcId);
+        try {
+            await 提取角色锚点(npcId, { 名称: typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '' });
+        } catch (error) {
+            console.warn('生图前置角色锚点提取失败，继续使用基础资料生图', npcId, error);
+        } finally {
+            角色锚点补全进行中Ref.current.delete(npcId);
+        }
+    };
+
     const 执行单个NPC生图 = async (npc: any, options?: { force?: boolean; source?: 生图任务来源类型; 构图?: '头像' | '半身' | '立绘'; 画风?: 当前可用接口结构['画风']; 画师串?: string; 画师串预设ID?: string; PNG画风预设ID?: string; 额外要求?: string; 尺寸?: string }) => {
+        await 确保NPC生图前角色锚点(npc);
         const { 执行NPC生图工作流 } = await 加载NPC生图工作流();
         return 执行NPC生图工作流(npc, {
             ...options,
@@ -1771,6 +1805,7 @@ export const useGame = () => {
         part: 香闺秘档部位类型,
         options?: { 画风?: 当前可用接口结构['画风']; 画师串?: string; 画师串预设ID?: string; PNG画风预设ID?: string; 额外要求?: string; 尺寸?: string }
     ) => {
+        await 确保NPC生图前角色锚点(npc);
         const { 执行NPC香闺秘档部位生图工作流 } = await 加载NPC香闺秘档生图工作流();
         return 执行NPC香闺秘档部位生图工作流(npc, part, {
             ...options,
@@ -1871,17 +1906,7 @@ export const useGame = () => {
             const npcId = typeof npc?.id === 'string' ? npc.id.trim() : '';
             if (!npcId) continue;
 
-            const hasAnchor = Boolean(按NPC读取角色锚点(npcId));
-            if (!hasAnchor && !角色锚点补全进行中Ref.current.has(npcId)) {
-                角色锚点补全进行中Ref.current.add(npcId);
-                try {
-                    await 提取角色锚点(npcId, { 名称: typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '' });
-                } catch (error) {
-                    console.warn('主要角色锚点自动补全失败', npcId, error);
-                } finally {
-                    角色锚点补全进行中Ref.current.delete(npcId);
-                }
-            }
+            await 确保NPC生图前角色锚点(npc);
 
             if (!NPC是否已有成功构图(npc, ['头像'])) {
                 try {
@@ -2796,6 +2821,7 @@ export const useGame = () => {
         设置历史记录,
         清空重Roll快照,
         重置自动存档状态,
+        切换生图存档作用域,
         最近自动存档时间戳Ref,
         最近自动存档签名Ref,
         读档前重置瞬态状态: 重置读档瞬态状态,
@@ -2905,10 +2931,31 @@ export const useGame = () => {
         估算AI输出Token,
         计算回复耗时秒,
         触发新增NPC自动生图,
+        触发主角自动生图: (player) => 主角自动生图处理器Ref.current(player),
         触发场景自动生图,
         提取新增NPC列表,
         获取当前视觉设置快照: () => 规范化视觉设置(深拷贝(visualConfigRef.current || visualConfig)),
-        获取当前场景图片档案快照: () => 规范化场景图片档案(深拷贝(场景图片档案Ref.current || 场景图片档案))
+        获取当前场景图片档案快照: () => 规范化场景图片档案(深拷贝(场景图片档案Ref.current || 场景图片档案)),
+        设置场景图片档案: 应用场景图片档案到状态,
+        设置角色锚点列表: (value) => {
+            void updateApiConfig(config => ({
+                ...config,
+                功能模型占位: {
+                    ...config.功能模型占位,
+                    角色锚点列表: Array.isArray(value) ? value : []
+                }
+            }));
+        },
+        设置当前角色锚点ID: (value) => {
+            void updateApiConfig(config => ({
+                ...config,
+                功能模型占位: {
+                    ...config.功能模型占位,
+                    当前角色锚点ID: typeof value === 'string' ? value : ''
+                }
+            }));
+        },
+        切换生图存档作用域
     });
 
     const {
@@ -3009,7 +3056,8 @@ export const useGame = () => {
         selectPlayerPortraitImage: 选择主角立绘图片,
         clearPlayerPortraitImage: 清除主角立绘图片,
         removePlayerImageRecord: 删除主角图片记录,
-        generatePlayerImageManually: 生成主角图片
+        generatePlayerImageManually: 生成主角图片,
+        generatePlayerImagesAutomatically: 自动生成主角图片
     } = 创建主角图片工作流({
         获取角色: () => 角色,
         设置角色,
@@ -3024,6 +3072,7 @@ export const useGame = () => {
         获取生图画师串预设,
         获取当前PNG画风预设: (presetId?: string) => 获取当前PNG画风预设摘要(presetId, 'npc'),
         读取主角角色锚点,
+        提取主角角色锚点,
         获取词组转化器预设提示词,
         接口配置是否可用,
         读取文生图功能配置,
@@ -3033,8 +3082,13 @@ export const useGame = () => {
         }),
         创建NPC生图任务,
         生成NPC生图记录ID,
+        追加NPC生图任务,
+        更新NPC生图任务,
         构建文生图额外要求
     });
+    主角自动生图处理器Ref.current = (player: 角色数据结构) => {
+        void 自动生成主角图片(player).catch(() => undefined);
+    };
 
     return {
         state: gameState,

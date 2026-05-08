@@ -133,6 +133,7 @@ type 存档协调依赖 = {
     设置历史记录: (value: 聊天记录结构[]) => void;
     清空重Roll快照: () => void;
     重置自动存档状态: () => void;
+    切换生图存档作用域?: () => void;
     最近自动存档时间戳Ref: { current: number };
     最近自动存档签名Ref: { current: string };
 };
@@ -171,6 +172,113 @@ const 构建存档历史记录 = (
 ): 聊天记录结构[] => {
     const rawHistory = Array.isArray(sourceHistory) ? sourceHistory : [];
     return deps.深拷贝(rawHistory);
+};
+
+const 规范化文本签名 = (value: unknown): string => (
+    typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : ''
+);
+
+const 提取结构化正文 = (response: any): string => (
+    (Array.isArray(response?.logs) ? response.logs : [])
+        .map((log: any) => `${log?.sender || '旁白'}：${log?.text || ''}`)
+        .filter((line: string) => line.trim().length > 0)
+        .join('\n')
+);
+
+const 构建历史正文签名 = (history: 聊天记录结构[]) => {
+    const fullTexts: string[] = [];
+    const snippets: string[] = [];
+    history.forEach((item) => {
+        if (item?.role !== 'assistant' || !item.structuredResponse) return;
+        const text = 规范化文本签名(提取结构化正文(item.structuredResponse));
+        if (!text) return;
+        fullTexts.push(text);
+        snippets.push(text.slice(0, 80));
+    });
+    return {
+        fullTexts,
+        snippets: snippets.filter((item) => item.length >= 12),
+        assistantCount: fullTexts.length
+    };
+};
+
+const 读取场景记录正文 = (record: any): string => {
+    const raw = typeof record?.原始描述 === 'string' ? record.原始描述.trim() : '';
+    if (!raw) return '';
+    try {
+        const parsed = JSON.parse(raw);
+        return 规范化文本签名(parsed?.最新正文 || parsed?.bodyText || parsed?.正文 || '');
+    } catch {
+        return '';
+    }
+};
+
+const 场景记录属于当前历史 = (
+    record: any,
+    signature: ReturnType<typeof 构建历史正文签名>
+): boolean => {
+    if (!record || typeof record !== 'object') return false;
+    const bodyText = 读取场景记录正文(record);
+    if (bodyText) {
+        return signature.fullTexts.some((text) => text === bodyText || text.includes(bodyText) || bodyText.includes(text));
+    }
+    const summary = 规范化文本签名(record?.摘要);
+    if (summary) {
+        return signature.snippets.some((snippet) => summary.includes(snippet) || snippet.includes(summary.slice(0, 80)));
+    }
+    const turn = Number(record?.来源回合);
+    if (Number.isFinite(turn)) {
+        return turn >= 0 && turn <= signature.assistantCount;
+    }
+    return true;
+};
+
+const 过滤当前存档场景图片档案 = (
+    archive: 场景图片档案 | undefined,
+    history: 聊天记录结构[],
+    deps: Pick<存档协调依赖, '规范化场景图片档案' | '深拷贝'>
+): 场景图片档案 => {
+    const normalized = deps.规范化场景图片档案(deps.深拷贝(archive || {}));
+    const signature = 构建历史正文签名(history);
+    const currentHistory = Array.isArray(normalized.生图历史) ? normalized.生图历史 : [];
+    const filteredHistory = currentHistory.filter((record: any) => 场景记录属于当前历史(record, signature));
+    const recent = normalized.最近生图结果 && 场景记录属于当前历史(normalized.最近生图结果, signature)
+        ? normalized.最近生图结果
+        : filteredHistory[0];
+    return deps.规范化场景图片档案({
+        ...normalized,
+        最近生图结果: recent,
+        生图历史: filteredHistory,
+        当前壁纸图片ID: filteredHistory.some((item: any) => item?.id === normalized.当前壁纸图片ID)
+            ? normalized.当前壁纸图片ID
+            : undefined
+    });
+};
+
+const 过滤当前存档角色锚点 = (
+    anchors: 角色锚点结构[] | undefined,
+    role: 角色数据结构 | undefined,
+    social: any[] | undefined,
+    currentAnchorId?: string
+) => {
+    const validNpcIds = new Set<string>(['__player__']);
+    (Array.isArray(social) ? social : []).forEach((npc: any) => {
+        const id = typeof npc?.id === 'string' ? npc.id.trim() : '';
+        if (id) validNpcIds.add(id);
+    });
+    const playerName = typeof role?.姓名 === 'string' ? role.姓名.trim() : '';
+    const filtered = (Array.isArray(anchors) ? anchors : []).filter((anchor: any) => {
+        if (!anchor || typeof anchor !== 'object') return false;
+        const npcId = typeof anchor?.npcId === 'string' ? anchor.npcId.trim() : '';
+        if (validNpcIds.has(npcId)) return true;
+        if (npcId === '__player__') return true;
+        if (!npcId && playerName && typeof anchor?.名称 === 'string' && anchor.名称.includes(playerName)) return true;
+        return false;
+    });
+    const nextCurrentAnchorId = typeof currentAnchorId === 'string' && filtered.some((anchor) => anchor.id === currentAnchorId)
+        ? currentAnchorId
+        : '';
+    return { anchors: filtered, currentAnchorId: nextCurrentAnchorId };
 };
 
 const 构建自动存档签名 = (
@@ -233,6 +341,13 @@ export const 创建存档数据 = (
     const sceneImageArchiveSource = snapshot?.sceneImageArchive
         ? snapshot.sceneImageArchive
         : currentState.sceneImageArchive;
+    const filteredSceneImageArchive = 过滤当前存档场景图片档案(sceneImageArchiveSource, historySnapshot, deps);
+    const filteredCharacterAnchors = 过滤当前存档角色锚点(
+        currentState.角色锚点列表,
+        roleSource,
+        socialSource,
+        currentState.当前角色锚点ID
+    );
     const coreWorldPrompt = 读取核心提示词内容(currentState.提示词池, 'core_world');
     const coreRealmPrompt = 读取核心提示词内容(currentState.提示词池, 'core_realm');
     const 核心提示词快照 = (coreWorldPrompt || coreRealmPrompt)
@@ -275,10 +390,10 @@ export const 创建存档数据 = (
         游戏设置: deps.深拷贝(currentState.gameConfig),
         记忆配置: deps.深拷贝(currentState.memoryConfig),
         视觉设置: deps.规范化视觉设置(deps.深拷贝(visualSource || {})),
-        场景图片档案: deps.规范化场景图片档案(deps.深拷贝(sceneImageArchiveSource)),
+        场景图片档案: filteredSceneImageArchive,
         核心提示词快照,
-        角色锚点列表: deps.深拷贝(currentState.角色锚点列表),
-        当前角色锚点ID: currentState.当前角色锚点ID
+        角色锚点列表: deps.深拷贝(filteredCharacterAnchors.anchors),
+        当前角色锚点ID: filteredCharacterAnchors.currentAnchorId
     };
 };
 
@@ -332,6 +447,7 @@ export const 执行读取存档 = async (
 ): Promise<void> => {
     deps.清空重Roll快照();
     deps.重置自动存档状态();
+    deps.切换生图存档作用域?.();
     deps.设置最近开局配置(null);
 
     const saveGameConfig = save.游戏设置 ? deps.规范化游戏设置(save.游戏设置) : undefined;
@@ -393,14 +509,21 @@ export const 执行读取存档 = async (
     } else {
         deps.设置视觉设置(deps.规范化视觉设置(currentVisual || {}));
     }
+    const loadedHistory = Array.isArray(save.历史记录) ? save.历史记录 : [];
     if (save.场景图片档案 && typeof save.场景图片档案 === 'object') {
-        deps.设置场景图片档案(deps.规范化场景图片档案(save.场景图片档案));
+        deps.设置场景图片档案(过滤当前存档场景图片档案(save.场景图片档案, loadedHistory, deps));
     } else {
         deps.设置场景图片档案(deps.规范化场景图片档案({}));
     }
     deps.设置游戏初始时间(typeof save.游戏初始时间 === 'string' ? save.游戏初始时间 : '');
-    deps.设置角色锚点列表(Array.isArray(save.角色锚点列表) ? deps.深拷贝(save.角色锚点列表) : []);
-    deps.设置当前角色锚点ID(typeof save.当前角色锚点ID === 'string' ? save.当前角色锚点ID : '');
+    const loadedAnchors = 过滤当前存档角色锚点(
+        Array.isArray(save.角色锚点列表) ? deps.深拷贝(save.角色锚点列表) : [],
+        save.角色数据,
+        save.社交,
+        typeof save.当前角色锚点ID === 'string' ? save.当前角色锚点ID : ''
+    );
+    deps.设置角色锚点列表(loadedAnchors.anchors);
+    deps.设置当前角色锚点ID(loadedAnchors.currentAnchorId);
 
     deps.setHasSave(true);
     deps.setView('game');

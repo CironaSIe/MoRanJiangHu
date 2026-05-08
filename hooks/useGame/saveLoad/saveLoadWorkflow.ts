@@ -102,6 +102,7 @@ type 存档编排工作流依赖 = {
     设置历史记录: (value: 聊天记录结构[]) => void;
     清空重Roll快照: () => void;
     重置自动存档状态: () => void;
+    切换生图存档作用域?: () => void;
     最近自动存档时间戳Ref: { current: number };
     最近自动存档签名Ref: { current: string };
     读档前重置瞬态状态: () => void;
@@ -195,6 +196,7 @@ export const 创建存读档工作流 = (deps: 存档编排工作流依赖) => {
         设置历史记录: deps.设置历史记录,
         清空重Roll快照: deps.清空重Roll快照,
         重置自动存档状态: deps.重置自动存档状态,
+        切换生图存档作用域: deps.切换生图存档作用域,
         最近自动存档时间戳Ref: deps.最近自动存档时间戳Ref,
         最近自动存档签名Ref: deps.最近自动存档签名Ref
     });

@@ -27,7 +27,7 @@ type PNG画风预设摘要 = {
     参数?: PNG解析参数结构;
 } | null;
 
-type 角色锚点摘要 = Pick<角色锚点结构, '名称' | '正面提示词' | '负面提示词' | '结构化特征'> | null;
+type 角色锚点摘要 = Pick<角色锚点结构, '名称' | '正面提示词' | '负面提示词' | '结构化特征' | '原始提取文本'> | null;
 
 type NPC生图工作流依赖 = {
     apiConfig: 接口设置结构;
@@ -73,6 +73,142 @@ const 获取画风附加要求 = (style?: 当前可用接口结构['画风']): s
     }
 };
 
+const 获取图片后端显示名 = (apiConfig: 当前可用接口结构): string => {
+    switch (apiConfig.图片后端类型) {
+        case 'comfyui':
+            return 'ComfyUI';
+        case 'sd_webui':
+            return 'Stable Diffusion WebUI';
+        case 'novelai':
+        case 'openai':
+        default:
+            return (apiConfig.model || '').trim() || '图片模型';
+    }
+};
+
+const 读取记录原始描述姓名 = (record: any): string => {
+    const rawText = typeof record?.原始描述 === 'string' ? record.原始描述.trim() : '';
+    if (!rawText) return '';
+    try {
+        const parsed = JSON.parse(rawText);
+        return typeof parsed?.姓名 === 'string' ? parsed.姓名.trim() : '';
+    } catch {
+        return '';
+    }
+};
+
+const 生图记录属于当前NPC = (currentNpc: any, record: any): boolean => {
+    if (!record || typeof record !== 'object') return false;
+    const currentName = typeof currentNpc?.姓名 === 'string' ? currentNpc.姓名.trim() : '';
+    const recordName = typeof record?.NPC姓名 === 'string' ? record.NPC姓名.trim() : 读取记录原始描述姓名(record);
+    if (currentName && recordName && currentName !== recordName) return false;
+    const currentGender = 读取目标性别(currentNpc);
+    const recordGender = 读取目标性别({ 性别: record?.NPC性别 });
+    if (currentGender && recordGender && currentGender !== recordGender) return false;
+    return true;
+};
+
+const 合并生图历史记录 = (currentNpc: any, incoming: any): any[] => {
+    const archive = currentNpc?.图片档案 && typeof currentNpc.图片档案 === 'object' ? currentNpc.图片档案 : {};
+    const baseHistory = Array.isArray(archive?.生图历史)
+        ? archive.生图历史
+        : (currentNpc?.最近生图结果 ? [currentNpc.最近生图结果] : []);
+    const normalizedHistory = baseHistory.filter((item: any) => 生图记录属于当前NPC(currentNpc, item));
+    if (!incoming || typeof incoming !== 'object') return normalizedHistory;
+    if (!生图记录属于当前NPC(currentNpc, incoming)) return normalizedHistory;
+    const incomingId = typeof incoming.id === 'string' ? incoming.id.trim() : '';
+    const withoutSame = incomingId
+        ? normalizedHistory.filter((item: any) => item?.id !== incomingId)
+        : normalizedHistory;
+    return [incoming, ...withoutSame];
+};
+
+const 读取目标性别 = (source: any): '男' | '女' | '' => {
+    const gender = typeof source?.性别 === 'string' ? source.性别.trim() : '';
+    if (gender === '男' || gender.includes('男')) return '男';
+    if (gender === '女' || gender.includes('女')) return '女';
+    return '';
+};
+
+const 构建性别正向提示词 = (gender: '男' | '女' | '', age?: number): string => {
+    const isAdult = typeof age === 'number' && age >= 18;
+    if (gender === '女') return isAdult ? '1woman, female, adult woman, feminine face, female body' : '1girl, female, girl, feminine face, female body';
+    if (gender === '男') return isAdult ? '1man, male, adult man, masculine face, male body' : '1boy, male, boy, masculine face, male body';
+    return '';
+};
+
+const 构建性别负向提示词 = (gender: '男' | '女' | ''): string => {
+    if (gender === '女') return '1boy, 1man, male, man, masculine, beard, mustache, goatee, old man, elderly man';
+    if (gender === '男') return '1girl, female, woman, feminine, breasts, young female';
+    return '';
+};
+
+const 清理性别冲突词组 = (prompt: string, gender: '男' | '女' | ''): string => {
+    if (!prompt || !gender) return prompt;
+    const banned = gender === '女'
+        ? [
+            /\b1\s*man\b/i,
+            /\b1\s*boy\b/i,
+            /\bmale\b/i,
+            /\bman\b/i,
+            /\bboy\b/i,
+            /\bmasculine\b/i,
+            /\bbeard\b/i,
+            /\bmustache\b/i,
+            /\bgoatee\b/i
+        ]
+        : [
+            /\b1\s*girl\b/i,
+            /\b1\s*woman\b/i,
+            /\bfemale\b/i,
+            /\bwoman\b/i,
+            /\bgirl\b/i,
+            /\blady\b/i,
+            /\bfeminine\b/i,
+            /\bbreasts?\b/i,
+            /\bcleavage\b/i
+        ];
+    return prompt
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item && !banned.some((pattern) => pattern.test(item)))
+        .join(', ');
+};
+
+const 强制性别词组 = (prompt: string, gender: '男' | '女' | '', age?: number): string => {
+    const genderPrompt = 构建性别正向提示词(gender, age);
+    const cleanedPrompt = 清理性别冲突词组(prompt, gender);
+    return [genderPrompt, cleanedPrompt].filter(Boolean).join(', ');
+};
+
+const 构建词组转化性别硬约束 = (gender: '男' | '女' | '', age?: number): string => {
+    if (!gender) return '';
+    const positive = 构建性别正向提示词(gender, age);
+    const negative = 构建性别负向提示词(gender);
+    return [
+        '【角色性别硬约束】',
+        `输入资料中的性别是“${gender}”，最终英文 tags 必须保持这个性别，禁止改写成相反性别或更换性别模板。`,
+        `最终 <提示词> 开头必须包含：${positive}`,
+        negative ? `最终 <提示词> 不得包含这些相反性别词或同义短语：${negative}` : '',
+        gender === '男'
+            ? '男性角色禁止输出 lady、woman、girl、female、feminine face、female body、noble lady 等女性描述。'
+            : '女性角色禁止输出 man、boy、male、masculine face、male body、old man、elderly man 等男性描述。'
+    ].filter(Boolean).join('\n');
+};
+
+const 角色锚点是否匹配NPC性别 = (anchor: 角色锚点摘要, gender: '男' | '女' | ''): boolean => {
+    if (!anchor || !gender) return true;
+    const rawText = typeof anchor?.原始提取文本 === 'string' ? anchor.原始提取文本.trim() : '';
+    if (!rawText) return true;
+    try {
+        const raw = JSON.parse(rawText);
+        const anchorGender = 读取目标性别(raw);
+        return !anchorGender || anchorGender === gender;
+    } catch {
+        return true;
+    }
+};
+
 export const 执行NPC生图工作流 = async (
     npc: any,
     options: { force?: boolean; source?: 生图任务来源类型; 构图?: '头像' | '半身' | '立绘'; 画风?: 当前可用接口结构['画风']; 画师串?: string; 画师串预设ID?: string; PNG画风预设ID?: string; 额外要求?: string; 尺寸?: string } | undefined,
@@ -112,13 +248,16 @@ export const 执行NPC生图工作流 = async (
     deps.NPC生图进行中集合.add(npcKey);
     const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '未命名NPC';
     const npcImageBaseData = deps.提取NPC生图基础数据(npc);
-    const modelName = imageApi.model;
+    const modelName = 获取图片后端显示名(imageApi);
     const taskSource: 生图任务来源类型 = options?.source || 'auto';
     const 构图: '头像' | '半身' | '立绘' = options?.构图 || '头像';
     const 画风 = options?.画风 || imageFeature.NPC画风;
     const 画师串预设 = deps.获取生图画师串预设(deps.apiConfig, 'npc', options?.画师串预设ID);
     const PNG画风预设 = deps.获取当前PNG画风预设(options?.PNG画风预设ID);
-    const 角色锚点 = deps.获取NPC角色锚点(typeof npc?.id === 'string' ? npc.id.trim() : '');
+    const 目标性别 = 读取目标性别(npcImageBaseData) || 读取目标性别(npc);
+    const 目标年龄 = typeof npcImageBaseData?.年龄 === 'number' ? npcImageBaseData.年龄 : (typeof npc?.年龄 === 'number' ? npc.年龄 : undefined);
+    const 原始角色锚点 = deps.获取NPC角色锚点(typeof npc?.id === 'string' ? npc.id.trim() : '');
+    const 角色锚点 = 角色锚点是否匹配NPC性别(原始角色锚点, 目标性别) ? 原始角色锚点 : null;
     const 词组转化兼容模式 = deps.apiConfig?.功能模型占位?.词组转化兼容模式 === true;
     const 启用画师串预设 = Boolean(
         (画师串预设?.画师串 || '').trim()
@@ -138,6 +277,8 @@ export const 执行NPC生图工作流 = async (
         .filter(Boolean)
         .join(', ');
     const 兼容模式风格提示词 = 词组转化兼容模式 ? 非画师风格正面提示词 : '';
+    const 性别正向提示词 = 构建性别正向提示词(目标性别, 目标年龄);
+    const 性别负向提示词 = 构建性别负向提示词(目标性别);
     const 角色锚点前置注入提示词 = !shouldUsePromptTransformer && 角色锚点
         ? imageAIService.构建角色锚点注入提示词({
             正面提示词: 角色锚点.正面提示词,
@@ -145,11 +286,12 @@ export const 执行NPC生图工作流 = async (
         }, { 构图 })
         : '';
     const 前置正向提示词 = [
+        性别正向提示词,
         画师串,
         词组转化兼容模式 ? '' : 非画师风格正面提示词,
         角色锚点前置注入提示词
     ].filter(Boolean).join(', ');
-    const 合并负向画师串 = [(画师串预设?.负面提示词 || '').trim(), (角色锚点?.负面提示词 || '').trim(), (PNG画风预设?.负面提示词 || '').trim()].filter(Boolean).join(', ');
+    const 合并负向画师串 = [性别负向提示词, (画师串预设?.负面提示词 || '').trim(), (角色锚点?.负面提示词 || '').trim(), (PNG画风预设?.负面提示词 || '').trim()].filter(Boolean).join(', ');
     const PNG参数 = PNG画风预设?.优先复刻原参数 === true ? PNG画风预设?.参数 : undefined;
     const 额外要求 = (options?.额外要求 || '').trim();
     const 尺寸 = (options?.尺寸 || '').trim();
@@ -162,6 +304,7 @@ export const 执行NPC生图工作流 = async (
     const 词组转化器提示词 = [词组转化器预设上下文.相关提示词.trim(), 画风附加要求]
         .filter(Boolean)
         .join('\n\n');
+    const 词组转化性别硬约束 = 构建词组转化性别硬约束(目标性别, 目标年龄);
     const promptApiForTask = promptApi ? {
         ...promptApi,
         词组转化器AI角色提示词: 词组转化器预设上下文.AI角色定制提示词,
@@ -208,6 +351,8 @@ export const 执行NPC生图工作流 = async (
             本地路径: undefined,
             生图词组: '',
             原始描述: JSON.stringify(npcImageBaseData ?? {}, null, 2),
+            NPC姓名: npcName,
+            NPC性别: 目标性别 || undefined,
             使用模型: modelName,
             生成时间: Date.now(),
             构图,
@@ -217,23 +362,24 @@ export const 执行NPC生图工作流 = async (
             状态: 'pending' as const,
             错误信息: undefined
         };
-        return {
-            ...currentNpc,
-            最近生图结果: 待处理结果,
-            图片档案: {
+            return {
+                ...currentNpc,
                 最近生图结果: 待处理结果,
-                生图历史: [待处理结果]
-            }
-        };
-    });
+                图片档案: {
+                    ...(currentNpc?.图片档案 && typeof currentNpc.图片档案 === 'object' ? currentNpc.图片档案 : {}),
+                    最近生图结果: 待处理结果,
+                    生图历史: 合并生图历史记录(currentNpc, 待处理结果)
+                }
+            };
+        });
 
     try {
-        const { 原始描述, 生图词组 } = shouldUsePromptTransformer && promptApi
+        const { 原始描述, 生图词组: 原始生图词组 } = shouldUsePromptTransformer && promptApi
             ? await imageAIService.generateNpcImagePrompt(
                 npcImageBaseData,
                 safePromptApi,
                 undefined,
-                undefined,
+                词组转化性别硬约束 || undefined,
                 undefined,
                 {
                     构图,
@@ -252,6 +398,7 @@ export const 执行NPC生图工作流 = async (
                 }
             )
             : imageAIService.buildNpcDirectImagePrompt(npcImageBaseData, { 构图, 画风, 额外要求, 后端类型, 启用画师串预设: !词组转化兼容模式 && (启用画师串预设 || 启用PNG画风预设), 兼容模式: 词组转化兼容模式, 风格提示词输入: 兼容模式风格提示词 || undefined });
+        const 生图词组 = 强制性别词组(原始生图词组, 目标性别, 目标年龄);
         const 最终提示词 = imageAIService.构建最终图片提示词(生图词组, imageApiForTask, {
             构图,
             尺寸: 尺寸 || undefined,
@@ -282,6 +429,8 @@ export const 执行NPC生图工作流 = async (
                 最终正向提示词: 最终提示词.最终正向提示词,
                 最终负向提示词: 最终提示词.最终负向提示词,
                 原始描述,
+                NPC姓名: npcName,
+                NPC性别: 目标性别 || undefined,
                 使用模型: modelName,
                 生成时间: 当前结果?.生成时间 || Date.now(),
                 构图,
@@ -295,8 +444,9 @@ export const 执行NPC生图工作流 = async (
                 ...currentNpc,
                 最近生图结果: 处理中结果,
                 图片档案: {
+                    ...(currentNpc?.图片档案 && typeof currentNpc.图片档案 === 'object' ? currentNpc.图片档案 : {}),
                     最近生图结果: 处理中结果,
-                    生图历史: [处理中结果]
+                    生图历史: 合并生图历史记录(currentNpc, 处理中结果)
                 }
             };
         });
@@ -308,7 +458,10 @@ export const 执行NPC生图工作流 = async (
             跳过基础负面提示词: Boolean((画师串预设?.负面提示词 || '').trim() || (PNG画风预设?.负面提示词 || '').trim()),
             PNG参数
         });
-        const localizedImageResult = await imageAIService.persistImageAssetLocally(imageResult).catch(() => imageResult);
+        const localizedImageResult = await imageAIService.persistImageAssetLocally(imageResult);
+        if (!localizedImageResult.图片URL && !localizedImageResult.本地路径) {
+            throw new Error('图片已生成，但未得到可展示或可保存的图片资源。');
+        }
         deps.更新NPC生图任务(task.id, (currentTask) => ({
             ...currentTask,
             进度阶段: 'saving',
@@ -323,6 +476,8 @@ export const 执行NPC生图工作流 = async (
                 最终正向提示词: localizedImageResult.最终正向提示词 || 最终提示词.最终正向提示词,
                 最终负向提示词: localizedImageResult.最终负向提示词 || 最终提示词.最终负向提示词,
                 原始描述,
+                NPC姓名: npcName,
+                NPC性别: 目标性别 || undefined,
                 使用模型: modelName,
                 生成时间: Date.now(),
                 构图,
@@ -335,8 +490,9 @@ export const 执行NPC生图工作流 = async (
                 ...currentNpc,
                 最近生图结果: 成功结果,
                 图片档案: {
+                    ...(currentNpc?.图片档案 && typeof currentNpc.图片档案 === 'object' ? currentNpc.图片档案 : {}),
                     最近生图结果: 成功结果,
-                    生图历史: [成功结果]
+                    生图历史: 合并生图历史记录(currentNpc, 成功结果)
                 }
             };
         });
@@ -374,6 +530,8 @@ export const 执行NPC生图工作流 = async (
                 最终正向提示词: currentNpc?.最近生图结果?.最终正向提示词 || '',
                 最终负向提示词: currentNpc?.最近生图结果?.最终负向提示词 || '',
                 原始描述: currentNpc?.最近生图结果?.原始描述 || JSON.stringify(npcImageBaseData ?? {}, null, 2),
+                NPC姓名: npcName,
+                NPC性别: 目标性别 || undefined,
                 使用模型: modelName,
                 生成时间: Date.now(),
                 构图,
@@ -386,8 +544,9 @@ export const 执行NPC生图工作流 = async (
                 ...currentNpc,
                 最近生图结果: 失败结果,
                 图片档案: {
+                    ...(currentNpc?.图片档案 && typeof currentNpc.图片档案 === 'object' ? currentNpc.图片档案 : {}),
                     最近生图结果: 失败结果,
-                    生图历史: [失败结果]
+                    生图历史: 合并生图历史记录(currentNpc, 失败结果)
                 }
             };
         });

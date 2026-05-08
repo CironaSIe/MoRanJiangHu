@@ -39,6 +39,7 @@ type 场景生图依赖 = {
     更新场景图片档案: (updater: (archive: any) => any) => void;
     应用场景图片为壁纸: (imageId: string) => Promise<void> | void;
     当前任务允许自动应用: (requestId?: string) => boolean;
+    当前任务允许写入?: () => boolean;
 };
 
 const 获取画风附加要求 = (style?: 当前可用接口结构['画风']): string => {
@@ -51,6 +52,19 @@ const 获取画风附加要求 = (style?: 当前可用接口结构['画风']): s
             return '附加画风要求：整体场景偏细腻质感的 2D 写实环境插画，强调木石布料材质、体积光影和空间真实感，但禁止照片感。';
         default:
             return '';
+    }
+};
+
+const 获取图片后端显示名 = (apiConfig: 当前可用接口结构): string => {
+    switch (apiConfig.图片后端类型) {
+        case 'comfyui':
+            return 'ComfyUI';
+        case 'sd_webui':
+            return 'Stable Diffusion WebUI';
+        case 'novelai':
+        case 'openai':
+        default:
+            return (apiConfig.model || '').trim() || '图片模型';
     }
 };
 
@@ -76,6 +90,7 @@ export const 执行场景生图工作流 = async (
     const bodyText = (params.bodyText || '').trim();
     if (!bodyText) return;
     if (!deps.场景模式已开启() && !params.强制执行) return;
+    const 当前任务允许写入 = () => deps.当前任务允许写入?.() !== false;
 
     const imageApi = deps.获取场景文生图接口配置(deps.apiConfig);
     const promptApi = deps.获取生图词组转化器接口配置(deps.apiConfig);
@@ -84,7 +99,7 @@ export const 执行场景生图工作流 = async (
         return;
     }
 
-    const modelName = imageApi.model;
+    const modelName = 获取图片后端显示名(imageApi);
     const 画师串预设 = deps.获取生图画师串预设(deps.apiConfig, 'scene', params.画师串预设ID);
     const PNG画风预设 = deps.获取当前PNG画风预设(params.PNG画风预设ID);
     const 角色锚点列表 = deps.获取场景角色锚点(params.sceneContext);
@@ -197,6 +212,7 @@ export const 执行场景生图工作流 = async (
                 角色锚点列表
             }
         );
+        if (!当前任务允许写入()) return;
         const 合并生图词组 = [生图词组, 前置正向提示词]
             .map((item) => (item || '').trim())
             .filter(Boolean)
@@ -258,7 +274,11 @@ export const 执行场景生图工作流 = async (
             尺寸: params.尺寸,
             PNG参数
         });
-        const localizedImageResult = await imageAIService.persistImageAssetLocally(imageResult).catch(() => imageResult);
+        const localizedImageResult = await imageAIService.persistImageAssetLocally(imageResult);
+        if (!当前任务允许写入()) return;
+        if (!localizedImageResult.图片URL && !localizedImageResult.本地路径) {
+            throw new Error('图片已生成，但未得到可展示或可保存的图片资源。');
+        }
         deps.更新场景生图任务(task.id, (currentTask) => ({
             ...currentTask,
             进度阶段: 'saving',
@@ -325,6 +345,7 @@ export const 执行场景生图工作流 = async (
             已应用为壁纸: appliedAsWallpaper
         }));
     } catch (error: any) {
+        if (!当前任务允许写入()) return;
         const errorMessage = typeof error?.message === 'string' && error.message.trim()
             ? error.message.trim()
             : '场景生图失败';

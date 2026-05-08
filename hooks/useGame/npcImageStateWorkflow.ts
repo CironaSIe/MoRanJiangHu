@@ -69,6 +69,35 @@ export const 标准化香闺秘档部位档案 = (raw?: any) => {
     };
 };
 
+const 读取记录原始描述姓名 = (record: any): string => {
+    const rawText = typeof record?.原始描述 === 'string' ? record.原始描述.trim() : '';
+    if (!rawText) return '';
+    try {
+        const parsed = JSON.parse(rawText);
+        return typeof parsed?.姓名 === 'string' ? parsed.姓名.trim() : '';
+    } catch {
+        return '';
+    }
+};
+
+const 读取目标性别 = (source: any): '男' | '女' | '' => {
+    const gender = typeof source?.性别 === 'string' ? source.性别.trim() : '';
+    if (gender === '男' || gender.includes('男')) return '男';
+    if (gender === '女' || gender.includes('女')) return '女';
+    return '';
+};
+
+const 生图记录属于当前角色 = (currentNpc: any, record: any): boolean => {
+    if (!record || typeof record !== 'object') return false;
+    const currentName = typeof currentNpc?.姓名 === 'string' ? currentNpc.姓名.trim() : '';
+    const recordName = typeof record?.NPC姓名 === 'string' ? record.NPC姓名.trim() : 读取记录原始描述姓名(record);
+    if (currentName && recordName && currentName !== recordName) return false;
+    const currentGender = 读取目标性别(currentNpc);
+    const recordGender = 读取目标性别({ 性别: record?.NPC性别 });
+    if (currentGender && recordGender && currentGender !== recordGender) return false;
+    return true;
+};
+
 export const 合并香闺秘档部位档案 = (currentRaw?: any, incomingRaw?: any) => {
     const current = 标准化香闺秘档部位档案(currentRaw) || {};
     const incoming = 标准化香闺秘档部位档案(incomingRaw) || {};
@@ -82,11 +111,14 @@ export const 合并香闺秘档部位档案 = (currentRaw?: any, incomingRaw?: a
 export const 合并NPC图片档案 = (currentNpc: any, payload: any) => {
     const currentArchive = currentNpc?.图片档案 && typeof currentNpc.图片档案 === 'object' ? currentNpc.图片档案 : {};
     const currentRecent = currentArchive?.最近生图结果 || currentNpc?.最近生图结果;
-    const currentHistory = Array.isArray(currentArchive?.生图历史) ? currentArchive.生图历史 : (currentRecent ? [currentRecent] : []);
-    const nextRecent = payload?.最近生图结果 || payload?.图片档案?.最近生图结果 || currentRecent;
-    const incomingHistory = Array.isArray(payload?.图片档案?.生图历史)
+    const currentHistory = (Array.isArray(currentArchive?.生图历史) ? currentArchive.生图历史 : (currentRecent ? [currentRecent] : []))
+        .filter((item: any) => 生图记录属于当前角色(currentNpc, item));
+    const rawNextRecent = payload?.最近生图结果 || payload?.图片档案?.最近生图结果 || currentRecent;
+    const nextRecent = 生图记录属于当前角色(currentNpc, rawNextRecent) ? rawNextRecent : currentRecent;
+    const rawIncomingHistory = Array.isArray(payload?.图片档案?.生图历史)
         ? payload.图片档案.生图历史
         : (Array.isArray(payload?.生图历史) ? payload.生图历史 : []);
+    const incomingHistory = rawIncomingHistory.filter((item: any) => 生图记录属于当前角色(currentNpc, item));
     const mergedHistory = [...incomingHistory, ...currentHistory]
         .filter((item) => item && typeof item === 'object')
         .reduce<any[]>((acc, item) => {
@@ -122,11 +154,14 @@ export const 合并NPC图片档案 = (currentNpc: any, payload: any) => {
     const fallbackAvatarId = mergedHistory.find((item) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
         || mergedHistory.find((item) => item?.构图 !== '部位特写' && item?.状态 === 'success' && item?.id)?.id
         || '';
+    const fallbackPortraitId = mergedHistory.find((item) => (item?.构图 === '半身' || item?.构图 === '立绘') && item?.状态 === 'success' && item?.id)?.id
+        || '';
     const selectedAvatarImageId = incomingSelectedAvatarImageId
         || (typeof currentArchive?.已选头像图片ID === 'string' ? currentArchive.已选头像图片ID.trim() : '')
         || fallbackAvatarId;
     const selectedPortraitImageId = incomingSelectedPortraitImageId
         || (typeof currentArchive?.已选立绘图片ID === 'string' ? currentArchive.已选立绘图片ID.trim() : '')
+        || fallbackPortraitId
         || undefined;
     const selectedBackgroundImageId = incomingSelectedBackgroundImageId
         || (typeof currentArchive?.已选背景图片ID === 'string' ? currentArchive.已选背景图片ID.trim() : '')
