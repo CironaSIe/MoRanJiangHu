@@ -13,6 +13,7 @@ import type {
     角色数据结构,
     记忆系统结构
 } from '../../types';
+import { 补齐世界地图空间字段 } from '../../utils/mapSpatial';
 
 export type 开场命令基态 = {
     角色: 角色数据结构;
@@ -224,13 +225,16 @@ export const 创建开场空白世界 = (): 世界数据结构 => ({
     世界镜头规划: [],
     江湖史册: [],
     地图: [],
-    建筑: []
+    建筑: [],
+    地图层级: [],
+    地图建筑: [],
+    地图道路: [],
+    地图人物: []
 });
 
 export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
     const world = raw && typeof raw === 'object' ? raw : {};
-
-    return {
+    const normalizedWorld: 世界数据结构 = {
         活跃NPC列表: Array.isArray(world?.活跃NPC列表)
             ? world.活跃NPC列表
                 .map((item: any) => ({
@@ -353,8 +357,14 @@ export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
                     归属: 规范化地点归属(item?.归属)
                 }))
                 .filter((item) => item.名称 || item.描述)
-            : []
+            : [],
+        地图层级: Array.isArray(world?.地图层级) ? world.地图层级 : [],
+        地图建筑: Array.isArray(world?.地图建筑) ? world.地图建筑 : [],
+        地图道路: Array.isArray(world?.地图道路) ? world.地图道路 : [],
+        地图人物: Array.isArray(world?.地图人物) ? world.地图人物 : []
     };
+
+    return 补齐世界地图空间字段(normalizedWorld);
 };
 
 export const 创建开场空白战斗 = (): 战斗状态结构 => ({

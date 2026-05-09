@@ -42,6 +42,7 @@ import {
     规范化世界状态,
     规范化战斗状态
 } from './storyState';
+import { 构建地图空间场景 } from '../../utils/mapSpatial';
 import { 构建同人运行时提示词包, 应用境界体系区块替换 } from '../../prompts/runtime/fandom';
 import { 构建女主剧情规划协议 } from '../../prompts/core/heroinePlan';
 import { 构建女主规划专项提示词 } from '../../prompts/core/heroinePlanCot';
@@ -801,62 +802,58 @@ export const 构建系统提示词 = ({
         const source = payload || {};
         const env = 规范化环境信息(source?.环境);
         const world = 规范化世界状态(source?.世界);
-
-        const 当前具体地点 = typeof env?.具体地点 === 'string' ? env.具体地点.trim() : '';
-        const 地图列表 = Array.isArray(world.地图) ? world.地图 : [];
-        const 建筑列表 = Array.isArray(world.建筑) ? world.建筑 : [];
-
-        const 地图文本 = 地图列表.length > 0
-            ? 地图列表.map((mapItem: any) => {
-                const name = typeof mapItem?.名称 === 'string' ? mapItem.名称.trim() : '未命名地图';
-                const coord = typeof mapItem?.坐标 === 'string' ? mapItem.坐标.trim() : '未知坐标';
-                const desc = typeof mapItem?.描述 === 'string' ? mapItem.描述.trim() : '无描述';
-                const ownership = mapItem?.归属 && typeof mapItem.归属 === 'object'
-                    ? [
-                        mapItem.归属?.大地点 || '未知大地点',
-                        mapItem.归属?.中地点 || '未知中地点',
-                        mapItem.归属?.小地点 || '未知小地点'
-                    ].join(' > ')
-                    : '未知归属';
-                const interiors = Array.isArray(mapItem?.内部建筑)
-                    ? mapItem.内部建筑.filter((n: any) => typeof n === 'string' && n.trim().length > 0).join('、')
-                    : '';
-                return `- 名称: ${name} | 坐标: ${coord} | 归属: ${ownership}\n  描述: ${desc}\n  内部建筑: ${interiors || '无'}`;
+        const scene = 构建地图空间场景(world, env);
+        const 当前层级链文本 = scene.当前层级链.length > 0
+            ? scene.当前层级链.map((item) => `${item.层级}:${item.名称}`).join(' > ')
+            : '未知';
+        const 当前层 = scene.当前层级;
+        const 当前层摘要 = 当前层
+            ? `- 当前层: ${当前层.名称} | 层级: ${当前层.层级} | 锚点: [${当前层.锚点坐标.x},${当前层.锚点坐标.y}] | 网格: ${当前层.网格宽度}x${当前层.网格高度}`
+            : '- 当前层: 未命中';
+        const 层级摘要 = scene.层级列表.length > 0
+            ? scene.层级列表.map((layer) => {
+                const ownership = [
+                    layer.归属?.大地点 || '未知大地点',
+                    layer.归属?.中地点 || '未知中地点',
+                    layer.归属?.小地点 || '未知小地点'
+                ].join(' > ');
+                return `- ${layer.层级}:${layer.名称} | 归属:${ownership} | 锚点:[${layer.锚点坐标.x},${layer.锚点坐标.y}] | 网格:${layer.网格宽度}x${layer.网格高度}`;
             }).join('\n')
-            : '- 暂无地图数据';
-
-        const 当前地点归一 = 归一化文本(当前具体地点);
-        const 命中建筑 = 建筑列表.filter((building: any) => {
-            const 名称归一 = 归一化文本(building?.名称);
-            if (!当前地点归一 || !名称归一) return false;
-            return 当前地点归一 === 名称归一
-                || 当前地点归一.startsWith(名称归一)
-                || 当前地点归一.includes(名称归一);
-        });
-
-        const 建筑文本 = 命中建筑.length > 0
-            ? 命中建筑.map((building: any) => {
-                const name = typeof building?.名称 === 'string' ? building.名称.trim() : '未命名建筑';
-                const desc = typeof building?.描述 === 'string' ? building.描述.trim() : '无描述';
-                const ownership = building?.归属 && typeof building.归属 === 'object'
-                    ? [
-                        building.归属?.大地点 || '未知大地点',
-                        building.归属?.中地点 || '未知中地点',
-                        building.归属?.小地点 || '未知小地点'
-                    ].join(' > ')
-                    : '未知归属';
-                return `- 名称: ${name} | 归属: ${ownership}\n  描述: ${desc}`;
+            : '- 暂无层级数据';
+        const 建筑文本 = scene.当前层建筑物.length > 0
+            ? scene.当前层建筑物.map((building) => {
+                const corners = building.四角坐标.map((point) => `[${point.x},${point.y}]`).join(' ');
+                const hit = scene.命中建筑ID列表.includes(building.ID) ? ' | 当前命中' : '';
+                return `- ${building.名称}${hit} | 分类:${building.分类 || '建筑'} | 四角:${corners}\n  描述: ${building.描述 || '无描述'}`;
             }).join('\n')
-            : `- 当前具体地点「${当前具体地点 || '未知'}」未命中建筑变量数据（仅注入地图摘要）`;
+            : '- 当前层暂无建筑面数据';
+        const 道路文本 = scene.当前层道路.length > 0
+            ? scene.当前层道路.map((road) => (
+                `- ${road.名称} | 路径:${road.路径点.map((point) => `[${point.x},${point.y}]`).join(' -> ')}`
+            )).join('\n')
+            : '- 当前层暂无道路线数据';
+        const 人物文本 = scene.当前层人物.length > 0
+            ? scene.当前层人物.map((person) => (
+                `- ${person.名称}${person.是否当前玩家 ? '（主角）' : ''} | 坐标:[${person.坐标.x},${person.坐标.y}] | 描述:${person.描述 || '无'}`
+            )).join('\n')
+            : '- 当前层暂无人物点数据';
 
         return [
-            '【地图与建筑】',
-            `当前具体地点: ${当前具体地点 || '未知'}`,
-            '地图列表:',
-            地图文本,
+            '【地图与空间锚点】',
+            `当前地点层级链: ${当前层级链文本}`,
+            当前层摘要,
             '',
-            '当前地点建筑数据（仅在具体地点命中对应建筑时注入）:',
-            建筑文本
+            '层级总览:',
+            层级摘要,
+            '',
+            '当前层建筑物（面）:',
+            建筑文本,
+            '',
+            '当前层道路（线）:',
+            道路文本,
+            '',
+            '当前层人物（点）:',
+            人物文本
         ].join('\n');
     };
     const 构建剧情安排 = (payload: any) => {

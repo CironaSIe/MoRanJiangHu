@@ -20,6 +20,66 @@ export interface 建筑结构 {
     归属: 地点归属结构;
 }
 
+export type 地图层级类型 = '大地点' | '中地点' | '小地点' | '具体地点';
+
+export interface 地图坐标点结构 {
+    x: number;
+    y: number;
+}
+
+export type 地图四角坐标结构 = [
+    地图坐标点结构,
+    地图坐标点结构,
+    地图坐标点结构,
+    地图坐标点结构
+];
+
+export interface 地图层级结构 {
+    ID: string;
+    名称: string;
+    层级: 地图层级类型;
+    描述: string;
+    归属: 地点归属结构;
+    父级ID?: string;
+    锚点坐标: 地图坐标点结构;
+    网格宽度: number;
+    网格高度: number;
+    边界四角坐标: 地图四角坐标结构;
+    建筑物ID列表: string[];
+    道路ID列表: string[];
+    人物ID列表: string[];
+}
+
+export interface 地图建筑结构 {
+    ID: string;
+    名称: string;
+    描述: string;
+    归属: 地点归属结构;
+    所在层级ID: string;
+    分类: string;
+    四角坐标: 地图四角坐标结构;
+}
+
+export interface 地图道路结构 {
+    ID: string;
+    名称: string;
+    描述: string;
+    归属: 地点归属结构;
+    所在层级ID: string;
+    路径点: 地图坐标点结构[];
+}
+
+export interface 地图人物结构 {
+    ID: string;
+    名称: string;
+    描述: string;
+    归属: 地点归属结构;
+    所在层级ID: string;
+    坐标: 地图坐标点结构;
+    关联NPC: string;
+    是否当前玩家: boolean;
+}
+
 export interface 活跃NPC结构 {
     姓名: string;
     所属势力: string;
@@ -114,4 +174,8 @@ export interface 世界数据结构 {
     江湖史册: 世界史册条目结构[];
     地图: 地图结构[];
     建筑: 建筑结构[];
+    地图层级: 地图层级结构[];
+    地图建筑: 地图建筑结构[];
+    地图道路: 地图道路结构[];
+    地图人物: 地图人物结构[];
 }
