@@ -15,7 +15,7 @@ import ToggleSwitch from '../../ui/ToggleSwitch';
 import InlineSelect from '../../ui/InlineSelect';
 import { RELEASE_INFO } from '../../../data/releaseInfo';
 import { openExternalUrl } from '../../../services/appUpdate';
-import { 规范化接口设置 } from '../../../utils/apiConfig';
+import { 规范化接口设置, 获取NSFW文生图接口配置, 接口配置是否可用 } from '../../../utils/apiConfig';
 import { 自动场景横屏尺寸选项, 自动场景竖屏尺寸选项 } from '../../../utils/imageSizeOptions';
 import { buildDiscoveredBackendLabel, fetchDiscoveredImageBackends } from '../../../services/ai/imageBackendRegistry';
 import { 规范化ComfyUI工作流JSON } from '../../../services/ai/comfyWorkflowTools';
@@ -175,6 +175,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const [discoveryLoading, setDiscoveryLoading] = useState(false);
     const [discoveryError, setDiscoveryError] = useState('');
     const [testingImageConnection, setTestingImageConnection] = useState(false);
+    const [testingNsfwConnection, setTestingNsfwConnection] = useState(false);
     const artistImportRef = React.useRef<HTMLInputElement | null>(null);
     const transformerImportRef = React.useRef<HTMLInputElement | null>(null);
     const comfyWorkflowImportRef = React.useRef<HTMLInputElement | null>(null);
@@ -822,6 +823,62 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         }
     };
 
+    const handleTestNsfwImageConnection = async () => {
+        if (testingNsfwConnection) return;
+        setTestingNsfwConnection(true);
+        setMessage('正在测试 NSFW 文生图连接...');
+        try {
+            const nsfwConfig = 获取NSFW文生图接口配置(form);
+            if (!nsfwConfig || !接口配置是否可用(nsfwConfig)) {
+                const feature = form.功能模型占位;
+                const independent = Boolean(feature.NSFW生图独立接口启用);
+                const details = [];
+                if (!independent) details.push('NSFW 独立接口未启用');
+                if (nsfwConfig) {
+                    details.push(`推断后端：${nsfwConfig.图片后端类型 || '未识别'}`);
+                    details.push(`地址：${nsfwConfig.baseUrl || '未填写'}`);
+                }
+                throw new Error(`NSFW 生图配置不可用。${details.length ? '\n' + details.join('\n') : ''}\n请确认：1) 主文生图后端不是 OpenAI/Gemini 等不支持成人向的接口；2) 或者开启 NSFW 独立接口并配置 ComfyUI/SD WebUI/NovelAI 后端。`);
+            }
+            const backend = nsfwConfig.图片后端类型 || 'openai';
+            const base = (nsfwConfig.baseUrl || '').replace(/\/+$/, '');
+            const apiKey = (nsfwConfig.apiKey || '').trim();
+            if (backend === 'comfyui') {
+                const response = await fetch(`${base}/system_stats`, { method: 'GET' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                setMessage(`NSFW ComfyUI 连接成功：后端在线（${base}）。`);
+                return;
+            }
+            if (backend === 'sd_webui') {
+                const response = await fetch(`${base}/sdapi/v1/options`, { method: 'GET' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                setMessage(`NSFW SD WebUI 连接成功：API 已开启（${base}）。`);
+                return;
+            }
+            if (backend === 'novelai') {
+                const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined;
+                const response = await fetch(`${base}/user/subscription`, { method: 'GET', headers });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                setMessage(`NSFW NovelAI 连接成功：Token 可用（${base}）。`);
+                return;
+            }
+            const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined;
+            const normalized = base.replace(/\/v1$/i, '');
+            const response = await fetch(`${normalized}/v1/models`, { method: 'GET', headers });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            setMessage(`NSFW OpenAI 兼容接口连接成功（${base}）。`);
+        } catch (error: any) {
+            const nsfwConfig = 获取NSFW文生图接口配置(form);
+            const base = nsfwConfig?.baseUrl || '';
+            const backend = nsfwConfig?.图片后端类型 || 'openai';
+            setMessage(backend === 'comfyui'
+                ? await 构建ComfyUI精确连接失败提示(base, error)
+                : 翻译连接测试错误(error, { baseUrl: base, backendLabel: `NSFW ${backend}` }));
+        } finally {
+            setTestingNsfwConnection(false);
+        }
+    };
+
     const fetchModelsFromCurrentConfig = async (key: 生图模型字段): Promise<string[] | null> => {
         const feature = form.功能模型占位;
         const sceneBackend = feature.场景生图独立接口启用 ? feature.场景生图后端类型 : feature.文生图后端类型;
@@ -1005,6 +1062,20 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                         onChange={handleToggleNSFWIndependentImageApi}
                         ariaLabel="切换 NSFW 独立生图接口"
                     />
+                </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+                <GameButton
+                    onClick={() => void handleTestNsfwImageConnection()}
+                    variant="secondary"
+                    className="px-4 py-2 text-xs"
+                    disabled={testingNsfwConnection}
+                >
+                    {testingNsfwConnection ? '测试中...' : '测试 NSFW 连接'}
+                </GameButton>
+                <div className="text-xs text-rose-100/60">
+                    检测当前 NSFW 生图后端是否在线，包括兜底推断的场景后端。
                 </div>
             </div>
 
