@@ -1,16 +1,28 @@
 {
-  "versionCode": 75,
-  "versionName": "1.0.74",
+  "versionCode": 76,
+  "versionName": "1.0.75",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-05-10T01:45:00.000+08:00",
+  "releasePublishedAt": "2026-05-10T02:05:00.000+08:00",
   "releaseNotes": [
-    "正式发布 1.0.74，修复私密部位特写默认工作流误沿用主文生图 workflow 的问题。",
-    "现在私密部位特写默认会使用旧版 mix ComfyUI workflow，主模型恢复为 mPMix_NSFW_V9_fp8.safetensors。",
-    "即使用户没有手动填写 NSFW workflow，系统也会自动回到私密部位专用默认工作流，减少配置错乱导致的出图异常。",
-    "设置页说明同步更新，明确留空时会使用私密部位专用的旧版 mix workflow。",
-    "网页端、APK 包和更新清单同步提升到 v1.0.74 / CODE 75。"
+    "正式发布 1.0.75，新增面向客户开放的存档变量管理入口。",
+    "设置页现在可直接进入“变量管理”，无需开启研发诊断模式；客户可以用结构树或 JSON 草稿手动修正当前存档变量。",
+    "高级路径修订新增变量登记校验，未登记路径会被拦截并提示，减少误操作或 AI 乱写字段污染存档。",
+    "独立变量生成会读取当前存档变量路径登记表，并在本地过滤未登记命令，降低模型自造变量名的概率。",
+    "网页端、APK 包和更新清单同步提升到 v1.0.75 / CODE 76。"
   ],
   "releaseHistory": [
+    {
+      "versionCode": 75,
+      "versionName": "1.0.74",
+      "publishedAt": "2026-05-10T01:45:00.000+08:00",
+      "changes": [
+        "正式发布 1.0.74，修复私密部位特写默认工作流误沿用主文生图 workflow 的问题。",
+        "现在私密部位特写默认会使用旧版 mix ComfyUI workflow，主模型恢复为 mPMix_NSFW_V9_fp8.safetensors。",
+        "即使用户没有手动填写 NSFW workflow，系统也会自动回到私密部位专用默认工作流，减少配置错乱导致的出图异常。",
+        "设置页说明同步更新，明确留空时会使用私密部位专用的旧版 mix workflow。",
+        "网页端、APK 包和更新清单同步提升到 v1.0.74 / CODE 75。"
+      ]
+    },
     {
       "versionCode": 74,
       "versionName": "1.0.73",

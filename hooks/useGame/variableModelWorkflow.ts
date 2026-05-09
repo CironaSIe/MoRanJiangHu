@@ -11,6 +11,7 @@ import {
 import type { 响应命令处理状态 } from './responseCommandProcessor';
 import { 构建同人运行时提示词包 } from '../../prompts/runtime/fandom';
 import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
+import { 构建变量路径登记提示, 校验变量命令是否登记 } from '../../utils/variableRegistry';
 
 type 变量模型基态 = Pick<
     响应命令处理状态,
@@ -299,6 +300,7 @@ export const 执行变量模型校准工作流 = async (
         realmPrompt
     });
     const socialCompletenessAuditPrompt = 构建社交档案完整性审计提示(params.baseState.社交);
+    const variableRegistryPrompt = 构建变量路径登记提示(params.baseState as any);
     const mergedExtraPrompt = [
         runtimeExtraPrompt,
         按功能开关过滤提示词内容(构建世界书注入文本({
@@ -310,6 +312,7 @@ export const 执行变量模型校准工作流 = async (
         }).combinedText, runtimeGameConfig),
         按功能开关过滤提示词内容(fandomPromptBundle.同人设定摘要, runtimeGameConfig),
         socialCompletenessAuditPrompt,
+        variableRegistryPrompt,
         按功能开关过滤提示词内容((params.extraPromptAppend || '').trim(), runtimeGameConfig)
     ].filter(Boolean).join('\n\n');
 
@@ -354,8 +357,17 @@ export const 执行变量模型校准工作流 = async (
         : [];
     const existingKeys = new Set(baseCommands.map(序列化命令去重键));
 
+    const rejectedReports: string[] = [];
     const dedupedCommands = (Array.isArray(result.commands) ? result.commands : [])
-        .filter((cmd) => 是否允许变量生成命令(cmd))
+        .filter((cmd) => {
+            if (!是否允许变量生成命令(cmd)) return false;
+            const validation = 校验变量命令是否登记(cmd, params.baseState as any);
+            if (!validation.allowed) {
+                rejectedReports.push(`已拦截未登记变量命令：${cmd.action} ${validation.normalizedKey || cmd.key}（${validation.reason || '路径未登记'}）`);
+                return false;
+            }
+            return true;
+        })
         .filter((cmd) => {
             const dedupeKey = 序列化命令去重键(cmd);
             if (existingKeys.has(dedupeKey)) return false;
@@ -363,7 +375,10 @@ export const 执行变量模型校准工作流 = async (
             return true;
         });
 
-    const normalizedReports = (Array.isArray(result.reports) ? result.reports : [])
+    const normalizedReports = [
+        ...(Array.isArray(result.reports) ? result.reports : []),
+        ...rejectedReports
+    ]
         .map((item) => (item || '').trim())
         .filter(Boolean);
 

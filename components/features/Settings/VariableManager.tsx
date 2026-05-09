@@ -1,5 +1,6 @@
 import React from 'react';
 import type { TavernCommand } from '../../../types';
+import { 构建变量路径登记表, 校验变量命令是否登记 } from '../../../utils/variableRegistry';
 
 type 变量根键 = '角色' | '环境' | '社交' | '世界' | '战斗' | '剧情' | '女主剧情规划' | '玩家门派' | '任务列表' | '约定列表' | '记忆系统';
 
@@ -162,6 +163,7 @@ const VariableManager: React.FC<Props> = ({ runtimeState, onReplaceSection, onAp
     const [commandKey, setCommandKey] = React.useState('剧情.关键剧情变量组');
     const [commandValue, setCommandValue] = React.useState('[]');
     const [commandError, setCommandError] = React.useState('');
+    const variableRegistry = React.useMemo(() => 构建变量路径登记表(runtimeState, { maxDepth: 5, maxLines: 320 }), [runtimeState]);
 
     React.useEffect(() => {
         const nextDrafts = 深拷贝(runtimeState);
@@ -192,11 +194,17 @@ const VariableManager: React.FC<Props> = ({ runtimeState, onReplaceSection, onAp
     const handleApplyCommand = () => {
         try {
             const parsedValue = commandAction === 'delete' ? null : 解析JSON输入(commandValue);
-            onApplyCommand({
+            const command = {
                 action: commandAction,
                 key: commandKey.trim(),
                 value: parsedValue
-            });
+            };
+            const validation = 校验变量命令是否登记(command, runtimeState);
+            if (!validation.allowed) {
+                setCommandError(`路径未登记：${validation.normalizedKey || command.key}。如需新增字段，请先在结构树或 JSON 草稿中手动创建。`);
+                return;
+            }
+            onApplyCommand(command);
             setCommandError('');
         } catch (error: any) {
             setCommandError(error?.message || '高级命令 JSON 无法解析。');
@@ -207,7 +215,7 @@ const VariableManager: React.FC<Props> = ({ runtimeState, onReplaceSection, onAp
         <div className="space-y-4">
             <div className={区块样式}>
                 <div className="text-lg font-bold text-paper-white">存档变量管理</div>
-                <div className="mt-1 text-sm text-gray-500">面向当前会话的变量可视化编辑。结构树适合修正现有字段，高级命令适合路径级补丁与复杂数组操作。</div>
+                <div className="mt-1 text-sm text-gray-500">面向当前会话的变量可视化编辑。结构树和 JSON 草稿可手动修正或新增字段；高级命令会按变量登记表校验路径，避免误写未登记变量。</div>
             </div>
 
             <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
@@ -301,6 +309,22 @@ const VariableManager: React.FC<Props> = ({ runtimeState, onReplaceSection, onAp
                             </button>
                             {commandError && <div className="text-sm text-red-300">{commandError}</div>}
                         </div>
+                    </div>
+
+                    <div className={区块样式}>
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div className="text-sm font-bold text-paper-white">变量登记表</div>
+                                <div className="mt-1 text-xs text-gray-500">当前存档可识别的变量路径。变量模型也会读取这份清单，减少乱造字段。</div>
+                            </div>
+                            <div className="text-xs text-gray-500">{variableRegistry.length} 条</div>
+                        </div>
+                        <textarea
+                            readOnly
+                            value={variableRegistry.join('\n')}
+                            rows={10}
+                            className={`${输入框样式} font-mono text-[12px] leading-6`}
+                        />
                     </div>
                 </div>
             </div>
