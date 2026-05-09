@@ -12,6 +12,9 @@ describe('默认 ComfyUI 生图配置', () => {
         expect(workflow['41'].inputs.width).toBe('__WIDTH__');
         expect(workflow['41'].inputs.height).toBe('__HEIGHT__');
         expect(workflow['44'].inputs.seed).toBe('__SEED__');
+        expect(workflow['44'].inputs.model).toEqual(['48', 0]);
+        expect(workflow['48'].class_type).toBe('NunchakuZImageDiTLoader');
+        expect(workflow['48'].inputs.model_name).toBe('z_image_turbo_bf16.safetensors');
     });
 
     it('fills the default workflow when old settings have no ComfyUI workflow', () => {

@@ -82,8 +82,8 @@ export const 生成物品图标 = async (
     }
 
     const feature = apiConfig?.功能模型占位;
-    const style = feature?.自动物品生图画风 || '国风';
-    const renderStyle = feature?.自动物品生图渲染风格 || '国风插画';
+    const style = feature?.自动物品生图画风 || '写实';
+    const renderStyle = feature?.自动物品生图渲染风格 || '写实道具';
     const size = 读取文本(options?.size || feature?.自动物品生图分辨率, '1024x1024') || '1024x1024';
     const sourceLocation = options?.sourceLocation || '背包';
     const enrichedItem: 游戏物品 = {

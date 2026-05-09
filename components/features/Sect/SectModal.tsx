@@ -8,11 +8,12 @@ interface Props {
     currentTime: 游戏时间格式; // "YYYY:MM:DD:HH:MM"
     onClose: () => void;
     onOpenNpc?: (npc: any) => void;
+    onLearnBook?: (book: any) => void;
 }
 
 type Tab = 'hall' | 'missions' | 'exchange' | 'library' | 'members';
 
-const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc }) => {
+const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc, onLearnBook }) => {
     const [activeTab, setActiveTab] = useState<Tab>('hall');
     const [missionFilter, setMissionFilter] = useState<'all' | 'active' | 'available'>('all');
 
@@ -391,11 +392,12 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc 
                                                   <div className="rounded border border-white/10 bg-black/20 px-3 py-2">职位 {book.要求职位}</div>
                                                   <div className="rounded border border-white/10 bg-black/20 px-3 py-2">累计贡献 {book.要求累计贡献}</div>
                                               </div>
-                                              <button
-                                                  type="button"
-                                                  disabled={!canRead}
-                                                  className={`mt-4 w-full rounded px-3 py-2 text-sm font-bold transition-colors ${canRead ? 'border border-wuxia-gold bg-wuxia-gold/15 text-wuxia-gold hover:bg-wuxia-gold hover:text-black' : 'border border-gray-700 bg-gray-900 text-gray-400 cursor-not-allowed'}`}
-                                              >
+                                               <button
+                                                   type="button"
+                                                   disabled={!canRead}
+                                                   onClick={() => onLearnBook?.(book)}
+                                                   className={`mt-4 w-full rounded px-3 py-2 text-sm font-bold transition-colors ${canRead ? 'border border-wuxia-gold bg-wuxia-gold/15 text-wuxia-gold hover:bg-wuxia-gold hover:text-black' : 'border border-gray-700 bg-gray-900 text-gray-400 cursor-not-allowed'}`}
+                                               >
                                                   学习
                                               </button>
                                           </div>

@@ -7,11 +7,12 @@ interface Props {
     currentTime: 游戏时间格式;
     onClose: () => void;
     onOpenNpc?: (npc: any) => void;
+    onLearnBook?: (book: any) => void;
 }
 
 type Tab = 'hall' | 'missions' | 'exchange' | 'library' | 'members';
 
-const MobileSect: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc }) => {
+const MobileSect: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc, onLearnBook }) => {
     const [activeTab, setActiveTab] = useState<Tab>('hall');
     const [missionFilter, setMissionFilter] = useState<'all' | 'active' | 'available'>('all');
 
@@ -254,6 +255,7 @@ const MobileSect: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc
                                         <button
                                             type="button"
                                             disabled={!canRead}
+                                            onClick={() => onLearnBook?.(book)}
                                             className={`w-full rounded px-3 py-2 text-[11px] font-bold ${canRead ? 'border border-wuxia-gold bg-wuxia-gold/15 text-wuxia-gold' : 'border border-gray-700 bg-gray-900 text-gray-400'}`}
                                         >
                                             学习

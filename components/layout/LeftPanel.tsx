@@ -10,7 +10,24 @@ interface Props {
     onUploadAvatar?: (imageUrl: string) => void;
     visualConfig?: 视觉设置结构;
     gameConfig?: 游戏设置结构;
+    latestChangeSummary?: string[];
 }
+
+const use数值变化提示 = (value: number | string | undefined) => {
+    const previousRef = React.useRef<number | null>(null);
+    const [delta, setDelta] = React.useState<number | null>(null);
+    const numeric = Number(value);
+    React.useEffect(() => {
+        if (!Number.isFinite(numeric)) return;
+        const previous = previousRef.current;
+        previousRef.current = numeric;
+        if (previous === null || previous === numeric) return;
+        setDelta(numeric - previous);
+        const timer = window.setTimeout(() => setDelta(null), 2600);
+        return () => window.clearTimeout(timer);
+    }, [numeric]);
+    return delta;
+};
 
 const WuxiaProgressBar: React.FC<{ 
     pct: number; 
@@ -75,15 +92,23 @@ const FlatBar: React.FC<{ label: string; current: number; max: number; type: 'st
     const 基础字号 = Number(areaStyle.fontSize) || 13;
     const 标题字号 = Math.max(14, Math.round(基础字号 * 1.02));
     const 数值字号 = Math.max(13, Math.round(基础字号 * 0.98));
+    const delta = use数值变化提示(current);
 
     return (
-        <div className="mb-2 group last:mb-0">
+        <div className={`mb-2 group last:mb-0 rounded px-1 py-0.5 transition-all duration-300 ${delta !== null ? (delta >= 0 ? 'bg-emerald-400/10 ring-1 ring-emerald-300/40' : 'bg-red-500/10 ring-1 ring-red-400/45') : ''}`}>
             <div className="flex justify-between items-end mb-1 px-0.5">
                 <span className="tracking-widest group-hover:text-wuxia-gold transition-colors font-medium flex items-center gap-1" style={{ ...areaStyle, fontSize: `${标题字号}px`, lineHeight: 1.2 }}>
                     <span className="w-1 h-1 rounded-full bg-wuxia-gold/40"></span>
                     {label}
                 </span>
-                <span className="font-mono group-hover:text-gray-300 opacity-80" style={{ color: areaStyle.color, fontSize: `${数值字号}px` }}>{current}/{max}</span>
+                <span className="inline-flex items-center gap-1 font-mono group-hover:text-gray-300 opacity-90" style={{ color: areaStyle.color, fontSize: `${数值字号}px` }}>
+                    {delta !== null && (
+                        <span className={`rounded border px-1 text-[10px] font-black ${delta >= 0 ? 'border-emerald-300/50 text-emerald-200' : 'border-red-300/50 text-red-200'}`}>
+                            {delta > 0 ? '+' : ''}{delta}
+                        </span>
+                    )}
+                    {current}/{max}
+                </span>
             </div>
             <WuxiaProgressBar pct={pct} baseColor={baseColor} height="4px" />
         </div>
@@ -97,19 +122,23 @@ const MiniBodyPart: React.FC<{ name: string; current: number; max: number; statu
     const 基础字号 = Number(areaStyle.fontSize) || 13;
     const 名称字号 = Math.max(13, Math.round(基础字号 * 0.96));
     const 数值字号 = Math.max(13, Math.round(基础字号 * 0.92));
+    const delta = use数值变化提示(current);
 
     return (
-        <div className="flex items-center justify-between gap-2 w-full h-[22px] border-b border-gray-800/20 last:border-0 hover:bg-white/5 transition-colors px-1 group/part">
+        <div className={`flex items-center justify-between gap-2 w-full h-[22px] border-b border-gray-800/20 last:border-0 hover:bg-white/5 transition-colors px-1 group/part ${delta !== null ? (delta >= 0 ? 'bg-emerald-400/10' : 'bg-red-500/15') : ''}`}>
             <span className="leading-none whitespace-nowrap text-right w-8" style={{ ...areaStyle, fontSize: `${名称字号}px`, opacity: 0.85 }}>{name}</span>
             <div className="flex-1 self-center">
                 <WuxiaProgressBar pct={pct} baseColor={color} height="4px" showGlow={false} />
             </div>
-            <span className="font-mono w-[30px] text-right leading-none group-hover/part:text-wuxia-red transition-colors" style={{ color: 'rgba(156,163,175,0.8)', fontSize: `${数值字号}px` }}>{current}</span>
+            <span className="font-mono w-[48px] text-right leading-none group-hover/part:text-wuxia-red transition-colors" style={{ color: 'rgba(156,163,175,0.8)', fontSize: `${数值字号}px` }}>
+                {delta !== null && <span className={delta >= 0 ? 'mr-1 text-emerald-200' : 'mr-1 text-red-200'}>{delta > 0 ? '+' : ''}{delta}</span>}
+                {current}
+            </span>
         </div>
     );
 };
 
-const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onUploadAvatar, visualConfig, gameConfig }) => {
+const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onUploadAvatar, visualConfig, gameConfig, latestChangeSummary = [] }) => {
     use图片资源回源预取(角色);
     const 金钱 = 角色.金钱 || { 金元宝: 0, 银子: 0, 铜钱: 0 };
     const 玩家BUFF列表 = Array.isArray(角色.玩家BUFF) ? 角色.玩家BUFF : [];
@@ -250,6 +279,14 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onUploadAvatar, v
                 )}
                 <FlatBar label="经验" current={角色.当前经验} max={角色.升级经验} type="exp" visualConfig={visualConfig} />
             </div>
+            {latestChangeSummary.length > 0 && (
+                <div className="mb-3 shrink-0 rounded border border-emerald-400/20 bg-emerald-950/15 px-2 py-1.5">
+                    <div className="mb-1 text-[10px] font-bold tracking-[0.2em] text-emerald-200">变化</div>
+                    {latestChangeSummary.slice(0, 3).map((item, index) => (
+                        <div key={`${item}-${index}`} className="truncate font-mono text-[10px] leading-5 text-emerald-100/85" title={item}>{item}</div>
+                    ))}
+                </div>
+            )}
             <div className="mb-3 shrink-0 border border-gray-800/60 bg-black/30 px-2 py-1.5 flex items-center justify-between font-mono" style={{ color: 'rgba(209,213,219,1)', fontSize: 缩放字号(1, 14) }}>
                 <span className="text-gray-500">钱财</span>
                 <span>元宝 {金钱.金元宝} / 银 {金钱.银子} / 铜 {金钱.铜钱}</span>

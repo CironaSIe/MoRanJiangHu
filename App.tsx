@@ -43,6 +43,18 @@ const 获取物品自动生图Key = (scope: 'bag' | 'auction', item: any, ownerI
     item?.ID || item?.名称 || 'unknown'
 ].join(':');
 
+const 格式化本回合变化 = (commands: any[]): string[] => {
+    const watched = ['当前精力', '当前内力', '当前饱腹', '当前口渴', '当前经验', '头部当前血量', '胸部当前血量', '腹部当前血量', '左手当前血量', '右手当前血量', '左腿当前血量', '右腿当前血量', '金钱'];
+    return (Array.isArray(commands) ? commands : [])
+        .filter((cmd) => typeof cmd?.key === 'string' && watched.some((key) => cmd.key.includes(key)))
+        .slice(0, 6)
+        .map((cmd) => {
+            const key = String(cmd.key).replace(/^gameState\./, '').replace(/^角色\./, '');
+            const value = cmd.action === 'delete' ? '删除' : (typeof cmd.value === 'object' ? JSON.stringify(cmd.value).slice(0, 32) : String(cmd.value));
+            return `${key} ${cmd.action || 'set'} ${value}`;
+        });
+};
+
 const 是同一个物品 = (left: any, right: any): boolean => {
     const leftId = typeof left?.ID === 'string' ? left.ID.trim() : '';
     const rightId = typeof right?.ID === 'string' ? right.ID.trim() : '';
@@ -856,6 +868,10 @@ const App: React.FC = () => {
             : [],
         [latestAssistantMessage]
     );
+    const latestChangeSummary = React.useMemo(
+        () => 格式化本回合变化(latestAssistantMessage?.structuredResponse?.tavern_commands || []),
+        [latestAssistantMessage]
+    );
     const latestBattleContextText = React.useMemo(() => {
         const response = latestAssistantMessage?.structuredResponse;
         if (!response) return '';
@@ -903,6 +919,10 @@ const App: React.FC = () => {
     React.useEffect(() => {
         const feature = state.apiConfig?.功能模型占位;
         if (state.view !== 'game' || !feature?.文生图功能启用 || !feature?.物品生图启用) return;
+        const latestTurnSignature = latestAssistantMessage?.structuredResponse
+            ? `${latestAssistantMessage.timestamp || 0}-${latestAssistantMessage.gameTime || ''}`
+            : '';
+        if (!latestTurnSignature) return;
         const imageApi = 获取文生图接口配置(state.apiConfig);
         if (!接口配置是否可用(imageApi)) return;
 
@@ -943,6 +963,11 @@ const App: React.FC = () => {
 
         let cancelled = false;
         autoItemImageRunningRef.current.add(candidate.key);
+        actions.pushNotification({
+            title: '物品自动生图',
+            message: `正在为「${candidate.item?.名称 || '无名物品'}」生成写实图标。`,
+            tone: 'info'
+        });
         void (async () => {
             try {
                 const result = await 生成物品图标(candidate.item, state.apiConfig, {
@@ -971,6 +996,11 @@ const App: React.FC = () => {
                     });
                 }
                 autoItemImageFailedAtRef.current.delete(candidate.key);
+                actions.pushNotification({
+                    title: '物品图标已生成',
+                    message: `「${result.nextItem?.名称 || candidate.item?.名称 || '无名物品'}」图标已自动写入。`,
+                    tone: 'success'
+                });
                 console.info('[物品自动生图] 已生成物品图标', candidate.sourceLocation, result.nextItem?.名称 || candidate.item?.名称);
             } catch (error) {
                 autoItemImageFailedAtRef.current.set(candidate.key, Date.now());
@@ -983,7 +1013,7 @@ const App: React.FC = () => {
         return () => {
             cancelled = true;
         };
-    }, [state.view, state.apiConfig, state.角色, auctionHouseState, auctionHouseScope, setters, actions]);
+    }, [state.view, state.apiConfig, state.角色, auctionHouseState, auctionHouseScope, setters, actions, latestAssistantMessage]);
 
     const activeMobileWindow =
         showCharacter ? '角色' :
@@ -1083,11 +1113,6 @@ const App: React.FC = () => {
         });
     }, [desktopRightDetailId]);
 
-    const shrinkDesktopDetailWidth = React.useCallback(() => {
-        setDesktopDetailFullscreen(false);
-        setDesktopDetailWidths(prev => ({ ...prev, [desktopRightDetailId]: DESKTOP_DETAIL_MIN_WIDTH }));
-    }, [desktopRightDetailId]);
-
     const startDesktopDetailResize = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         if (desktopDetailFullscreen) return;
         event.preventDefault();
@@ -1133,6 +1158,16 @@ const App: React.FC = () => {
         setters.setShowSettings(false);
         setShowMobileMusic(false);
     }, [setters]);
+
+    const collapseDesktopDetailToInitial = React.useCallback(() => {
+        setDesktopDetailFullscreen(false);
+        closeAllPanels();
+    }, [closeAllPanels]);
+
+    const exitDesktopDetailFullscreen = React.useCallback(() => {
+        setDesktopDetailFullscreen(false);
+        resetDesktopDetailWidth();
+    }, [resetDesktopDetailWidth]);
 
     const openCharacter = React.useCallback(() => {
         closeAllPanels();
@@ -1213,6 +1248,56 @@ const App: React.FC = () => {
         closeAllPanels();
         setters.setShowSect(true);
     }, [closeAllPanels, setters]);
+    const handleLearnSectBook = React.useCallback((book: any) => {
+        if (!book?.id) return;
+        const currentSkills = Array.isArray(state.角色?.功法列表) ? state.角色.功法列表 : [];
+        if (currentSkills.some((skill: any) => skill?.来源藏经ID === book.id || skill?.ID === `sect_${book.id}` || skill?.名称 === book.名称)) {
+            actions.pushNotification({ title: '已学过', message: `「${book.名称 || '此典籍'}」已经在功法列表中。`, tone: 'info' });
+            return;
+        }
+        const typeMap: Record<string, string> = { 功法: '外功', 身法: '轻功', 心法: '内功', 杂学: '被动' };
+        const quality = ['凡品', '良品', '上品', '极品', '绝世', '传说'].includes(book.品阶) ? book.品阶 : '凡品';
+        const learnedSkill = {
+            ID: `sect_${book.id}`,
+            来源藏经ID: book.id,
+            名称: book.名称 || '未命名典籍',
+            描述: book.简介 || '藏经阁所藏典籍。',
+            类型: typeMap[book.类型] || '外功',
+            品质: quality,
+            来源: `${state.玩家门派?.名称 || '门派'}藏经阁`,
+            当前重数: 1,
+            最高重数: 10,
+            当前熟练度: 0,
+            升级经验: 100,
+            突破条件: '勤修不辍，实战参悟',
+            境界限制: book.要求职位 || '无',
+            大成方向: '稳固根基',
+            圆满效果: `${book.名称 || '此典籍'}圆满后可强化对应武学表现。`,
+            武器限制: [],
+            消耗类型: book.类型 === '心法' ? '内力' : '精力',
+            消耗数值: 0,
+            施展耗时: '1息',
+            冷却时间: '0息',
+            基础伤害: 0,
+            加成属性: book.类型 === '身法' ? '敏捷' : book.类型 === '心法' ? '根骨' : '力量',
+            加成系数: 0,
+            内力系数: book.类型 === '心法' ? 1 : 0,
+            伤害类型: book.类型 === '心法' ? '内功' : '物理',
+            目标类型: '自身',
+            最大目标数: 1,
+            重数描述映射: [{ 重数: 1, 描述: book.简介 || '初窥门径。' }],
+            附带效果: [],
+            被动修正: [],
+            境界特效: []
+        };
+        const nextCharacter = {
+            ...state.角色,
+            功法列表: [learnedSkill, ...currentSkills]
+        };
+        setters.setCharacter(nextCharacter);
+        void actions.performAutoSave?.({ role: nextCharacter, force: true });
+        actions.pushNotification({ title: '藏经阁学习成功', message: `已习得「${learnedSkill.名称}」，可在功法页查看。`, tone: 'success' });
+    }, [actions, setters, state.玩家门派?.名称, state.角色]);
     const openTask = React.useCallback(() => {
         closeAllPanels();
         setters.setShowTask(true);
@@ -1842,6 +1927,7 @@ const App: React.FC = () => {
                                 onUploadAvatar={actions.updatePlayerAvatar}
                                 visualConfig={effectiveVisualConfig}
                                 gameConfig={state.gameConfig}
+                                latestChangeSummary={latestChangeSummary}
                             />
                         </div>
 
@@ -1990,6 +2076,7 @@ const App: React.FC = () => {
                                 onSave={openSave}
                                 onLoad={openLoad}
                                 visualConfig={effectiveVisualConfig}
+                                latestChangeSummary={latestChangeSummary}
                             />
                         </div>
 
@@ -2787,6 +2874,7 @@ const App: React.FC = () => {
                                     sectData={state.玩家门派}
                                     currentTime={currentEnvTime}
                                     onOpenNpc={openNpcDetailFromRecord}
+                                    onLearnBook={handleLearnSectBook}
                                     onClose={() => setters.setShowSect(false)}
                                 />
                             ) : (
@@ -2794,6 +2882,7 @@ const App: React.FC = () => {
                                     sectData={state.玩家门派}
                                     currentTime={currentEnvTime}
                                     onOpenNpc={openNpcDetailFromRecord}
+                                    onLearnBook={handleLearnSectBook}
                                     onClose={() => setters.setShowSect(false)}
                                 />
                             )}
@@ -2925,7 +3014,7 @@ const App: React.FC = () => {
                     )}
                     <button
                         type="button"
-                        onClick={() => setDesktopDetailFullscreen(prev => !prev)}
+                        onClick={() => desktopDetailFullscreen ? exitDesktopDetailFullscreen() : setDesktopDetailFullscreen(true)}
                         className={`desktop-detail-expand-toggle${desktopDetailFullscreen ? ' desktop-detail-expand-toggle--fullscreen' : ''}`}
                         aria-label={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
                         title={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
@@ -2940,15 +3029,29 @@ const App: React.FC = () => {
                     </button>
                     <button
                         type="button"
-                        onClick={shrinkDesktopDetailWidth}
+                        onClick={desktopDetailFullscreen ? exitDesktopDetailFullscreen : collapseDesktopDetailToInitial}
                         className={`desktop-detail-collapse-toggle${desktopDetailFullscreen ? ' desktop-detail-collapse-toggle--fullscreen' : ''}`}
-                        aria-label="向右收缩详情"
-                        title="向右收缩详情"
+                        aria-label={desktopDetailFullscreen ? '回到侧边栏详情' : '回到初始状态'}
+                        title={desktopDetailFullscreen ? '回到侧边栏详情' : '回到初始状态'}
                     >
                         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
                         </svg>
                     </button>
+                    {desktopDetailFullscreen && (
+                        <button
+                            type="button"
+                            onClick={collapseDesktopDetailToInitial}
+                            className="desktop-detail-collapse-toggle desktop-detail-collapse-toggle--fullscreen desktop-detail-collapse-toggle--double"
+                            aria-label="直接回到初始状态"
+                            title="直接回到初始状态"
+                        >
+                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m7 6 6 6-6 6" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m13 6 6 6-6 6" />
+                            </svg>
+                        </button>
+                    )}
                 </>
             )}
         </div>

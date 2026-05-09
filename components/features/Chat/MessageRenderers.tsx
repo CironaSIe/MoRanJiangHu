@@ -435,7 +435,6 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
     const parsed = parseJudgmentText(text);
     const [isExpanded, setIsExpanded] = useState(false);
     const [showThought, setShowThought] = useState(false);
-    const [activeBreakdown, setActiveBreakdown] = useState<JudgmentBreakdownKind>('score');
     const thoughtLines = useMemo(() => (thoughtBlock?.text || thoughtBlock?.raw || '')
         .replace(/^【\s*(?:NSFW)?判定\s*】.*$/gmi, '')
         .split('\n')
@@ -456,8 +455,6 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
         ? thoughtBreakdowns.score
         : parsed.modifiers.map(modifierToBreakdownItem);
     const difficultyBreakdownItems = thoughtBreakdowns.difficulty;
-    const activeBreakdownItems = activeBreakdown === 'difficulty' ? difficultyBreakdownItems : scoreBreakdownItems;
-    const activeBreakdownTitle = activeBreakdown === 'difficulty' ? '难度拆解' : '判定值拆解';
     const summaryItems = [
         parsed.winner ? `胜方：${parsed.winner}` : '',
         parsed.loser ? `败方：${parsed.loser}` : '',
@@ -538,6 +535,50 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
     };
 
     const theme = getTheme();
+    const renderBreakdownSection = (
+        title: string,
+        items: JudgmentBreakdownItem[],
+        kind: JudgmentBreakdownKind,
+        value: number,
+        fallback: string
+    ) => (
+        <div className="rounded-xl border border-white/10 bg-black/45 px-3 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="text-[12px] sm:text-[13px] font-black tracking-[0.16em] text-wuxia-gold/95">{title}</span>
+                <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-base sm:text-lg font-black text-gray-100">{value}</span>
+            </div>
+            {items.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                    {items.map((item, index) => {
+                        const isPositive = typeof item.value === 'number' && item.value > 0;
+                        const isNegative = typeof item.value === 'number' && item.value < 0;
+                        const titleText = `${item.label}：${formatBreakdownValue(item, kind)}${item.description ? `（${item.description}）` : ''}`;
+                        return (
+                            <div
+                                key={`${kind}-${item.label}-${index}`}
+                                title={titleText}
+                                className={`min-w-0 max-w-full rounded-lg border px-2.5 sm:px-3 py-1.5 text-[12px] sm:text-[13px] leading-relaxed transition-colors ${
+                                    isPositive ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-100' :
+                                    isNegative ? 'border-rose-500/40 bg-rose-500/10 text-rose-100' :
+                                    'border-white/10 bg-white/5 text-gray-100'
+                                }`}
+                            >
+                                <span className="mr-1.5 font-bold text-gray-50">{item.label}</span>
+                                <span className="mr-1.5 font-mono font-black">{formatBreakdownValue(item, kind)}</span>
+                                {item.description && (
+                                    <span className="text-gray-200">{item.description}</span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[12px] sm:text-[13px] font-semibold text-gray-300">
+                    {fallback}
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <div className="w-full my-4 sm:my-6 px-1.5 sm:px-4 relative group transition-all duration-500 transform hover:scale-[1.01] flex justify-center" style={style}>
@@ -584,70 +625,29 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
                     )}
 
                     {hasScorePair && (
-                        <div className="w-full flex flex-col items-center mb-4 sm:mb-6 relative mt-1 sm:mt-2">
-                            <div className="flex items-center gap-5 sm:gap-8">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveBreakdown('difficulty')}
-                                    title={difficultyBreakdownItems.length > 0 ? '点击查看难度值拆解' : '暂无难度拆解'}
-                                    className={`flex flex-col items-center rounded-2xl px-2 py-1 transition-all duration-300 ${activeBreakdown === 'difficulty' ? 'bg-white/10 ring-1 ring-white/25' : 'hover:bg-white/5'}`}
-                                >
-                                    <span className={`text-[10px] sm:text-[11px] tracking-[0.18em] sm:tracking-[0.22em] mb-1.5 font-bold ${activeBreakdown === 'difficulty' ? 'text-gray-200' : 'text-gray-400'}`}>难度值</span>
-                                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-black/70 border flex items-center justify-center font-mono font-black text-2xl sm:text-3xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] ${activeBreakdown === 'difficulty' ? 'border-white/30 text-gray-100' : 'border-white/10 text-gray-400'}`}>
-                                        {difficultyValue}
+                        <div className="w-full max-w-4xl mb-4 sm:mb-6 relative mt-1 sm:mt-2 font-sans">
+                            <div className="rounded-2xl border border-white/12 bg-black/35 p-3 sm:p-4 shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
+                                {renderBreakdownSection('判定值拆解细节', scoreBreakdownItems, 'score', scoreValue, '暂无判定值拆解，使用最终判定值。')}
+
+                                <div className="my-3 sm:my-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
+                                    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-right">
+                                        <div className="text-[10px] sm:text-[11px] font-black tracking-[0.18em] text-gray-400">判定值</div>
+                                        <div className={`font-mono text-2xl sm:text-3xl font-black ${theme.successColor}`}>{scoreValue}</div>
                                     </div>
-                                </button>
-
-                                <div className="text-white/15 font-thin text-3xl sm:text-4xl select-none">/</div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveBreakdown('score')}
-                                    title={scoreBreakdownItems.length > 0 ? '点击查看判定值拆解' : '暂无判定值拆解'}
-                                    className={`flex flex-col items-center group/score rounded-2xl px-2 py-1 transition-all duration-300 ${activeBreakdown === 'score' ? 'bg-white/10 ring-1 ring-white/25' : 'hover:bg-white/5'}`}
-                                >
-                                    <span className={`text-[10px] sm:text-[11px] ${theme.accent} tracking-[0.18em] sm:tracking-[0.22em] mb-1.5 opacity-95 font-bold`}>判定值</span>
-                                    <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 ${isSuccess ? theme.border : 'border-gray-700'} ${isSuccess ? 'bg-white/5' : 'bg-black/60'} flex items-center justify-center font-black text-3xl sm:text-4xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] ${theme.successColor} relative overflow-hidden transition-all duration-700 group-hover/score:scale-105`} style={{ fontFamily: style.fontFamily, fontStyle: style.fontStyle }}>
-                                        {scoreValue}
-                                        {isSuccess && (
-                                            <>
-                                                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
-                                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent"></div>
-                                            </>
-                                        )}
+                                    <div className={`rounded-2xl border-2 px-4 sm:px-6 py-3 text-center shadow-[0_12px_28px_rgba(0,0,0,0.42)] ${isSuccess ? 'border-wuxia-gold/60 bg-wuxia-gold/12 text-wuxia-gold' : 'border-gray-500/50 bg-black/65 text-gray-100'}`}>
+                                        <div className="text-[10px] sm:text-[11px] font-black tracking-[0.2em] opacity-80">差额</div>
+                                        <div className="font-mono text-3xl sm:text-4xl font-black leading-tight">
+                                            {scoreDelta !== null && scoreDelta > 0 ? '+' : ''}{scoreDelta}
+                                        </div>
                                     </div>
-                                </button>
-                            </div>
-
-                            {activeBreakdownItems.length > 0 && (
-                                <div className="mt-4 w-full max-w-3xl rounded-xl border border-white/10 bg-black/45 px-3 sm:px-4 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                                    <div className="mb-2 text-[11px] sm:text-xs font-black tracking-[0.18em] text-wuxia-gold/90">{activeBreakdownTitle}</div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {activeBreakdownItems.map((item, index) => {
-                                            const isPositive = typeof item.value === 'number' && item.value > 0;
-                                            const isNegative = typeof item.value === 'number' && item.value < 0;
-                                            const title = `${item.label}：${formatBreakdownValue(item, activeBreakdown)}${item.description ? `（${item.description}）` : ''}`;
-                                            return (
-                                                <div
-                                                    key={`${activeBreakdown}-${item.label}-${index}`}
-                                                    title={title}
-                                                    className={`min-w-0 max-w-full rounded-lg border px-2.5 sm:px-3 py-1.5 text-[12px] sm:text-[13px] leading-relaxed transition-colors ${
-                                                        isPositive ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-200' :
-                                                        isNegative ? 'border-rose-500/40 bg-rose-500/10 text-rose-200' :
-                                                        'border-white/10 bg-white/5 text-gray-200'
-                                                    }`}
-                                                >
-                                                    <span className="mr-1.5 font-bold text-gray-100">{item.label}</span>
-                                                    <span className="mr-1.5 font-mono font-black">{formatBreakdownValue(item, activeBreakdown)}</span>
-                                                    {item.description && (
-                                                        <span className="text-gray-300">{item.description}</span>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
+                                    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left">
+                                        <div className="text-[10px] sm:text-[11px] font-black tracking-[0.18em] text-gray-400">难度值</div>
+                                        <div className="font-mono text-2xl sm:text-3xl font-black text-gray-100">{difficultyValue}</div>
                                     </div>
                                 </div>
-                            )}
+
+                                {renderBreakdownSection('难度拆解细节', difficultyBreakdownItems, 'difficulty', difficultyValue, '暂无难度拆解，使用最终难度值。')}
+                            </div>
                         </div>
                     )}
 

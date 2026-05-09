@@ -42,6 +42,22 @@ const 计算中心 = (quad: Array<{ x: number; y: number }>) => ({
     y: quad.reduce((sum, point) => sum + point.y, 0) / quad.length,
 });
 
+const 约束数值 = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+
+const 扩展边界 = (
+    bounds: { minX: number; minY: number; maxX: number; maxY: number } | null,
+    point?: { x: number; y: number }
+) => {
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return bounds;
+    if (!bounds) return { minX: point.x, minY: point.y, maxX: point.x, maxY: point.y };
+    return {
+        minX: Math.min(bounds.minX, point.x),
+        minY: Math.min(bounds.minY, point.y),
+        maxX: Math.max(bounds.maxX, point.x),
+        maxY: Math.max(bounds.maxY, point.y),
+    };
+};
+
 const 生成等高线 = (
     layer: any,
     buildings: any[],
@@ -108,10 +124,15 @@ const GridMapScene: React.FC<Props> = ({
     const [selectedLayerId, setSelectedLayerId] = useState(defaultLayerId);
     const [selectedFeatureId, setSelectedFeatureId] = useState('');
     const [showNpcDebug, setShowNpcDebug] = useState(false);
+    const [mapZoom, setMapZoom] = useState(1);
 
     useEffect(() => {
         setSelectedLayerId(defaultLayerId);
     }, [defaultLayerId]);
+
+    useEffect(() => {
+        setMapZoom(1);
+    }, [selectedLayerId]);
 
     const selectedLayer = useMemo(
         () => layers.find((layer) => layer.ID === selectedLayerId) || layers[0] || null,
@@ -194,6 +215,45 @@ const GridMapScene: React.FC<Props> = ({
         () => 生成等高线(selectedLayer, currentLayerBuildings, mapWidth, mapHeight),
         [selectedLayer, currentLayerBuildings, mapWidth, mapHeight]
     );
+    const contentBounds = useMemo(() => {
+        let bounds: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
+        currentLayerBuildings.forEach((building) => {
+            (Array.isArray(building?.四角坐标) ? building.四角坐标 : []).forEach((point: any) => {
+                bounds = 扩展边界(bounds, point);
+            });
+        });
+        currentLayerRoads.forEach((road) => {
+            (Array.isArray(road?.路径点) ? road.路径点 : []).forEach((point: any) => {
+                bounds = 扩展边界(bounds, point);
+            });
+        });
+        currentLayerPeople.forEach((person) => {
+            bounds = 扩展边界(bounds, person?.坐标);
+        });
+        if (!bounds) return { x: 0, y: 0, width: mapWidth, height: mapHeight };
+        const rawWidth = Math.max(8, bounds.maxX - bounds.minX);
+        const rawHeight = Math.max(8, bounds.maxY - bounds.minY);
+        const padding = Math.max(rawWidth, rawHeight) * 0.18 + 4;
+        const x = 约束数值(bounds.minX - padding, 0, Math.max(0, mapWidth - 1));
+        const y = 约束数值(bounds.minY - padding, 0, Math.max(0, mapHeight - 1));
+        const width = Math.min(mapWidth - x, rawWidth + padding * 2);
+        const height = Math.min(mapHeight - y, rawHeight + padding * 2);
+        return { x, y, width: Math.max(1, width), height: Math.max(1, height) };
+    }, [currentLayerBuildings, currentLayerRoads, currentLayerPeople, mapWidth, mapHeight]);
+    const mapViewBox = useMemo(() => {
+        const zoom = 约束数值(mapZoom, 1, 8);
+        const width = Math.max(1, contentBounds.width / zoom);
+        const height = Math.max(1, contentBounds.height / zoom);
+        const centerX = contentBounds.x + contentBounds.width / 2;
+        const centerY = contentBounds.y + contentBounds.height / 2;
+        const x = 约束数值(centerX - width / 2, 0, Math.max(0, mapWidth - width));
+        const y = 约束数值(centerY - height / 2, 0, Math.max(0, mapHeight - height));
+        return { x, y, width, height };
+    }, [contentBounds, mapHeight, mapWidth, mapZoom]);
+    const handleMapWheel = React.useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+        const direction = event.deltaY < 0 ? 1 : -1;
+        setMapZoom((prev) => 约束数值(Number((prev + direction * 0.35).toFixed(2)), 1, 8));
+    }, []);
 
     const npcDebugRows = useMemo(() => {
         const keys = [
@@ -324,8 +384,11 @@ const GridMapScene: React.FC<Props> = ({
                         </div>
                     </div>
 
-                    <div className={`relative ${compact ? 'h-[340px]' : 'h-full min-h-[420px]'} overflow-hidden`}>
-                        <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${mapWidth} ${mapHeight}`} preserveAspectRatio="xMidYMid meet">
+                    <div className={`relative ${compact ? 'h-[340px]' : 'h-full min-h-[420px]'} overflow-hidden overscroll-contain`} onWheel={handleMapWheel}>
+                        <div className="absolute right-3 top-3 z-10 rounded-full border border-wuxia-gold/20 bg-black/60 px-3 py-1 text-[10px] font-mono text-wuxia-gold/80">
+                            缩放 {mapZoom.toFixed(1)}x
+                        </div>
+                        <svg className="absolute inset-0 h-full w-full" viewBox={`${mapViewBox.x} ${mapViewBox.y} ${mapViewBox.width} ${mapViewBox.height}`} preserveAspectRatio="xMidYMid meet">
                             {Array.from({ length: Math.floor(mapWidth) + 1 }).map((_, index) => (
                                 <line
                                     key={`grid-x-${index}`}

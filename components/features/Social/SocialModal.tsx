@@ -912,23 +912,25 @@ const SocialModal: React.FC<Props> = ({
                     className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn cursor-pointer"
                     onClick={() => setImageViewer(null)}
                 >
-                    <div className="relative max-w-[90vw] max-h-[95vh] rounded-lg shadow-[0_0_50px_rgba(212,175,55,0.15)] overflow-hidden cursor-default group" onClick={e => e.stopPropagation()}>
+                    <button
+                        className="absolute right-5 top-5 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-gray-600 bg-black/75 text-gray-200 shadow-[0_0_24px_rgba(0,0,0,0.65)] backdrop-blur-md transition-all hover:border-red-400 hover:bg-red-400/10 hover:text-red-300"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setImageViewer(null);
+                        }}
+                        aria-label="关闭图片预览"
+                        title="关闭图片预览"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <div className="relative inline-flex w-fit max-w-[90vw] max-h-[95vh] rounded-lg shadow-[0_0_50px_rgba(212,175,55,0.15)] overflow-hidden cursor-default" onClick={e => e.stopPropagation()}>
                         <img
                             src={imageViewer.src}
                             alt={imageViewer.alt}
                             className="max-w-full max-h-[95vh] object-contain rounded-lg"
                         />
-                        <button
-                            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 border border-gray-700 text-gray-400 hover:text-red-400 hover:border-red-400 hover:bg-red-400/10 transition-all hover:rotate-90 z-10 opacity-0 group-hover:opacity-100 backdrop-blur-md"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setImageViewer(null);
-                            }}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
                     </div>
                 </div>
             )}

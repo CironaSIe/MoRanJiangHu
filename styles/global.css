@@ -388,6 +388,10 @@
     top: calc(50% + 2.35rem);
   }
 
+  .desktop-detail-collapse-toggle--double {
+    top: calc(50% + 4.85rem);
+  }
+
   .desktop-detail-expand-toggle--fullscreen:hover {
     transform: translateY(-50%) translateX(1px);
   }

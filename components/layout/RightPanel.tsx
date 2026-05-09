@@ -30,6 +30,7 @@ interface Props {
     onSave: () => void;
     onLoad: () => void;
     visualConfig?: any;
+    latestChangeSummary?: string[];
 }
 
 const RightPanel: React.FC<Props> = ({
@@ -58,7 +59,8 @@ const RightPanel: React.FC<Props> = ({
     enableKungfu = true,
     onSave,
     onLoad,
-    visualConfig
+    visualConfig,
+    latestChangeSummary = []
 }) => {
     const { enabled, currentLyric } = useMusic();
     const baseFontSize = Number(visualConfig?.['右侧栏']?.fontSize || visualConfig?.fontSize) || 13;
@@ -119,6 +121,22 @@ const RightPanel: React.FC<Props> = ({
                     <p className="text-wuxia-gold/90 italic tracking-wider leading-tight px-2 line-clamp-2 drop-shadow-[0_0_3px_rgba(230,200,110,0.3)]" style={{ fontSize: scaleFont(1.02, 14) }}>
                         {currentLyric}
                     </p>
+                </div>
+            )}
+
+            {latestChangeSummary.length > 0 && (
+                <div className="relative z-10 mb-2 shrink-0 rounded border border-emerald-400/25 bg-emerald-950/20 px-3 py-2 shadow-[0_0_18px_rgba(16,185,129,0.12)]">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                        <span className="font-bold tracking-[0.18em] text-emerald-200" style={{ fontSize: scaleFont(0.78, 10) }}>本回合变化</span>
+                        <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.9)]"></span>
+                    </div>
+                    <div className="space-y-1">
+                        {latestChangeSummary.slice(0, 3).map((item, index) => (
+                            <div key={`${item}-${index}`} className="truncate font-mono text-emerald-100/90" style={{ fontSize: scaleFont(0.86, 11) }} title={item}>
+                                {item}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 
