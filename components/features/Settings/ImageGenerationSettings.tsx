@@ -207,6 +207,9 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const 当前场景后端 = form.功能模型占位.场景生图独立接口启用
         ? form.功能模型占位.场景生图后端类型
         : 当前后端;
+    const 当前NSFW后端 = form.功能模型占位.NSFW生图独立接口启用
+        ? form.功能模型占位.NSFW生图后端类型
+        : 当前后端;
     const 当前预设路径选项 = 预设路径选项映射[当前后端];
     const 当前预设路径值集合 = new Set(当前预设路径选项.map((item) => item.value));
     const 当前预设路径 = 当前预设路径值集合.has(form.功能模型占位.文生图预设接口路径)
@@ -398,7 +401,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         const scopeKeys: Record<生图配置档适用范围, Array<keyof 功能模型占位配置结构>> = {
             npc: ['NPC生图启用', '自动NPC生图画风', '当前NPC画师串预设ID', '当前NPCPNG画风预设ID', '当前NPC词组转化器提示词预设ID', 'NPC生图性别筛选', 'NPC生图重要性筛选'],
             scene: ['场景生图启用', '自动场景生图画风', '自动场景生图构图要求', '自动场景生图横竖屏', '自动场景生图分辨率', '当前场景画师串预设ID', '当前场景PNG画风预设ID', '当前场景词组转化器提示词预设ID', '当前场景判定提示词预设ID', '场景生图独立接口启用', '场景生图后端类型', '场景生图模型使用模型', '场景生图模型API地址', '场景生图模型API密钥', '当前场景图片后端发现ID', '场景ComfyUI工作流JSON'],
-            item: ['文生图功能启用', '自动NPC生图画风', '当前NPC画师串预设ID', '当前NPCPNG画风预设ID', '当前NPC词组转化器提示词预设ID'],
+            item: ['物品生图启用', '自动物品生图画风', '自动物品生图渲染风格', '自动物品生图分辨率', '当前NPC画师串预设ID', '当前NPCPNG画风预设ID', '当前NPC词组转化器提示词预设ID'],
         };
         const result: Partial<功能模型占位配置结构> = {};
         [...sharedKeys, ...scopeKeys[scope]].forEach((key) => {
@@ -670,6 +673,28 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 场景生图模型API密钥: checked
                     ? ((prev.功能模型占位.场景生图模型API密钥 || '').trim() || (prev.功能模型占位.文生图模型API密钥 || '').trim())
                     : prev.功能模型占位.场景生图模型API密钥
+            }
+        }));
+    };
+
+    const handleToggleNSFWIndependentImageApi = (checked: boolean) => {
+        setForm((prev) => ({
+            ...prev,
+            功能模型占位: {
+                ...prev.功能模型占位,
+                NSFW生图独立接口启用: checked,
+                NSFW生图后端类型: checked
+                    ? prev.功能模型占位.NSFW生图后端类型
+                    : prev.功能模型占位.NSFW生图后端类型,
+                NSFW生图模型使用模型: checked
+                    ? ((prev.功能模型占位.NSFW生图模型使用模型 || '').trim() || (prev.功能模型占位.文生图模型使用模型 || '').trim())
+                    : prev.功能模型占位.NSFW生图模型使用模型,
+                NSFW生图模型API地址: checked
+                    ? ((prev.功能模型占位.NSFW生图模型API地址 || '').trim() || (prev.功能模型占位.文生图模型API地址 || '').trim())
+                    : prev.功能模型占位.NSFW生图模型API地址,
+                NSFW生图模型API密钥: checked
+                    ? ((prev.功能模型占位.NSFW生图模型API密钥 || '').trim() || (prev.功能模型占位.文生图模型API密钥 || '').trim())
+                    : prev.功能模型占位.NSFW生图模型API密钥
             }
         }));
     };
@@ -1267,6 +1292,89 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                     </div>
                 </div>
             )}
+
+            <div className="rounded-2xl border border-rose-500/25 bg-[radial-gradient(circle_at_top,_rgba(244,63,94,0.14),_transparent_55%),rgba(20,8,14,0.72)] p-5 space-y-5">
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <div className="text-base font-bold text-rose-200">NSFW 独立生图接口</div>
+                        <div className="mt-1 text-xs leading-6 text-rose-100/70">开启后香闺秘档等成人向生图只走这里。OpenAI/GPT、Gemini、Nano Banana 会被自动视为不支持 NSFW，不会用于该类请求。</div>
+                    </div>
+                    <ToggleSwitch
+                        checked={form.功能模型占位.NSFW生图独立接口启用}
+                        onChange={handleToggleNSFWIndependentImageApi}
+                        ariaLabel="切换 NSFW 独立生图接口"
+                    />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold text-rose-200">NSFW 后端</label>
+                        <InlineSelect
+                            value={当前NSFW后端}
+                            options={文生图后端选项}
+                            onChange={(value) => updatePlaceholder('NSFW生图后端类型', value as 功能模型占位配置结构['NSFW生图后端类型'])}
+                            disabled={!form.功能模型占位.NSFW生图独立接口启用}
+                            buttonClassName="bg-black/50 border-gray-600 py-2.5"
+                        />
+                    </div>
+                    <div className="rounded-xl border border-rose-500/20 bg-black/25 px-4 py-3 text-xs leading-6 text-rose-100/80">
+                        成人向过滤规则：后端为 OpenAI 兼容，或模型/地址含 gpt、openai、gemini、banana、nano 时，系统会返回不可用，避免误发到不支持的接口。
+                    </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold text-rose-200">NSFW 接口地址</label>
+                        <input
+                            type="text"
+                            value={form.功能模型占位.NSFW生图模型API地址}
+                            onChange={(e) => updatePlaceholder('NSFW生图模型API地址', e.target.value)}
+                            placeholder={当前NSFW后端 === 'comfyui' ? '例如：http://127.0.0.1:8188' : '留空则尝试沿用同类型主文生图接口'}
+                            disabled={!form.功能模型占位.NSFW生图独立接口启用}
+                            className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold text-rose-200">NSFW API Key / Token</label>
+                        <input
+                            type="password"
+                            value={form.功能模型占位.NSFW生图模型API密钥}
+                            onChange={(e) => updatePlaceholder('NSFW生图模型API密钥', e.target.value)}
+                            placeholder={当前NSFW后端 === 'sd_webui' || 当前NSFW后端 === 'comfyui' ? '可留空' : '填写专用 Key / Token'}
+                            disabled={!form.功能模型占位.NSFW生图独立接口启用}
+                            className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                    </div>
+                </div>
+
+                {图片后端需要模型选择(当前NSFW后端) ? (
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold text-rose-200">NSFW 模型名称</label>
+                        <input
+                            type="text"
+                            value={form.功能模型占位.NSFW生图模型使用模型}
+                            onChange={(e) => updatePlaceholder('NSFW生图模型使用模型', e.target.value)}
+                            placeholder={当前NSFW后端 === 'novelai' ? '例如：nai-diffusion-4-5-full' : '请选择支持成人向的专用模型'}
+                            disabled={!form.功能模型占位.NSFW生图独立接口启用}
+                            className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                    </div>
+                ) : null}
+
+                {当前NSFW后端 === 'comfyui' ? (
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold text-rose-200">NSFW ComfyUI Workflow JSON</label>
+                        <textarea
+                            value={form.功能模型占位.NSFWComfyUI工作流JSON}
+                            onChange={(e) => updatePlaceholder('NSFWComfyUI工作流JSON', e.target.value)}
+                            rows={10}
+                            placeholder={'可留空以沿用同类型主 ComfyUI workflow。\n可用占位符：__PROMPT__、__NEGATIVE_PROMPT__、__WIDTH__、__HEIGHT__'}
+                            disabled={!form.功能模型占位.NSFW生图独立接口启用}
+                            className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 font-mono text-white outline-none transition-all focus:border-rose-400 resize-y disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                    </div>
+                ) : null}
+            </div>
         </div>
     );
 
@@ -1927,6 +2035,60 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 onChange={(value) => updatePlaceholder('自动NPC生图画风', value as 功能模型占位配置结构['自动NPC生图画风'])}
                                 buttonClassName="bg-black/50 border-gray-600 py-2.5"
                             />
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/10 p-4 space-y-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <div className="text-base font-bold text-emerald-200">物品自动生图</div>
+                                <div className="mt-1 text-xs leading-6 text-emerald-100/70">开启后，背包和拍卖行里没有图标的物品会自动排队生成图标，无需逐个点击。</div>
+                            </div>
+                            <ToggleSwitch
+                                checked={form.功能模型占位.物品生图启用}
+                                onChange={(next) => updatePlaceholder('物品生图启用', next)}
+                                ariaLabel="切换物品自动生图"
+                            />
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-emerald-200">物品默认画风</label>
+                                <InlineSelect
+                                    value={form.功能模型占位.自动物品生图画风}
+                                    options={[
+                                        { value: '通用', label: '通用' },
+                                        { value: '二次元', label: '二次元' },
+                                        { value: '国风', label: '国风' },
+                                        { value: '写实', label: '写实' }
+                                    ]}
+                                    onChange={(value) => updatePlaceholder('自动物品生图画风', value as 功能模型占位配置结构['自动物品生图画风'])}
+                                    buttonClassName="bg-black/50 border-gray-600 py-2.5"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-emerald-200">渲染风格</label>
+                                <InlineSelect
+                                    value={form.功能模型占位.自动物品生图渲染风格}
+                                    options={[
+                                        { value: '国风插画', label: '国风插画' },
+                                        { value: '写实道具', label: '写实道具' },
+                                        { value: '像素图标', label: '像素图标' },
+                                        { value: '3D渲染', label: '3D渲染' }
+                                    ]}
+                                    onChange={(value) => updatePlaceholder('自动物品生图渲染风格', value as 功能模型占位配置结构['自动物品生图渲染风格'])}
+                                    buttonClassName="bg-black/50 border-gray-600 py-2.5"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-emerald-200">物品分辨率</label>
+                                <input
+                                    type="text"
+                                    value={form.功能模型占位.自动物品生图分辨率 || '1024x1024'}
+                                    onChange={(e) => updatePlaceholder('自动物品生图分辨率', e.target.value)}
+                                    placeholder="例如：1024x1024"
+                                    className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-emerald-400"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

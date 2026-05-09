@@ -8,6 +8,7 @@ import {
     获取物品可装备槽位,
     获取装备槽位标签
 } from '../../../utils/equipmentActions';
+import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 
 interface Props {
     character: any;
@@ -88,6 +89,12 @@ const MobileInventoryModal: React.FC<Props> = ({ character, onClose, onCharacter
             return getSafeText(a?.名称).localeCompare(getSafeText(b?.名称), 'zh-Hans-CN');
         });
     }, [activeCategory, items]);
+    React.useEffect(() => {
+        if (!selectedItem) return;
+        const itemRef = getSafeText(selectedItem?.ID) || getSafeText(selectedItem?.名称);
+        const freshItem = items.find((item: any) => item?.ID === itemRef || item?.名称 === itemRef);
+        if (freshItem && freshItem !== selectedItem) setSelectedItem(freshItem);
+    }, [items, selectedItem]);
     const selectedEquipSlots = selectedItem ? 获取物品可装备槽位(selectedItem) : [];
     const selectedCanEquip = selectedItem ? 是否可装备物品(selectedItem) : false;
 
@@ -176,6 +183,7 @@ const MobileInventoryModal: React.FC<Props> = ({ character, onClose, onCharacter
                         const name = getSafeText(item?.名称, '未命名物品');
                         const isEquipped = Boolean(item?.当前装备部位);
                         const key = String(item?.ID ?? `${name}-${index}`);
+                        const itemIconImage = 获取物品已选图标地址(item);
 
                         return (
                             <button
@@ -184,8 +192,12 @@ const MobileInventoryModal: React.FC<Props> = ({ character, onClose, onCharacter
                                 onClick={() => setSelectedItem(item)}
                                 className={`relative flex w-full items-center gap-3 rounded-lg border p-2 text-left transition-all active:scale-95 ${styles.border} ${styles.bg}`}
                             >
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-gray-800 bg-black/60">
-                                    {renderItemIcon(getSafeText(item?.类型), `w-6 h-6 opacity-80 ${styles.text}`)}
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-gray-800 bg-black/60">
+                                    {itemIconImage ? (
+                                        <img src={itemIconImage} alt={name} className="h-full w-full object-cover" loading="lazy" />
+                                    ) : (
+                                        renderItemIcon(getSafeText(item?.类型), `w-6 h-6 opacity-80 ${styles.text}`)
+                                    )}
                                 </div>
 
                                 <div className="min-w-0 flex-1">
@@ -216,10 +228,15 @@ const MobileInventoryModal: React.FC<Props> = ({ character, onClose, onCharacter
                 {selectedItem ? (
                     <div className="absolute inset-0 z-10 flex flex-col bg-gray-900/95 animate-slideInRight">
                         <div className="flex h-10 shrink-0 items-center justify-between border-b border-gray-800 bg-black/20 px-4">
-                            <div className="min-w-0 truncate text-sm text-gray-100">
-                                <span className={getRarityNameClass(getSafeText(selectedItem?.品质))}>
-                                    {getSafeText(selectedItem?.名称, '未命名物品')}
-                                </span>
+                            <div className="flex min-w-0 items-center gap-2">
+                                {获取物品已选图标地址(selectedItem) ? (
+                                    <img src={获取物品已选图标地址(selectedItem)} alt={getSafeText(selectedItem?.名称, '物品图标')} className="h-8 w-8 shrink-0 rounded border border-gray-700 object-cover" />
+                                ) : null}
+                                <div className="min-w-0 truncate text-sm text-gray-100">
+                                    <span className={getRarityNameClass(getSafeText(selectedItem?.品质))}>
+                                        {getSafeText(selectedItem?.名称, '未命名物品')}
+                                    </span>
+                                </div>
                             </div>
                             <button
                                 type="button"

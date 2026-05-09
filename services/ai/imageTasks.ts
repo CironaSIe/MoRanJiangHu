@@ -3427,6 +3427,7 @@ export const generateImageByPrompt = async (
     const backendType = apiConfig.图片后端类型 || 'openai';
     const shouldUseCustomOpenAIPayload = apiConfig.图片走OpenAI自定义格式 === true;
     const isChatCompletionsEndpoint = /\/chat\/completions$/i.test(endpoint);
+    const isGptImageModel = /^(gpt-image|chatgpt-image)/i.test((apiConfig.model || '').trim());
     const negativePromptText = promptBundle.最终负向提示词;
     const promptWithInlineNegative = promptBundle.带内联负面提示词的正向提示词;
     const shouldSkipBaseNegative = options?.跳过基础负面提示词 === true;
@@ -3492,7 +3493,10 @@ export const generateImageByPrompt = async (
                 n: 1,
                 size
             };
-        if (shouldUseCustomOpenAIPayload || responseFormat === 'b64_json') {
+        if (isGptImageModel && !isChatCompletionsEndpoint) {
+            requestBody.moderation = 'auto';
+        }
+        if (!isGptImageModel && (shouldUseCustomOpenAIPayload || responseFormat === 'b64_json')) {
             requestBody.response_format = responseFormat === 'b64_json'
                 ? { type: 'b64_json' }
                 : { type: 'url' };

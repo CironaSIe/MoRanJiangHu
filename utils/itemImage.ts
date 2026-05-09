@@ -39,6 +39,8 @@ export const 获取物品已选图标地址 = (item?: 游戏物品 | null): stri
     return 获取图片展示地址(record);
 };
 
+export const 物品已有可用图标 = (item?: 游戏物品 | null): boolean => Boolean(获取物品已选图标地址(item));
+
 export const 合并物品图片档案 = (item: 游戏物品, result: 物品生图结果) => {
     const archive = item.图片档案 && typeof item.图片档案 === 'object' ? item.图片档案 : {};
     const history = Array.isArray(archive.生图历史) ? archive.生图历史 : [];

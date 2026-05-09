@@ -289,6 +289,13 @@ export interface 功能模型占位配置结构 {
     场景生图模型API密钥: string;
     当前场景图片后端发现ID: string;
     场景ComfyUI工作流JSON: string;
+    NSFW生图独立接口启用: boolean;
+    NSFW生图后端类型: 文生图后端类型;
+    NSFW生图模型使用模型: string;
+    NSFW生图模型API地址: string;
+    NSFW生图模型API密钥: string;
+    当前NSFW图片后端发现ID: string;
+    NSFWComfyUI工作流JSON: string;
     文生图接口路径模式: 文生图接口路径模式类型;
     文生图预设接口路径: 文生图预设接口路径类型;
     文生图接口路径: string;
@@ -301,6 +308,9 @@ export interface 功能模型占位配置结构 {
     当前场景PNG画风预设ID: string;
     自动NPC生图画风: 生图画风类型;
     自动场景生图画风: 生图画风类型;
+    自动物品生图画风: 生图画风类型;
+    自动物品生图渲染风格: '写实道具' | '国风插画' | '像素图标' | '3D渲染';
+    自动物品生图分辨率?: string;
     自动场景生图构图要求?: '纯场景' | '故事快照';
     自动场景生图横竖屏?: '横屏' | '竖屏';
     自动场景生图分辨率?: string;
@@ -333,6 +343,7 @@ export interface 功能模型占位配置结构 {
     PNG提炼API密钥: string;
     场景生图启用: boolean;
     NPC生图启用: boolean;
+    物品生图启用: boolean;
     NPC生图性别筛选: 生图筛选性别类型;
     NPC生图重要性筛选: 生图筛选重要性类型;
     生图配置档列表?: 生图配置档结构[];

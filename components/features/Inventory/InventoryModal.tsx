@@ -8,6 +8,7 @@ import {
     获取物品可装备槽位,
     获取装备槽位标签
 } from '../../../utils/equipmentActions';
+import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 
 interface Props {
     character: any;
@@ -178,6 +179,12 @@ const InventoryModal: React.FC<Props> = ({ character, onClose, onCharacterChange
             return getSafeText(a?.名称).localeCompare(getSafeText(b?.名称), 'zh-Hans-CN');
         });
     }, [activeCategory, items]);
+    React.useEffect(() => {
+        if (!selectedItem) return;
+        const itemRef = getSafeText(selectedItem?.ID) || getSafeText(selectedItem?.名称);
+        const freshItem = items.find((item: any) => item?.ID === itemRef || item?.名称 === itemRef);
+        if (freshItem && freshItem !== selectedItem) setSelectedItem(freshItem);
+    }, [items, selectedItem]);
 
     const totalValue = items.reduce((sum, item) => (
         sum + getSafeNumber(item?.价值) * getSafeNumber(item?.堆叠数量, 1)
@@ -361,6 +368,7 @@ const InventoryModal: React.FC<Props> = ({ character, onClose, onCharacterChange
                                         const isEquipped = Boolean(item?.当前装备部位);
                                         const isSelected = selectedItem?.ID === item?.ID;
                                         const key = String(item?.ID ?? `${name}-${index}`);
+                                        const itemIconImage = 获取物品已选图标地址(item);
 
                                         return (
                                             <button
@@ -385,8 +393,12 @@ const InventoryModal: React.FC<Props> = ({ character, onClose, onCharacterChange
                                                 ) : null}
 
                                                 <div className="absolute inset-0 flex items-center justify-center pb-4 transition-transform duration-300 group-hover:-translate-y-1">
-                                                    <div className={`flex h-10 w-10 items-center justify-center rounded-full border border-white/5 bg-black/40 shadow-inner ${styles.text}`}>
-                                                        {renderItemIcon(getSafeText(item?.类型), 'h-6 w-6 opacity-90 drop-shadow-md group-hover:opacity-100')}
+                                                    <div className={`flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/45 shadow-inner ${styles.text}`}>
+                                                        {itemIconImage ? (
+                                                            <img src={itemIconImage} alt={name} className="h-full w-full object-cover" loading="lazy" />
+                                                        ) : (
+                                                            renderItemIcon(getSafeText(item?.类型), 'h-6 w-6 opacity-90 drop-shadow-md group-hover:opacity-100')
+                                                        )}
                                                     </div>
                                                 </div>
 
@@ -411,14 +423,21 @@ const InventoryModal: React.FC<Props> = ({ character, onClose, onCharacterChange
                         </div>
 
                         {selectedItem ? (
+                            (() => {
+                                const selectedIconImage = 获取物品已选图标地址(selectedItem);
+                                return (
                             <div className="shrink-0 border-t border-wuxia-gold/20 bg-gradient-to-r from-black/95 via-[#08090b]/95 to-black/95 p-4 shadow-[0_-18px_45px_rgba(0,0,0,0.65)] backdrop-blur-md animate-fadeIn">
                                 <div className="grid min-w-0 grid-cols-[minmax(220px,0.82fr)_minmax(280px,1fr)] gap-3">
                                     <div className="relative flex min-w-0 gap-4 overflow-hidden rounded-xl border border-white/10 bg-black/30 p-3.5">
                                         <div className={`absolute right-0 top-0 h-24 w-24 rounded-full opacity-20 blur-3xl ${getRarityStyles(getSafeText(selectedItem?.品质)).bg}`} />
-                                        <div className={`relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border bg-opacity-20 shadow-lg ${
+                                        <div className={`relative z-10 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-opacity-20 shadow-lg ${
                                             getRarityStyles(getSafeText(selectedItem?.品质)).border
                                         } ${getRarityStyles(getSafeText(selectedItem?.品质)).bg}`}>
-                                            {renderItemIcon(getSafeText(selectedItem?.类型), `h-7 w-7 drop-shadow-md ${getRarityStyles(getSafeText(selectedItem?.品质)).text}`)}
+                                            {selectedIconImage ? (
+                                                <img src={selectedIconImage} alt={getSafeText(selectedItem?.名称, '物品图标')} className="h-full w-full object-cover" />
+                                            ) : (
+                                                renderItemIcon(getSafeText(selectedItem?.类型), `h-7 w-7 drop-shadow-md ${getRarityStyles(getSafeText(selectedItem?.品质)).text}`)
+                                            )}
                                         </div>
                                         <div className="relative z-10 min-w-0 flex-1">
                                             <div className={`truncate text-xl font-bold ${getRarityNameClass(getSafeText(selectedItem?.品质))}`}>
@@ -518,6 +537,8 @@ const InventoryModal: React.FC<Props> = ({ character, onClose, onCharacterChange
                                     </div>
                                 </div>
                             </div>
+                                );
+                            })()
                         ) : null}
                     </div>
                 </div>

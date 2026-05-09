@@ -38,7 +38,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as dbService from '../services/dbService';
 import * as textAIService from '../services/ai/text';
 import { useGameState } from './useGameState';
-import { 规范化接口设置, 获取当前接口配置, 获取主剧情接口配置, 获取剧情回忆接口配置, 获取记忆总结接口配置, 获取文章优化接口配置, 获取变量计算接口配置, 获取世界演变接口配置, 获取文生图接口配置, 获取场景文生图接口配置, 获取生图词组转化器接口配置, 获取生图画师串预设, 获取词组转化器预设提示词, 接口配置是否可用, 变量校准功能已启用 as 变量生成功能已启用 } from '../utils/apiConfig';
+import { 规范化接口设置, 获取当前接口配置, 获取主剧情接口配置, 获取剧情回忆接口配置, 获取记忆总结接口配置, 获取文章优化接口配置, 获取变量计算接口配置, 获取世界演变接口配置, 获取文生图接口配置, 获取场景文生图接口配置, 获取NSFW文生图接口配置, 获取生图词组转化器接口配置, 获取生图画师串预设, 获取词组转化器预设提示词, 接口配置是否可用, 变量校准功能已启用 as 变量生成功能已启用 } from '../utils/apiConfig';
 import type { 当前可用接口结构 } from '../utils/apiConfig';
 import {
     规范化记忆系统,
@@ -1821,7 +1821,7 @@ export const useGame = () => {
         }, {
             apiConfig,
             获取NPC唯一标识,
-            获取文生图接口配置,
+            获取文生图接口配置: 获取NSFW文生图接口配置,
             获取生图词组转化器接口配置,
             获取生图画师串预设,
             获取当前PNG画风预设: (presetId?: string) => 获取当前PNG画风预设摘要(presetId, 'npc'),

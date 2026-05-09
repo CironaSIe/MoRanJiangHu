@@ -14,10 +14,9 @@ import {
     购买拍卖品,
 } from '../../../services/auctionHouse';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
-import type { 接口设置结构, 物品生图结果 } from '../../../types';
-import { 获取文生图接口配置, 接口配置是否可用 } from '../../../utils/apiConfig';
-import { generateImageByPrompt, persistImageAssetLocally } from '../../../services/ai/image';
-import { 合并物品图片档案, 获取物品已选图标地址 } from '../../../utils/itemImage';
+import type { 接口设置结构 } from '../../../types';
+import { 生成物品图标 } from '../../../services/ai/itemImageGeneration';
+import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 
 interface Props {
     character: any;
@@ -48,27 +47,6 @@ const 格式化时间 = (value?: number) => {
     if (!value) return '未知';
     return new Date(value).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 };
-
-const 构建物品视觉描述 = (item: any) => [
-    item?.名称 ? `名称：${item.名称}` : '',
-    item?.类型 ? `类型：${item.类型}` : '',
-    item?.品质 ? `品质：${item.品质}` : '',
-    item?.描述 ? `描述：${item.描述}` : '',
-    Array.isArray(item?.词条列表) && item.词条列表.length > 0
-        ? `词条：${item.词条列表.map((entry: any) => [entry?.名称, entry?.属性, entry?.数值].filter(Boolean).join(' ')).filter(Boolean).join('；')}`
-        : '',
-    item?.来源描述 ? `来源：${item.来源描述}` : '',
-    item?.关联事件 ? `关联事件：${item.关联事件}` : '',
-].filter(Boolean).join('\n');
-
-const 构建物品图提示词 = (item: any) => [
-    '单个武侠/仙侠游戏物品图标资产，主体居中，占画面约75%，深墨黑渐变背景，淡宣纸纹理，暗金边缘光，柔和投影，清晰轮廓，高级游戏道具 UI 图标，不要文字，不要水印，不要人物。',
-    `物品名称：${item?.名称 || '无名物品'}`,
-    `类型与品质：${item?.品质 || '凡品'} ${item?.类型 || '杂物'}`,
-    item?.视觉描述 ? `视觉描述：${item.视觉描述}` : '',
-    item?.描述 ? `物品描述：${item.描述}` : '',
-    Array.isArray(item?.视觉标签) && item.视觉标签.length > 0 ? `视觉标签：${item.视觉标签.join('，')}` : '',
-].filter(Boolean).join('\n');
 
 const AuctionHouseModal: React.FC<Props> = ({
     character,
@@ -273,48 +251,15 @@ const AuctionHouseModal: React.FC<Props> = ({
 
     const handleGenerateItemImage = async (auction: 拍卖品记录) => {
         if (!auction?.物品 || generatingItemId) return;
-        const imageApi = 获取文生图接口配置(apiConfig);
-        if (!接口配置是否可用(imageApi)) {
-            notify('未配置文生图接口', '请先在设置的“文生图”中配置可用接口，再生成物品图。', 'error');
-            return;
-        }
-
-        const item = {
-            ...auction.物品,
-            视觉描述: auction.物品.视觉描述 || 构建物品视觉描述(auction.物品),
-        };
-        const prompt = 构建物品图提示词(item);
+        const item = auction.物品;
         setGeneratingItemId(auction.ID);
         notify('物品生图已开始', `正在为「${item.名称 || '无名物品'}」生成图标。`, 'info');
         try {
-            const rawResult = await generateImageByPrompt(prompt, imageApi, undefined, {
-                构图: '头像',
-                尺寸: '1024x1024',
-                附加正向提示词: 'single object, item icon, centered composition, dark wuxia UI background',
-                附加负面提示词: 'person, human, face, hand, text, watermark, logo, white background, cluttered background',
+            const { nextItem } = await 生成物品图标(item as any, apiConfig, {
+                source: 'manual',
+                sourceLocation: '拍卖行',
+                force: true
             });
-            const localResult = await persistImageAssetLocally(rawResult);
-            const imageRecord: 物品生图结果 = {
-                id: `item_img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-                图片URL: localResult.图片URL,
-                本地路径: localResult.本地路径,
-                生图词组: prompt,
-                最终正向提示词: localResult.最终正向提示词,
-                最终负向提示词: localResult.最终负向提示词,
-                原始描述: JSON.stringify(item, null, 2),
-                使用模型: imageApi.model || 'image-model',
-                生成时间: Date.now(),
-                构图: '物品图标',
-                画风: '国风',
-                渲染风格: '国风插画',
-                尺寸: '1024x1024',
-                状态: 'success',
-            };
-            const nextItem = {
-                ...item,
-                视觉描述来源: item.视觉描述来源 || '规则生成',
-                图片档案: 合并物品图片档案(item, imageRecord),
-            };
             const nextState: 拍卖行状态 = {
                 ...auctionState,
                 拍卖品列表: auctionState.拍卖品列表.map((entry) => entry.ID === auction.ID ? { ...entry, 物品: nextItem } : entry),

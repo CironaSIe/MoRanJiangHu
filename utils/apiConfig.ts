@@ -584,6 +584,13 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     场景生图模型API密钥: '',
     当前场景图片后端发现ID: '',
     场景ComfyUI工作流JSON: '',
+    NSFW生图独立接口启用: false,
+    NSFW生图后端类型: 'comfyui',
+    NSFW生图模型使用模型: '',
+    NSFW生图模型API地址: '',
+    NSFW生图模型API密钥: '',
+    当前NSFW图片后端发现ID: '',
+    NSFWComfyUI工作流JSON: '',
     文生图接口路径模式: 'preset',
     文生图预设接口路径: 'openai_images',
     文生图接口路径: '',
@@ -596,6 +603,9 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     当前场景PNG画风预设ID: '',
     自动NPC生图画风: '通用',
     自动场景生图画风: '通用',
+    自动物品生图画风: '国风',
+    自动物品生图渲染风格: '国风插画',
+    自动物品生图分辨率: '1024x1024',
     自动场景生图构图要求: '纯场景',
         自动场景生图横竖屏: '横屏',
         自动场景生图分辨率: '1024x576',
@@ -628,6 +638,7 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     PNG提炼API密钥: '',
     场景生图启用: false,
     NPC生图启用: false,
+    物品生图启用: false,
     NPC生图性别筛选: '全部',
     NPC生图重要性筛选: '全部'
 };
@@ -1201,6 +1212,15 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         场景生图模型API密钥: 读取字符串(raw?.场景生图模型API密钥),
         当前场景图片后端发现ID: 读取字符串(raw?.当前场景图片后端发现ID),
         场景ComfyUI工作流JSON: 读取字符串(raw?.场景ComfyUI工作流JSON),
+        NSFW生图独立接口启用: Boolean(raw?.NSFW生图独立接口启用),
+        NSFW生图后端类型: raw?.NSFW生图后端类型 === 'novelai' || raw?.NSFW生图后端类型 === 'sd_webui' || raw?.NSFW生图后端类型 === 'comfyui'
+            ? raw.NSFW生图后端类型
+            : 'comfyui',
+        NSFW生图模型使用模型: 读取字符串(raw?.NSFW生图模型使用模型),
+        NSFW生图模型API地址: 读取字符串(raw?.NSFW生图模型API地址),
+        NSFW生图模型API密钥: 读取字符串(raw?.NSFW生图模型API密钥),
+        当前NSFW图片后端发现ID: 读取字符串(raw?.当前NSFW图片后端发现ID),
+        NSFWComfyUI工作流JSON: 读取字符串(raw?.NSFWComfyUI工作流JSON),
         文生图接口路径模式: raw?.文生图接口路径模式 === 'custom' ? 'custom' : 'preset',
         文生图预设接口路径: raw?.文生图预设接口路径 === 'openai_chat'
             || raw?.文生图预设接口路径 === 'novelai_generate'
@@ -1222,6 +1242,13 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         自动场景生图画风: raw?.自动场景生图画风 === '二次元' || raw?.自动场景生图画风 === '写实' || raw?.自动场景生图画风 === '国风'
             ? raw.自动场景生图画风
             : '通用',
+        自动物品生图画风: raw?.自动物品生图画风 === '通用' || raw?.自动物品生图画风 === '二次元' || raw?.自动物品生图画风 === '写实' || raw?.自动物品生图画风 === '国风'
+            ? raw.自动物品生图画风
+            : '国风',
+        自动物品生图渲染风格: raw?.自动物品生图渲染风格 === '写实道具' || raw?.自动物品生图渲染风格 === '像素图标' || raw?.自动物品生图渲染风格 === '3D渲染'
+            ? raw.自动物品生图渲染风格
+            : '国风插画',
+        自动物品生图分辨率: 读取字符串(raw?.自动物品生图分辨率).trim() || '1024x1024',
         自动场景生图构图要求: raw?.自动场景生图构图要求 === '故事快照' || raw?.自动场景生图构图要求 === '纯场景'
             ? raw.自动场景生图构图要求
             : '纯场景',
@@ -1270,6 +1297,7 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         PNG提炼API密钥: 读取字符串(raw?.PNG提炼API密钥 ?? raw?.pngRefineApiKey),
         场景生图启用: Boolean(raw?.场景生图启用),
         NPC生图启用: Boolean(raw?.NPC生图启用),
+        物品生图启用: Boolean(raw?.物品生图启用),
         NPC生图性别筛选: raw?.NPC生图性别筛选 === '男' || raw?.NPC生图性别筛选 === '女' || raw?.NPC生图性别筛选 === '全部'
             ? raw.NPC生图性别筛选
             : '全部',
@@ -1877,6 +1905,92 @@ export const 获取场景文生图接口配置 = (settings: 接口设置结构):
         NPC生图使用词组转化器: sceneBackend === 'novelai' ? true : sharedConfig.NPC生图使用词组转化器,
         ComfyUI工作流JSON: resolvedWorkflow
     };
+};
+
+const 不支持NSFW生图模型片段 = ['gpt', 'openai', 'gemini', 'banana', 'nano'];
+
+export const 生图接口支持NSFW = (config: 当前可用接口结构 | null): config is 当前可用接口结构 => {
+    if (!config) return false;
+    const backend = config.图片后端类型 || 'openai';
+    if (backend === 'openai') return false;
+    const modelText = [config.model, config.供应商, config.baseUrl]
+        .map((value) => 读取字符串(value).toLowerCase())
+        .join(' ');
+    return !不支持NSFW生图模型片段.some((keyword) => modelText.includes(keyword));
+};
+
+export const 获取NSFW文生图接口配置 = (settings: 接口设置结构): 当前可用接口结构 | null => {
+    const sharedConfig = 获取文生图接口配置(settings);
+    if (!sharedConfig) return null;
+
+    const feature = (settings as any)?.功能模型占位;
+    const independent = Boolean(feature?.NSFW生图独立接口启用);
+    if (!independent) return 生图接口支持NSFW(sharedConfig) ? sharedConfig : null;
+
+    const nsfwBackend: NonNullable<当前可用接口结构['图片后端类型']> = feature?.NSFW生图后端类型 === 'novelai' || feature?.NSFW生图后端类型 === 'sd_webui' || feature?.NSFW生图后端类型 === 'comfyui'
+        ? feature.NSFW生图后端类型
+        : 'openai';
+    const sharedBackend: NonNullable<当前可用接口结构['图片后端类型']> = sharedConfig.图片后端类型 === 'novelai' || sharedConfig.图片后端类型 === 'sd_webui' || sharedConfig.图片后端类型 === 'comfyui'
+        ? sharedConfig.图片后端类型
+        : 'openai';
+    const nsfwModel = 读取字符串(feature?.NSFW生图模型使用模型).trim();
+    const nsfwBackendNeedsModel = nsfwBackend === 'openai' || nsfwBackend === 'novelai';
+    if (nsfwBackendNeedsModel && !nsfwModel) return null;
+    const nsfwBaseUrl = 读取字符串(feature?.NSFW生图模型API地址).trim();
+    const nsfwApiKey = 读取字符串(feature?.NSFW生图模型API密钥).trim();
+    const nsfwWorkflow = 读取字符串(feature?.NSFWComfyUI工作流JSON);
+    const canReuseSharedConnection = nsfwBackend === sharedBackend;
+    const resolvedBaseUrl = nsfwBaseUrl || (canReuseSharedConnection ? sharedConfig.baseUrl : '');
+    const nsfwBackendNeedsAuth = nsfwBackend === 'openai' || nsfwBackend === 'novelai';
+    const resolvedApiKey = nsfwBackendNeedsAuth
+        ? (nsfwApiKey || (canReuseSharedConnection ? sharedConfig.apiKey : ''))
+        : nsfwApiKey;
+    const resolvedWorkflow = nsfwBackend === 'comfyui'
+        ? (nsfwWorkflow || (canReuseSharedConnection ? sharedConfig.ComfyUI工作流JSON || '' : ''))
+        : '';
+    const supplier = resolvedBaseUrl ? 推断供应商(resolvedBaseUrl) : sharedConfig.供应商;
+    const presetPathValueMap: Record<'openai' | 'novelai' | 'sd_webui' | 'comfyui', NonNullable<当前可用接口结构['图片预设接口路径']>> = {
+        openai: 'openai_images',
+        novelai: 'novelai_generate',
+        sd_webui: 'sd_txt2img',
+        comfyui: 'comfyui_prompt'
+    };
+    const presetPathMap: Record<NonNullable<当前可用接口结构['图片预设接口路径']>, string> = {
+        openai_images: '/v1/images/generations',
+        openai_chat: '/v1/chat/completions',
+        novelai_generate: '/ai/generate-image',
+        sd_txt2img: '/sdapi/v1/txt2img',
+        comfyui_prompt: '/prompt'
+    };
+    const presetPathValue = presetPathValueMap[nsfwBackend];
+    const 图片接口路径模式 = canReuseSharedConnection ? sharedConfig.图片接口路径模式 : 'preset';
+    const 图片预设接口路径: NonNullable<当前可用接口结构['图片预设接口路径']> = canReuseSharedConnection
+        ? (sharedConfig.图片接口路径模式 === 'preset'
+            ? (sharedConfig.图片预设接口路径 || presetPathValue)
+            : presetPathValue)
+        : presetPathValue;
+    const 图片接口路径 = 图片接口路径模式 === 'custom'
+        ? (sharedConfig.图片接口路径 || presetPathMap[图片预设接口路径])
+        : presetPathMap[图片预设接口路径];
+
+    const result: 当前可用接口结构 = {
+        ...sharedConfig,
+        供应商: supplier,
+        协议覆盖: nsfwBaseUrl ? 'auto' : (canReuseSharedConnection ? sharedConfig.协议覆盖 : 'auto'),
+        baseUrl: resolvedBaseUrl,
+        apiKey: resolvedApiKey,
+        model: nsfwModel,
+        图片后端类型: nsfwBackend,
+        图片接口路径模式,
+        图片预设接口路径,
+        图片接口路径,
+        图片响应格式: nsfwBackend === 'openai' ? sharedConfig.图片响应格式 : 'url',
+        图片走OpenAI自定义格式: nsfwBackend === 'openai' ? Boolean(sharedConfig.图片走OpenAI自定义格式) : false,
+        NPC生图使用词组转化器: nsfwBackend === 'novelai' ? true : sharedConfig.NPC生图使用词组转化器,
+        ComfyUI工作流JSON: resolvedWorkflow
+    };
+
+    return 生图接口支持NSFW(result) ? result : null;
 };
 
 export const 获取生图词组转化器接口配置 = (settings: 接口设置结构): 当前可用接口结构 | null => {
