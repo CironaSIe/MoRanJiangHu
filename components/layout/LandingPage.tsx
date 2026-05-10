@@ -4,6 +4,7 @@ import { GitHubSyncButton } from '../features/Auth/GitHubSyncButton';
 import { RELEASE_INFO } from '../../data/releaseInfo';
 import { checkForAppUpdate, openExternalUrl } from '../../services/appUpdate';
 import { isNativeCapacitorEnvironment, setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
+import { ThemePreset } from '../../types';
 
 const hasFullscreenElement = () => {
     const doc = document as Document & {
@@ -65,6 +66,8 @@ interface Props {
     onNovelDecomposition: () => void;
     onSettings: () => void;
     onOpenReleaseNotes: () => void;
+    currentTheme: ThemePreset;
+    onThemeChange: (theme: ThemePreset) => void;
     hasSave: boolean;
 }
 
@@ -82,6 +85,8 @@ const LandingPage: React.FC<Props> = ({
     onNovelDecomposition,
     onSettings,
     onOpenReleaseNotes,
+    currentTheme,
+    onThemeChange,
     hasSave
 }) => {
     const isNativeApp = React.useMemo(() => isNativeCapacitorEnvironment(), []);
@@ -128,6 +133,16 @@ const LandingPage: React.FC<Props> = ({
                         {isCheckingUpdate ? '检查中...' : '检查更新'}
                     </button>
                 )}
+
+                <button
+                    type="button"
+                    onClick={() => onThemeChange(currentTheme === 'day' ? 'ink' : 'day')}
+                    className="min-h-[40px] border border-wuxia-cyan/40 bg-black/60 px-3 py-2 text-xs font-serif tracking-[0.18em] text-wuxia-cyan transition-colors hover:bg-black/80 md:text-sm"
+                    style={actionButtonStyle}
+                    title={currentTheme === 'day' ? '切换到黑夜模式' : '切换到白天模式'}
+                >
+                    {currentTheme === 'day' ? '黑夜模式' : '白天模式'}
+                </button>
 
                 <button
                     type="button"

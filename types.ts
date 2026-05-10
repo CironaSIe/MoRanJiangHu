@@ -69,6 +69,9 @@ export interface GameResponse {
     variable_calibration_report?: string[];
     variable_calibration_commands?: TavernCommand[];
     variable_calibration_model?: string;
+    planning_analysis_updated?: boolean;
+    planning_analysis_report?: string;
+    planning_analysis_commands?: TavernCommand[];
 }
 
 // Extend/Override the old history structure

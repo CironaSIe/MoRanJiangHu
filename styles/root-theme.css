@@ -1,10 +1,11 @@
 :root {
   /* RGB Values for opacity support */
-  --c-ink-black: 14 13 11;
-  --c-ink-gray: 26 26 26;
-  --c-wuxia-gold: 230 200 110;
-  --c-wuxia-gold-dark: 138 114 54;
-  --c-wuxia-cyan: 68 170 170;
-  --c-wuxia-red: 163 24 24;
-  --c-paper-white: 230 230 230;
+  color-scheme: light;
+  --c-ink-black: 248 244 232;
+  --c-ink-gray: 238 231 214;
+  --c-wuxia-gold: 113 63 18;
+  --c-wuxia-gold-dark: 92 45 10;
+  --c-wuxia-cyan: 8 112 128;
+  --c-wuxia-red: 185 28 28;
+  --c-paper-white: 31 41 55;
 }

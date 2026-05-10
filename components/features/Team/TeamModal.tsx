@@ -20,6 +20,10 @@ const TeamModal: React.FC<Props> = ({ character, teammates, onClose }) => {
         const safeMax = Math.max(1, Number.isFinite(maxValue) ? Math.ceil(maxValue) : 0, safeCur);
         return { current: Math.min(safeCur, safeMax), max: safeMax };
     };
+    const 读取数值 = (value: unknown, fallback = 0) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? Math.ceil(parsed) : fallback;
+    };
 
     const pad2 = (n: number) => `${Math.trunc(n)}`.padStart(2, '0');
     const 规范化时间串 = (raw: string): string => {
@@ -89,6 +93,17 @@ const TeamModal: React.FC<Props> = ({ character, teammates, onClose }) => {
         const spPct = Math.max(0, Math.min(100, (safeSpCur / safeSpMax) * 100));
         const qiPct = Math.max(0, Math.min(100, (safeQiCur / safeQiMax) * 100));
         const lastUpdate = 读取队员最后更新时间(npc);
+        const 基础属性 = [
+            ['力', 读取数值((npc as any).力量)],
+            ['敏', 读取数值((npc as any).敏捷)],
+            ['体', 读取数值((npc as any).体质)],
+            ['根', 读取数值((npc as any).根骨)],
+            ['悟', 读取数值((npc as any).悟性)],
+            ['福', 读取数值((npc as any).福源)],
+            ['境层', 读取数值((npc as any).境界层级, 1)],
+            ['攻', 读取数值(npc.攻击力)],
+            ['防', 读取数值(npc.防御力)]
+        ];
         
         const isFemale = npc.性别 === '女';
         const themeBorder = isFemale ? 'border-pink-900/40' : 'border-blue-900/40';
@@ -160,15 +175,13 @@ const TeamModal: React.FC<Props> = ({ character, teammates, onClose }) => {
                                 <IconSwords size={14} className="text-wuxia-gold/60" />
                                 <div className="text-sm text-wuxia-gold/80 font-serif tracking-widest font-bold">武道根基</div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-black/50 border border-red-900/30 rounded-xl p-3 flex flex-col items-center justify-center hover:bg-red-950/30 transition-colors">
-                                    <span className="text-xs text-red-500/70 font-serif tracking-widest mb-1">威能</span>
-                                    <span className="text-2xl font-mono font-bold text-red-300 drop-shadow-[0_0_8px_rgba(220,38,38,0.5)]">{npc.攻击力 || 0}</span>
-                                </div>
-                                <div className="bg-black/50 border border-blue-900/30 rounded-xl p-3 flex flex-col items-center justify-center hover:bg-blue-950/30 transition-colors">
-                                    <span className="text-xs text-blue-500/70 font-serif tracking-widest mb-1">护体</span>
-                                    <span className="text-2xl font-mono font-bold text-blue-300 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">{npc.防御力 || 0}</span>
-                                </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                {基础属性.map(([label, value]) => (
+                                    <div key={label} className="bg-black/50 border border-wuxia-gold/10 rounded-xl p-3 flex flex-col items-center justify-center hover:border-wuxia-gold/30 transition-colors">
+                                        <span className="text-xs text-wuxia-gold/50 font-serif tracking-widest mb-1">{label}</span>
+                                        <span className="text-xl font-mono font-bold text-gray-100">{value}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>

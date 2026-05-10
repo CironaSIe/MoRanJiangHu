@@ -24,9 +24,9 @@ export const 默认UI文字样式: Record<可用UI文字令牌, Required<Pick<UI
     页面标题: { 启用自定义: false, 字体ID: 'system-serif', 字体颜色: '#f1d778', 字号: 30, 行高: 1.22, 字形: 'normal' },
     分组标题: { 启用自定义: false, 字体ID: 'system-sans', 字体颜色: '#f8fafc', 字号: 20, 行高: 1.35, 字形: 'normal' },
     正文: { 启用自定义: false, 字体ID: 'system-sans', 字体颜色: '#f1f5f9', 字号: 16, 行高: 1.6, 字形: 'normal' },
-    辅助文本: { 启用自定义: false, 字体ID: 'system-sans', 字体颜色: '#cbd5e1', 字号: 14, 行高: 1.5, 字形: 'normal' },
+    辅助文本: { 启用自定义: false, 字体ID: 'system-sans', 字体颜色: '#cbd5e1', 字号: 15, 行高: 1.5, 字形: 'normal' },
     按钮: { 启用自定义: false, 字体ID: 'system-sans', 字体颜色: '#f8fafc', 字号: 15, 行高: 1.25, 字形: 'normal' },
-    标签: { 启用自定义: false, 字体ID: 'system-sans', 字体颜色: '#e5e7eb', 字号: 13, 行高: 1.35, 字形: 'normal' },
+    标签: { 启用自定义: false, 字体ID: 'system-sans', 字体颜色: '#e5e7eb', 字号: 14, 行高: 1.35, 字形: 'normal' },
     数字: { 启用自定义: false, 字体ID: 'system-mono', 字体颜色: '#fff1b8', 字号: 15, 行高: 1.25, 字形: 'normal' },
     等宽信息: { 启用自定义: false, 字体ID: 'system-mono', 字体颜色: '#e5e7eb', 字号: 14, 行高: 1.45, 字形: 'normal' }
 };
@@ -197,19 +197,19 @@ export const 构建UI文字CSS变量 = (settings: 视觉设置结构 | undefined
     const monoStyle = 获取UI文字样式(normalized, '等宽信息');
     const digitStyle = 获取UI文字样式(normalized, '数字');
     const compactFontSize = Math.max(
-        12,
+        16,
         Math.round(Math.max(Number(bodyStyle.字号) * 0.92, Number(assistStyle.字号) || 0))
     );
     const microFontSize = Math.max(
-        12,
+        14,
         Math.round(Math.max(Number(labelStyle.字号) || 0, compactFontSize * 0.94))
     );
     const compactButtonFontSize = Math.max(
-        12,
+        14,
         Math.round(Math.max(Number(buttonStyle.字号) || 0, compactFontSize))
     );
     const compactMonoFontSize = Math.max(
-        12,
+        14,
         Math.round(Math.max(Number(monoStyle.字号) || 0, Number(digitStyle.字号) || 0, compactFontSize))
     );
     const vars = UI文字令牌列表.reduce<React.CSSProperties>((acc, item) => {

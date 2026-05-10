@@ -353,9 +353,42 @@ const GridMapScene: React.FC<Props> = ({
         }
     }, []);
     const inverseViewScale = Math.max(mapViewBox.width / 92, mapViewBox.height / 56);
-    const buildingLabelFontSize = Math.max(0.52, 1.05 * inverseViewScale);
-    const personLabelFontSize = Math.max(0.46, 0.72 * inverseViewScale);
-    const personLabelHeight = Math.max(0.62, 1.06 * inverseViewScale);
+    const buildingLabelFontSize = Math.max(0.76, 1.34 * inverseViewScale);
+    const personLabelFontSize = Math.max(0.68, 1.02 * inverseViewScale);
+    const personLabelHeight = Math.max(0.86, 1.34 * inverseViewScale);
+    const personMarkerRadius = Math.max(0.62, 0.9 * inverseViewScale);
+    const playerMarkerRadius = Math.max(0.82, 1.14 * inverseViewScale);
+    const personOuterRadius = Math.max(0.92, 1.32 * inverseViewScale);
+    const personLayouts = useMemo(() => {
+        const placed: Array<{ x: number; y: number }> = [];
+        return currentLayerPeople.map((person, index) => {
+            const source = person?.坐标 || { x: 0, y: 0 };
+            const minGap = personOuterRadius * 2.24;
+            let x = 约束数值(Number(source.x) || 0, personOuterRadius, Math.max(personOuterRadius, mapWidth - personOuterRadius));
+            let y = 约束数值(Number(source.y) || 0, personOuterRadius, Math.max(personOuterRadius, mapHeight - personOuterRadius));
+            const overlaps = (candidateX: number, candidateY: number) => placed.some((point) => Math.hypot(point.x - candidateX, point.y - candidateY) < minGap);
+            if (overlaps(x, y)) {
+                let found = false;
+                for (let ring = 1; ring <= 5 && !found; ring += 1) {
+                    const radius = minGap * ring * 0.64;
+                    const slots = 8 + ring * 4;
+                    for (let slot = 0; slot < slots; slot += 1) {
+                        const angle = (Math.PI * 2 * slot) / slots + index * 0.43;
+                        const candidateX = 约束数值((Number(source.x) || 0) + Math.cos(angle) * radius, personOuterRadius, Math.max(personOuterRadius, mapWidth - personOuterRadius));
+                        const candidateY = 约束数值((Number(source.y) || 0) + Math.sin(angle) * radius, personOuterRadius, Math.max(personOuterRadius, mapHeight - personOuterRadius));
+                        if (!overlaps(candidateX, candidateY)) {
+                            x = candidateX;
+                            y = candidateY;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            placed.push({ x, y });
+            return { person, x, y, shifted: Math.hypot(x - (Number(source.x) || 0), y - (Number(source.y) || 0)) > 0.05 };
+        });
+    }, [currentLayerPeople, mapHeight, mapWidth, personOuterRadius]);
 
     const npcDebugRows = useMemo(() => {
         const keys = [
@@ -409,16 +442,16 @@ const GridMapScene: React.FC<Props> = ({
         : '暂无层级';
 
     return (
-        <div className={`grid min-h-0 gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-[260px_minmax(0,1fr)]'}`}>
-            <aside className={`min-h-0 overflow-hidden rounded-2xl border border-wuxia-gold/15 bg-black/35 ${compact ? 'p-3' : 'p-3.5'}`}>
-                <div className="mb-3 flex items-center justify-between gap-2 text-[11px] tracking-widest text-wuxia-gold/75">
+        <div className="grid h-full min-h-0 grid-cols-1 gap-3">
+            <aside className={`order-2 min-h-0 overflow-hidden rounded-2xl border border-wuxia-gold/15 bg-black/35 ${compact ? 'p-3' : 'p-3.5'}`}>
+                <div className="mb-3 flex items-center justify-between gap-2 text-sm font-bold tracking-widest text-wuxia-gold/75">
                     <span>地图层级</span>
                     <span className="rounded border border-wuxia-gold/15 bg-black/35 px-2 py-0.5 font-mono text-gray-400">{layers.length}</span>
                 </div>
 
                 <div className="mb-3 rounded-xl border border-wuxia-gold/10 bg-black/30 p-3">
-                    <div className="text-[10px] tracking-[0.24em] text-wuxia-gold/60">当前路径</div>
-                    <div className="mt-2 text-sm leading-6 text-gray-300">
+                    <div className="text-xs font-bold tracking-[0.24em] text-wuxia-gold/60">当前路径</div>
+                    <div className="mt-2 text-base leading-7 text-gray-300">
                         {layerChain.length > 0 ? layerChain.map((layer, index) => (
                             <span key={layer.ID}>
                                 <span className={layer.ID === currentLayerId ? 'text-wuxia-gold' : ''}>{layer.名称}</span>
@@ -426,10 +459,10 @@ const GridMapScene: React.FC<Props> = ({
                             </span>
                         )) : '未命中层级'}
                     </div>
-                    <div className="mt-2 text-xs text-gray-500">{layerSummaryText}</div>
+                    <div className="mt-2 text-sm text-gray-500">{layerSummaryText}</div>
                 </div>
 
-                <div className="max-h-[12rem] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+                <div className="grid max-h-[13rem] grid-cols-1 gap-2 overflow-y-auto pr-1 custom-scrollbar md:grid-cols-2 xl:grid-cols-3">
                     {siblingLayers.map((layer) => {
                         const active = layer.ID === currentLayerId;
                         return (
@@ -444,10 +477,10 @@ const GridMapScene: React.FC<Props> = ({
                                 }`}
                             >
                                 <div className="flex items-center justify-between gap-2">
-                                    <span className="truncate font-serif text-sm font-bold">{layer.名称}</span>
-                                    <span className="text-[10px] text-gray-500">{layer.层级}</span>
+                                    <span className="truncate font-serif text-base font-bold">{layer.名称}</span>
+                                    <span className="text-xs text-gray-500">{layer.层级}</span>
                                 </div>
-                                <div className="mt-1 truncate text-[10px] text-gray-500">
+                                <div className="mt-1 truncate text-xs text-gray-500">
                                     建筑 {layer.建筑物ID列表.length} / 道路 {layer.道路ID列表.length} / 人物 {layer.人物ID列表.length}
                                 </div>
                             </button>
@@ -457,7 +490,7 @@ const GridMapScene: React.FC<Props> = ({
 
                 {childLayers.length > 0 && (
                     <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
-                        <div className="mb-2 text-[10px] tracking-[0.24em] text-wuxia-gold/60">下一级</div>
+                        <div className="mb-2 text-xs font-bold tracking-[0.24em] text-wuxia-gold/60">下一级</div>
                         <div className="flex flex-wrap gap-2">
                             {childLayers.map((layer) => (
                                 <button
@@ -474,20 +507,20 @@ const GridMapScene: React.FC<Props> = ({
                 )}
             </aside>
 
-            <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-3">
+            <div className="order-1 grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-3">
                 <section className="min-h-0 overflow-hidden rounded-2xl border border-wuxia-gold/20 bg-[linear-gradient(180deg,rgba(19,16,12,0.96),rgba(6,6,5,0.98))]">
                     <div className="flex items-center justify-between gap-3 border-b border-wuxia-gold/10 bg-black/35 px-4 py-3">
                         <div className="min-w-0">
-                            <div className="truncate font-serif text-lg font-bold text-wuxia-gold">{selectedLayer?.名称 || '未命中层级'}</div>
-                            <div className="mt-1 truncate text-[11px] tracking-widest text-gray-500">{env?.大地点 || '未知'} / {env?.中地点 || '未知'} / {env?.小地点 || '未知'} / {env?.具体地点 || '未知'}</div>
+                            <div className="truncate font-serif text-2xl font-bold text-wuxia-gold">{selectedLayer?.名称 || '未命中层级'}</div>
+                            <div className="mt-1 truncate text-sm tracking-widest text-gray-500">{env?.大地点 || '未知'} / {env?.中地点 || '未知'} / {env?.小地点 || '未知'} / {env?.具体地点 || '未知'}</div>
                         </div>
-                        <div className="rounded-full border border-wuxia-gold/20 bg-wuxia-gold/10 px-3 py-1 text-[10px] text-wuxia-gold">
+                        <div className="rounded-full border border-wuxia-gold/20 bg-wuxia-gold/10 px-3 py-1 text-xs text-wuxia-gold">
                             建筑 {currentLayerBuildings.length} / 道路 {currentLayerRoads.length} / 人物 {currentLayerPeople.length}
                         </div>
                     </div>
 
-                    <div className={`relative ${compact ? 'h-[340px]' : 'h-full min-h-[420px]'} overflow-hidden overscroll-contain`} onWheel={handleMapWheel}>
-                        <div className="absolute right-3 top-3 z-10 rounded-full border border-wuxia-gold/20 bg-black/60 px-3 py-1 text-[10px] font-mono text-wuxia-gold/80">
+                    <div className={`relative ${compact ? 'h-[460px]' : 'h-full min-h-[560px]'} overflow-hidden overscroll-contain`} onWheel={handleMapWheel}>
+                        <div className="absolute right-3 top-3 z-10 rounded-full border border-wuxia-gold/20 bg-black/60 px-3 py-1 text-xs font-mono text-wuxia-gold/80">
                             缩放 {mapZoom.toFixed(1)}x
                         </div>
                         <svg
@@ -651,13 +684,18 @@ const GridMapScene: React.FC<Props> = ({
                                 );
                             })}
 
-                            {currentLayerPeople.map((person) => {
+                            {personLayouts.map(({ person, x, y, shifted }) => {
                                 const active = selectedFeatureId === `person:${person.ID}`;
                                 const showLabel = true;
                                 const labelText = person.名称.slice(0, 6);
-                                const labelWidth = Math.max(2.1 * inverseViewScale, (labelText.length * 0.72 + 0.8) * inverseViewScale);
-                                const labelX = 约束标签X(person.坐标.x, labelWidth);
-                                const labelY = Math.max(0.25, person.坐标.y - personLabelHeight * 0.5);
+                                const labelWidth = Math.max(3.1 * inverseViewScale, (labelText.length * 0.96 + 1.05) * inverseViewScale);
+                                const labelX = 约束标签X(x, labelWidth);
+                                const preferredLabelY = y - personOuterRadius - personLabelHeight - 0.18 * inverseViewScale;
+                                const fallbackLabelY = y + personOuterRadius + 0.18 * inverseViewScale;
+                                const labelY = preferredLabelY > 0.25
+                                    ? preferredLabelY
+                                    : Math.min(mapHeight - personLabelHeight - 0.25, fallbackLabelY);
+                                const markerRadius = person.是否当前玩家 ? playerMarkerRadius : personMarkerRadius;
                                 return (
                                     <g
                                         key={person.ID}
@@ -673,13 +711,34 @@ const GridMapScene: React.FC<Props> = ({
                                         className="cursor-pointer"
                                         data-map-feature="person"
                                     >
+                                        {shifted && (
+                                            <line
+                                                x1={person.坐标.x}
+                                                y1={person.坐标.y}
+                                                x2={x}
+                                                y2={y}
+                                                stroke="rgba(249,217,118,0.34)"
+                                                strokeWidth={0.08 * inverseViewScale}
+                                                strokeDasharray={`${0.18 * inverseViewScale} ${0.16 * inverseViewScale}`}
+                                                pointerEvents="none"
+                                            />
+                                        )}
                                         <circle
-                                            cx={person.坐标.x}
-                                            cy={person.坐标.y}
-                                            r={person.是否当前玩家 ? 0.85 : 0.65}
+                                            cx={x}
+                                            cy={y}
+                                            r={personOuterRadius}
+                                            fill="rgba(5,8,14,0.72)"
+                                            stroke={person.是否当前玩家 ? 'rgba(255,244,183,0.95)' : active ? 'rgba(249,217,118,0.86)' : 'rgba(255,255,255,0.28)'}
+                                            strokeWidth={0.1 * inverseViewScale}
+                                            pointerEvents="none"
+                                        />
+                                        <circle
+                                            cx={x}
+                                            cy={y}
+                                            r={markerRadius}
                                             fill={person.是否当前玩家 ? 'rgba(249, 217, 118, 0.96)' : active ? 'rgba(147, 197, 253, 0.95)' : 'rgba(196, 181, 253, 0.85)'}
                                             stroke={person.是否当前玩家 ? 'rgba(255, 244, 183, 1)' : 'rgba(10,10,10,0.7)'}
-                                            strokeWidth={0.16}
+                                            strokeWidth={0.16 * inverseViewScale}
                                             pointerEvents="auto"
                                         />
                                         {showLabel && (
@@ -692,7 +751,7 @@ const GridMapScene: React.FC<Props> = ({
                                                     rx={Math.max(0.12, 0.24 * inverseViewScale)}
                                                     fill={person.是否当前玩家 ? 'rgba(63, 49, 12, 0.92)' : 'rgba(5, 8, 14, 0.92)'}
                                                     stroke={active ? 'rgba(249, 217, 118, 0.86)' : 'rgba(255,255,255,0.28)'}
-                                                    strokeWidth={0.08}
+                                                    strokeWidth={0.08 * inverseViewScale}
                                                     pointerEvents="none"
                                                 />
                                                 <text
@@ -719,14 +778,14 @@ const GridMapScene: React.FC<Props> = ({
                     <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                                <div className="truncate font-serif text-lg font-bold text-wuxia-gold">{detailTitle}</div>
-                                <div className="mt-1 text-[11px] tracking-widest text-gray-500">{detailType}</div>
+                                <div className="truncate font-serif text-xl font-bold text-wuxia-gold">{detailTitle}</div>
+                                <div className="mt-1 text-xs tracking-widest text-gray-500">{detailType}</div>
                             </div>
                             {selectedFeature?.kind === 'person' && selectedFeature.data?.是否当前玩家 && (
-                                <span className="rounded-full border border-wuxia-gold/25 bg-wuxia-gold/10 px-2 py-1 text-[10px] text-wuxia-gold">当前位置</span>
+                                <span className="rounded-full border border-wuxia-gold/25 bg-wuxia-gold/10 px-2 py-1 text-xs text-wuxia-gold">当前位置</span>
                             )}
                         </div>
-                        <p className="mt-3 whitespace-pre-line text-sm leading-7 text-gray-300">{detailBody}</p>
+                        <p className="mt-3 whitespace-pre-line text-base leading-7 text-gray-300">{detailBody}</p>
                         {selectedFeature?.kind === 'person' && !selectedFeature.data?.是否当前玩家 && onOpenPerson && (
                             <button
                                 type="button"
@@ -742,8 +801,8 @@ const GridMapScene: React.FC<Props> = ({
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                        <div className="mb-2 text-[11px] tracking-widest text-wuxia-gold/70">当前层概况</div>
-                        <div className="space-y-2 text-sm text-gray-300">
+                        <div className="mb-2 text-xs font-bold tracking-widest text-wuxia-gold/70">当前层概况</div>
+                        <div className="space-y-2 text-base text-gray-300">
                             <div>当前命中地点：{currentPlace}</div>
                             <div>层级链：{layerChain.length > 0 ? layerChain.map((layer) => layer.名称).join(' / ') : '未知'}</div>
                             <div>建筑面：{currentLayerBuildings.length} 个</div>

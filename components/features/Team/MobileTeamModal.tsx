@@ -24,6 +24,11 @@ const ProgressBar: React.FC<{ label: string; cur: number; max: number; color: st
     );
 };
 
+const 读数 = (value: unknown, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.ceil(parsed) : fallback;
+};
+
 const MobileTeamModal: React.FC<Props> = ({ character, teammates, onClose }) => {
     const activeTeammates = (Array.isArray(teammates) ? teammates : []).filter((n) => n.是否队友 === true);
 
@@ -81,6 +86,23 @@ const MobileTeamModal: React.FC<Props> = ({ character, teammates, onClose }) => 
                                         <ProgressBar label="血量" cur={npc.当前血量 || 0} max={npc.最大血量 || 0} color="bg-red-700" />
                                         <ProgressBar label="精力" cur={npc.当前精力 || 0} max={npc.最大精力 || 0} color="bg-blue-700" />
                                         <ProgressBar label="内力" cur={npc.当前内力 || 0} max={npc.最大内力 || 0} color="bg-indigo-700" />
+                                    </div>
+                                    <div className="mt-3 grid grid-cols-3 gap-1.5 text-[10px] text-gray-300">
+                                        {[
+                                            ['力', 读数((npc as any).力量)],
+                                            ['敏', 读数((npc as any).敏捷)],
+                                            ['体', 读数((npc as any).体质)],
+                                            ['根', 读数((npc as any).根骨)],
+                                            ['悟', 读数((npc as any).悟性)],
+                                            ['福', 读数((npc as any).福源)],
+                                            ['境层', 读数((npc as any).境界层级, 1)],
+                                            ['攻', 读数(npc.攻击力)],
+                                            ['防', 读数(npc.防御力)]
+                                        ].map(([label, value]) => (
+                                            <div key={label} className="rounded border border-wuxia-gold/10 bg-black/30 px-2 py-1">
+                                                <span className="text-wuxia-gold/55">{label}</span> <span className="font-mono text-gray-100">{value}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             ))}

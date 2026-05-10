@@ -710,20 +710,66 @@ export const 创建开场空白战斗 = (): 战斗状态结构 => ({
     敌方: []
 });
 
-const 规范化敌方条目 = (rawEnemy: any): 战斗状态结构['敌方'][number] => ({
-    名字: 取文本(rawEnemy?.名字),
-    境界: 取文本(rawEnemy?.境界),
-    简介: 取文本(rawEnemy?.简介),
-    技能: 取字符串数组(rawEnemy?.技能),
-    战斗力: 取数字(rawEnemy?.战斗力),
-    防御力: 取数字(rawEnemy?.防御力),
-    当前血量: 取数字(rawEnemy?.当前血量),
-    最大血量: 取数字(rawEnemy?.最大血量),
-    当前精力: 取数字(rawEnemy?.当前精力),
-    最大精力: 取数字(rawEnemy?.最大精力),
-    当前内力: 取数字(rawEnemy?.当前内力),
-    最大内力: 取数字(rawEnemy?.最大内力)
-});
+const 读取敌方境界阶位 = (enemy: any): number => {
+    const text = [enemy?.境界, enemy?.简介, enemy?.名字].map((value) => 取文本(value)).join(' ');
+    let rank = 1;
+    [
+        [/凡人|普通|未入道|无修为/, 1],
+        [/炼体|锻体/, 2],
+        [/开脉|通脉/, 3],
+        [/聚息|聚气|凝气/, 4],
+        [/筑基|归元/, 5],
+        [/凝真|玄照/, 6],
+        [/金丹|玄丹/, 8],
+        [/元婴/, 10],
+        [/化神/, 13],
+        [/炼虚/, 16],
+        [/合体/, 20],
+        [/大乘|渡劫/, 24]
+    ].forEach(([pattern, value]) => {
+        if ((pattern as RegExp).test(text)) rank = Math.max(rank, value as number);
+    });
+    if (/后期|圆满|巅峰/.test(text)) rank += 1;
+    return Math.max(1, rank);
+};
+
+const 规范化敌方基础属性 = (rawEnemy: any) => {
+    const rank = 读取敌方境界阶位(rawEnemy);
+    const text = [rawEnemy?.名字, rawEnemy?.境界, rawEnemy?.简介, ...(Array.isArray(rawEnemy?.技能) ? rawEnemy.技能 : [])].map((value) => 取文本(value)).join(' ');
+    const base = Math.max(3, 6 + rank * 2);
+    const read = (key: string, fallback: number) => {
+        const value = 取数字(rawEnemy?.[key], NaN);
+        return Number.isFinite(value) && value > 0 ? Math.ceil(value) : Math.max(1, Math.ceil(fallback));
+    };
+    return {
+        力量: read('力量', base + (/刀|斧|锤|拳|猛|力/.test(text) ? 3 : 0)),
+        敏捷: read('敏捷', base + (/剑|刺|影|弓|暗器|快/.test(text) ? 3 : 0)),
+        体质: read('体质', base + (/盾|甲|体|横练|护/.test(text) ? 3 : 0)),
+        根骨: read('根骨', base + (/内功|道|术|气|长老/.test(text) ? 3 : 0)),
+        悟性: read('悟性', base + (/术|阵|符|谋|智|师/.test(text) ? 3 : 0)),
+        福源: read('福源', Math.max(1, base - 1)),
+        境界层级: Math.max(1, Math.ceil(取数字(rawEnemy?.境界层级, rank)))
+    };
+};
+
+const 规范化敌方条目 = (rawEnemy: any): 战斗状态结构['敌方'][number] => {
+    const attrs = 规范化敌方基础属性(rawEnemy);
+    return {
+        名字: 取文本(rawEnemy?.名字),
+        境界: 取文本(rawEnemy?.境界),
+        简介: 取文本(rawEnemy?.简介),
+        技能: 取字符串数组(rawEnemy?.技能),
+        ...attrs,
+        战斗力: 取数字(rawEnemy?.战斗力, Math.ceil(attrs.力量 * 1.5 + attrs.敏捷 * 0.8 + attrs.境界层级 * 4)),
+        防御力: 取数字(rawEnemy?.防御力, Math.ceil(attrs.体质 * 1.3 + attrs.根骨 * 0.9 + attrs.境界层级 * 3)),
+        当前血量: 取数字(rawEnemy?.当前血量, Math.ceil(72 + attrs.体质 * 4.2 + attrs.根骨 * 2.4 + attrs.力量 * 1.2 + attrs.境界层级 * 12)),
+        最大血量: 取数字(rawEnemy?.最大血量, Math.ceil(72 + attrs.体质 * 4.2 + attrs.根骨 * 2.4 + attrs.力量 * 1.2 + attrs.境界层级 * 12)),
+        当前精力: 取数字(rawEnemy?.当前精力, Math.ceil(36 + attrs.体质 * 3.2 + attrs.根骨 * 2.2 + attrs.境界层级 * 9)),
+        最大精力: 取数字(rawEnemy?.最大精力, Math.ceil(36 + attrs.体质 * 3.2 + attrs.根骨 * 2.2 + attrs.境界层级 * 9)),
+        当前内力: 取数字(rawEnemy?.当前内力, Math.ceil(18 + attrs.根骨 * 3.6 + attrs.悟性 * 3.2 + attrs.境界层级 * 10)),
+        最大内力: 取数字(rawEnemy?.最大内力, Math.ceil(18 + attrs.根骨 * 3.6 + attrs.悟性 * 3.2 + attrs.境界层级 * 10))
+    };
+};
 
 export const 规范化战斗状态 = (raw?: any): 战斗状态结构 => {
     const battle = raw && typeof raw === 'object' ? raw : {};

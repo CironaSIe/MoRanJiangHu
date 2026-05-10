@@ -14,8 +14,8 @@ interface Props {
 }
 
 const MobileMapModal: React.FC<Props> = ({ world, env, socialList = [], playerName = '', debugEnabled = false, onClose, onOpenPerson }) => (
-    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/95 p-2 backdrop-blur-sm md:hidden animate-fadeIn">
-        <div className="relative flex h-[92vh] w-full flex-col overflow-hidden rounded-xl border border-wuxia-gold/20 bg-[#0b0907]/95 shadow-[0_0_80px_rgba(0,0,0,0.9)]">
+    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/95 p-1.5 backdrop-blur-sm md:hidden animate-fadeIn">
+        <div className="relative flex h-[95vh] w-full flex-col overflow-hidden rounded-xl border border-wuxia-gold/20 bg-[#0b0907]/95 shadow-[0_0_80px_rgba(0,0,0,0.9)]">
             <div className="flex h-14 shrink-0 items-center justify-between border-b border-wuxia-gold/10 bg-black/70 px-4">
                 <div className="min-w-0">
                     <div className="truncate font-serif text-lg font-bold tracking-[0.22em] text-wuxia-gold">江湖网格图</div>

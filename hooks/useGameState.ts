@@ -219,7 +219,7 @@ export const useGameState = () => {
     const [prompts, setPrompts] = useState<提示词结构[]>([]);
     const [promptsReady, setPromptsReady] = useState(false);
     const [festivals, setFestivals] = useState<节日结构[]>(节日列表);
-    const [currentTheme, setCurrentTheme] = useState<ThemePreset>('ink');
+    const [currentTheme, setCurrentTheme] = useState<ThemePreset>('day');
     const scrollRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const recallAbortControllerRef = useRef<AbortController | null>(null);

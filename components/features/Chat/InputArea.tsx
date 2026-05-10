@@ -50,6 +50,62 @@ type VariableGenerationProgress = {
     commandTexts?: string[];
 };
 
+type QueueProgressPayload = {
+    phase?: string;
+    text?: string;
+    rawText?: string;
+    commandTexts?: string[];
+};
+
+const QUEUE_TEXT_RENDER_LIMIT = 6000;
+const QUEUE_RAW_RENDER_LIMIT = 18000;
+const QUEUE_COMMAND_RENDER_LIMIT = 120;
+const QUEUE_COMMAND_LINE_LIMIT = 1800;
+const QUEUE_DEBUG_EVENT_LIMIT = 160;
+
+const 获取性能时间 = (): number => (
+    typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now()
+);
+
+const 截断队列展示文本 = (value: string | undefined, limit: number, label: string): string | undefined => {
+    if (!value || value.length <= limit) return value;
+    const headLength = Math.max(0, Math.floor(limit * 0.68));
+    const tailLength = Math.max(0, limit - headLength);
+    return [
+        value.slice(0, headLength),
+        '',
+        `[队列调试] ${label}过长，已截断显示：原始 ${value.length} 字符，仅保留前后 ${limit} 字符，避免队列面板渲染卡死。`,
+        '',
+        value.slice(value.length - tailLength)
+    ].join('\n');
+};
+
+const 截断队列命令列表 = (commandTexts: string[] | undefined): string[] | undefined => {
+    if (!Array.isArray(commandTexts)) return commandTexts;
+    const clipped = commandTexts
+        .slice(0, QUEUE_COMMAND_RENDER_LIMIT)
+        .map((item) => 截断队列展示文本(item, QUEUE_COMMAND_LINE_LIMIT, '单条命令') || '');
+    if (commandTexts.length > QUEUE_COMMAND_RENDER_LIMIT) {
+        clipped.push(`[队列调试] 命令列表过长，已截断显示：共 ${commandTexts.length} 条，仅显示前 ${QUEUE_COMMAND_RENDER_LIMIT} 条。`);
+    }
+    return clipped;
+};
+
+const 压缩队列进度用于渲染 = <T extends QueueProgressPayload>(progress: T): T => ({
+    ...progress,
+    text: 截断队列展示文本(progress.text, QUEUE_TEXT_RENDER_LIMIT, '阶段状态文本'),
+    rawText: 截断队列展示文本(progress.rawText, QUEUE_RAW_RENDER_LIMIT, '原始回复'),
+    commandTexts: 截断队列命令列表(progress.commandTexts)
+});
+
+const 合并队列命令展示 = (commandTexts: string[]): string => (
+    commandTexts.length > 0
+        ? commandTexts.join('\n')
+        : ''
+);
+
 type IndependentStageId = 'polish' | 'world' | 'planning' | 'variable';
 type IndependentStageFailureDecision = 'retry' | 'skip';
 type IndependentStageFailureParams = {
@@ -147,6 +203,60 @@ const InputArea: React.FC<Props> = ({
     const quickActionsRef = useRef<HTMLDivElement | null>(null);
     const dragRef = useRef({ active: false, startX: 0, startScrollLeft: 0, moved: false });
     const suppressClickUntilRef = useRef(0);
+    const queueProgressDebugRef = useRef<Record<string, { lastAt: number; phase?: string }>>({});
+
+    const 记录并设置队列进度 = <T extends QueueProgressPayload>(
+        stage: string,
+        progress: T,
+        setter: React.Dispatch<React.SetStateAction<T | null>>
+    ) => {
+        const now = 获取性能时间();
+        const previous = queueProgressDebugRef.current[stage];
+        const intervalMs = previous ? Math.round(now - previous.lastAt) : null;
+        queueProgressDebugRef.current[stage] = { lastAt: now, phase: progress.phase };
+
+        const rawTextLength = progress.rawText?.length || 0;
+        const textLength = progress.text?.length || 0;
+        const commandCount = Array.isArray(progress.commandTexts) ? progress.commandTexts.length : 0;
+        const commandChars = Array.isArray(progress.commandTexts)
+            ? progress.commandTexts.reduce((sum, item) => sum + item.length, 0)
+            : 0;
+        const blockingRisk = rawTextLength > QUEUE_RAW_RENDER_LIMIT
+            || textLength > QUEUE_TEXT_RENDER_LIMIT
+            || commandCount > QUEUE_COMMAND_RENDER_LIMIT
+            || commandChars > QUEUE_RAW_RENDER_LIMIT;
+        const shouldLog = blockingRisk
+            || !previous
+            || previous.phase !== progress.phase
+            || (intervalMs !== null && intervalMs > 1000);
+
+        if (shouldLog && typeof window !== 'undefined') {
+            const event = {
+                at: new Date().toISOString(),
+                stage,
+                phase: progress.phase || 'unknown',
+                intervalMs,
+                textLength,
+                rawTextLength,
+                commandCount,
+                commandChars,
+                blockingRisk
+            };
+            const target = window as typeof window & {
+                __moranQueueDebug?: { events: (typeof event)[] };
+            };
+            const store = target.__moranQueueDebug || { events: [] };
+            store.events.push(event);
+            if (store.events.length > QUEUE_DEBUG_EVENT_LIMIT) {
+                store.events.splice(0, store.events.length - QUEUE_DEBUG_EVENT_LIMIT);
+            }
+            target.__moranQueueDebug = store;
+            const log = blockingRisk ? console.warn : console.debug;
+            log('[MoRanQueueDebug] queue progress', event);
+        }
+
+        setter(压缩队列进度用于渲染(progress));
+    };
 
     const handleSend = async () => {
         if (!content.trim()) return;
@@ -176,11 +286,11 @@ const InputArea: React.FC<Props> = ({
                 ? `${content}\n<剧情回忆>\n${pendingRecallTag}\n</剧情回忆>`
                 : content;
             let result = await onSend(payload, isStreaming, {
-                onRecallProgress: (progress) => setRecallProgress(progress),
-                onPolishProgress: (progress) => setPolishProgress(progress),
-                onWorldEvolutionProgress: (progress) => setWorldEvolutionProgress(progress),
-                onPlanningProgress: (progress) => setPlanningProgress(progress),
-                onVariableGenerationProgress: (progress) => setVariableGenerationProgress(progress),
+                onRecallProgress: (progress) => 记录并设置队列进度('recall', progress, setRecallProgress),
+                onPolishProgress: (progress) => 记录并设置队列进度('polish', progress, setPolishProgress),
+                onWorldEvolutionProgress: (progress) => 记录并设置队列进度('world', progress, setWorldEvolutionProgress),
+                onPlanningProgress: (progress) => 记录并设置队列进度('planning', progress, setPlanningProgress),
+                onVariableGenerationProgress: (progress) => 记录并设置队列进度('variable', progress, setVariableGenerationProgress),
                 onStageFailureDecision: async (params) => {
                     const message = `${params.stageLabel}请求失败：\n\n${params.errorText || '未知错误'}\n\n选择“重试”会重新执行当前阶段；选择“跳过”会继续后续阶段。`;
                     if (requestConfirm) {
@@ -207,11 +317,11 @@ const InputArea: React.FC<Props> = ({
                 }
                 const retryPayload = `${content}\n<剧情回忆>\n${result.preparedRecallTag}\n</剧情回忆>`;
                 result = await onSend(retryPayload, isStreaming, {
-                    onRecallProgress: (progress) => setRecallProgress(progress),
-                    onPolishProgress: (progress) => setPolishProgress(progress),
-                    onWorldEvolutionProgress: (progress) => setWorldEvolutionProgress(progress),
-                    onPlanningProgress: (progress) => setPlanningProgress(progress),
-                    onVariableGenerationProgress: (progress) => setVariableGenerationProgress(progress),
+                    onRecallProgress: (progress) => 记录并设置队列进度('recall.retry', progress, setRecallProgress),
+                    onPolishProgress: (progress) => 记录并设置队列进度('polish.retry', progress, setPolishProgress),
+                    onWorldEvolutionProgress: (progress) => 记录并设置队列进度('world.retry', progress, setWorldEvolutionProgress),
+                    onPlanningProgress: (progress) => 记录并设置队列进度('planning.retry', progress, setPlanningProgress),
+                    onVariableGenerationProgress: (progress) => 记录并设置队列进度('variable.retry', progress, setVariableGenerationProgress),
                     onStageFailureDecision: async (params) => {
                         const message = `${params.stageLabel}请求失败：\n\n${params.errorText || '未知错误'}\n\n选择“重试”会重新执行当前阶段；选择“跳过”会继续后续阶段。`;
                         if (requestConfirm) {
@@ -520,7 +630,7 @@ const InputArea: React.FC<Props> = ({
                                 key={idx}
                                 onClick={() => handleOptionClick(opt)}
                                 disabled={loading}
-                                className="shrink-0 whitespace-nowrap px-3 py-1.5 bg-white/5 border border-wuxia-gold/30 text-gray-300 rounded hover:bg-wuxia-gold hover:text-ink-black hover:border-wuxia-gold transition-all text-[11px] sm:text-xs tracking-[0.08em] shadow-sm min-w-[84px] sm:min-w-[96px] text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="shrink-0 whitespace-nowrap px-3 py-1.5 bg-white/5 border border-wuxia-gold/30 text-gray-300 rounded hover:bg-wuxia-gold hover:text-ink-black hover:border-wuxia-gold transition-all text-sm sm:text-base tracking-[0.08em] shadow-sm min-w-[96px] sm:min-w-[112px] text-center disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                  {opt}
                             </button>
@@ -550,7 +660,7 @@ const InputArea: React.FC<Props> = ({
                     </div>
                     {recallProgress.text && (
                         <pre className="text-[11px] whitespace-pre-wrap text-gray-300 leading-relaxed max-h-28 overflow-y-auto custom-scrollbar">
-                            {recallProgress.text}
+                            {截断队列展示文本(recallProgress.text, QUEUE_TEXT_RENDER_LIMIT, '剧情回忆文本')}
                         </pre>
                     )}
                     <div className="flex flex-wrap gap-2 pt-1">
@@ -868,7 +978,7 @@ const InputArea: React.FC<Props> = ({
                                 <button
                                     type="button"
                                     onClick={() => setQueueCollapsed(true)}
-                                    className={`h-6 w-36 border text-[10px] tracking-[0.35em] transition hover:bg-neutral-950 ${queueBadgeClass}`}
+                                    className={`h-7 w-40 border text-sm tracking-[0.18em] transition hover:bg-neutral-950 ${queueBadgeClass}`}
                                     style={{ clipPath: 'polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)' }}
                                     title="收起独立更新阶段队列"
                                 >
@@ -881,7 +991,7 @@ const InputArea: React.FC<Props> = ({
                                 <button
                                     type="button"
                                     onClick={() => setQueueCollapsed(false)}
-                                    className={`h-7 w-28 border text-[11px] tracking-[0.3em] transition hover:bg-neutral-950 ${queueBadgeClass}`}
+                                    className={`h-8 w-32 border text-sm tracking-[0.18em] transition hover:bg-neutral-950 ${queueBadgeClass}`}
                                     style={{ clipPath: 'polygon(12% 0%, 88% 0%, 100% 100%, 0% 100%)' }}
                                     title="展开独立更新阶段队列"
                                 >
@@ -889,8 +999,8 @@ const InputArea: React.FC<Props> = ({
                                 </button>
                             </div>
                         ) : (
-                            <div className="rounded-lg border border-wuxia-gold/25 bg-black p-2 space-y-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] max-h-[28svh] sm:max-h-[36vh] md:max-h-[55vh] overflow-y-auto no-scrollbar">
-                                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                            <div className="rounded-lg border border-wuxia-gold/25 bg-black p-3 space-y-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] max-h-[32svh] sm:max-h-[40vh] md:max-h-[58vh] overflow-y-auto no-scrollbar">
+                                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                                     <div className="text-wuxia-gold">独立更新阶段队列</div>
                                     <div className="text-gray-400">
                                         当前阶段：{currentRunningStage?.label || '无'}
@@ -901,10 +1011,13 @@ const InputArea: React.FC<Props> = ({
                                 <div className="grid grid-cols-1 gap-2">
                                     {pipelineStages.map((stage, index) => {
                                         const phase = stage.progress?.phase;
-                                        const rawText = stage.progress?.rawText;
-                                        const commandTexts = Array.isArray((stage.progress as { commandTexts?: string[] } | null)?.commandTexts)
+                                        const rawText = 截断队列展示文本(stage.progress?.rawText, QUEUE_RAW_RENDER_LIMIT, `${stage.label}原始回复`);
+                                        const progressText = 截断队列展示文本(stage.progress?.text, QUEUE_TEXT_RENDER_LIMIT, `${stage.label}状态文本`);
+                                        const originalCommandTexts = Array.isArray((stage.progress as { commandTexts?: string[] } | null)?.commandTexts)
                                             ? ((stage.progress as { commandTexts?: string[] }).commandTexts || [])
                                             : [];
+                                        const commandTexts = 截断队列命令列表(originalCommandTexts) || [];
+                                        const commandDisplayText = 合并队列命令展示(commandTexts);
                                         const rawExpanded = expandedRawStageId === stage.id;
                                         const commandExpanded = expandedCommandStageId === stage.id;
                                         const isVariableStage = stage.id === 'variable';
@@ -912,14 +1025,14 @@ const InputArea: React.FC<Props> = ({
                                             <div key={stage.id} className="rounded border border-gray-800/80 bg-neutral-950 p-2">
                                                 <div className="flex items-center justify-between gap-3">
                                                     <div className="flex items-center gap-2 min-w-0">
-                                                        <span className="text-gray-500 text-[10px]">{index + 1}.</span>
+                                                        <span className="text-gray-500 text-xs">{index + 1}.</span>
                                                         {phase === 'start' ? (
                                                             <span className="inline-block w-3 h-3 border-2 border-wuxia-cyan/40 border-t-wuxia-cyan rounded-full animate-spin" />
                                                         ) : (
                                                             <span className={取阶段状态色(phase)}>●</span>
                                                         )}
-                                                        <span className="text-xs text-gray-100">{stage.label}</span>
-                                                        <span className={`text-[11px] ${取阶段状态色(phase)}`}>
+                                                        <span className="text-sm text-gray-100">{stage.label}</span>
+                                                        <span className={`text-xs ${取阶段状态色(phase)}`}>
                                                             {取阶段状态文案(phase)}
                                                         </span>
                                                     </div>
@@ -928,7 +1041,7 @@ const InputArea: React.FC<Props> = ({
                                                             <button
                                                                 type="button"
                                                                 onClick={onCancelVariableGeneration}
-                                                                className="text-[10px] px-2 py-1 border border-teal-400/40 text-teal-100 rounded hover:bg-teal-500/10"
+                                                                className="text-xs px-2 py-1 border border-teal-400/40 text-teal-100 rounded hover:bg-teal-500/10"
                                                             >
                                                                 取消生成
                                                             </button>
@@ -937,7 +1050,7 @@ const InputArea: React.FC<Props> = ({
                                                             <button
                                                                 type="button"
                                                                 onClick={() => { void handleRetryVariableGeneration(); }}
-                                                                className="text-[10px] px-2 py-1 border border-cyan-400/40 text-cyan-100 rounded hover:bg-cyan-500/10"
+                                                                className="text-xs px-2 py-1 border border-cyan-400/40 text-cyan-100 rounded hover:bg-cyan-500/10"
                                                             >
                                                                 继续生成
                                                             </button>
@@ -946,7 +1059,7 @@ const InputArea: React.FC<Props> = ({
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setExpandedCommandStageId(commandExpanded ? null : stage.id)}
-                                                                className="text-[10px] px-2 py-1 border border-gray-700 text-gray-300 rounded hover:border-wuxia-gold/40 hover:text-white"
+                                                                className="text-xs px-2 py-1 border border-gray-700 text-gray-300 rounded hover:border-wuxia-gold/40 hover:text-white"
                                                             >
                                                                 {commandExpanded ? '收起命令' : '查看命令'}
                                                             </button>
@@ -955,28 +1068,28 @@ const InputArea: React.FC<Props> = ({
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setExpandedRawStageId(rawExpanded ? null : stage.id)}
-                                                                className="text-[10px] px-2 py-1 border border-gray-700 text-gray-300 rounded hover:border-wuxia-gold/40 hover:text-white"
+                                                                className="text-xs px-2 py-1 border border-gray-700 text-gray-300 rounded hover:border-wuxia-gold/40 hover:text-white"
                                                             >
                                                                 {rawExpanded ? '收起原始回复' : '查看原始回复'}
                                                             </button>
                                                         )}
                                                     </div>
                                                 </div>
-                                                {stage.progress?.text && (
-                                                    <pre className="mt-2 text-[11px] whitespace-pre-wrap text-gray-300 leading-relaxed max-h-20 sm:max-h-28 overflow-y-auto no-scrollbar">
-                                                        {stage.progress.text}
+                                                {progressText && (
+                                                    <pre className="mt-2 text-sm whitespace-pre-wrap text-gray-300 leading-relaxed max-h-24 sm:max-h-32 overflow-y-auto no-scrollbar">
+                                                        {progressText}
                                                     </pre>
                                                 )}
                                                 {commandExpanded && commandTexts.length > 0 && (
                                                     <div className="mt-2 rounded border border-wuxia-gold/20 bg-black/55 p-2">
-                                                        <div className="text-[10px] text-wuxia-gold/80 mb-1">本回合命令列表</div>
-                                                        <pre className="text-[11px] whitespace-pre-wrap text-sky-100 leading-relaxed max-h-28 sm:max-h-40 overflow-y-auto no-scrollbar">
-                                                            {commandTexts.join('\n')}
+                                                        <div className="text-xs text-wuxia-gold/80 mb-1">本回合命令列表</div>
+                                                        <pre className="text-sm whitespace-pre-wrap text-sky-100 leading-relaxed max-h-32 sm:max-h-44 overflow-y-auto no-scrollbar">
+                                                            {commandDisplayText}
                                                         </pre>
                                                     </div>
                                                 )}
                                                 {rawExpanded && rawText && (
-                                                    <pre className="mt-2 text-[11px] whitespace-pre-wrap text-emerald-200 leading-relaxed max-h-32 sm:max-h-52 overflow-y-auto no-scrollbar border border-emerald-500/20 bg-black/60 rounded p-2">
+                                                    <pre className="mt-2 text-sm whitespace-pre-wrap text-emerald-200 leading-relaxed max-h-36 sm:max-h-56 overflow-y-auto no-scrollbar border border-emerald-500/20 bg-black/60 rounded p-2">
                                                         {rawText}
                                                     </pre>
                                                 )}
@@ -986,13 +1099,13 @@ const InputArea: React.FC<Props> = ({
                                 </div>
                                 {historyStages.length > 0 && (
                                     <div className="rounded border border-wuxia-gold/20 bg-neutral-950 p-2 space-y-2 max-h-36 sm:max-h-64 overflow-y-auto no-scrollbar">
-                                        <div className="text-[11px] text-wuxia-gold">独立链命令历史面板</div>
+                                        <div className="text-sm text-wuxia-gold">独立链命令历史面板</div>
                                         <div className="grid grid-cols-1 gap-2">
                                             {historyStages.map((stage) => (
                                                 <div key={`history_${stage.id}`} className="rounded border border-gray-800/80 bg-black/50 p-2">
-                                                    <div className="text-[11px] text-gray-100 mb-1">{stage.label}</div>
-                                                    <pre className="text-[11px] whitespace-pre-wrap text-sky-100 leading-relaxed max-h-24 sm:max-h-36 overflow-y-auto no-scrollbar">
-                                                        {(((stage.progress as { commandTexts?: string[] } | null)?.commandTexts) || []).join('\n')}
+                                                    <div className="text-sm text-gray-100 mb-1">{stage.label}</div>
+                                                    <pre className="text-sm whitespace-pre-wrap text-sky-100 leading-relaxed max-h-28 sm:max-h-40 overflow-y-auto no-scrollbar">
+                                                        {合并队列命令展示(截断队列命令列表(((stage.progress as { commandTexts?: string[] } | null)?.commandTexts) || []) || [])}
                                                     </pre>
                                                 </div>
                                             ))}

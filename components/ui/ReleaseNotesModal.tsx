@@ -70,8 +70,8 @@ const ReleaseNotesModal: React.FC<Props> = ({
     const history = normalizedHistory.slice(1);
 
     return (
-        <div className="fixed inset-0 z-[410] flex items-center justify-center bg-black/82 px-4 py-6 backdrop-blur-md animate-fadeIn">
-            <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-wuxia-gold/25 bg-[radial-gradient(circle_at_top,rgba(198,153,74,0.14),transparent_30%),linear-gradient(180deg,rgba(20,17,15,0.98),rgba(8,8,8,0.98))] shadow-[0_30px_120px_rgba(0,0,0,0.72)]">
+        <div className="release-notes-backdrop fixed inset-0 z-[410] flex items-center justify-center bg-black/82 px-4 py-6 backdrop-blur-md animate-fadeIn">
+            <div className="release-notes-panel relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-wuxia-gold/25 bg-[radial-gradient(circle_at_top,rgba(198,153,74,0.14),transparent_30%),linear-gradient(180deg,rgba(20,17,15,0.98),rgba(8,8,8,0.98))] shadow-[0_30px_120px_rgba(0,0,0,0.72)]">
                 <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-wuxia-gold/45 to-transparent" />
 
                 <div className="flex items-start justify-between gap-4 border-b border-wuxia-gold/10 px-5 py-5 md:px-7">
@@ -132,7 +132,7 @@ const ReleaseNotesModal: React.FC<Props> = ({
                                 {(latest?.changes && latest.changes.length > 0 ? latest.changes : ['本次版本已发布，详细内容整理中。']).map((item, index) => (
                                     <div
                                         key={`${latest?.versionName || 'latest'}-${index}`}
-                                        className="rounded-2xl border border-white/5 bg-black/25 px-4 py-3 text-sm leading-7 text-gray-100"
+                                    className="release-note-card rounded-2xl border border-white/5 bg-black/25 px-4 py-3 text-sm leading-7 text-gray-100"
                                     >
                                         <span className="mr-3 inline-flex h-6 w-6 items-center justify-center rounded-full border border-wuxia-gold/20 bg-wuxia-gold/10 text-xs text-wuxia-gold">
                                             {index + 1}
@@ -149,7 +149,7 @@ const ReleaseNotesModal: React.FC<Props> = ({
                             <div className="text-sm tracking-[0.22em] text-gray-300">历史版本</div>
                             <div className="mt-4 space-y-4">
                                 {history.length > 0 ? history.map((entry) => (
-                                    <div key={`${entry.versionName || 'unknown'}-${entry.versionCode || 0}`} className="rounded-2xl border border-white/6 bg-black/25 p-4">
+                                    <div key={`${entry.versionName || 'unknown'}-${entry.versionCode || 0}`} className="release-note-card rounded-2xl border border-white/6 bg-black/25 p-4">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <div className="text-base font-semibold text-white">v{entry.versionName || '未知版本'}</div>
                                             {entry.versionCode ? (

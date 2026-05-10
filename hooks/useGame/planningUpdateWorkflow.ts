@@ -32,6 +32,7 @@ type 规划更新工作流依赖 = {
     任务列表: any[];
     约定列表: any[];
     历史记录: any[];
+    规划分析进行中Ref?: { current: boolean };
     开局配置?: OpeningConfig;
     prompts?: { id?: string; 内容?: string }[];
     worldbooks?: any[];
@@ -89,7 +90,7 @@ const 规划分析请求超时毫秒 = 90000;
 const 规划分析自动重试最大次数 = 3;
 
 const 创建规划分析超时错误 = (): Error => {
-    const error = new Error(`规划分析请求超时（${Math.max(1, Math.ceil(规划分析请求超时毫秒 / 1000))} 秒），已跳过本轮后台规划分析。`);
+    const error = new Error(`规划分析请求超时（${Math.max(1, Math.ceil(规划分析请求超时毫秒 / 1000))} 秒）`);
     error.name = 'TimeoutError';
     return error;
 };
@@ -227,7 +228,22 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         playerInput: string;
         gameTime: string;
         response: GameResponse;
+        shouldApply?: () => boolean;
     }): Promise<统一规划分析结果> => {
+        if (deps.规划分析进行中Ref?.current) {
+            return {
+                updated: false,
+                message: '已有规划分析在后台运行，本轮跳过以保持前台流畅。',
+                commands: [],
+                storyCommands: [],
+                storyPlanCommands: [],
+                heroinePlanCommands: []
+            };
+        }
+        if (deps.规划分析进行中Ref) {
+            deps.规划分析进行中Ref.current = true;
+        }
+        try {
         const planningApi = 获取规划分析接口配置(deps.apiConfig);
         if (!接口配置是否可用(planningApi)) {
             return {
@@ -349,9 +365,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             normalizedGameConfig
         );
 
-        let result;
-        try {
-            result = await 执行规划分析带超时和重试((signal) => textAIService.generatePlanningAnalysis({
+        const result = await 执行规划分析带超时((signal) => textAIService.generatePlanningAnalysis({
             playerName: (deps.角色?.姓名 || '').trim() || '未命名',
             currentStoryJson: JSON.stringify(planningStoryPayload, null, 2),
             currentHeroinePlanJson: JSON.stringify(planningHeroinePayload, null, 2),
@@ -378,23 +392,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             fandomEnabled,
             extraPrompt: planningExtraPrompt,
             gptMode: 独立规划分析GPT模式
-            }, planningApi, signal));
-        } catch (error: any) {
-            if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
-                return {
-                    updated: false,
-                    message: error?.message
-                        ? `${error.message}，自动重试仍未成功，已跳过本轮后台规划分析。`
-                        : '规划分析请求已中断，自动重试仍未成功，已跳过本轮后台规划分析。',
-                    rawText: '',
-                    commands: [],
-                    storyCommands: [],
-                    storyPlanCommands: [],
-                    heroinePlanCommands: []
-                };
-            }
-            throw error;
-        }
+        }, planningApi, signal));
 
         const storyCommands = 过滤规划补丁命令(result.commands, ['剧情', 'gameState.剧情']);
         const storyPlanCommands = 过滤规划补丁命令(result.commands, activeStoryPlanTargets);
@@ -406,6 +404,17 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             return {
                 updated: false,
                 message: result.reason || '规划分析未产生有效补丁，已跳过。',
+                rawText: result.rawText,
+                commands: [],
+                storyCommands: [],
+                storyPlanCommands: [],
+                heroinePlanCommands: []
+            };
+        }
+        if (params.shouldApply && !params.shouldApply()) {
+            return {
+                updated: false,
+                message: '新的正文回合已经开始，本轮规划分析结果已过期并丢弃。',
                 rawText: result.rawText,
                 commands: [],
                 storyCommands: [],
@@ -431,6 +440,17 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             currentGameTime: params.gameTime,
             openingConfig: deps.开局配置
         });
+        if (params.shouldApply && !params.shouldApply()) {
+            return {
+                updated: false,
+                message: '新的正文回合已经开始，本轮规划分析结果已过期并丢弃。',
+                rawText: result.rawText,
+                commands: [],
+                storyCommands: [],
+                storyPlanCommands: [],
+                heroinePlanCommands: []
+            };
+        }
         deps.设置剧情(syncedPatchedStory);
         if (fandomEnabled) {
             deps.设置同人剧情规划(patched.fandomStoryPlan);
@@ -462,6 +482,11 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             storyPlanCommands,
             heroinePlanCommands
         };
+        } finally {
+            if (deps.规划分析进行中Ref) {
+                deps.规划分析进行中Ref.current = false;
+            }
+        }
     };
 
     return {

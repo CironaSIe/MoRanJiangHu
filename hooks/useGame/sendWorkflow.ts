@@ -59,26 +59,99 @@ type 世界演变进度 = {
 };
 
 const 格式化命令展示路径 = (key: string): string => key.replace(/^gameState\./, '');
+const 队列命令展示数量上限 = 120;
+const 队列命令展示单行上限 = 1800;
+
+const 获取队列调试时间 = (): number => (
+    typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now()
+);
+
+const 记录队列工作流调试 = (label: string, details: Record<string, unknown> = {}, warn = false) => {
+    const payload = {
+        at: new Date().toISOString(),
+        label,
+        ...details
+    };
+    const log = warn ? console.warn : console.debug;
+    log("[MoRanQueueDebug] workflow", payload);
+};
+
+const 计时同步队列步骤 = <T,>(label: string, run: () => T, details: Record<string, unknown> = {}): T => {
+    const startedAt = 获取队列调试时间();
+    try {
+        return run();
+    } finally {
+        const durationMs = Math.round(获取队列调试时间() - startedAt);
+        if (durationMs > 80) {
+            记录队列工作流调试(label, { ...details, durationMs }, true);
+        }
+    }
+};
+
+const 获取响应命令数量 = (response: Partial<GameResponse> | null | undefined): number => (
+    Array.isArray(response?.tavern_commands) ? response.tavern_commands.length : 0
+);
+
+const 截断队列命令展示文本 = (value: string): string => {
+    if (value.length <= 队列命令展示单行上限) return value;
+    const headLength = Math.floor(队列命令展示单行上限 * 0.68);
+    const tailLength = 队列命令展示单行上限 - headLength;
+    return [
+        value.slice(0, headLength),
+        `[队列调试] 单条命令展示文本过长，已截断：原始 ${value.length} 字符。`,
+        value.slice(value.length - tailLength)
+    ].join("\n");
+};
+
+const 安全序列化队列命令值 = (value: unknown, key: string): string => 计时同步队列步骤(
+    "serializeCommandValue",
+    () => {
+        let serialized = "";
+        try {
+            serialized = JSON.stringify(value ?? null);
+        } catch {
+            serialized = String(value ?? null);
+        }
+        if (serialized.length > 队列命令展示单行上限) {
+            记录队列工作流调试("serializeCommandValue.large", {
+                key,
+                length: serialized.length
+            }, true);
+        }
+        return 截断队列命令展示文本(serialized);
+    },
+    { key }
+);
 
 const 序列化命令文本 = (cmd: any): string => {
     const action = typeof cmd?.action === 'string' ? cmd.action : 'set';
     const key = 格式化命令展示路径(typeof cmd?.key === 'string' ? cmd.key : '');
     if (action === 'delete') return `${action} ${key}`;
-    try {
-        return `${action} ${key} = ${JSON.stringify(cmd?.value ?? null)}`;
-    } catch {
-        return `${action} ${key} = ${String(cmd?.value ?? null)}`;
-    }
+    return `${action} ${key} = ${安全序列化队列命令值(cmd?.value ?? null, key)}`;
 };
 
-const 构建带索引命令文本 = (commands: any[], startIndex: number): string[] => (
-    (Array.isArray(commands) ? commands : [])
+const 构建带索引命令文本 = (commands: any[], startIndex: number): string[] => {
+    const list = Array.isArray(commands) ? commands : [];
+    if (list.length > 队列命令展示数量上限) {
+        记录队列工作流调试("buildCommandDisplayText.largeList", {
+            commandCount: list.length,
+            renderedCount: 队列命令展示数量上限
+        }, true);
+    }
+    const rendered = list
+        .slice(0, 队列命令展示数量上限)
         .map((cmd, index) => {
             const body = 序列化命令文本(cmd);
             return body.trim() ? `[#${startIndex + index}] ${body}` : '';
         })
-        .filter(Boolean)
-);
+        .filter(Boolean);
+    if (list.length > 队列命令展示数量上限) {
+        rendered.push(`[队列调试] 命令列表过长，已截断展示：共 ${list.length} 条，仅展示前 ${队列命令展示数量上限} 条。`);
+    }
+    return rendered;
+};
 
 export type 发送选项 = {
     onRecallProgress?: (progress: 回忆检索进度) => void;
@@ -160,6 +233,7 @@ type 主剧情发送当前状态 = {
 type 主剧情发送依赖 = {
     abortControllerRef: { current: AbortController | null };
     recallAbortControllerRef: { current: AbortController | null };
+    前台发送序号Ref?: { current: number };
     setLoading: (value: boolean) => void;
     set后台队列处理中: (value: boolean) => void;
     setShowSettings: (value: boolean) => void;
@@ -234,6 +308,7 @@ type 主剧情发送依赖 = {
         playerInput: string;
         gameTime: string;
         response: GameResponse;
+        shouldApply?: () => boolean;
     }) => Promise<{ updated: boolean; message: string; rawText?: string; commands: any[]; storyPlanCommands?: any[]; heroinePlanCommands?: any[] }>;
     后台执行变量生成: (params: {
         snapshot: 回合快照结构;
@@ -433,6 +508,8 @@ export const 执行主剧情发送工作流 = async (
         deps.recallAbortControllerRef.current = null;
         return { cancelled: true };
     }
+    const 本次发送序号 = deps.前台发送序号Ref ? (deps.前台发送序号Ref.current += 1) : 0;
+    const 本次仍是最新前台回合 = () => !deps.前台发送序号Ref || deps.前台发送序号Ref.current === 本次发送序号;
 
     const canonicalTime = 环境时间转标准串(currentState.环境);
     const currentGameTime = canonicalTime || '未知时间';
@@ -698,7 +775,11 @@ export const 执行主剧情发送工作流 = async (
             ...aiData,
             tavern_commands: Array.isArray(aiData.tavern_commands) ? [...aiData.tavern_commands] : []
         };
-        let simulatedState = deps.processResponseCommands(responseForExecution, mainCommandBaseState, { applyState: false });
+        let simulatedState = 计时同步队列步骤(
+            "main.simulateResponseCommands",
+            () => deps.processResponseCommands(responseForExecution, mainCommandBaseState, { applyState: false }),
+            { commandCount: 获取响应命令数量(responseForExecution) }
+        );
         const turnSnapshot: 回合快照结构 = {
             玩家输入: sendInput,
             游戏时间: currentGameTime,
@@ -730,15 +811,24 @@ export const 执行主剧情发送工作流 = async (
             ...displayAiData,
             tavern_commands: Array.isArray(responseForExecution.tavern_commands) ? [...responseForExecution.tavern_commands] : []
         };
+        let planningDisplayMetadata: Partial<GameResponse> = {};
         const mainStoryVariableResponse: GameResponse = {
             ...displayAiData,
             tavern_commands: Array.isArray(aiData?.tavern_commands) ? [...aiData.tavern_commands] : []
         };
         const 立即并入变量生成状态 = (nextResponse: GameResponse) => {
-            simulatedState = deps.processResponseCommands(nextResponse, mainCommandBaseState);
+            simulatedState = 计时同步队列步骤(
+                "variable.applyImmediateResponseCommands",
+                () => deps.processResponseCommands(nextResponse, mainCommandBaseState),
+                { commandCount: 获取响应命令数量(nextResponse) }
+            );
             return simulatedState;
         };
-        const immediateState = deps.processResponseCommands(finalParsedResponse, mainCommandBaseState);
+        const immediateState = 计时同步队列步骤(
+            "main.applyImmediateResponseCommands",
+            () => deps.processResponseCommands(finalParsedResponse, mainCommandBaseState),
+            { commandCount: 获取响应命令数量(finalParsedResponse) }
+        );
         let finalState = immediateState;
         const nextGameTime = 环境时间转标准串(immediateState.环境) || "未知时间";
         const immediateEntry = 构建即时记忆条目(nextGameTime, sendInput, finalDisplayResponse);
@@ -977,7 +1067,11 @@ export const 执行主剧情发送工作流 = async (
                     finalParsedResponse = variableGenerationResult.mergedParsed;
                     finalDisplayResponse = variableGenerationResult.mergedDisplayResponse;
                     displayAiData = variableGenerationResult.mergedDisplayResponse;
-                    simulatedState = deps.processResponseCommands(responseForExecution, mainCommandBaseState, { applyState: false });
+                    simulatedState = 计时同步队列步骤(
+                        "variable.simulateMergedResponseCommands",
+                        () => deps.processResponseCommands(responseForExecution, mainCommandBaseState, { applyState: false }),
+                        { commandCount: 获取响应命令数量(responseForExecution) }
+                    );
                     if (Array.isArray(responseForExecution.tavern_commands) && responseForExecution.tavern_commands.length > 0) {
                         立即并入变量生成状态(responseForExecution);
                     }
@@ -993,6 +1087,8 @@ export const 执行主剧情发送工作流 = async (
                         });
                     }
                 }
+
+                deps.set后台队列处理中(false);
 
                 let worldEvolutionResult: 世界演变执行结果 | null = null;
                 const 变量生成后命令数 = Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands.length : 0;
@@ -1067,6 +1163,13 @@ export const 执行主剧情发送工作流 = async (
                         text: "世界演变独立链路未启用，已跳过。"
                     });
                 }
+                if (!本次仍是最新前台回合()) {
+                    options?.onWorldEvolutionProgress?.({
+                        phase: "skipped",
+                        text: "新的正文回合已经开始，本轮动态世界结果已作为过期后台结果丢弃。"
+                    });
+                    return;
+                }
                 if (worldEvolutionResult && worldEvolutionResult.commands.length > 0) {
                     responseForExecution = {
                         ...responseForExecution,
@@ -1075,7 +1178,11 @@ export const 执行主剧情发送工作流 = async (
                             ...worldEvolutionResult.commands
                         ]
                     };
-                    simulatedState = deps.processResponseCommands(responseForExecution, mainCommandBaseState, { applyState: false });
+                    simulatedState = 计时同步队列步骤(
+                        "world.simulateMergedResponseCommands",
+                        () => deps.processResponseCommands(responseForExecution, mainCommandBaseState, { applyState: false }),
+                        { commandCount: 获取响应命令数量(responseForExecution), worldCommandCount: worldEvolutionResult.commands.length }
+                    );
                 }
                 let 当前命令偏移 = 变量生成后命令数 + (worldEvolutionResult ? worldEvolutionResult.commands.length : 0);
                 const planningStage = await 执行可重试独立阶段({
@@ -1108,7 +1215,8 @@ export const 执行主剧情发送工作流 = async (
                         },
                         playerInput: sendInput,
                         gameTime: 环境时间转标准串(simulatedState.环境) || "未知时间",
-                        response: responseForExecution
+                        response: responseForExecution,
+                        shouldApply: 本次仍是最新前台回合
                     }),
                     onError: (errorText) => {
                         options?.onPlanningProgress?.({
@@ -1129,6 +1237,13 @@ export const 执行主剧情发送工作流 = async (
                     )
                 });
                 const planningResult = planningStage.result;
+                if (!本次仍是最新前台回合()) {
+                    options?.onPlanningProgress?.({
+                        phase: "skipped",
+                        text: "新的正文回合已经开始，本轮规划分析结果已作为过期后台结果丢弃。"
+                    });
+                    return;
+                }
                 if (planningStage.completed && planningResult) {
                     options?.onPlanningProgress?.({
                         phase: planningResult.updated ? "done" : "skipped",
@@ -1136,6 +1251,13 @@ export const 执行主剧情发送工作流 = async (
                         rawText: planningResult.rawText,
                         commandTexts: 构建带索引命令文本(planningResult.commands, 当前命令偏移 + 1)
                     });
+                    if (planningResult.updated || planningResult.commands.length > 0) {
+                        planningDisplayMetadata = {
+                            planning_analysis_updated: planningResult.updated,
+                            planning_analysis_report: planningResult.message,
+                            planning_analysis_commands: Array.isArray(planningResult.commands) ? [...planningResult.commands] : []
+                        };
+                    }
                     if (planningResult.commands.length > 0) {
                         responseForExecution = {
                             ...responseForExecution,
@@ -1144,23 +1266,39 @@ export const 执行主剧情发送工作流 = async (
                                 ...planningResult.commands
                             ]
                         };
-                        simulatedState = deps.processResponseCommands(responseForExecution, mainCommandBaseState, { applyState: false });
+                        simulatedState = 计时同步队列步骤(
+                            "planning.simulateMergedResponseCommands",
+                            () => deps.processResponseCommands(responseForExecution, mainCommandBaseState, { applyState: false }),
+                            { commandCount: 获取响应命令数量(responseForExecution), planningCommandCount: planningResult.commands.length }
+                        );
                     }
                 }
                 finalParsedResponse = responseForExecution;
                 finalDisplayResponse = {
                     ...displayAiData,
+                    ...planningDisplayMetadata,
                     tavern_commands: Array.isArray(responseForExecution.tavern_commands) ? [...responseForExecution.tavern_commands] : []
                 };
 
-                finalState = deps.processResponseCommands(finalParsedResponse, mainCommandBaseState);
+                finalState = 计时同步队列步骤(
+                    "queue.finalApplyResponseCommands",
+                    () => deps.processResponseCommands(finalParsedResponse, mainCommandBaseState),
+                    { commandCount: 获取响应命令数量(finalParsedResponse) }
+                );
                 const calibratedFinalStory = await 同步剧情小说分解时间校准({
                     previousStory: currentState.剧情,
                     nextStory: finalState.剧情,
                     currentGameTime: 环境时间转标准串(finalState.环境) || currentGameTime,
                     openingConfig: currentState.开局配置
                 });
-                if (JSON.stringify(calibratedFinalStory) !== JSON.stringify(finalState.剧情 || {})) {
+                const storyChanged = 计时同步队列步骤(
+                    "queue.storyDeepCompare",
+                    () => JSON.stringify(calibratedFinalStory) !== JSON.stringify(finalState.剧情 || {}),
+                    {
+                        nextStoryKeys: calibratedFinalStory && typeof calibratedFinalStory === "object" ? Object.keys(calibratedFinalStory as Record<string, unknown>).length : 0
+                    }
+                );
+                if (storyChanged) {
                     finalState = {
                         ...finalState,
                         剧情: deps.规范化剧情状态(calibratedFinalStory, finalState.环境)
@@ -1189,7 +1327,14 @@ export const 执行主剧情发送工作流 = async (
 
                         const prevStructured = item.structuredResponse ?? null;
                         const nextStructured = queuedAiMsg.structuredResponse ?? null;
-                        const structuredChanged = JSON.stringify(prevStructured) !== JSON.stringify(nextStructured);
+                        const structuredChanged = 计时同步队列步骤(
+                            "queue.historyStructuredDeepCompare",
+                            () => JSON.stringify(prevStructured) !== JSON.stringify(nextStructured),
+                            {
+                                hasPrevStructured: Boolean(prevStructured),
+                                nextCommandCount: 获取响应命令数量(nextStructured as Partial<GameResponse> | null | undefined)
+                            }
+                        );
 
                         if (!structuredChanged && item.structuredResponse) {
                             return item;

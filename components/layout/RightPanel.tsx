@@ -105,7 +105,7 @@ const RightPanel: React.FC<Props> = ({
                 : ''
         },
         { label: '剧情', action: onOpenStory, color: 'primary' as const, changeKeys: ['剧情'] },
-        ...(enableHeroinePlan ? [{ label: '规划', action: onOpenHeroinePlan, color: 'primary' as const, changeKeys: ['剧情'] }] : []),
+        ...(enableHeroinePlan ? [{ label: '规划', action: onOpenHeroinePlan, color: 'primary' as const, changeKeys: ['剧情规划'] }] : []),
         { label: '记忆', action: onOpenMemory, color: 'primary' as const, changeKeys: ['记忆系统'] },
         ...(onOpenNovelExport ? [{ label: '导出小说', action: onOpenNovelExport, color: 'secondary' as const }] : []),
         ...(onOpenImageManager ? [{ label: '图册', action: onOpenImageManager, color: 'secondary' as const }] : []),

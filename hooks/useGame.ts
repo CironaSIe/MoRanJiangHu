@@ -398,6 +398,8 @@ export const useGame = () => {
     } | null>(null);
     const 世界演变进行中Ref = useRef(false);
     const 世界演变去重签名Ref = useRef('');
+    const 规划分析进行中Ref = useRef(false);
+    const 前台发送序号Ref = useRef(0);
     const 最近变量生成上下文Ref = useRef<变量生成上下文缓存项[]>([]);
     const NPC生图进行中Ref = useRef<Set<string>>(new Set());
     const 主角生图进行中Ref = useRef<Set<string>>(new Set());
@@ -2494,6 +2496,7 @@ export const useGame = () => {
         任务列表,
         约定列表,
         历史记录,
+        规划分析进行中Ref,
         开局配置,
         prompts,
         worldbooks: 世界书列表,
@@ -2759,7 +2762,7 @@ export const useGame = () => {
             return {
                 cancelled: true,
                 errorTitle: '后台队列仍在处理',
-                errorDetail: '上一轮的变量、世界演变或规划分析还没完成，暂时不能继续下一次正文生成。'
+                errorDetail: '上一轮的正文优化或变量生成还没完成，暂时不能继续下一次正文生成。动态世界和规划分析会转入后台，不再阻塞前台。'
             };
         }
         set开局变量生成进度(null);
@@ -2802,6 +2805,7 @@ export const useGame = () => {
             {
                 abortControllerRef,
                 recallAbortControllerRef,
+                前台发送序号Ref,
                 setLoading,
                 set后台队列处理中,
                 setShowSettings,

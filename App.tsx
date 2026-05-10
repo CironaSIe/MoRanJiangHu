@@ -43,7 +43,7 @@ const 获取物品自动生图Key = (scope: 'bag' | 'auction', item: any, ownerI
     item?.ID || item?.名称 || 'unknown'
 ].join(':');
 
-type 本回合变化区域 = '角色' | '背包' | '装备' | '战斗' | '队伍' | '社交' | '功法' | '地图' | '玩家门派' | '任务列表' | '约定列表' | '世界' | '剧情' | '记忆系统';
+type 本回合变化区域 = '角色' | '背包' | '装备' | '战斗' | '队伍' | '社交' | '功法' | '地图' | '玩家门派' | '任务列表' | '约定列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
 
 const 提取本回合变化区域 = (commands: any[]): 本回合变化区域[] => {
     const areas = new Set<本回合变化区域>();
@@ -62,7 +62,11 @@ const 提取本回合变化区域 = (commands: any[]): 本回合变化区域[] =
         if (key.includes('任务列表')) areas.add('任务列表');
         if (key.includes('约定列表')) areas.add('约定列表');
         if (key.includes('世界')) areas.add('世界');
-        if (key.includes('剧情') || key.includes('女主剧情规划')) areas.add('剧情');
+        if (key.includes('剧情规划') || key.includes('女主剧情规划') || key.includes('同人剧情规划') || key.includes('同人女主剧情规划')) {
+            areas.add('剧情规划');
+        } else if (key.includes('剧情')) {
+            areas.add('剧情');
+        }
         if (key.includes('记忆')) areas.add('记忆系统');
     });
     return [...areas];
@@ -881,10 +885,17 @@ const App: React.FC = () => {
             : [],
         [latestAssistantMessage]
     );
-    const latestChangedSections = React.useMemo(
-        () => 提取本回合变化区域(latestAssistantMessage?.structuredResponse?.tavern_commands || []),
-        [latestAssistantMessage]
-    );
+    const latestChangedSections = React.useMemo(() => {
+        const structuredResponse = latestAssistantMessage?.structuredResponse;
+        const areas = new Set<本回合变化区域>(提取本回合变化区域(structuredResponse?.tavern_commands || []));
+        if (
+            structuredResponse?.planning_analysis_updated === true
+            || (Array.isArray(structuredResponse?.planning_analysis_commands) && structuredResponse.planning_analysis_commands.length > 0)
+        ) {
+            areas.add('剧情规划');
+        }
+        return Array.from(areas);
+    }, [latestAssistantMessage]);
     const itemImageSequence = React.useMemo(() => (
         (Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : []).flatMap((item: any) => {
             const history = Array.isArray(item?.图片档案?.生图历史) ? item.图片档案.生图历史 : [];
@@ -1899,6 +1910,8 @@ const App: React.FC = () => {
                     onNovelDecomposition={() => { void openNovelDecompositionWorkbench(); }}
                     onSettings={openSettings}
                     onOpenReleaseNotes={openReleaseNotes}
+                    currentTheme={state.currentTheme}
+                    onThemeChange={setters.setCurrentTheme}
                     hasSave={state.hasSave}
                 />
             )}

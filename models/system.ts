@@ -574,7 +574,7 @@ export interface 回忆条目结构 {
     时间戳: string; // YYYY:MM:DD:HH:MM
 }
 
-export type ThemePreset = 'ink' | 'azure' | 'ember' | 'jade' | 'violet' | 'moon' | 'crimson' | 'sand';
+export type ThemePreset = 'day' | 'ink' | 'azure' | 'ember' | 'jade' | 'violet' | 'moon' | 'crimson' | 'sand';
 
 export interface 聊天记录结构 {
     role: 'user' | 'assistant' | 'system';

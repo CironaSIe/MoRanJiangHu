@@ -11,9 +11,25 @@ type 主题定义 = {
 
 export const 主题列表: 主题定义[] = [
     {
+        id: 'day',
+        name: '白昼清卷',
+        description: '默认白天模式，白底黑字，高亮度纸底适合长时间阅读与密集信息浏览。',
+        colors: ['#F8F4E8', '#FFFFFF', '#1F2937', '#713F12'],
+        source: '浅色阅读界面：高亮度背景 + 深色正文',
+        variables: {
+            '--c-ink-black': '248 244 232',
+            '--c-ink-gray': '238 231 214',
+            '--c-wuxia-gold': '113 63 18',
+            '--c-wuxia-gold-dark': '92 45 10',
+            '--c-wuxia-cyan': '8 112 128',
+            '--c-wuxia-red': '185 28 28',
+            '--c-paper-white': '31 41 55'
+        }
+    },
+    {
         id: 'ink',
         name: '墨色经典',
-        description: '参考传统黑金 UI 与国风界面常用搭配，沉稳、厚重。',
+        description: '原黑夜模式，参考传统黑金 UI 与国风界面常用搭配，沉稳、厚重。',
         colors: ['#0E0D0B', '#1A1A1A', '#E6C86E', '#44AAAA'],
         source: '常见国风 UI：黑 / 金 / 青点缀',
         variables: {
@@ -155,4 +171,5 @@ export const 应用主题到根元素 = (theme: ThemePreset, root?: HTMLElement)
         target.style.setProperty(key, value);
     });
     target.dataset.theme = definition.id;
+    target.style.colorScheme = definition.id === 'day' ? 'light' : 'dark';
 };

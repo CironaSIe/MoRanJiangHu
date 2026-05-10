@@ -995,6 +995,42 @@ const 读取NPC境界阶位 = (npc: any): number => {
     return Math.max(1, rank);
 };
 
+const 标准化NPC基础属性 = (npc: any): {
+    力量: number;
+    敏捷: number;
+    体质: number;
+    根骨: number;
+    悟性: number;
+    福源: number;
+    境界层级: number;
+} => {
+    const rank = 读取NPC境界阶位(npc);
+    const text = [npc?.姓名, npc?.性别, npc?.身份, npc?.境界, npc?.简介].map((value) => 规范化文本(value)).join(' ');
+    const eliteBonus = /寨主|庄主|掌门|宗主|长老|供奉|统领|首领|天骄|圣女|公子|小姐/.test(text) ? 2 : 0;
+    const base = Math.max(3, 6 + rank * 2 + eliteBonus);
+    const style = {
+        力量: /刀|斧|锤|拳|力|壮|魁|猛|护卫|镖/.test(text) ? 3 : 0,
+        敏捷: /剑|刺|影|盗|弓|暗器|轻功|斥候|快/.test(text) ? 3 : 0,
+        体质: /盾|甲|僧|体|横练|护法|壮|卫/.test(text) ? 3 : 0,
+        根骨: /内功|根骨|道|僧|医|丹|长老|宗/.test(text) ? 3 : 0,
+        悟性: /书|谋|师|医|丹|阵|符|术|智|谋士/.test(text) ? 3 : 0,
+        福源: /贵|小姐|公子|少主|圣女|机缘|祥|幸运/.test(text) ? 2 : 0
+    };
+    const read = (key: keyof typeof style, fallback: number) => {
+        const raw = Number(npc?.[key]);
+        return Number.isFinite(raw) && raw > 0 ? Math.ceil(raw) : Math.max(1, Math.ceil(fallback));
+    };
+    return {
+        力量: read('力量', base + style.力量),
+        敏捷: read('敏捷', base + style.敏捷),
+        体质: read('体质', base + style.体质),
+        根骨: read('根骨', base + style.根骨),
+        悟性: read('悟性', base + style.悟性),
+        福源: read('福源', Math.max(1, base - 1 + style.福源)),
+        境界层级: Math.max(1, Math.ceil(规范化数值(npc?.境界层级, rank)))
+    };
+};
+
 const 生成NPC默认装备 = (npc: any): Record<string, string> => {
     const text = [
         npc?.姓名,
@@ -1118,16 +1154,17 @@ const 标准化NPC战斗数值 = (npc: any): {
     最大内力: number;
 } => {
     const rank = 读取NPC境界阶位(npc);
+    const attrs = 标准化NPC基础属性(npc);
     const text = [npc?.身份, npc?.境界, npc?.简介].map((value) => 规范化文本(value)).join(' ');
     const eliteBonus = /寨主|庄主|掌门|宗主|长老|供奉|统领|首领|小姐|公子/.test(text) ? 8 : 0;
-    const hp = 标准化NPC资源值(npc?.当前血量, npc?.最大血量, 85 + rank * 32 + eliteBonus * 2);
-    const sp = 标准化NPC资源值(npc?.当前精力, npc?.最大精力, 65 + rank * 24 + eliteBonus);
-    const qi = 标准化NPC资源值(npc?.当前内力, npc?.最大内力, 45 + rank * 28 + eliteBonus);
+    const hp = 标准化NPC资源值(npc?.当前血量, npc?.最大血量, 72 + attrs.体质 * 4.2 + attrs.根骨 * 2.4 + attrs.力量 * 1.2 + rank * 12 + eliteBonus * 2);
+    const sp = 标准化NPC资源值(npc?.当前精力, npc?.最大精力, 36 + attrs.体质 * 3.2 + attrs.根骨 * 2.2 + rank * 9 + eliteBonus);
+    const qi = 标准化NPC资源值(npc?.当前内力, npc?.最大内力, 18 + attrs.根骨 * 3.6 + attrs.悟性 * 3.2 + rank * 10 + eliteBonus);
     const rawAtk = Number(npc?.攻击力);
     const rawDef = Number(npc?.防御力);
     return {
-        攻击力: Number.isFinite(rawAtk) && rawAtk > 0 ? Math.ceil(rawAtk) : Math.ceil(12 + rank * 7 + eliteBonus),
-        防御力: Number.isFinite(rawDef) && rawDef > 0 ? Math.ceil(rawDef) : Math.ceil(9 + rank * 5 + Math.floor(eliteBonus / 2)),
+        攻击力: Number.isFinite(rawAtk) && rawAtk > 0 ? Math.ceil(rawAtk) : Math.ceil(attrs.力量 * 1.5 + attrs.敏捷 * 0.8 + rank * 4 + eliteBonus),
+        防御力: Number.isFinite(rawDef) && rawDef > 0 ? Math.ceil(rawDef) : Math.ceil(attrs.体质 * 1.3 + attrs.根骨 * 0.9 + rank * 3 + Math.floor(eliteBonus / 2)),
         当前血量: hp.当前,
         最大血量: hp.最大,
         当前精力: sp.当前,
@@ -1447,6 +1484,7 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
     const BUFF = 标准化NPC状态效果(npc?.BUFF ?? npc?.buff ?? npc?.增益);
     const DEBUFF = 标准化NPC状态效果(npc?.DEBUFF ?? npc?.debuff ?? npc?.负面状态);
     const 技艺 = 标准化NPC技艺(npc?.技艺);
+    const 基础属性 = 标准化NPC基础属性(npc);
     const 战斗数值 = 标准化NPC战斗数值(npc);
     const 核心性格特征 = 取首个非空文本(npc?.核心性格特征);
     const 好感度突破条件 = 取首个非空文本(npc?.好感度突破条件);
@@ -1489,6 +1527,13 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
         关系状态: typeof npc?.关系状态 === 'string' ? npc.关系状态 : '未知',
         ...(对主角称呼 ? { 对主角称呼 } : {}),
         简介: typeof npc?.简介 === 'string' ? npc.简介 : '暂无简介',
+        力量: 基础属性.力量,
+        敏捷: 基础属性.敏捷,
+        体质: 基础属性.体质,
+        根骨: 基础属性.根骨,
+        悟性: 基础属性.悟性,
+        福源: 基础属性.福源,
+        境界层级: 基础属性.境界层级,
         攻击力: 战斗数值.攻击力,
         防御力: 战斗数值.防御力,
         当前血量: 战斗数值.当前血量,
@@ -1550,9 +1595,11 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
     const mergedSkills = 标准化NPC技艺([...标准化NPC技艺(left?.技艺), ...标准化NPC技艺(right?.技艺)]);
     const mergedRelationNet = 合并关系网变量(left?.关系网变量, right?.关系网变量);
     const mergedImageArchive = 合并NPC图片档案对象(left?.图片档案, right?.图片档案);
+    const mergedBaseAttrs = 标准化NPC基础属性({ ...left, ...right });
     const mergedBaseForCombat = {
         ...left,
         ...right,
+        ...mergedBaseAttrs,
         攻击力: Number.isFinite(Number(right?.攻击力)) && Number(right?.攻击力) > 0
             ? Number(right.攻击力)
             : (Number.isFinite(Number(left?.攻击力)) && Number(left?.攻击力) > 0 ? Number(left.攻击力) : undefined),
@@ -1606,6 +1653,13 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
         关系状态: 取更优文本(取字段文本(left, '关系状态'), 取字段文本(right, '关系状态')) || '未知',
         对主角称呼: 取更优文本(取字段文本(left, '对主角称呼'), 取字段文本(right, '对主角称呼')),
         简介: 取更优文本(取字段文本(left, '简介'), 取字段文本(right, '简介')) || '暂无简介',
+        力量: mergedBaseAttrs.力量,
+        敏捷: mergedBaseAttrs.敏捷,
+        体质: mergedBaseAttrs.体质,
+        根骨: mergedBaseAttrs.根骨,
+        悟性: mergedBaseAttrs.悟性,
+        福源: mergedBaseAttrs.福源,
+        境界层级: mergedBaseAttrs.境界层级,
         核心性格特征: 取更优文本(取字段文本(left, '核心性格特征'), 取字段文本(right, '核心性格特征')),
         好感度突破条件: 取更优文本(取字段文本(left, '好感度突破条件'), 取字段文本(right, '好感度突破条件')),
         关系突破条件: 取更优文本(取字段文本(left, '关系突破条件'), 取字段文本(right, '关系突破条件')),

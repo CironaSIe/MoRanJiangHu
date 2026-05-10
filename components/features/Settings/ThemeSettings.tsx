@@ -11,6 +11,9 @@ const ThemeSettings: React.FC<Props> = ({ currentTheme, onThemeChange }) => {
     return (
         <div className="space-y-6">
             <h3 className="mb-4 text-lg font-bold font-serif text-wuxia-gold">界面风格</h3>
+            <div className="rounded-lg border border-wuxia-gold/25 bg-wuxia-gold/8 px-3 py-2 text-sm leading-relaxed text-gray-300">
+                白昼清卷为默认白天模式；墨色经典保留为原黑夜模式，可随时切换。
+            </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {主题列表.map((theme) => {

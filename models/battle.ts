@@ -3,6 +3,13 @@ export interface 战斗敌方信息 {
     境界: string;
     简介: string;
     技能: string[];
+    力量?: number;
+    敏捷?: number;
+    体质?: number;
+    根骨?: number;
+    悟性?: number;
+    福源?: number;
+    境界层级?: number;
     战斗力: number;
     防御力: number;
     当前血量: number;
