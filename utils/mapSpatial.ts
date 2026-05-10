@@ -618,6 +618,53 @@ const 计算矩形布局 = (
     );
 };
 
+const 重排离散建筑布局 = (
+    layer: 地图层级结构,
+    layerBuildings: 地图建筑结构[]
+) => {
+    if (layerBuildings.length <= 1) return;
+    const centers = layerBuildings.map((building) => 计算四角中心(building.四角坐标));
+    const minX = Math.min(...centers.map((point) => point.x));
+    const maxX = Math.max(...centers.map((point) => point.x));
+    const minY = Math.min(...centers.map((point) => point.y));
+    const maxY = Math.max(...centers.map((point) => point.y));
+    const spreadX = maxX - minX;
+    const spreadY = maxY - minY;
+    const outOfReadableBounds = centers.some((point) => (
+        point.x < 1.5 || point.x > layer.网格宽度 - 1.5 || point.y < 1.5 || point.y > layer.网格高度 - 1.5
+    ));
+    const tooScattered = spreadX > layer.网格宽度 * 0.58 || spreadY > layer.网格高度 * 0.58;
+    if (!outOfReadableBounds && !tooScattered) return;
+
+    const total = layerBuildings.length;
+    const columns = Math.max(2, Math.ceil(Math.sqrt(total)));
+    const rows = Math.max(1, Math.ceil(total / columns));
+    const clusterWidth = Math.min(layer.网格宽度 * 0.58, Math.max(10, columns * 4.6));
+    const clusterHeight = Math.min(layer.网格高度 * 0.46, Math.max(7, rows * 3.8));
+    const originX = (layer.网格宽度 - clusterWidth) / 2;
+    const originY = Math.max(1.2, (layer.网格高度 - clusterHeight) / 2);
+    const cellWidth = clusterWidth / columns;
+    const cellHeight = clusterHeight / rows;
+
+    layerBuildings.forEach((building, index) => {
+        const bounds = 计算建筑边界(building);
+        const rawWidth = Math.max(2.8, bounds.maxX - bounds.minX);
+        const rawHeight = Math.max(2.4, bounds.maxY - bounds.minY);
+        const width = Math.min(5.4, rawWidth, Math.max(2.8, cellWidth * 0.72));
+        const height = Math.min(4.8, rawHeight, Math.max(2.4, cellHeight * 0.68));
+        const column = index % columns;
+        const row = Math.floor(index / columns);
+        const x = originX + column * cellWidth + (cellWidth - width) / 2;
+        const y = originY + row * cellHeight + (cellHeight - height) / 2;
+        building.四角坐标 = 创建矩形四角(
+            限制数值(x, 0.8, Math.max(0.8, layer.网格宽度 - width - 0.8)),
+            限制数值(y, 0.8, Math.max(0.8, layer.网格高度 - height - 0.8)),
+            width,
+            height
+        );
+    });
+};
+
 const 规范化地图层级列表 = (world: any): 地图层级结构[] => (
     Array.isArray(world?.地图层级)
         ? world.地图层级
@@ -1053,6 +1100,7 @@ const 从旧版字段派生地图空间 = (
 
     layers.forEach((layer) => {
         const layerBuildings = buildings.filter((building) => building.所在层级ID === layer.ID);
+        重排离散建筑布局(layer, layerBuildings);
         避让层级建筑重叠(layer, layerBuildings);
     });
 
@@ -1075,6 +1123,34 @@ const 按层级补齐道路 = (
 
     layers.forEach((layer) => {
         const layerBuildings = buildings.filter((building) => building.所在层级ID === layer.ID);
+        const layerBounds = layerBuildings.length > 0
+            ? layerBuildings.reduce((bounds, building) => {
+                const current = 计算建筑边界(building);
+                return {
+                    minX: Math.min(bounds.minX, current.minX),
+                    maxX: Math.max(bounds.maxX, current.maxX),
+                    minY: Math.min(bounds.minY, current.minY),
+                    maxY: Math.max(bounds.maxY, current.maxY),
+                };
+            }, { minX: Number.POSITIVE_INFINITY, maxX: Number.NEGATIVE_INFINITY, minY: Number.POSITIVE_INFINITY, maxY: Number.NEGATIVE_INFINITY })
+            : null;
+        if (layerBounds) {
+            const padding = Math.max(4, Math.min(layer.网格宽度, layer.网格高度) * 0.18);
+            for (let index = roads.length - 1; index >= 0; index -= 1) {
+                const road = roads[index];
+                if (road.所在层级ID !== layer.ID) continue;
+                const touchesReadableCluster = road.路径点.some((point) => (
+                    point.x >= layerBounds.minX - padding
+                    && point.x <= layerBounds.maxX + padding
+                    && point.y >= layerBounds.minY - padding
+                    && point.y <= layerBounds.maxY + padding
+                ));
+                if (!touchesReadableCluster) {
+                    roadLookup.delete(`${road.所在层级ID}|${归一化地图文本(road.名称)}`);
+                    roads.splice(index, 1);
+                }
+            }
+        }
         const layerRoads = roads.filter((road) => road.所在层级ID === layer.ID);
         layerRoads.forEach((road) => 追加唯一值(layer.道路ID列表, road.ID));
 
@@ -1084,7 +1160,8 @@ const 按层级补齐道路 = (
             entrance: 计算建筑入口坐标(building, layer),
         }));
 
-        if (layerRoads.length === 0) {
+        const mainRoadKey = `${layer.ID}|${归一化地图文本('沿建筑主街')}`;
+        if (layerRoads.length === 0 || (buildingAnchors.length > 1 && !roadLookup.has(mainRoadKey))) {
             if (buildingAnchors.length > 0) {
                 const xs = buildingAnchors.map((item) => item.center.x);
                 const ys = buildingAnchors.map((item) => item.center.y);
@@ -1136,7 +1213,7 @@ const 按层级补齐道路 = (
                 roadLookup.set(`${layer.ID}|${归一化地图文本(mainRoad.名称)}`, mainRoad.ID);
                 追加唯一值(layer.道路ID列表, mainRoad.ID);
                 layerRoads.push(mainRoad);
-            } else {
+            } else if (layerRoads.length === 0) {
                 const ridgeRoad: 地图道路结构 = {
                     ID: 生成地图对象ID('road', layer.ID, '野径'),
                     名称: '野径',

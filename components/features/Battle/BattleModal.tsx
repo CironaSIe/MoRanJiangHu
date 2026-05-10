@@ -109,6 +109,30 @@ const 读取毒性影响 = (unit: any) => {
 
 const 读取技能文本 = (unit: any) => `${Array.isArray(unit?.技能) ? unit.技能.join(' ') : ''} ${unit?.简介 || ''} ${unit?.身份 || ''}`;
 
+const 读取法术基准 = (unit: any, baseMagic: number) => {
+    const actionText = `${unit?.本回合行动 || ''} ${unit?.当前行动 || ''} ${unit?.正在施展 || ''} ${unit?.使用技能 || ''} ${unit?.使用法术 || ''}`;
+    const kungfuList = Array.isArray(unit?.功法列表) ? unit.功法列表 : [];
+    const spells = kungfuList.filter((skill: any) => {
+        const text = `${skill?.名称 || ''} ${skill?.描述 || ''} ${skill?.类型 || ''} ${skill?.伤害类型 || ''} ${skill?.目标类型 || ''}`;
+        return /法术|术法|咒|符|雷|火|冰|风|毒雾|神魂|精神|内功|AOE|范围|全体|扇形/.test(text)
+            && 取数(skill?.基础伤害) > 0;
+    });
+    const currentSpell = spells.find((skill: any) => actionText && actionText.includes(`${skill?.名称 || ''}`.trim()));
+    const selected = currentSpell || spells.reduce((best: any | null, skill: any) => {
+        const score = 取数(skill?.基础伤害) + 取数(skill?.内力系数) * Math.max(1, 取数(unit?.当前内力)) + 取数(skill?.加成系数) * 10;
+        const bestScore = best ? 取数(best?.基础伤害) + 取数(best?.内力系数) * Math.max(1, 取数(unit?.当前内力)) + 取数(best?.加成系数) * 10 : -1;
+        return score > bestScore ? skill : best;
+    }, null);
+    if (!selected) return { 伤害: Math.max(1, Math.round(baseMagic)), 名称: '', 系数: 1 };
+    const statBonus = 取数(unit?.[selected.加成属性], 取数(unit?.悟性, 0)) * 取数(selected?.加成系数);
+    const innerBonus = Math.max(0, 取数(unit?.当前内力)) * 取数(selected?.内力系数);
+    return {
+        伤害: Math.max(1, Math.round(取数(selected?.基础伤害) + statBonus + innerBonus + baseMagic * 0.35)),
+        名称: `${selected?.名称 || ''}`,
+        系数: 1,
+    };
+};
+
 const 计算战斗指标 = (unit: any, fallbackAttack = 0, fallbackDefense = 0) => {
     const hpRatio = clamp(取数(unit?.当前血量 ?? unit?.当前气血, 1) / Math.max(1, 取数(unit?.最大血量 ?? unit?.最大气血, 1)), 0, 1);
     const spRatio = clamp(取数(unit?.当前精力, 1) / Math.max(1, 取数(unit?.最大精力, 1)), 0, 1);
@@ -128,12 +152,13 @@ const 计算战斗指标 = (unit: any, fallbackAttack = 0, fallbackDefense = 0) 
     const 远程物理守势 = Math.max(0, Math.round(baseDefense * 0.85 + physique * 0.45 + equip.物理 * 0.75 + equip.掩体 + hpRatio * 6 - poison * 0.2));
     const 法术守势 = Math.max(0, Math.round(root * 0.9 + inner * 0.08 + equip.法术 + realm * 2 + hpRatio * 5 - poison * 0.15));
     const remoteFactor = /弓|弩|暗器|飞刀|飞剑|远程|投掷|箭/.test(skillText) ? 0.9 : 0.55;
-    const spellFactor = /法术|术法|咒|符|雷|火|冰|风|毒雾|AOE|范围/.test(skillText) ? 0.95 : 0.42;
+    const spellFactor = /法术|术法|咒|符|雷|火|冰|风|毒雾|神魂|精神|内功|AOE|范围/.test(skillText) ? 0.95 : 0.42;
+    const 法术基准 = 读取法术基准(unit, (攻势 + inner * 0.12) * spellFactor);
     return {
         攻势,
         近战伤害: 攻势,
         远程物理伤害: Math.max(1, Math.round(攻势 * remoteFactor)),
-        法术伤害: Math.max(1, Math.round((攻势 + inner * 0.12) * spellFactor)),
+        法术伤害: 法术基准.伤害,
         近战守势,
         远程物理守势,
         法术守势,
@@ -142,7 +167,7 @@ const 计算战斗指标 = (unit: any, fallbackAttack = 0, fallbackDefense = 0) 
         续航: Math.round(hpRatio * 45 + spRatio * 45 + Math.min(10, inner / 10) - poison * 0.25),
         掩体: Math.round(equip.掩体),
         毒性影响: poison,
-        技能文本: skillText,
+        技能文本: 法术基准.名称 ? `${skillText} ${法术基准.名称}` : skillText,
     };
 };
 
@@ -277,7 +302,6 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
     const 首个存活敌方 = 敌方列表.find((enemy) => (enemy?.当前血量 || 0) > 0);
     const 前排队友 = 队友列表.find((npc) => (npc?.当前血量 || 0) > 0);
     const 敌方默认目标 = 前排队友?.姓名 || character.姓名 || '主角';
-    const 玩家远程伤害 = 玩家战斗指标.远程物理伤害;
     const 战场单位列表 = React.useMemo(() => {
         const allies = [
             构建战场单位({
@@ -452,7 +476,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                             <div className="mb-3 text-xs font-bold tracking-[0.22em] text-gray-300">计算规则</div>
                             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                                 {[
-                                    ['攻势', `基础攻势 = 攻击力 + 力量*1.2 + 当前内力*0.08 + 境界层级*3 + 精力比例*10 - 毒性影响*0.35；近战伤害 = 攻势；远程物理伤害 = 攻势*远程系数*高低差倍率；法术伤害 = (攻势 + 当前内力*0.12)*法术系数`],
+                                    ['攻势', `基础攻势 = 攻击力 + 力量*1.2 + 当前内力*0.08 + 境界层级*3 + 精力比例*10 - 毒性影响*0.35；近战伤害 = 攻势；远程物理伤害 = 攻势*远程系数*高低差倍率；法术伤害 = 当前施展法术基础伤害 + 加成属性*加成系数 + 当前内力*内力系数 + 基准法术压力*0.35；若本回合未指定法术，默认取已学功法中最高伤害法术`],
                                     ['守势', '近战物理守势 = 防御力 + 体质*0.7 + 根骨*0.5 + 装备物防*0.9 + 招架 + 气血比例*8 - 毒性*0.25；远程物理守势 = 防御力*0.85 + 体质*0.45 + 装备物防*0.75 + 掩体 + 气血比例*6 - 毒性*0.2；法术守势 = 根骨*0.9 + 当前内力*0.08 + 装备内防 + 境界层级*2 + 气血比例*5 - 毒性*0.15'],
                                     ['身法', '身法 = 敏捷*1.2 + 精力比例*16 + 装备身法 - 毒性影响*0.45；移动消耗 = 平面距离 + 上坡高度*1.6 - 下坡高度*0.45；一回合可先前进、行动、再后撤，只要总消耗 <= 身法'],
                                     ['脱战/突后', `逃跑脱战：若 追杀者身法 - 逃跑者身法 < 双方距离，则脱战；突后排：${突后风险}`],
@@ -485,7 +509,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                                             <div className="rounded border border-white/10 bg-black/25 px-2 py-1 text-gray-200">体 {character.体质}</div>
                                         </div>
                                         <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                                            <战斗指标条 label="攻势" value={`${可视化.玩家.攻势} / 近${可视化.玩家.攻势} 远${玩家远程伤害}`} tone="text-red-100" />
+                                            <战斗指标条 label="攻势" value={`近${玩家战斗指标.近战伤害} 远${玩家战斗指标.远程物理伤害} 法${玩家战斗指标.法术伤害}`} tone="text-red-100" />
                                             <战斗指标条 label="守势" value={`近${玩家战斗指标.近战守势} 远${玩家战斗指标.远程物理守势} 法${玩家战斗指标.法术守势}`} tone="text-sky-100" />
                                             <战斗指标条 label="身法" value={玩家战斗指标.身法} tone="text-emerald-100" />
                                             <战斗指标条 label="续航" value={玩家战斗指标.续航} tone="text-amber-100" />
@@ -507,7 +531,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                                                 <div>防御 {npc.防御力 || 0}</div>
                                             </div>
                                             <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                                                <战斗指标条 label="攻势" value={`${指标.攻势} / 近${指标.近战伤害} 远${指标.远程物理伤害} 法${指标.法术伤害}`} tone="text-red-100" />
+                                                <战斗指标条 label="攻势" value={`近${指标.近战伤害} 远${指标.远程物理伤害} 法${指标.法术伤害}`} tone="text-red-100" />
                                                 <战斗指标条 label="守势" value={`近${指标.近战守势} 远${指标.远程物理守势} 法${指标.法术守势}`} tone="text-sky-100" />
                                                 <战斗指标条 label="身法" value={指标.身法} tone="text-emerald-100" />
                                                 <战斗指标条 label="续航" value={指标.续航} tone="text-amber-100" />
@@ -539,7 +563,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                                                 <div>防御 {enemy.防御力 || 0}</div>
                                             </div>
                                             <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                                                <战斗指标条 label="攻势" value={`${指标.攻势} / 近${npc指标.近战伤害} 远${npc指标.远程物理伤害} 法${npc指标.法术伤害}`} tone="text-red-100" />
+                                                <战斗指标条 label="攻势" value={`近${npc指标.近战伤害} 远${npc指标.远程物理伤害} 法${npc指标.法术伤害}`} tone="text-red-100" />
                                                 <战斗指标条 label="守势" value={`近${npc指标.近战守势} 远${npc指标.远程物理守势} 法${npc指标.法术守势}`} tone="text-sky-100" />
                                                 <战斗指标条 label="身法" value={npc指标.身法} tone="text-emerald-100" />
                                                 <战斗指标条 label="续航" value={npc指标.续航} tone="text-amber-100" />

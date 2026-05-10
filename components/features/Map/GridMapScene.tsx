@@ -293,6 +293,7 @@ const GridMapScene: React.FC<Props> = ({
     }, []);
     const handleMapPointerDown = React.useCallback((event: React.PointerEvent<SVGSVGElement>) => {
         if (event.button !== 0) return;
+        if ((event.target as Element | null)?.closest?.('[data-map-feature]')) return;
         const rect = event.currentTarget.getBoundingClientRect();
         dragStateRef.current = {
             pointerId: event.pointerId,
@@ -322,10 +323,10 @@ const GridMapScene: React.FC<Props> = ({
             event.currentTarget.releasePointerCapture(event.pointerId);
         }
     }, []);
-    const labelScale = 1 / Math.max(1, mapZoom);
-    const buildingLabelFontSize = Math.max(0.34, 1.15 * labelScale);
-    const personLabelFontSize = Math.max(0.28, 0.72 * labelScale);
-    const personLabelHeight = Math.max(0.42, 1.05 * labelScale);
+    const inverseViewScale = Math.max(mapViewBox.width / 92, mapViewBox.height / 56);
+    const buildingLabelFontSize = Math.max(0.52, 1.05 * inverseViewScale);
+    const personLabelFontSize = Math.max(0.46, 0.72 * inverseViewScale);
+    const personLabelHeight = Math.max(0.62, 1.06 * inverseViewScale);
 
     const npcDebugRows = useMemo(() => {
         const keys = [
@@ -523,6 +524,7 @@ const GridMapScene: React.FC<Props> = ({
                                             }
                                         }}
                                         className="cursor-pointer"
+                                        data-map-feature="road"
                                     >
                                         <polyline
                                             points={road.路径点.map((point: any) => `${point.x},${point.y}`).join(' ')}
@@ -564,6 +566,7 @@ const GridMapScene: React.FC<Props> = ({
                                             }
                                         }}
                                         className="cursor-pointer"
+                                        data-map-feature="building"
                                     >
                                         <polygon
                                             points={四角转点串(building.四角坐标)}
@@ -591,7 +594,7 @@ const GridMapScene: React.FC<Props> = ({
                                 const active = selectedFeatureId === `person:${person.ID}`;
                                 const showLabel = true;
                                 const labelText = person.名称.slice(0, 6);
-                                const labelWidth = Math.max(1.6, (labelText.length * 0.68 + 0.7) * labelScale);
+                                const labelWidth = Math.max(2.1 * inverseViewScale, (labelText.length * 0.72 + 0.8) * inverseViewScale);
                                 const labelX = 约束标签X(person.坐标.x, labelWidth);
                                 const labelY = Math.max(0.25, person.坐标.y - personLabelHeight * 0.5);
                                 return (
@@ -607,6 +610,7 @@ const GridMapScene: React.FC<Props> = ({
                                             }
                                         }}
                                         className="cursor-pointer"
+                                        data-map-feature="person"
                                     >
                                         <circle
                                             cx={person.坐标.x}
@@ -624,7 +628,7 @@ const GridMapScene: React.FC<Props> = ({
                                                     y={labelY}
                                                     width={labelWidth}
                                                     height={personLabelHeight}
-                                                    rx={Math.max(0.1, 0.24 * labelScale)}
+                                                    rx={Math.max(0.12, 0.24 * inverseViewScale)}
                                                     fill={person.是否当前玩家 ? 'rgba(63, 49, 12, 0.92)' : 'rgba(5, 8, 14, 0.92)'}
                                                     stroke={active ? 'rgba(249, 217, 118, 0.86)' : 'rgba(255,255,255,0.28)'}
                                                     strokeWidth={0.08}
