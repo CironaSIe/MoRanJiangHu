@@ -1137,10 +1137,12 @@ html[data-theme="day"] .right-panel-bottom-fade {
     border-radius: 14px !important;
     border-color: rgba(181, 130, 66, 0.32) !important;
     background:
-      radial-gradient(circle at 20% 0%, rgba(212, 175, 55, 0.12), transparent 34%),
-      linear-gradient(180deg, rgba(22, 18, 13, 0.94), rgba(14, 12, 10, 0.9)) !important;
+      radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.72), transparent 36%),
+      linear-gradient(180deg, rgba(255, 250, 240, 0.98), rgba(248, 241, 222, 0.94)) !important;
     padding: 1rem !important;
     text-align: left;
+    color: rgb(94, 58, 24) !important;
+    box-shadow: -12px 0 28px rgba(120, 82, 38, 0.2) !important;
   }
 
   .desktop-right-detail-modal .lazy-scroll-loading .lazy-scroll-title {
@@ -1154,7 +1156,7 @@ html[data-theme="day"] .right-panel-bottom-fade {
     display: grid;
     flex: 1 1 auto;
     align-content: start;
-    opacity: 0.88;
+    opacity: 0.92;
   }
 
   .desktop-right-detail-modal .fixed > div .w-\[340px\] {

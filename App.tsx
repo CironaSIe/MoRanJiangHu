@@ -220,18 +220,18 @@ const 网络较慢或节省流量 = (connection?: 可选网络信息 | null): bo
     return false;
 };
 const 懒加载占位: React.FC = () => (
-    <div className="lazy-scroll-loading fixed inset-0 z-[260] flex items-center justify-center bg-black/45 px-6 py-10 text-center backdrop-blur-[2px]">
+    <div className="lazy-scroll-loading fixed inset-0 z-[260] flex items-center justify-center bg-[#f8f4e8]/70 px-6 py-10 text-center backdrop-blur-[2px]">
         <div
-            className="lazy-scroll-shell rounded-2xl border border-wuxia-gold/25 bg-black/78 px-6 py-5 text-wuxia-gold/85 shadow-[0_0_36px_rgba(0,0,0,0.52)]"
+            className="lazy-scroll-shell rounded-2xl border border-wuxia-gold/35 bg-[#fffaf0]/95 px-6 py-5 text-[#7a4a1f] shadow-[0_18px_42px_rgba(120,82,38,0.18)]"
             style={{ fontSize: 'var(--ui-compact-font-size, 14px)' }}
         >
             <div className="lazy-scroll-title tracking-[0.22em]">卷轴展开中…</div>
             <div className="lazy-scroll-skeleton mt-5 grid gap-3 text-left" aria-hidden="true">
                 <div className="h-4 w-28 rounded-full bg-wuxia-gold/20" />
-                <div className="h-20 rounded-xl border border-wuxia-gold/15 bg-white/[0.04]" />
+                <div className="h-20 rounded-xl border border-wuxia-gold/20 bg-white/60" />
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="h-16 rounded-lg border border-white/10 bg-white/[0.035]" />
-                    <div className="h-16 rounded-lg border border-white/10 bg-white/[0.035]" />
+                    <div className="h-16 rounded-lg border border-wuxia-gold/15 bg-white/55" />
+                    <div className="h-16 rounded-lg border border-wuxia-gold/15 bg-white/55" />
                 </div>
             </div>
         </div>

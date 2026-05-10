@@ -443,23 +443,23 @@ const GridMapScene: React.FC<Props> = ({
 
     return (
         <div className="grid h-full min-h-0 grid-cols-1 gap-3">
-            <aside className={`order-2 min-h-0 overflow-hidden rounded-2xl border border-wuxia-gold/15 bg-black/35 ${compact ? 'p-3' : 'p-3.5'}`}>
-                <div className="mb-3 flex items-center justify-between gap-2 text-sm font-bold tracking-widest text-wuxia-gold/75">
+            <aside className={`order-2 min-h-0 overflow-hidden rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0] ${compact ? 'p-3' : 'p-3.5'}`}>
+                <div className="mb-3 flex items-center justify-between gap-2 text-sm font-bold tracking-widest text-[#7a3f12]">
                     <span>地图层级</span>
-                    <span className="rounded border border-wuxia-gold/15 bg-black/35 px-2 py-0.5 font-mono text-gray-400">{layers.length}</span>
+                    <span className="rounded border border-[#d8c4a2] bg-[#fffdf6] px-2 py-0.5 font-mono text-[#5f3a1e]">{layers.length}</span>
                 </div>
 
-                <div className="mb-3 rounded-xl border border-wuxia-gold/10 bg-black/30 p-3">
-                    <div className="text-xs font-bold tracking-[0.24em] text-wuxia-gold/60">当前路径</div>
-                    <div className="mt-2 text-base leading-7 text-gray-300">
+                <div className="mb-3 rounded-xl border border-[#d8c4a2] bg-[#fffdf6] p-3">
+                    <div className="text-xs font-bold tracking-[0.24em] text-[#8a5a2f]">当前路径</div>
+                    <div className="mt-2 text-base leading-7 text-[#4f2d16]">
                         {layerChain.length > 0 ? layerChain.map((layer, index) => (
                             <span key={layer.ID}>
-                                <span className={layer.ID === currentLayerId ? 'text-wuxia-gold' : ''}>{layer.名称}</span>
-                                {index < layerChain.length - 1 ? <span className="mx-1 text-gray-600">/</span> : null}
+                                <span className={layer.ID === currentLayerId ? 'text-[#b45309]' : ''}>{layer.名称}</span>
+                                {index < layerChain.length - 1 ? <span className="mx-1 text-[#a87945]">/</span> : null}
                             </span>
                         )) : '未命中层级'}
                     </div>
-                    <div className="mt-2 text-sm text-gray-500">{layerSummaryText}</div>
+                    <div className="mt-2 text-sm text-[#6f4a26]">{layerSummaryText}</div>
                 </div>
 
                 <div className="grid max-h-[13rem] grid-cols-1 gap-2 overflow-y-auto pr-1 custom-scrollbar md:grid-cols-2 xl:grid-cols-3">
@@ -472,15 +472,15 @@ const GridMapScene: React.FC<Props> = ({
                                 onClick={() => setSelectedLayerId(layer.ID)}
                                 className={`w-full rounded-xl border px-3 py-2 text-left transition-all ${
                                     active
-                                        ? 'border-wuxia-gold/55 bg-wuxia-gold/12 text-wuxia-gold shadow-[0_0_16px_rgba(212,175,55,0.12)]'
-                                        : 'border-white/10 bg-black/25 text-gray-300 hover:border-wuxia-gold/25'
+                                        ? 'border-[#b45309] bg-[#fff1d6] text-[#7a3f12] shadow-[0_0_16px_rgba(180,83,9,0.12)]'
+                                        : 'border-[#d8c4a2] bg-[#fffdf6] text-[#4f2d16] hover:border-[#b45309]/55'
                                 }`}
                             >
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="truncate font-serif text-base font-bold">{layer.名称}</span>
-                                    <span className="text-xs text-gray-500">{layer.层级}</span>
+                                    <span className="text-xs text-[#6f4a26]">{layer.层级}</span>
                                 </div>
-                                <div className="mt-1 truncate text-xs text-gray-500">
+                                <div className="mt-1 truncate text-xs text-[#6f4a26]">
                                     建筑 {layer.建筑物ID列表.length} / 道路 {layer.道路ID列表.length} / 人物 {layer.人物ID列表.length}
                                 </div>
                             </button>
@@ -489,15 +489,15 @@ const GridMapScene: React.FC<Props> = ({
                 </div>
 
                 {childLayers.length > 0 && (
-                    <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
-                        <div className="mb-2 text-xs font-bold tracking-[0.24em] text-wuxia-gold/60">下一级</div>
+                    <div className="mt-3 rounded-xl border border-[#d8c4a2] bg-[#fffdf6] p-3">
+                        <div className="mb-2 text-xs font-bold tracking-[0.24em] text-[#8a5a2f]">下一级</div>
                         <div className="flex flex-wrap gap-2">
                             {childLayers.map((layer) => (
                                 <button
                                     key={layer.ID}
                                     type="button"
                                     onClick={() => setSelectedLayerId(layer.ID)}
-                                    className="rounded-full border border-white/10 bg-black/35 px-3 py-1.5 text-[11px] text-gray-300 hover:border-wuxia-gold/25 hover:text-wuxia-gold"
+                                    className="rounded-full border border-[#d8c4a2] bg-[#fffaf0] px-3 py-1.5 text-[11px] text-[#4f2d16] hover:border-[#b45309]/55 hover:text-[#b45309]"
                                 >
                                     {layer.名称}
                                 </button>
@@ -508,19 +508,19 @@ const GridMapScene: React.FC<Props> = ({
             </aside>
 
             <div className="order-1 grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-3">
-                <section className="min-h-0 overflow-hidden rounded-2xl border border-wuxia-gold/20 bg-[linear-gradient(180deg,rgba(19,16,12,0.96),rgba(6,6,5,0.98))]">
-                    <div className="flex items-center justify-between gap-3 border-b border-wuxia-gold/10 bg-black/35 px-4 py-3">
+                <section className="min-h-0 overflow-hidden rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0]">
+                    <div className="flex items-center justify-between gap-3 border-b border-[#d8c4a2] bg-[#fffdf6] px-4 py-3">
                         <div className="min-w-0">
-                            <div className="truncate font-serif text-2xl font-bold text-wuxia-gold">{selectedLayer?.名称 || '未命中层级'}</div>
-                            <div className="mt-1 truncate text-sm tracking-widest text-gray-500">{env?.大地点 || '未知'} / {env?.中地点 || '未知'} / {env?.小地点 || '未知'} / {env?.具体地点 || '未知'}</div>
+                            <div className="truncate font-serif text-2xl font-bold text-[#7a3f12]">{selectedLayer?.名称 || '未命中层级'}</div>
+                            <div className="mt-1 truncate text-sm tracking-widest text-[#5f3a1e]">{env?.大地点 || '未知'} / {env?.中地点 || '未知'} / {env?.小地点 || '未知'} / {env?.具体地点 || '未知'}</div>
                         </div>
-                        <div className="rounded-full border border-wuxia-gold/20 bg-wuxia-gold/10 px-3 py-1 text-xs text-wuxia-gold">
+                        <div className="rounded-full border border-[#c7a56a]/55 bg-[#fff1d6] px-3 py-1 text-xs text-[#7a3f12]">
                             建筑 {currentLayerBuildings.length} / 道路 {currentLayerRoads.length} / 人物 {currentLayerPeople.length}
                         </div>
                     </div>
 
                     <div className={`relative ${compact ? 'h-[460px]' : 'h-full min-h-[560px]'} overflow-hidden overscroll-contain`} onWheel={handleMapWheel}>
-                        <div className="absolute right-3 top-3 z-10 rounded-full border border-wuxia-gold/20 bg-black/60 px-3 py-1 text-xs font-mono text-wuxia-gold/80">
+                        <div className="absolute right-3 top-3 z-10 rounded-full border border-[#c7a56a]/55 bg-[#fffaf0]/95 px-3 py-1 text-xs font-mono text-[#7a3f12]">
                             缩放 {mapZoom.toFixed(1)}x
                         </div>
                         <svg
@@ -538,15 +538,15 @@ const GridMapScene: React.FC<Props> = ({
                                     y={0}
                                     width={mapWidth}
                                     height={mapHeight}
-                                    fill="rgba(34, 80, 48, 0.08)"
+                                    fill="rgba(76, 130, 74, 0.12)"
                                     pointerEvents="none"
                                 />
                             )}
                             {terrainRegions.showHills && (
                                 <path
                                     d={terrainRegions.hillPath}
-                                    fill="rgba(74, 68, 43, 0.24)"
-                                    stroke="rgba(187, 247, 208, 0.14)"
+                                    fill="rgba(196, 157, 92, 0.24)"
+                                    stroke="rgba(126, 88, 36, 0.38)"
                                     strokeWidth={0.12}
                                     pointerEvents="none"
                                 />
@@ -554,8 +554,8 @@ const GridMapScene: React.FC<Props> = ({
                             {terrainRegions.showWater && (
                                 <path
                                     d={terrainRegions.waterPath}
-                                    fill="rgba(14, 78, 112, 0.24)"
-                                    stroke="rgba(125, 211, 252, 0.28)"
+                                    fill="rgba(125, 184, 205, 0.32)"
+                                    stroke="rgba(32, 91, 115, 0.42)"
                                     strokeWidth={0.12}
                                     pointerEvents="none"
                                 />
@@ -568,7 +568,7 @@ const GridMapScene: React.FC<Props> = ({
                                     y1={0}
                                     x2={index}
                                     y2={mapHeight}
-                                    stroke={index % 4 === 0 ? 'rgba(212,175,55,0.16)' : 'rgba(255,255,255,0.05)'}
+                                    stroke={index % 4 === 0 ? 'rgba(146,64,14,0.32)' : 'rgba(126,88,36,0.18)'}
                                     strokeWidth={index % 4 === 0 ? 0.12 : 0.06}
                                     pointerEvents="none"
                                 />
@@ -580,7 +580,7 @@ const GridMapScene: React.FC<Props> = ({
                                     y1={index}
                                     x2={mapWidth}
                                     y2={index}
-                                    stroke={index % 4 === 0 ? 'rgba(212,175,55,0.16)' : 'rgba(255,255,255,0.05)'}
+                                    stroke={index % 4 === 0 ? 'rgba(146,64,14,0.32)' : 'rgba(126,88,36,0.18)'}
                                     strokeWidth={index % 4 === 0 ? 0.12 : 0.06}
                                     pointerEvents="none"
                                 />
@@ -591,7 +591,7 @@ const GridMapScene: React.FC<Props> = ({
                                     key={`contour-${index}`}
                                     points={points.map((point) => `${point.x},${point.y}`).join(' ')}
                                     fill="none"
-                                    stroke={index % 2 === 0 ? 'rgba(125, 211, 252, 0.13)' : 'rgba(187, 247, 208, 0.12)'}
+                                    stroke={index % 2 === 0 ? 'rgba(32, 91, 115, 0.26)' : 'rgba(76, 130, 74, 0.24)'}
                                     strokeWidth={0.12}
                                     strokeDasharray="0.6 0.45"
                                     strokeLinecap="round"
@@ -662,9 +662,9 @@ const GridMapScene: React.FC<Props> = ({
                                     >
                                         <polygon
                                             points={四角转点串(building.四角坐标)}
-                                            fill={active ? 'rgba(245, 208, 92, 0.34)' : hit ? 'rgba(245, 158, 11, 0.24)' : 'rgba(255,255,255,0.12)'}
-                                            stroke={active ? 'rgba(249, 217, 118, 0.96)' : hit ? 'rgba(245, 158, 11, 0.72)' : 'rgba(229,231,235,0.35)'}
-                                            strokeWidth={active ? 0.32 : 0.2}
+                                            fill={active ? 'rgba(245, 196, 50, 0.42)' : hit ? 'rgba(245, 158, 11, 0.32)' : 'rgba(245, 231, 198, 0.58)'}
+                                            stroke={active ? 'rgba(120, 53, 15, 1)' : hit ? 'rgba(180, 83, 9, 0.92)' : 'rgba(92, 45, 10, 0.82)'}
+                                            strokeWidth={active ? 0.42 : 0.28}
                                             pointerEvents="none"
                                         />
                                         {showBuildingLabel && (
@@ -673,7 +673,7 @@ const GridMapScene: React.FC<Props> = ({
                                                 y={center.y}
                                                 textAnchor="middle"
                                                 dominantBaseline="middle"
-                                                fill={active || hit ? '#f8df9a' : 'rgba(229,231,235,0.78)'}
+                                                fill={active || hit ? '#7a2e0e' : '#3f2a14'}
                                                 fontSize={buildingLabelFontSize}
                                                 pointerEvents="none"
                                             >
@@ -775,17 +775,17 @@ const GridMapScene: React.FC<Props> = ({
                 </section>
 
                 <section className={`grid gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]'}`}>
-                    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <div className="rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0] p-4">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                                <div className="truncate font-serif text-xl font-bold text-wuxia-gold">{detailTitle}</div>
-                                <div className="mt-1 text-xs tracking-widest text-gray-500">{detailType}</div>
+                                <div className="truncate font-serif text-xl font-bold text-[#7a3f12]">{detailTitle}</div>
+                                <div className="mt-1 text-xs tracking-widest text-[#6f4a26]">{detailType}</div>
                             </div>
                             {selectedFeature?.kind === 'person' && selectedFeature.data?.是否当前玩家 && (
-                                <span className="rounded-full border border-wuxia-gold/25 bg-wuxia-gold/10 px-2 py-1 text-xs text-wuxia-gold">当前位置</span>
+                                <span className="rounded-full border border-[#c7a56a]/55 bg-[#fff1d6] px-2 py-1 text-xs text-[#7a3f12]">当前位置</span>
                             )}
                         </div>
-                        <p className="mt-3 whitespace-pre-line text-base leading-7 text-gray-300">{detailBody}</p>
+                        <p className="mt-3 whitespace-pre-line text-base leading-7 text-[#4f2d16]">{detailBody}</p>
                         {selectedFeature?.kind === 'person' && !selectedFeature.data?.是否当前玩家 && onOpenPerson && (
                             <button
                                 type="button"
@@ -793,16 +793,16 @@ const GridMapScene: React.FC<Props> = ({
                                     const matchedNpc = 匹配社交人物(selectedFeature.data);
                                     onOpenPerson(matchedNpc ? { ...matchedNpc, 地图人物: selectedFeature.data } : selectedFeature.data);
                                 }}
-                                className="mt-3 rounded-lg border border-wuxia-gold/30 bg-wuxia-gold/10 px-3 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold hover:text-black"
+                                className="mt-3 rounded-lg border border-[#b45309]/45 bg-[#fff1d6] px-3 py-2 text-xs font-bold text-[#7a3f12] hover:bg-[#b45309] hover:text-white"
                             >
                                 查看角色
                             </button>
                         )}
                     </div>
 
-                    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                        <div className="mb-2 text-xs font-bold tracking-widest text-wuxia-gold/70">当前层概况</div>
-                        <div className="space-y-2 text-base text-gray-300">
+                    <div className="rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0] p-4">
+                        <div className="mb-2 text-xs font-bold tracking-widest text-[#8a5a2f]">当前层概况</div>
+                        <div className="space-y-2 text-base text-[#4f2d16]">
                             <div>当前命中地点：{currentPlace}</div>
                             <div>层级链：{layerChain.length > 0 ? layerChain.map((layer) => layer.名称).join(' / ') : '未知'}</div>
                             <div>建筑面：{currentLayerBuildings.length} 个</div>
@@ -815,20 +815,20 @@ const GridMapScene: React.FC<Props> = ({
                                 <button
                                     type="button"
                                     onClick={() => setShowNpcDebug((prev) => !prev)}
-                                    className="mt-4 rounded-lg border border-sky-400/25 bg-sky-950/20 px-3 py-2 text-xs text-sky-200"
+                                    className="mt-4 rounded-lg border border-sky-600/35 bg-sky-50 px-3 py-2 text-xs text-sky-800"
                                 >
                                     {showNpcDebug ? '收起 NPC 调试' : '展开 NPC 调试'}
                                 </button>
                                 {showNpcDebug && (
-                                    <div className="mt-3 max-h-40 space-y-2 overflow-y-auto rounded-xl border border-sky-400/20 bg-sky-950/10 p-3 custom-scrollbar">
+                                    <div className="mt-3 max-h-40 space-y-2 overflow-y-auto rounded-xl border border-sky-600/20 bg-sky-50 p-3 custom-scrollbar">
                                         {npcDebugRows.length > 0 ? npcDebugRows.map((row) => (
-                                            <div key={row.id} className="rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-[11px] text-gray-300">
-                                                <span className="text-gray-100">{row.name}</span>
-                                                <span className="mx-2 text-gray-600">/</span>
-                                                <span className={row.finalVisible ? 'text-emerald-300' : 'text-gray-500'}>{row.finalVisible ? '会显示' : '未命中'}</span>
-                                                <span className="ml-2 text-gray-500">{row.rawLocationText || '无位置字段'}</span>
+                                            <div key={row.id} className="rounded-lg border border-[#d8c4a2] bg-[#fffdf6] px-3 py-2 text-[11px] text-[#4f2d16]">
+                                                <span className="text-[#3f2a14]">{row.name}</span>
+                                                <span className="mx-2 text-[#a87945]">/</span>
+                                                <span className={row.finalVisible ? 'text-emerald-700' : 'text-[#6f4a26]'}>{row.finalVisible ? '会显示' : '未命中'}</span>
+                                                <span className="ml-2 text-[#6f4a26]">{row.rawLocationText || '无位置字段'}</span>
                                             </div>
-                                        )) : <div className="py-3 text-center text-xs text-gray-500">暂无 NPC 数据</div>}
+                                        )) : <div className="py-3 text-center text-xs text-[#6f4a26]">暂无 NPC 数据</div>}
                                     </div>
                                 )}
                             </>

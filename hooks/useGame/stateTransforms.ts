@@ -65,6 +65,27 @@ const 取首个有效文本片段 = (...values: unknown[]): string => {
     }
     return '';
 };
+const 默认角色技艺 = ['炼器', '炼丹', '医术', '阵法', '符箓', '机关', '采集', '鉴定']
+    .map((名称) => ({ 名称, 等级: '未入门', 熟练度: 0, 描述: '尚未形成稳定技艺。' }));
+const 标准化角色技艺 = (raw: any): Array<{ 名称: string; 等级: string; 熟练度: number; 描述: string }> => {
+    const source = Array.isArray(raw) ? raw : [];
+    const byName = new Map<string, { 名称: string; 等级: string; 熟练度: number; 描述: string }>();
+    source.forEach((item: any) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return;
+        const 名称 = 规范化文本(item?.名称);
+        if (!名称) return;
+        byName.set(名称, {
+            名称,
+            等级: 规范化文本(item?.等级, '未入门') || '未入门',
+            熟练度: Math.max(0, Math.min(100, 规范化数值(item?.熟练度, 0))),
+            描述: 规范化文本(item?.描述, '尚未形成稳定技艺。') || '尚未形成稳定技艺。'
+        });
+    });
+    默认角色技艺.forEach((item) => {
+        if (!byName.has(item.名称)) byName.set(item.名称, { ...item });
+    });
+    return Array.from(byName.values());
+};
 const 生成物品名称 = (item: any): string => {
     const rawName = 规范化文本(item?.名称);
     if (rawName && !未命名物品正则.test(rawName)) return rawName;
@@ -607,6 +628,7 @@ const 规范化角色物品容器映射 = (rawRole?: any): 角色数据结构 =>
         .filter(Boolean)
         .map((item: any, idx: number) => ({ ...item, 索引: idx }));
     (role as any).功法列表 = Array.isArray((role as any).功法列表) ? (role as any).功法列表 : [];
+    (role as any).技艺 = 标准化角色技艺((role as any).技艺);
 
     const rawEquip = role?.装备 && typeof role.装备 === 'object' ? role.装备 : ({} as any);
     role.装备 = { ...默认装备模板, ...(rawEquip as any) };

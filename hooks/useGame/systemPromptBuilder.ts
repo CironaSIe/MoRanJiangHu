@@ -440,6 +440,15 @@ export const 构建系统提示词 = ({
                 当前进度: 取文本(raw?.当前进度)
             };
         });
+        const 技艺列表 = 取数组(role?.技艺).map((item: any) => {
+            const raw = item && typeof item === 'object' ? item : {};
+            return {
+                名称: 取文本(raw?.名称),
+                等级: 取文本(raw?.等级),
+                熟练度: 取数值(raw?.熟练度),
+                描述: 取文本(raw?.描述)
+            };
+        });
         const 功法列表 = 取数组(role?.功法列表).map((item: any) => {
             const raw = item && typeof item === 'object' ? item : {};
             const 附带效果 = 取数组(raw?.附带效果).map((effect: any) => ({
@@ -560,6 +569,7 @@ export const 构建系统提示词 = ({
                     : { 名称: 取文本(item) }
             )),
             功法列表,
+            技艺: 技艺列表,
             当前经验: 取数值(role?.当前经验),
             升级经验: 取数值(role?.升级经验),
             玩家BUFF: 玩家BUFF列表,

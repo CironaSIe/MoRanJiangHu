@@ -1021,10 +1021,11 @@ export const 执行主剧情发送工作流 = async (
                     stageId: "variable",
                     stageLabel: "变量生成",
                     beforeAttempt: (attempt) => {
-                        if (attempt <= 1) return;
                         options?.onVariableGenerationProgress?.({
                             phase: "start",
-                            text: `正在重新执行变量生成...（第 ${attempt} 次手动重试）`
+                            text: attempt > 1
+                                ? `正在重新执行变量生成...（第 ${attempt} 次手动重试）`
+                                : "正在执行变量生成..."
                         });
                     },
                     onAutoRetry: (attempt, maxAttempts, reason) => {

@@ -595,20 +595,46 @@ const InputArea: React.FC<Props> = ({
     };
 
     useEffect(() => {
-        const hasOpeningQueueProgress = [openingWorldEvolutionProgress, openingPlanningProgress]
-            .some((item) => item?.phase === 'start' || item?.phase === 'done' || item?.phase === 'error' || item?.phase === 'skipped' || item?.phase === 'cancelled');
-        if (hasOpeningQueueProgress) {
+        const hasQueueProgress = [
+            polishProgress,
+            effectiveVariableGenerationProgress,
+            effectiveWorldEvolutionProgress,
+            effectivePlanningProgress
+        ].some((item) => item?.phase === 'start' || item?.phase === 'done' || item?.phase === 'error' || item?.phase === 'skipped' || item?.phase === 'cancelled');
+        const hasRunningQueueStage = [
+            polishProgress,
+            effectiveVariableGenerationProgress,
+            effectiveWorldEvolutionProgress,
+            effectivePlanningProgress
+        ].some((item) => item?.phase === 'start');
+        if (hasQueueProgress && (hasRunningQueueStage || postStoryQueueRunning)) {
             setQueueCollapsed(false);
         }
-    }, [openingWorldEvolutionProgress, openingPlanningProgress]);
+    }, [
+        postStoryQueueRunning,
+        polishProgress?.phase,
+        effectiveVariableGenerationProgress?.phase,
+        effectiveWorldEvolutionProgress?.phase,
+        effectivePlanningProgress?.phase
+    ]);
 
     useEffect(() => {
-        const hasMainQueueError = [polishProgress, worldEvolutionProgress, planningProgress]
+        const hasMainQueueError = [
+            polishProgress,
+            effectiveVariableGenerationProgress,
+            effectiveWorldEvolutionProgress,
+            effectivePlanningProgress
+        ]
             .some((item) => item?.phase === 'error');
         if (hasMainQueueError) {
             setQueueCollapsed(false);
         }
-    }, [polishProgress, worldEvolutionProgress, planningProgress]);
+    }, [
+        polishProgress?.phase,
+        effectiveVariableGenerationProgress?.phase,
+        effectiveWorldEvolutionProgress?.phase,
+        effectivePlanningProgress?.phase
+    ]);
 
     useEffect(() => {
         if (!queueVisible || queueRunning) return;

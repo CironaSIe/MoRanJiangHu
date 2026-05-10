@@ -258,7 +258,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                         <div className={`mt-1 text-xs tracking-[0.16em] text-wuxia-gold/45 ${isMobile ? 'hidden' : ''}`}>AUCTION HOUSE</div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="hidden max-w-[560px] rounded border border-wuxia-gold/20 bg-[#0f0c08] px-3 py-1.5 text-xs text-wuxia-gold/80 sm:block">
+                        <div className="hidden max-w-[560px] rounded border border-wuxia-gold/20 bg-[#0f0c08] px-3 py-1.5 text-xs leading-5 text-wuxia-gold/80 sm:block whitespace-normal break-words">
                             {格式化金钱折算(money)}
                         </div>
                         <button type="button" onClick={handleRefresh} className={`rounded-lg border border-emerald-500/40 bg-[#103522] text-xs text-emerald-100 transition-colors hover:border-emerald-300/60 ${isMobile ? 'px-2 py-1.5' : 'px-3 py-1.5'}`}>
@@ -297,12 +297,12 @@ const AuctionHouseModal: React.FC<Props> = ({
                                         {marketList.slice(0, 3).map((market) => (
                                             <div key={market.ID} className="min-w-0 overflow-hidden rounded-lg border border-amber-400/20 bg-[#2c1c08] px-3 py-2">
                                                 <div className="flex items-center justify-between gap-2 text-xs">
-                                                    <span className="truncate font-semibold text-amber-100">{market.标题}</span>
+                                                    <span className="min-w-0 whitespace-normal break-words font-semibold text-amber-100">{market.标题}</span>
                                                     <span className={`shrink-0 font-mono ${market.价格倍率 >= 1 ? 'text-emerald-300' : 'text-sky-300'}`}>
                                                         ×{market.价格倍率.toFixed(2)}
                                                     </span>
                                                 </div>
-                                                <div className="mt-1 line-clamp-1 break-words text-[11px] text-gray-300">{market.描述}</div>
+                                                <div className="mt-1 whitespace-normal break-words text-[11px] leading-4 text-gray-300">{market.描述}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -318,16 +318,16 @@ const AuctionHouseModal: React.FC<Props> = ({
                                             <div key={`${record.ID}-${record.成交时间 || record.时间 || ''}`} className="rounded-lg border border-white/8 bg-[#151515] p-2 text-xs">
                                                 {'物品' in record ? (
                                                     <>
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <span className={`min-w-0 truncate ${getRarityNameClass(record.物品?.品质 || '')}`}>{record.物品?.名称 || '无名物品'}</span>
+                                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                                            <span className={`min-w-0 whitespace-normal break-words ${getRarityNameClass(record.物品?.品质 || '')}`}>{record.物品?.名称 || '无名物品'}</span>
                                                             <span className="shrink-0 font-mono text-wuxia-gold/80">{格式化拍卖货币(record.一口价 || record.当前价格, record.标价货币)}</span>
                                                         </div>
-                                                        <div className="mt-1 truncate text-[10px] text-gray-500">{record.卖家名称} → {record.购买者名称 || '买家'}</div>
+                                                        <div className="mt-1 whitespace-normal break-words text-[10px] leading-4 text-gray-500">{record.卖家名称} → {record.购买者名称 || '买家'}</div>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <div className="truncate text-gray-200">{record.标题}</div>
-                                                        <div className="mt-1 line-clamp-2 text-[10px] leading-4 text-gray-500">{record.描述}</div>
+                                                        <div className="whitespace-normal break-words text-gray-200">{record.标题}</div>
+                                                        <div className="mt-1 whitespace-normal break-words text-[10px] leading-4 text-gray-500">{record.描述}</div>
                                                     </>
                                                 )}
                                             </div>
@@ -357,7 +357,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                     </section>
 
                     <main className={`auction-house-list-panel min-h-0 flex-1 overflow-y-auto custom-scrollbar ${isMobile ? 'p-2' : 'p-3'}`}>
-                        <div className={`auction-house-item-grid grid ${isNarrowPanel ? 'grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-2' : 'grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))] gap-3'}`}>
+                        <div className={`auction-house-item-grid grid ${isNarrowPanel ? 'grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-2' : 'grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-3'}`}>
                             {displayAuctions.map((entry) => {
                                 const styles = getRarityStyles(entry.物品?.品质 || '');
                                 const selected = selectedAuction?.ID === entry.ID;
@@ -370,13 +370,21 @@ const AuctionHouseModal: React.FC<Props> = ({
                                         {entry.是否限时热点 && <div className="absolute right-2 top-2 rounded-full border border-amber-300/40 bg-[#5b3608] px-2 py-0.5 text-xs font-bold text-amber-100">热点</div>}
                                         <div className={`${isMobile ? 'pr-10' : 'pr-12'} font-serif text-sm font-bold leading-5 break-words ${getRarityNameClass(entry.物品?.品质 || '')}`}>{entry.物品?.名称 || '无名物品'}</div>
                                         <div className={`mt-2 flex items-start justify-between ${isMobile ? 'gap-2' : 'gap-3'}`}>
-                                            <div className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} shrink-0 overflow-hidden rounded-lg border border-wuxia-gold/15 bg-black/35 flex items-center justify-center`}>
+                                            <button
+                                                type="button"
+                                                onClick={(event) => { event.stopPropagation(); void handleGenerateItemImage(entry); }}
+                                                disabled={Boolean(generatingItemId)}
+                                                title={isGenerating ? '正在生成物品图像' : '点击生成或重绘物品图像'}
+                                                className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} shrink-0 overflow-hidden rounded-lg border border-wuxia-gold/15 bg-black/35 flex items-center justify-center transition-colors hover:border-sky-300/60 focus:border-sky-300/70 disabled:cursor-wait disabled:opacity-70`}
+                                            >
                                                 {itemIconImage ? (
                                                     <img src={itemIconImage} alt={entry.物品?.名称 || '物品图标'} className="h-full w-full object-cover" />
+                                                ) : isGenerating ? (
+                                                    <span className="text-xs text-sky-200">生成中</span>
                                                 ) : (
                                                     <span className="text-xs text-wuxia-gold/65">{entry.物品?.类型 || '物'}</span>
                                                 )}
-                                            </div>
+                                            </button>
                                             <div className="min-w-0">
                                                 <div className="mt-1 flex flex-wrap gap-1">
                                                     {(entry.市场标签 || []).slice(0, isMobile ? 1 : 3).map((tag) => (
@@ -385,7 +393,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className={`${isMobile ? 'mt-2 line-clamp-1 min-h-[1rem] text-[10px] leading-4' : 'mt-3 line-clamp-2 min-h-[2.5rem] text-xs leading-5'} text-gray-300`}>{entry.物品?.描述 || entry.来源描述 || '暂无描述。'}</div>
+                                        <div className={`${isMobile ? 'mt-2 min-h-[1rem] text-[10px] leading-4' : 'mt-3 min-h-[2.5rem] text-xs leading-5'} whitespace-normal break-words text-gray-300`}>{entry.物品?.描述 || entry.来源描述 || '暂无描述。'}</div>
                                         <div className={`grid grid-cols-2 ${isMobile ? 'mt-2 gap-1 text-[10px]' : 'mt-3 gap-2 text-[11px]'} text-gray-300`}>
                                             <div className={`rounded border border-white/8 bg-black/20 ${isMobile ? 'px-1.5 py-1' : 'px-2 py-1.5'}`}>
                                                 <span className="text-gray-500">类型 </span>{entry.物品?.类型 || '杂物'}
@@ -394,32 +402,26 @@ const AuctionHouseModal: React.FC<Props> = ({
                                                 <span className="text-gray-500">品质 </span>{entry.物品?.品质 || '凡品'}
                                             </div>
                                             <div className={`rounded border border-white/8 bg-black/20 ${isMobile ? 'px-1.5 py-1' : 'px-2 py-1.5'}`}>
-                                                <span className="text-gray-500">卖家 </span><span className="truncate">{entry.卖家名称}</span>
+                                                <span className="text-gray-500">卖家 </span><span className="whitespace-normal break-words">{entry.卖家名称}</span>
                                             </div>
                                             <div className={`rounded border border-white/8 bg-black/20 ${isMobile ? 'px-1.5 py-1' : 'px-2 py-1.5'}`}>
                                                 <span className="text-gray-500">到期 </span>{格式化时间(entry.过期时间)}
                                             </div>
                                         </div>
                                         {!isMobile && (entry.来源描述 || entry.关联事件) && (
-                                            <div className="mt-2 truncate rounded border border-amber-400/15 bg-[#241806] px-2 py-1.5 text-[11px] text-amber-100/80">
+                                            <div className="mt-2 whitespace-normal break-words rounded border border-amber-400/15 bg-[#241806] px-2 py-1.5 text-[11px] leading-4 text-amber-100/80">
                                                 {entry.来源描述}{entry.关联事件 ? ` · ${entry.关联事件}` : ''}
                                             </div>
                                         )}
-                                        <div className={`mt-3 flex ${isMobile ? 'flex-col items-stretch' : 'items-center justify-between'} gap-2 border-t border-white/8 pt-3`}>
-                                            <span className={`font-mono ${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-wuxia-gold`}>{格式化拍卖货币(entry.一口价, entry.标价货币)}</span>
+                                        <div className={`mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t border-white/8 pt-3`}>
+                                            <span className={`min-w-0 whitespace-normal break-words font-mono ${isMobile ? 'text-xs' : 'text-sm'} font-semibold leading-5 text-wuxia-gold`}>{格式化拍卖货币(entry.一口价, entry.标价货币)}</span>
                                             {isPlayerListing ? (
-                                                <div className="flex flex-wrap gap-2">
-                                                    <button type="button" onClick={(event) => { event.stopPropagation(); void handleGenerateItemImage(entry); }} disabled={Boolean(generatingItemId)} className="rounded-lg border border-sky-400/35 bg-[#0b2a3a] px-3 py-1.5 text-xs font-semibold text-sky-100 transition-colors hover:border-sky-300/60 disabled:cursor-wait disabled:opacity-60">
-                                                        {isGenerating ? '生图中' : (itemIconImage ? '重绘' : '生图')}
-                                                    </button>
+                                                <div className="flex shrink-0 flex-wrap justify-end gap-2">
                                                     <button type="button" onClick={(event) => { event.stopPropagation(); handleCancelListing(entry); }} className="rounded-lg border border-sky-500/40 bg-[#0b2a3a] px-3 py-1.5 text-xs font-semibold text-sky-100 transition-colors hover:border-sky-300/60">撤回</button>
                                                     <button type="button" onClick={(event) => { event.stopPropagation(); handleYahangBuyout(entry); }} className="rounded-lg border border-emerald-500/40 bg-[#103522] px-3 py-1.5 text-xs font-semibold text-emerald-100 transition-colors hover:border-emerald-300/60">收购</button>
                                                 </div>
                                             ) : (
-                                                <div className="flex flex-wrap gap-2">
-                                                    <button type="button" onClick={(event) => { event.stopPropagation(); void handleGenerateItemImage(entry); }} disabled={Boolean(generatingItemId)} className="rounded-lg border border-sky-400/35 bg-[#0b2a3a] px-3 py-1.5 text-xs font-semibold text-sky-100 transition-colors hover:border-sky-300/60 disabled:cursor-wait disabled:opacity-60">
-                                                        {isGenerating ? '生图中' : (itemIconImage ? '重绘' : '生图')}
-                                                    </button>
+                                                <div className="flex shrink-0 flex-wrap justify-end gap-2">
                                                     <button type="button" onClick={(event) => { event.stopPropagation(); handleBuy(entry); }} disabled={!affordable} className="rounded-lg border border-wuxia-gold/35 bg-[#332812] px-3 py-1.5 text-xs font-semibold text-wuxia-gold transition-colors hover:bg-[#443416] disabled:cursor-not-allowed disabled:border-gray-700 disabled:bg-gray-900 disabled:text-gray-500">
                                                         {affordable ? '买下' : '钱数不足'}
                                                     </button>
