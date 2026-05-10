@@ -452,84 +452,19 @@ const GridMapScene: React.FC<Props> = ({
         : '暂无层级';
 
     return (
-        <div className="grid h-full min-h-0 grid-cols-1 gap-3">
-            <aside className={`order-2 min-h-0 max-h-[180px] overflow-hidden rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0] ${compact ? 'p-3' : 'p-3.5'}`}>
-                <div className="mb-3 flex items-center justify-between gap-2 text-sm font-bold tracking-widest text-[#7a3f12]">
-                    <span>地图层级</span>
-                    <span className="rounded border border-[#d8c4a2] bg-[#fffdf6] px-2 py-0.5 font-mono text-[#5f3a1e]">{layers.length}</span>
+        <div className="grid h-full min-h-0 grid-cols-[1fr_auto] gap-3">
+            <section className="order-1 flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0]">
+                <div className="flex items-center justify-between gap-3 border-b border-[#d8c4a2] bg-[#fffdf6] px-4 py-3">
+                    <div className="min-w-0">
+                        <div className="truncate font-serif text-2xl font-bold text-[#7a3f12]">{selectedLayer?.名称 || '未命中层级'}</div>
+                        <div className="mt-1 truncate text-sm tracking-widest text-[#5f3a1e]">{env?.大地点 || '未知'} / {env?.中地点 || '未知'} / {env?.小地点 || '未知'} / {env?.具体地点 || '未知'}</div>
+                    </div>
+                    <div className="rounded-full border border-[#c7a56a]/55 bg-[#fff1d6] px-3 py-1 text-xs text-[#7a3f12]">
+                        建筑 {currentLayerBuildings.length} / 道路 {currentLayerRoads.length} / 人物 {currentLayerPeople.length}
+                    </div>
                 </div>
 
-                <div className="mb-3 rounded-xl border border-[#d8c4a2] bg-[#fffdf6] p-3">
-                    <div className="text-xs font-bold tracking-[0.24em] text-[#8a5a2f]">当前路径</div>
-                    <div className="mt-2 text-base leading-7 text-[#4f2d16]">
-                        {layerChain.length > 0 ? layerChain.map((layer, index) => (
-                            <span key={layer.ID}>
-                                <span className={layer.ID === currentLayerId ? 'text-[#b45309]' : ''}>{layer.名称}</span>
-                                {index < layerChain.length - 1 ? <span className="mx-1 text-[#a87945]">/</span> : null}
-                            </span>
-                        )) : '未命中层级'}
-                    </div>
-                    <div className="mt-2 text-sm text-[#6f4a26]">{layerSummaryText}</div>
-                </div>
-
-                <div className="grid max-h-[12rem] grid-cols-1 gap-2 overflow-y-auto pr-1 custom-scrollbar md:grid-cols-2 xl:grid-cols-3">
-                    {siblingLayers.map((layer) => {
-                        const active = layer.ID === currentLayerId;
-                        return (
-                            <button
-                                key={layer.ID}
-                                type="button"
-                                onClick={() => setSelectedLayerId(layer.ID)}
-                                className={`w-full rounded-xl border px-3 py-2 text-left transition-all ${
-                                    active
-                                        ? 'border-[#b45309] bg-[#fff1d6] text-[#7a3f12] shadow-[0_0_16px_rgba(180,83,9,0.12)]'
-                                        : 'border-[#d8c4a2] bg-[#fffdf6] text-[#4f2d16] hover:border-[#b45309]/55'
-                                }`}
-                            >
-                                <div className="flex items-center justify-between gap-2">
-                                    <span className="truncate font-serif text-base font-bold">{layer.名称}</span>
-                                    <span className="text-xs text-[#6f4a26]">{layer.层级}</span>
-                                </div>
-                                <div className="mt-1 truncate text-xs text-[#6f4a26]">
-                                    建筑 {layer.建筑物ID列表.length} / 道路 {layer.道路ID列表.length} / 人物 {layer.人物ID列表.length}
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {childLayers.length > 0 && (
-                    <div className="mt-3 rounded-xl border border-[#d8c4a2] bg-[#fffdf6] p-3">
-                        <div className="mb-2 text-xs font-bold tracking-[0.24em] text-[#8a5a2f]">下一级</div>
-                        <div className="flex flex-wrap gap-2">
-                            {childLayers.map((layer) => (
-                                <button
-                                    key={layer.ID}
-                                    type="button"
-                                    onClick={() => setSelectedLayerId(layer.ID)}
-                                    className="rounded-full border border-[#d8c4a2] bg-[#fffaf0] px-3 py-1.5 text-[11px] text-[#4f2d16] hover:border-[#b45309]/55 hover:text-[#b45309]"
-                                >
-                                    {layer.名称}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </aside>
-
-            <div className="order-1 flex min-h-0 flex-col gap-3">
-                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0]">
-                    <div className="flex items-center justify-between gap-3 border-b border-[#d8c4a2] bg-[#fffdf6] px-4 py-3">
-                        <div className="min-w-0">
-                            <div className="truncate font-serif text-2xl font-bold text-[#7a3f12]">{selectedLayer?.名称 || '未命中层级'}</div>
-                            <div className="mt-1 truncate text-sm tracking-widest text-[#5f3a1e]">{env?.大地点 || '未知'} / {env?.中地点 || '未知'} / {env?.小地点 || '未知'} / {env?.具体地点 || '未知'}</div>
-                        </div>
-                        <div className="rounded-full border border-[#c7a56a]/55 bg-[#fff1d6] px-3 py-1 text-xs text-[#7a3f12]">
-                            建筑 {currentLayerBuildings.length} / 道路 {currentLayerRoads.length} / 人物 {currentLayerPeople.length}
-                        </div>
-                    </div>
-
-                    <div className={`relative ${compact ? 'h-[520px]' : 'min-h-0 flex-1'} overflow-hidden overscroll-contain`} onWheel={handleMapWheel}>
+                <div className={`relative ${compact ? 'h-[520px]' : 'aspect-square w-full'} overflow-hidden overscroll-contain`} onWheel={handleMapWheel}>
                         <div className="absolute right-3 top-3 z-10 rounded-full border border-[#c7a56a]/55 bg-[#fffaf0]/95 px-3 py-1 text-xs font-mono text-[#7a3f12]">
                             缩放 {mapZoom.toFixed(1)}x
                         </div>
@@ -784,68 +719,131 @@ const GridMapScene: React.FC<Props> = ({
                     </div>
                 </section>
 
-                <section className={`grid max-h-[200px] shrink-0 gap-3 overflow-y-auto custom-scrollbar ${compact ? 'grid-cols-1' : 'grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]'}`}>
-                    <div className="rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0] p-4">
-                        <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                                <div className="truncate font-serif text-xl font-bold text-[#7a3f12]">{detailTitle}</div>
-                                <div className="mt-1 text-xs tracking-widest text-[#6f4a26]">{detailType}</div>
-                            </div>
-                            {selectedFeature?.kind === 'person' && selectedFeature.data?.是否当前玩家 && (
-                                <span className="rounded-full border border-[#c7a56a]/55 bg-[#fff1d6] px-2 py-1 text-xs text-[#7a3f12]">当前位置</span>
-                            )}
+            <aside className="order-2 w-[380px] min-h-0 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+                <div className="rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0] p-4">
+                    <div className="mb-3 flex items-center justify-between gap-2 text-sm font-bold tracking-widest text-[#7a3f12]">
+                        <span>地图层级</span>
+                        <span className="rounded border border-[#d8c4a2] bg-[#fffdf6] px-2 py-0.5 font-mono text-[#5f3a1e]">{layers.length}</span>
+                    </div>
+
+                    <div className="mb-3 rounded-xl border border-[#d8c4a2] bg-[#fffdf6] p-3">
+                        <div className="text-xs font-bold tracking-[0.24em] text-[#8a5a2f]">当前路径</div>
+                        <div className="mt-2 text-sm leading-6 text-[#4f2d16]">
+                            {layerChain.length > 0 ? layerChain.map((layer, index) => (
+                                <span key={layer.ID}>
+                                    <span className={layer.ID === currentLayerId ? 'text-[#b45309] font-bold' : ''}>{layer.名称}</span>
+                                    {index < layerChain.length - 1 ? <span className="mx-1 text-[#a87945]">/</span> : null}
+                                </span>
+                            )) : '未命中层级'}
                         </div>
-                        <p className="mt-3 whitespace-pre-line text-base leading-7 text-[#4f2d16]">{detailBody}</p>
-                        {selectedFeature?.kind === 'person' && !selectedFeature.data?.是否当前玩家 && onOpenPerson && (
+                        <div className="mt-2 text-xs text-[#6f4a26]">{layerSummaryText}</div>
+                    </div>
+
+                    <div className="space-y-2">
+                        {siblingLayers.map((layer) => {
+                            const active = layer.ID === currentLayerId;
+                            return (
+                                <button
+                                    key={layer.ID}
+                                    type="button"
+                                    onClick={() => setSelectedLayerId(layer.ID)}
+                                    className={`w-full rounded-xl border px-3 py-2 text-left transition-all ${
+                                        active
+                                            ? 'border-[#b45309] bg-[#fff1d6] text-[#7a3f12] shadow-[0_0_16px_rgba(180,83,9,0.12)]'
+                                            : 'border-[#d8c4a2] bg-[#fffdf6] text-[#4f2d16] hover:border-[#b45309]/55'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="truncate font-serif text-sm font-bold">{layer.名称}</span>
+                                        <span className="text-xs text-[#6f4a26]">{layer.层级}</span>
+                                    </div>
+                                    <div className="mt-1 text-xs text-[#6f4a26]">
+                                        建筑 {layer.建筑物ID列表.length} / 道路 {layer.道路ID列表.length} / 人物 {layer.人物ID列表.length}
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {childLayers.length > 0 && (
+                        <div className="mt-3 rounded-xl border border-[#d8c4a2] bg-[#fffdf6] p-3">
+                            <div className="mb-2 text-xs font-bold tracking-[0.24em] text-[#8a5a2f]">下一级</div>
+                            <div className="flex flex-wrap gap-2">
+                                {childLayers.map((layer) => (
+                                    <button
+                                        key={layer.ID}
+                                        type="button"
+                                        onClick={() => setSelectedLayerId(layer.ID)}
+                                        className="rounded-full border border-[#d8c4a2] bg-[#fffaf0] px-3 py-1.5 text-[11px] text-[#4f2d16] hover:border-[#b45309]/55 hover:text-[#b45309]"
+                                    >
+                                        {layer.名称}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0] p-4">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="min-w-0">
+                            <div className="truncate font-serif text-lg font-bold text-[#7a3f12]">{detailTitle}</div>
+                            <div className="mt-1 text-xs tracking-widest text-[#6f4a26]">{detailType}</div>
+                        </div>
+                        {selectedFeature?.kind === 'person' && selectedFeature.data?.是否当前玩家 && (
+                            <span className="rounded-full border border-[#c7a56a]/55 bg-[#fff1d6] px-2 py-1 text-xs text-[#7a3f12] whitespace-nowrap">当前位置</span>
+                        )}
+                    </div>
+                    <p className="whitespace-pre-line text-sm leading-6 text-[#4f2d16]">{detailBody}</p>
+                    {selectedFeature?.kind === 'person' && !selectedFeature.data?.是否当前玩家 && onOpenPerson && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const matchedNpc = 匹配社交人物(selectedFeature.data);
+                                onOpenPerson(matchedNpc ? { ...matchedNpc, 地图人物: selectedFeature.data } : selectedFeature.data);
+                            }}
+                            className="mt-3 w-full rounded-lg border border-[#b45309]/45 bg-[#fff1d6] px-3 py-2 text-xs font-bold text-[#7a3f12] hover:bg-[#b45309] hover:text-white transition-colors"
+                        >
+                            查看角色
+                        </button>
+                    )}
+                </div>
+
+                <div className="rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0] p-4">
+                    <div className="mb-2 text-xs font-bold tracking-widest text-[#8a5a2f]">当前层概况</div>
+                    <div className="space-y-2 text-sm text-[#4f2d16]">
+                        <div>当前命中地点：{currentPlace}</div>
+                        <div>层级链：{layerChain.length > 0 ? layerChain.map((layer) => layer.名称).join(' / ') : '未知'}</div>
+                        <div>建筑面：{currentLayerBuildings.length} 个</div>
+                        <div>道路线：{currentLayerRoads.length} 条</div>
+                        <div>人物点：{currentLayerPeople.length} 个</div>
+                    </div>
+
+                    {debugEnabled && (
+                        <>
                             <button
                                 type="button"
-                                onClick={() => {
-                                    const matchedNpc = 匹配社交人物(selectedFeature.data);
-                                    onOpenPerson(matchedNpc ? { ...matchedNpc, 地图人物: selectedFeature.data } : selectedFeature.data);
-                                }}
-                                className="mt-3 rounded-lg border border-[#b45309]/45 bg-[#fff1d6] px-3 py-2 text-xs font-bold text-[#7a3f12] hover:bg-[#b45309] hover:text-white"
+                                onClick={() => setShowNpcDebug((prev) => !prev)}
+                                className="mt-4 w-full rounded-lg border border-sky-600/35 bg-sky-50 px-3 py-2 text-xs text-sky-800"
                             >
-                                查看角色
+                                {showNpcDebug ? '收起 NPC 调试' : '展开 NPC 调试'}
                             </button>
-                        )}
-                    </div>
-
-                    <div className="rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0] p-4">
-                        <div className="mb-2 text-xs font-bold tracking-widest text-[#8a5a2f]">当前层概况</div>
-                        <div className="space-y-2 text-base text-[#4f2d16]">
-                            <div>当前命中地点：{currentPlace}</div>
-                            <div>层级链：{layerChain.length > 0 ? layerChain.map((layer) => layer.名称).join(' / ') : '未知'}</div>
-                            <div>建筑面：{currentLayerBuildings.length} 个</div>
-                            <div>道路线：{currentLayerRoads.length} 条</div>
-                            <div>人物点：{currentLayerPeople.length} 个</div>
-                        </div>
-
-                        {debugEnabled && (
-                            <>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowNpcDebug((prev) => !prev)}
-                                    className="mt-4 rounded-lg border border-sky-600/35 bg-sky-50 px-3 py-2 text-xs text-sky-800"
-                                >
-                                    {showNpcDebug ? '收起 NPC 调试' : '展开 NPC 调试'}
-                                </button>
-                                {showNpcDebug && (
-                                    <div className="mt-3 max-h-40 space-y-2 overflow-y-auto rounded-xl border border-sky-600/20 bg-sky-50 p-3 custom-scrollbar">
-                                        {npcDebugRows.length > 0 ? npcDebugRows.map((row) => (
-                                            <div key={row.id} className="rounded-lg border border-[#d8c4a2] bg-[#fffdf6] px-3 py-2 text-[11px] text-[#4f2d16]">
-                                                <span className="text-[#3f2a14]">{row.name}</span>
-                                                <span className="mx-2 text-[#a87945]">/</span>
-                                                <span className={row.finalVisible ? 'text-emerald-700' : 'text-[#6f4a26]'}>{row.finalVisible ? '会显示' : '未命中'}</span>
-                                                <span className="ml-2 text-[#6f4a26]">{row.rawLocationText || '无位置字段'}</span>
-                                            </div>
-                                        )) : <div className="py-3 text-center text-xs text-[#6f4a26]">暂无 NPC 数据</div>}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </section>
-            </div>
+                            {showNpcDebug && (
+                                <div className="mt-3 max-h-40 space-y-2 overflow-y-auto rounded-xl border border-sky-600/20 bg-sky-50 p-3 custom-scrollbar">
+                                    {npcDebugRows.length > 0 ? npcDebugRows.map((row) => (
+                                        <div key={row.id} className="rounded-lg border border-[#d8c4a2] bg-[#fffdf6] px-3 py-2 text-[11px] text-[#4f2d16]">
+                                            <span className="text-[#3f2a14]">{row.name}</span>
+                                            <span className="mx-2 text-[#a87945]">/</span>
+                                            <span className={row.finalVisible ? 'text-emerald-700' : 'text-[#6f4a26]'}>{row.finalVisible ? '会显示' : '未命中'}</span>
+                                            <span className="ml-2 text-[#6f4a26]">{row.rawLocationText || '无位置字段'}</span>
+                                        </div>
+                                    )) : <div className="py-3 text-center text-xs text-[#6f4a26]">暂无 NPC 数据</div>}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </aside>
         </div>
     );
 };

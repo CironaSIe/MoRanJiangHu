@@ -163,7 +163,7 @@ const RightPanel: React.FC<Props> = ({
                         >
                             <span className="whitespace-nowrap" style={{ fontSize: scaleFont(0.96, 12), lineHeight: 1.35 }}>{item.label}</span>
                             {hasUnreadChange && (
-                                <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(248,113,113,0.9)] ring-1 ring-red-200/60" />
+                                <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-600 shadow-[0_0_14px_rgba(220,38,38,1)] ring-2 ring-red-400/80 animate-pulse" />
                             )}
                         </GameButton>
                     );})}

@@ -455,7 +455,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                 {/* 顶栏 */}
                 <div className="h-14 shrink-0 border-b border-wuxia-gold/10 bg-gradient-to-r from-black/80 to-black/40 flex items-center justify-between px-6 relative z-50">
                     <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full animate-pulse shadow-[0_0_10px_rgba(255,0,0,0.8)] ${battle?.是否战斗中 ? 'bg-red-500' : 'bg-wuxia-gold'}`}></div>
+                        <div className={`w-2 h-2 rounded-full animate-pulse shadow-[0_0_14px_rgba(255,0,0,1)] ${battle?.是否战斗中 ? 'bg-red-600' : 'bg-wuxia-gold'}`}></div>
                         <h3 className="text-wuxia-gold font-serif font-bold text-xl tracking-[0.4em] drop-shadow-md">
                             战斗局势
                             <span className="text-[10px] text-wuxia-gold/50 ml-2 font-mono tracking-widest border border-wuxia-gold/20 px-2 py-0.5 rounded-full">COMBAT</span>
