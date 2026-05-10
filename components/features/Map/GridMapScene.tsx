@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { 世界数据结构 } from '../../../models/world';
 import { 环境信息结构 } from '../../../models/environment';
 import {
@@ -125,6 +125,16 @@ const GridMapScene: React.FC<Props> = ({
     const [selectedFeatureId, setSelectedFeatureId] = useState('');
     const [showNpcDebug, setShowNpcDebug] = useState(false);
     const [mapZoom, setMapZoom] = useState(1);
+    const [mapFocusPoint, setMapFocusPoint] = useState<{ x: number; y: number } | null>(null);
+    const [mapPan, setMapPan] = useState({ x: 0, y: 0 });
+    const dragStateRef = useRef<{
+        pointerId: number;
+        startClientX: number;
+        startClientY: number;
+        startPan: { x: number; y: number };
+        viewBox: { width: number; height: number };
+        rect: { width: number; height: number };
+    } | null>(null);
 
     useEffect(() => {
         setSelectedLayerId(defaultLayerId);
@@ -132,6 +142,8 @@ const GridMapScene: React.FC<Props> = ({
 
     useEffect(() => {
         setMapZoom(1);
+        setMapPan({ x: 0, y: 0 });
+        setMapFocusPoint(null);
     }, [selectedLayerId]);
 
     const selectedLayer = useMemo(
@@ -206,7 +218,10 @@ const GridMapScene: React.FC<Props> = ({
     const 约束标签X = (x: number, width: number) => Math.max(0.25, Math.min(mapWidth - width - 0.25, x - width / 2));
     const 打开人物 = (person: any) => {
         setSelectedFeatureId(`person:${person.ID}`);
-        if (!person?.是否当前玩家) {
+        if (person?.是否当前玩家 && person?.坐标) {
+            setMapFocusPoint({ x: person.坐标.x, y: person.坐标.y });
+            setMapPan({ x: 0, y: 0 });
+        } else {
             onOpenPerson?.(person);
         }
     };
@@ -244,16 +259,52 @@ const GridMapScene: React.FC<Props> = ({
         const zoom = 约束数值(mapZoom, 1, 8);
         const width = Math.max(1, contentBounds.width / zoom);
         const height = Math.max(1, contentBounds.height / zoom);
-        const centerX = contentBounds.x + contentBounds.width / 2;
-        const centerY = contentBounds.y + contentBounds.height / 2;
+        const centerX = (mapFocusPoint?.x ?? (contentBounds.x + contentBounds.width / 2)) + mapPan.x;
+        const centerY = (mapFocusPoint?.y ?? (contentBounds.y + contentBounds.height / 2)) + mapPan.y;
         const x = 约束数值(centerX - width / 2, 0, Math.max(0, mapWidth - width));
         const y = 约束数值(centerY - height / 2, 0, Math.max(0, mapHeight - height));
         return { x, y, width, height };
-    }, [contentBounds, mapHeight, mapWidth, mapZoom]);
+    }, [contentBounds, mapFocusPoint, mapHeight, mapPan, mapWidth, mapZoom]);
     const handleMapWheel = React.useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+        event.preventDefault();
         const direction = event.deltaY < 0 ? 1 : -1;
         setMapZoom((prev) => 约束数值(Number((prev + direction * 0.35).toFixed(2)), 1, 8));
     }, []);
+    const handleMapPointerDown = React.useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+        if (event.button !== 0) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        dragStateRef.current = {
+            pointerId: event.pointerId,
+            startClientX: event.clientX,
+            startClientY: event.clientY,
+            startPan: mapPan,
+            viewBox: { width: mapViewBox.width, height: mapViewBox.height },
+            rect: { width: Math.max(1, rect.width), height: Math.max(1, rect.height) },
+        };
+        event.currentTarget.setPointerCapture(event.pointerId);
+    }, [mapPan, mapViewBox.height, mapViewBox.width]);
+    const handleMapPointerMove = React.useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+        const state = dragStateRef.current;
+        if (!state || state.pointerId !== event.pointerId) return;
+        const dx = (event.clientX - state.startClientX) / state.rect.width * state.viewBox.width;
+        const dy = (event.clientY - state.startClientY) / state.rect.height * state.viewBox.height;
+        setMapFocusPoint(null);
+        setMapPan({
+            x: state.startPan.x - dx,
+            y: state.startPan.y - dy,
+        });
+    }, []);
+    const handleMapPointerUp = React.useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+        const state = dragStateRef.current;
+        if (state?.pointerId === event.pointerId) {
+            dragStateRef.current = null;
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+    }, []);
+    const labelScale = 1 / Math.max(1, mapZoom);
+    const buildingLabelFontSize = Math.max(0.34, 1.15 * labelScale);
+    const personLabelFontSize = Math.max(0.28, 0.72 * labelScale);
+    const personLabelHeight = Math.max(0.42, 1.05 * labelScale);
 
     const npcDebugRows = useMemo(() => {
         const keys = [
@@ -388,7 +439,15 @@ const GridMapScene: React.FC<Props> = ({
                         <div className="absolute right-3 top-3 z-10 rounded-full border border-wuxia-gold/20 bg-black/60 px-3 py-1 text-[10px] font-mono text-wuxia-gold/80">
                             缩放 {mapZoom.toFixed(1)}x
                         </div>
-                        <svg className="absolute inset-0 h-full w-full" viewBox={`${mapViewBox.x} ${mapViewBox.y} ${mapViewBox.width} ${mapViewBox.height}`} preserveAspectRatio="xMidYMid meet">
+                        <svg
+                            className="absolute inset-0 h-full w-full cursor-grab active:cursor-grabbing touch-none"
+                            viewBox={`${mapViewBox.x} ${mapViewBox.y} ${mapViewBox.width} ${mapViewBox.height}`}
+                            preserveAspectRatio="xMidYMid meet"
+                            onPointerDown={handleMapPointerDown}
+                            onPointerMove={handleMapPointerMove}
+                            onPointerUp={handleMapPointerUp}
+                            onPointerCancel={handleMapPointerUp}
+                        >
                             {Array.from({ length: Math.floor(mapWidth) + 1 }).map((_, index) => (
                                 <line
                                     key={`grid-x-${index}`}
@@ -447,10 +506,20 @@ const GridMapScene: React.FC<Props> = ({
                                         <polyline
                                             points={road.路径点.map((point: any) => `${point.x},${point.y}`).join(' ')}
                                             fill="none"
+                                            stroke="rgba(8,8,7,0.86)"
+                                            strokeWidth={active ? 1.05 : 0.86}
+                                            strokeLinecap="butt"
+                                            strokeLinejoin="miter"
+                                            pointerEvents="none"
+                                        />
+                                        <polyline
+                                            points={road.路径点.map((point: any) => `${point.x},${point.y}`).join(' ')}
+                                            fill="none"
                                             stroke={active ? 'rgba(249, 217, 118, 0.92)' : 'rgba(214, 176, 84, 0.65)'}
-                                            strokeWidth={active ? 0.55 : 0.38}
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
+                                            strokeWidth={active ? 0.38 : 0.26}
+                                            strokeDasharray="0.55 0.42"
+                                            strokeLinecap="butt"
+                                            strokeLinejoin="miter"
                                             pointerEvents="none"
                                         />
                                     </g>
@@ -488,7 +557,7 @@ const GridMapScene: React.FC<Props> = ({
                                             textAnchor="middle"
                                             dominantBaseline="middle"
                                             fill={active || hit ? '#f8df9a' : 'rgba(229,231,235,0.78)'}
-                                            fontSize="1.15"
+                                            fontSize={buildingLabelFontSize}
                                             pointerEvents="none"
                                         >
                                             {building.名称.slice(0, 6)}
@@ -501,9 +570,9 @@ const GridMapScene: React.FC<Props> = ({
                                 const active = selectedFeatureId === `person:${person.ID}`;
                                 const showLabel = active || person.是否当前玩家;
                                 const labelText = person.名称.slice(0, 6);
-                                const labelWidth = Math.max(2.8, labelText.length * 0.68 + 0.7);
+                                const labelWidth = Math.max(1.6, (labelText.length * 0.68 + 0.7) * labelScale);
                                 const labelX = 约束标签X(person.坐标.x, labelWidth);
-                                const labelY = Math.max(0.25, person.坐标.y - 0.52);
+                                const labelY = Math.max(0.25, person.坐标.y - personLabelHeight * 0.5);
                                 return (
                                     <g
                                         key={person.ID}
@@ -533,8 +602,8 @@ const GridMapScene: React.FC<Props> = ({
                                                     x={labelX}
                                                     y={labelY}
                                                     width={labelWidth}
-                                                    height={1.05}
-                                                    rx={0.24}
+                                                    height={personLabelHeight}
+                                                    rx={Math.max(0.1, 0.24 * labelScale)}
                                                     fill={person.是否当前玩家 ? 'rgba(63, 49, 12, 0.92)' : 'rgba(5, 8, 14, 0.92)'}
                                                     stroke={active ? 'rgba(249, 217, 118, 0.86)' : 'rgba(255,255,255,0.28)'}
                                                     strokeWidth={0.08}
@@ -542,11 +611,11 @@ const GridMapScene: React.FC<Props> = ({
                                                 />
                                                 <text
                                                     x={labelX + labelWidth / 2}
-                                                    y={labelY + 0.54}
+                                                    y={labelY + personLabelHeight / 2}
                                                     textAnchor="middle"
                                                     dominantBaseline="middle"
                                                     fill={person.是否当前玩家 ? '#fde68a' : 'rgba(229,231,235,0.92)'}
-                                                    fontSize="0.72"
+                                                    fontSize={personLabelFontSize}
                                                     pointerEvents="none"
                                                 >
                                                     {labelText}

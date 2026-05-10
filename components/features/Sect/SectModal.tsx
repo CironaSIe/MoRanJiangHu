@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 详细门派结构, 门派任务, 职位等级排序 } from '../../../models/sect';
 import { 游戏时间格式 } from '../../../models/world';
 
@@ -18,6 +18,27 @@ type Tab = 'hall' | 'missions' | 'exchange' | 'library' | 'members';
 const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc, onLearnBook, learnedBookIds = [], onAcceptMission }) => {
     const [activeTab, setActiveTab] = useState<Tab>('hall');
     const [missionFilter, setMissionFilter] = useState<'all' | 'active' | 'available'>('all');
+    const 未加入门派 = !sectData
+        || ['none', '无', '无门无派', '未加入', '散人'].includes(String(sectData.ID || '').trim())
+        || ['none', '无', '无门无派', '未加入', '散人'].includes(String(sectData.名称 || '').trim())
+        || ['none', '无', '无门无派', '未加入', '散人'].includes(String(sectData.玩家职位 || '').trim());
+    const tabs = useMemo(() => (
+        未加入门派
+            ? [{ id: 'hall' as Tab, label: '宗门大殿' }]
+            : [
+                { id: 'hall' as Tab, label: '宗门大殿' },
+                { id: 'missions' as Tab, label: '任务布告' },
+                { id: 'exchange' as Tab, label: '聚宝阁' },
+                { id: 'library' as Tab, label: '藏经阁' },
+                { id: 'members' as Tab, label: '同门名录' },
+            ]
+    ), [未加入门派]);
+
+    useEffect(() => {
+        if (未加入门派 && activeTab !== 'hall') {
+            setActiveTab('hall');
+        }
+    }, [activeTab, 未加入门派]);
 
     // Helper: Parse Time
     const parseTime = (timeStr: string) => {
@@ -41,7 +62,7 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc,
         }
     };
 
-    const filteredMissions = sectData.任务列表.filter(m => {
+    const filteredMissions = (sectData.任务列表 || []).filter(m => {
         if (missionFilter === 'all') return true;
         if (missionFilter === 'active') return m.当前状态 === '进行中';
         if (missionFilter === 'available') return m.当前状态 === '可接取';
@@ -130,13 +151,7 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc,
                     
                     {/* Sidebar Navigation */}
                     <div className="w-64 bg-black/20 border-r border-gray-800/50 flex flex-col py-6 gap-2">
-                        {[
-                            { id: 'hall', label: '宗门大殿' },
-                            { id: 'missions', label: '任务布告' },
-                            { id: 'exchange', label: '聚宝阁' },
-                            { id: 'library', label: '藏经阁' },
-                            { id: 'members', label: '同门名录' },
-                        ].map(tab => (
+                        {tabs.map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as Tab)}
@@ -157,6 +172,19 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc,
                         {/* --- HALL (Overview) --- */}
                         {activeTab === 'hall' && (
                             <div className="max-w-4xl mx-auto space-y-8 animate-slide-in">
+                                {未加入门派 ? (
+                                    <div className="bg-black/30 border border-gray-700 p-8 rounded-lg relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-4 opacity-10 text-[120px] font-serif leading-none pointer-events-none">散</div>
+                                        <h4 className="text-wuxia-gold font-bold text-lg mb-4 flex items-center gap-2">
+                                            <span className="w-1 h-6 bg-wuxia-gold"></span>
+                                            尚未加入门派
+                                        </h4>
+                                        <p className="text-gray-300 font-serif leading-loose text-lg indent-8">
+                                            当前仍是江湖散人，暂无晋升、贡献、藏经阁、聚宝阁和同门名录。加入门派后，这里才会显示对应宗门事务。
+                                        </p>
+                                    </div>
+                                ) : (
+                                <>
                                 <div className="bg-black/30 border border-gray-700 p-8 rounded-lg relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-4 opacity-10 text-[120px] font-serif leading-none pointer-events-none">宗</div>
                                     <h4 className="text-wuxia-gold font-bold text-lg mb-4 flex items-center gap-2">
@@ -234,6 +262,8 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc,
                                          </div>
                                      </div>
                                 </div>
+                                </>
+                                )}
                             </div>
                         )}
 

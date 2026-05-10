@@ -32,7 +32,7 @@ type 世界生成工作流依赖 = {
     创建开场基础状态: (charData: 角色数据结构, worldConfig: WorldGenConfig, openingConfig?: OpeningConfig) => any;
     构建前端清空开场状态: (baseState: any) => any;
     应用开场基态: (baseState: any) => void;
-    创建开场命令基态: (charData?: 角色数据结构) => any;
+    创建开场命令基态: (openingBase?: any) => any;
     执行开场剧情生成: (
         contextData: any,
         promptSnapshot: 提示词结构[],
@@ -427,7 +427,7 @@ export const 执行世界生成工作流 = async (
             openingStreaming,
             currentApi,
             {
-                命令基态: deps.创建开场命令基态(),
+                命令基态: deps.创建开场命令基态(openingBase),
                 开局额外要求: normalizedOpeningExtraPrompt,
                 开局配置: openingConfig
             }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { 创建空门派状态, 规范化门派状态, 是否无门派标识 } from '../hooks/useGame/storyState';
+import { 创建空门派状态, 创建开场基础状态, 创建开场命令基态, 规范化门派状态, 是否无门派标识 } from '../hooks/useGame/storyState';
 
 describe('门派状态规范化', () => {
     it('无门派语义不会补默认同门', () => {
@@ -36,5 +36,42 @@ describe('门派状态规范化', () => {
         expect(normalized.ID).toBe('sect_qingyun');
         expect(normalized.重要成员.length).toBeGreaterThan(0);
         expect(是否无门派标识(normalized.ID)).toBe(false);
+    });
+
+    it('开局命令基态会保留已选择生成的门派和同门', () => {
+        const openingBase = 创建开场基础状态(
+            {
+                姓名: '沈墨',
+                所属门派ID: '玄墨派',
+                门派职位: '外门弟子',
+                门派贡献: 100
+            } as any,
+            {} as any,
+            {
+                初始关系模板: '师门牵引',
+                关系侧重: ['师门'],
+                开局切入偏好: '门派起手',
+                开局生成门派: true,
+                开局生成同门: true,
+                同人融合: {
+                    enabled: false,
+                    作品名: '',
+                    来源类型: '原创',
+                    融合强度: '轻度',
+                    保留原著角色: false,
+                    启用角色替换: false,
+                    替换目标角色名: '',
+                    附加替换角色名列表: [],
+                    附加角色替换规则列表: [],
+                    启用附加小说: false,
+                    附加小说数据集ID: ''
+                }
+            } as any
+        );
+        const commandBase = 创建开场命令基态(openingBase);
+
+        expect(commandBase.玩家门派.名称).toBe('玄墨派');
+        expect(commandBase.玩家门派.玩家职位).toBe('外门弟子');
+        expect(commandBase.玩家门派.重要成员.length).toBeGreaterThanOrEqual(6);
     });
 });

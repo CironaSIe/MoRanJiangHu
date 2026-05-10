@@ -434,6 +434,125 @@ const 推出建筑内部点 = (
     return next;
 };
 
+const 点位键 = (point: { x: number; y: number }) => `${point.x},${point.y}`;
+
+const 简化正交路径 = (points: 地图坐标点结构[]): 地图坐标点结构[] => {
+    const deduped = points.filter((point, index) => {
+        const prev = points[index - 1];
+        return !prev || prev.x !== point.x || prev.y !== point.y;
+    });
+    if (deduped.length <= 2) return deduped;
+    return deduped.filter((point, index) => {
+        if (index === 0 || index === deduped.length - 1) return true;
+        const prev = deduped[index - 1];
+        const next = deduped[index + 1];
+        const sameX = prev.x === point.x && point.x === next.x;
+        const sameY = prev.y === point.y && point.y === next.y;
+        return !sameX && !sameY;
+    });
+};
+
+const 规划避让建筑正交路径 = (
+    rawPoints: 地图坐标点结构[],
+    layer: 地图层级结构,
+    layerBuildings: 地图建筑结构[]
+): 地图坐标点结构[] => {
+    const sourcePoints = (Array.isArray(rawPoints) ? rawPoints : [])
+        .map((point) => 推出建筑内部点(point, layer, layerBuildings, 0.85))
+        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+    if (sourcePoints.length < 2) return sourcePoints;
+
+    const maxX = Math.max(1, Math.ceil(layer.网格宽度));
+    const maxY = Math.max(1, Math.ceil(layer.网格高度));
+    const obstacles = layerBuildings.map((building) => {
+        const bounds = 计算建筑边界(building);
+        return {
+            minX: Math.floor(bounds.minX - 0.9),
+            maxX: Math.ceil(bounds.maxX + 0.9),
+            minY: Math.floor(bounds.minY - 0.9),
+            maxY: Math.ceil(bounds.maxY + 0.9),
+        };
+    });
+    const blocked = (x: number, y: number) => obstacles.some((bounds) => (
+        x >= bounds.minX && x <= bounds.maxX && y >= bounds.minY && y <= bounds.maxY
+    ));
+    const clampCell = (point: 地图坐标点结构) => ({
+        x: Math.max(0, Math.min(maxX, Math.round(point.x))),
+        y: Math.max(0, Math.min(maxY, Math.round(point.y))),
+    });
+    const nearestFreeCell = (point: 地图坐标点结构) => {
+        const start = clampCell(point);
+        if (!blocked(start.x, start.y)) return start;
+        for (let radius = 1; radius <= Math.max(maxX, maxY); radius += 1) {
+            for (let dx = -radius; dx <= radius; dx += 1) {
+                for (let dy = -radius; dy <= radius; dy += 1) {
+                    if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+                    const x = Math.max(0, Math.min(maxX, start.x + dx));
+                    const y = Math.max(0, Math.min(maxY, start.y + dy));
+                    if (!blocked(x, y)) return { x, y };
+                }
+            }
+        }
+        return start;
+    };
+    const routeSegment = (from: 地图坐标点结构, to: 地图坐标点结构): 地图坐标点结构[] => {
+        const start = nearestFreeCell(from);
+        const end = nearestFreeCell(to);
+        const queue = [start];
+        const cameFrom = new Map<string, string>();
+        const visited = new Set([点位键(start)]);
+        const dirs = [
+            { x: 1, y: 0 },
+            { x: -1, y: 0 },
+            { x: 0, y: 1 },
+            { x: 0, y: -1 },
+        ].sort((left, right) => {
+            const leftScore = Math.abs(end.x - (start.x + left.x)) + Math.abs(end.y - (start.y + left.y));
+            const rightScore = Math.abs(end.x - (start.x + right.x)) + Math.abs(end.y - (start.y + right.y));
+            return leftScore - rightScore;
+        });
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            if (current.x === end.x && current.y === end.y) break;
+            dirs.forEach((dir) => {
+                const next = { x: current.x + dir.x, y: current.y + dir.y };
+                if (next.x < 0 || next.x > maxX || next.y < 0 || next.y > maxY) return;
+                if (blocked(next.x, next.y)) return;
+                const key = 点位键(next);
+                if (visited.has(key)) return;
+                visited.add(key);
+                cameFrom.set(key, 点位键(current));
+                queue.push(next);
+            });
+        }
+        const endKey = 点位键(end);
+        if (!visited.has(endKey)) {
+            const mid = blocked(start.x, end.y) ? { x: end.x, y: start.y } : { x: start.x, y: end.y };
+            return 简化正交路径([start, nearestFreeCell(mid), end]);
+        }
+        const path: 地图坐标点结构[] = [end];
+        let cursor = endKey;
+        while (cursor !== 点位键(start)) {
+            const prev = cameFrom.get(cursor);
+            if (!prev) break;
+            const [x, y] = prev.split(',').map(Number);
+            path.push({ x, y });
+            cursor = prev;
+        }
+        return 简化正交路径(path.reverse());
+    };
+
+    const routed: 地图坐标点结构[] = [];
+    for (let index = 0; index < sourcePoints.length - 1; index += 1) {
+        const segment = routeSegment(sourcePoints[index], sourcePoints[index + 1]);
+        routed.push(...(index === 0 ? segment : segment.slice(1)));
+    }
+    return 简化正交路径(routed).map((point) => ({
+        x: 限制数值(point.x, 0, maxX),
+        y: 限制数值(point.y, 0, maxY),
+    }));
+};
+
 const 计算最近路径点 = (
     point: 地图坐标点结构,
     roads: 地图道路结构[]
@@ -1027,7 +1146,7 @@ const 按层级补齐道路 = (
         roads
             .filter((road) => road.所在层级ID === layer.ID)
             .forEach((road) => {
-                road.路径点 = road.路径点.map((point) => 推出建筑内部点(point, layer, layerBuildings));
+                road.路径点 = 规划避让建筑正交路径(road.路径点, layer, layerBuildings);
             });
     });
 

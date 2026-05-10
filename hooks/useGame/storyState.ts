@@ -1047,20 +1047,20 @@ export const 创建开场基础状态 = (charData: 角色数据结构, _worldCon
     同人女主剧情规划: undefined as 同人女主剧情规划结构 | undefined
 });
 
-export const 创建开场命令基态 = (_roleBase?: 角色数据结构): 开场命令基态 => ({
-    角色: 创建开场空白角色(),
-    环境: 创建开场空白环境(),
-    社交: [],
-    世界: 创建开场空白世界(),
-    战斗: 创建开场空白战斗(),
-    玩家门派: 创建空门派状态(),
-    任务列表: [],
-    约定列表: [],
-    剧情: 创建开场空白剧情(),
-    剧情规划: 创建空剧情规划(),
-    女主剧情规划: undefined,
-    同人剧情规划: undefined,
-    同人女主剧情规划: undefined
+export const 创建开场命令基态 = (openingBase?: Partial<ReturnType<typeof 创建开场基础状态>>): 开场命令基态 => ({
+    角色: openingBase?.角色 ? 深拷贝(openingBase.角色) : 创建开场空白角色(),
+    环境: openingBase?.环境 ? 深拷贝(openingBase.环境) : 创建开场空白环境(),
+    社交: Array.isArray(openingBase?.社交) ? 深拷贝(openingBase.社交) : [],
+    世界: openingBase?.世界 ? 深拷贝(openingBase.世界) : 创建开场空白世界(),
+    战斗: openingBase?.战斗 ? 深拷贝(openingBase.战斗) : 创建开场空白战斗(),
+    玩家门派: openingBase?.玩家门派 ? 规范化门派状态(openingBase.玩家门派) : 创建空门派状态(),
+    任务列表: Array.isArray(openingBase?.任务列表) ? 深拷贝(openingBase.任务列表) : [],
+    约定列表: Array.isArray(openingBase?.约定列表) ? 深拷贝(openingBase.约定列表) : [],
+    剧情: openingBase?.剧情 ? 规范化剧情状态(openingBase.剧情) : 创建开场空白剧情(),
+    剧情规划: openingBase?.剧情规划 ? 规范化剧情规划状态(openingBase.剧情规划) : 创建空剧情规划(),
+    女主剧情规划: openingBase?.女主剧情规划 ? 规范化女主剧情规划状态(openingBase.女主剧情规划) : undefined,
+    同人剧情规划: openingBase?.同人剧情规划 ? 规范化同人剧情规划状态(openingBase.同人剧情规划) : undefined,
+    同人女主剧情规划: openingBase?.同人女主剧情规划 ? 规范化同人女主剧情规划状态(openingBase.同人女主剧情规划) : undefined
 });
 
 export const 构建前端清空开场状态 = (
