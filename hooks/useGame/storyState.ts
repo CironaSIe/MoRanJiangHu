@@ -388,23 +388,6 @@ const 主角开局应有基础功法 = (charData: 角色数据结构): boolean =
 
 const 补齐开局角色功法 = (charData: 角色数据结构, sect: 详细门派结构): 角色数据结构 => {
     const currentSkills = Array.isArray((charData as any)?.功法列表) ? 深拷贝((charData as any).功法列表) : [];
-    if (currentSkills.length > 0) return { ...charData, 功法列表: currentSkills };
-    const activeSect = !是否无门派标识(sect?.ID);
-    if (activeSect) {
-        const totalContribution = Math.max(取数字(sect?.玩家贡献), 取数字(sect?.累计贡献));
-        const availableBooks = (Array.isArray(sect?.藏经阁列表) ? sect.藏经阁列表 : [])
-            .filter((book: any) => totalContribution >= 取数字(book?.要求累计贡献))
-            .sort((a: any, b: any) => (
-                (功法品质权重[取文本(b?.品阶)] || 0) - (功法品质权重[取文本(a?.品阶)] || 0)
-                || 取数字(b?.要求累计贡献) - 取数字(a?.要求累计贡献)
-            ));
-        if (availableBooks[0]) {
-            return { ...charData, 功法列表: [从藏经阁条目创建功法(availableBooks[0], sect.名称), ...currentSkills] };
-        }
-    }
-    if (主角开局应有基础功法(charData)) {
-        return { ...charData, 功法列表: [创建开局散修基础功法(charData), ...currentSkills] };
-    }
     return { ...charData, 功法列表: currentSkills };
 };
 

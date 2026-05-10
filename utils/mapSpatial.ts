@@ -621,8 +621,8 @@ const 计算矩形布局 = (
     const padding = 2;
     const cellWidth = Math.max(4, (layer.网格宽度 - padding * 2) / columns);
     const cellHeight = Math.max(4, (layer.网格高度 - padding * 2) / rows);
-    const rectWidth = Math.max(3, Math.min(6.5, cellWidth * 0.72));
-    const rectHeight = Math.max(2.6, Math.min(5.5, cellHeight * 0.66));
+    const rectWidth = Math.max(4.2, Math.min(8.2, cellWidth * 0.82));
+    const rectHeight = Math.max(3.4, Math.min(6.8, cellHeight * 0.76));
     const column = index % columns;
     const row = Math.floor(index / columns);
     const originX = padding + column * cellWidth + (cellWidth - rectWidth) / 2;
@@ -650,6 +650,30 @@ const 计算道路附近落点 = (
     };
 };
 
+const 计算人物避让落点 = (
+    point: 地图坐标点结构,
+    layer: 地图层级结构,
+    key: string,
+    index: number,
+    placed: 地图坐标点结构[],
+    minDistance = 1.25
+): 地图坐标点结构 => {
+    let next = { ...point };
+    let attempts = 0;
+    while (placed.some((other) => Math.hypot(other.x - next.x, other.y - next.y) < minDistance) && attempts < 16) {
+        const hash = 稳定散列(`${layer.ID}-${key}-${index}-${attempts}-person-spread`);
+        const angle = ((hash % 360) / 180) * Math.PI;
+        const radius = minDistance * (0.8 + attempts * 0.18);
+        next = {
+            x: 限制数值(point.x + Math.cos(angle) * radius, 0.7, layer.网格宽度 - 0.7),
+            y: 限制数值(point.y + Math.sin(angle) * radius, 0.7, layer.网格高度 - 0.7),
+        };
+        attempts += 1;
+    }
+    placed.push(next);
+    return next;
+};
+
 const 重排离散建筑布局 = (
     layer: 地图层级结构,
     layerBuildings: 地图建筑结构[]
@@ -671,8 +695,8 @@ const 重排离散建筑布局 = (
             const row = Math.floor(index / columns);
             const hash = 稳定散列(`${layer.ID}-${building.ID}-${index}-urban`);
             const laneBias = column % 2 === 0 ? -0.16 : 0.16;
-            const width = Math.min(3.4, Math.max(2.2, cellWidth * (0.62 + (hash % 16) / 100)));
-            const height = Math.min(3.1, Math.max(2.0, cellHeight * (0.58 + ((hash >> 5) % 16) / 100)));
+            const width = Math.min(5.2, Math.max(3.4, cellWidth * (0.74 + (hash % 14) / 100)));
+            const height = Math.min(4.6, Math.max(2.9, cellHeight * (0.70 + ((hash >> 5) % 14) / 100)));
             const jitterX = (((hash >> 9) % 21) - 10) / 100;
             const jitterY = (((hash >> 14) % 21) - 10) / 100;
             const x = originX + column * cellWidth + (cellWidth - width) / 2 + laneBias + jitterX;
@@ -713,8 +737,8 @@ const 重排离散建筑布局 = (
         const bounds = 计算建筑边界(building);
         const rawWidth = Math.max(2.8, bounds.maxX - bounds.minX);
         const rawHeight = Math.max(2.4, bounds.maxY - bounds.minY);
-        const width = Math.min(5.4, rawWidth, Math.max(2.8, cellWidth * 0.72));
-        const height = Math.min(4.8, rawHeight, Math.max(2.4, cellHeight * 0.68));
+        const width = Math.min(7.2, Math.max(rawWidth, cellWidth * 0.78, 4.0));
+        const height = Math.min(6.2, Math.max(rawHeight, cellHeight * 0.72, 3.2));
         const column = index % columns;
         const row = Math.floor(index / columns);
         const x = originX + column * cellWidth + (cellWidth - width) / 2;
@@ -1248,6 +1272,11 @@ const 按层级补齐道路 = (
             for (let index = roads.length - 1; index >= 0; index -= 1) {
                 const road = roads[index];
                 if (road.所在层级ID !== layer.ID) continue;
+                if (是否聚落层级(layer) && (/沿建筑|接入路/u.test(road.名称) || road.路径点.length > 6)) {
+                    roadLookup.delete(`${road.所在层级ID}|${归一化地图文本(road.名称)}`);
+                    roads.splice(index, 1);
+                    continue;
+                }
                 const touchesReadableCluster = road.路径点.some((point) => (
                     point.x >= layerBounds.minX - padding
                     && point.x <= layerBounds.maxX + padding
@@ -1328,7 +1357,8 @@ const 按层级补齐道路 = (
             });
         }
 
-        const mainRoadKey = `${layer.ID}|${归一化地图文本('沿建筑主街')}`;
+        const mainRoadName = 是否聚落层级(layer) ? '主街' : '通行主路';
+        const mainRoadKey = `${layer.ID}|${归一化地图文本(mainRoadName)}`;
         if (layerRoads.length === 0 || (!是否聚落层级(layer) && buildingAnchors.length > 1 && !roadLookup.has(mainRoadKey))) {
             if (buildingAnchors.length > 0) {
                 const xs = buildingAnchors.map((item) => item.center.x);
@@ -1370,9 +1400,11 @@ const 按层级补齐道路 = (
                             ]
                     );
                 const mainRoad: 地图道路结构 = {
-                    ID: 生成地图对象ID('road', layer.ID, '沿建筑主街'),
-                    名称: '沿建筑主街',
-                    描述: `${layer.名称} 中顺着建筑门面与院落展开的主路。`,
+                    ID: 生成地图对象ID('road', layer.ID, mainRoadName),
+                    名称: mainRoadName,
+                    描述: 是否聚落层级(layer)
+                        ? `${layer.名称} 中先形成的主街骨架，建筑沿街巷两侧展开。`
+                        : `${layer.名称} 中串联主要落点的通行道路。`,
                     归属: { ...layer.归属 },
                     所在层级ID: layer.ID,
                     路径点: mainPoints,
@@ -1402,10 +1434,12 @@ const 按层级补齐道路 = (
             }
         }
 
-        buildingAnchors.forEach(({ building, center, entrance }) => {
+        buildingAnchors.forEach(({ building, entrance }) => {
+            if (是否聚落层级(layer)) return;
             const key = `${layer.ID}|${归一化地图文本(`${building.名称}接入路`)}`;
             if (roadLookup.has(key)) return;
             const nearestRoadPoint = 计算最近路径点(entrance, layerRoads);
+            if (nearestRoadPoint && Math.hypot(nearestRoadPoint.x - entrance.x, nearestRoadPoint.y - entrance.y) <= 2.2) return;
             const safeEntrance = 推出建筑内部点(entrance, layer, layerBuildings);
             const safeNearestRoadPoint = nearestRoadPoint
                 ? 推出建筑内部点(nearestRoadPoint, layer, layerBuildings)
@@ -1539,8 +1573,11 @@ const 补齐地图人物 = (
 ): 地图人物结构[] => {
     const people = [...seedPeople];
     const peopleLookup = new Map<string, string>();
+    const placedByLayer = new Map<string, 地图坐标点结构[]>();
     people.forEach((person) => {
         peopleLookup.set(`${person.所在层级ID}|${归一化地图文本(person.名称)}`, person.ID);
+        if (!placedByLayer.has(person.所在层级ID)) placedByLayer.set(person.所在层级ID, []);
+        placedByLayer.get(person.所在层级ID)!.push(person.坐标);
     });
 
     (Array.isArray(world?.活跃NPC列表) ? world.活跃NPC列表 : []).forEach((npc: any, index: number) => {
@@ -1557,13 +1594,15 @@ const 补齐地图人物 = (
         if (!layer) return;
         const key = `${layer.ID}|${归一化地图文本(name)}`;
         if (peopleLookup.has(key)) return;
-        const point = 计算人物落点({
+        const rawPoint = 计算人物落点({
             name,
             layer,
             buildings,
             locationText: pathText,
             index,
         });
+        const point = 计算人物避让落点(rawPoint, layer, name, index, placedByLayer.get(layer.ID) || [], 1.35);
+        if (!placedByLayer.has(layer.ID)) placedByLayer.set(layer.ID, [point]);
         const person: 地图人物结构 = {
             ID: 生成地图对象ID('person', layer.ID, name),
             名称: name,
@@ -1681,6 +1720,7 @@ const 构建临时人物 = (
     const layers = Array.isArray(world.地图层级) ? world.地图层级 : [];
     const buildings = Array.isArray(world.地图建筑) ? world.地图建筑 : [];
     const transientPeople: 地图人物结构[] = [];
+    const placedByLayer = new Map<string, 地图坐标点结构[]>();
     const usedKeys = new Set<string>();
 
     const { layer: currentLayer } = 查找当前层级(world, env);
@@ -1703,13 +1743,15 @@ const 构建临时人物 = (
                 ].map((item) => 取文本(item)).filter(Boolean).join(' > '),
                 index: 0,
             });
+        const spreadPlayerPoint = 计算人物避让落点(playerPoint, currentLayer, currentPlayerName, 0, placedByLayer.get(currentLayer.ID) || [], 1.35);
+        if (!placedByLayer.has(currentLayer.ID)) placedByLayer.set(currentLayer.ID, [spreadPlayerPoint]);
         transientPeople.push({
             ID: 'player-current',
             名称: currentPlayerName,
             描述: [取文本(env?.具体地点), 取文本(env?.小地点)].filter(Boolean).join(' / '),
             归属: { ...currentLayer.归属 },
             所在层级ID: currentLayer.ID,
-            坐标: playerPoint,
+            坐标: spreadPlayerPoint,
             关联NPC: currentPlayerName,
             是否当前玩家: true,
         });
@@ -1735,21 +1777,24 @@ const 构建临时人物 = (
         if (usedKeys.has(key)) return;
         usedKeys.add(key);
         const isSameCurrentLayer = Boolean(currentLayer && layer.ID === currentLayer.ID);
+        const rawPoint = 计算人物落点({
+            name,
+            layer,
+            buildings,
+            locationText: pathText,
+            index: index + 1,
+            nearPoint: isSameCurrentLayer ? playerPoint : null,
+            forceNear: npc?.是否在场 === true,
+        });
+        const point = 计算人物避让落点(rawPoint, layer, name, index + 1, placedByLayer.get(layer.ID) || [], 1.35);
+        if (!placedByLayer.has(layer.ID)) placedByLayer.set(layer.ID, [point]);
         transientPeople.push({
             ID: `scene-${生成地图对象ID('person', layer.ID, name)}`,
             名称: name,
             描述: [取文本(npc?.关系), 取文本(npc?.当前状态), 取文本(npc?.介绍)].filter(Boolean).join(' / '),
             归属: { ...layer.归属 },
             所在层级ID: layer.ID,
-            坐标: 计算人物落点({
-                name,
-                layer,
-                buildings,
-                locationText: pathText,
-                index: index + 1,
-                nearPoint: isSameCurrentLayer ? playerPoint : null,
-                forceNear: npc?.是否在场 === true,
-            }),
+            坐标: point,
             关联NPC: name,
             是否当前玩家: false,
         });

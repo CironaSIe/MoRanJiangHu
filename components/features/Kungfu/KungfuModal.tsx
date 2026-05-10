@@ -8,6 +8,19 @@ interface Props {
     onClose: () => void;
 }
 
+const 格式化武学类别 = (type: unknown): string => {
+    const text = typeof type === 'string' ? type.trim() : '';
+    if (!text) return '未分类';
+    const labels: Record<string, string> = {
+        招式: '武技',
+        内功: '内功心法',
+        外功: '外功',
+        轻功: '身法轻功',
+        被动: '杂学被动',
+    };
+    return labels[text] || text;
+};
+
 const KungfuModal: React.FC<Props> = ({ skills, onClose }) => {
     const safeSkills = Array.isArray(skills) ? skills : [];
     const [selectedId, setSelectedId] = useState<string | null>(
@@ -193,7 +206,7 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose }) => {
                                                 品质 · {currentSkill.品质}
                                             </span>
                                             <span className="text-[10px] px-3 py-1.5 bg-gray-900 text-gray-400 rounded-sm border border-gray-700 font-serif tracking-widest shadow-inner">
-                                                武学类别 · {currentSkill.类型}
+                                                类别 · {格式化武学类别(currentSkill.类型)}
                                             </span>
                                             <div className="flex-1 border-b border-dashed border-wuxia-gold/20 mx-4"></div>
                                             <div className="text-xs text-wuxia-gold/60 font-serif italic border border-wuxia-gold/10 px-3 py-1 rounded bg-black/40">

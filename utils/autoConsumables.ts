@@ -4,6 +4,7 @@ type AutoConsumableTemplate = {
     id: string;
     name: string;
     description: string;
+    visual: string;
     value: number;
     count: number;
     effects: { 目标属性: string; 数值: number }[];
@@ -14,6 +15,7 @@ const AUTO_CONSUMABLES: AutoConsumableTemplate[] = [
         id: 'auto_pill_bigu',
         name: '辟谷丹',
         description: '门派常备行走丹药，可补饱腹与水分，适合长途赶路时自动服用。',
+        visual: 'realistic wuxia travel ration pill, small matte tan herbal pellet in a dark ceramic dish, dry grain powder, practical sect supply, no text',
         value: 80,
         count: 3,
         effects: [
@@ -25,6 +27,7 @@ const AUTO_CONSUMABLES: AutoConsumableTemplate[] = [
         id: 'auto_pill_huiqi',
         name: '回气丹',
         description: '补回精力的常用丹药，精力过低时会自动服用。',
+        visual: 'realistic wuxia energy recovery pill, warm amber herbal pellet, faint golden vapor, dark lacquer medicine case, no text',
         value: 120,
         count: 2,
         effects: [{ 目标属性: '当前精力', 数值: 60 }]
@@ -33,6 +36,7 @@ const AUTO_CONSUMABLES: AutoConsumableTemplate[] = [
         id: 'auto_pill_ningyuan',
         name: '凝元丹',
         description: '温养丹田、恢复内力的丹药，内力过低时会自动服用。',
+        visual: 'realistic wuxia inner energy pill, smooth jade green medicinal pellet, subtle mist, black porcelain vial, premium prop icon, no text',
         value: 160,
         count: 2,
         effects: [{ 目标属性: '当前内力', 数值: 70 }]
@@ -41,6 +45,7 @@ const AUTO_CONSUMABLES: AutoConsumableTemplate[] = [
         id: 'auto_pill_pojing',
         name: '破境丹',
         description: '突破小境界时消耗的护脉丹药，经验满足突破条件后会自动服用。',
+        visual: 'realistic wuxia breakthrough pill, dark crimson medicinal pellet with fine gold cracks, sealed jade pill box, dramatic rim light, no text',
         value: 500,
         count: 1,
         effects: [{ 目标属性: '突破', 数值: 1 }]
@@ -71,6 +76,9 @@ const 创建丹药物品 = (template: AutoConsumableTemplate): 游戏物品 => (
     最大耐久: 1,
     词条列表: [],
     使用效果: template.effects,
+    视觉描述: template.visual,
+    视觉描述来源: '默认消耗品写实预设',
+    视觉标签: ['写实道具', '丹药', '可复用图标'],
     毒性: template.name === '破境丹' ? 2 : 0,
     物品来源类型: '未知',
     来源描述: '系统按生存与突破规则预设的基础丹药。'

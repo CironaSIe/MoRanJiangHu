@@ -54,6 +54,7 @@ const AuctionHouseModal: React.FC<Props> = ({
     storageScope,
     apiConfig,
 }) => {
+    const shellRef = React.useRef<HTMLDivElement | null>(null);
     const [activeCategory, setActiveCategory] = React.useState<分类>('全部');
     const [sortBy, setSortBy] = React.useState<排序>('热点优先');
     const [selectedAuctionId, setSelectedAuctionId] = React.useState<string>('');
@@ -61,6 +62,17 @@ const AuctionHouseModal: React.FC<Props> = ({
     const [maxPrice, setMaxPrice] = React.useState('');
     const [hotOnly, setHotOnly] = React.useState(false);
     const [generatingItemId, setGeneratingItemId] = React.useState('');
+    const [isNarrowPanel, setIsNarrowPanel] = React.useState(isMobile);
+
+    React.useEffect(() => {
+        const element = shellRef.current;
+        if (!element || typeof ResizeObserver === 'undefined') return;
+        const update = () => setIsNarrowPanel(isMobile || element.getBoundingClientRect().width < 1120);
+        update();
+        const observer = new ResizeObserver(update);
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [isMobile]);
 
     const money = character?.金钱 || {};
     const totalCopper = 计算金钱铜钱总值(money);
@@ -239,7 +251,7 @@ const AuctionHouseModal: React.FC<Props> = ({
 
     return (
         <div className={`fixed inset-0 z-[210] flex items-center justify-center bg-black ${isMobile ? 'p-2' : 'p-4'}`}>
-            <div className={`relative flex w-full flex-col overflow-hidden border border-wuxia-gold/25 bg-[#090806] shadow-[0_0_70px_rgba(0,0,0,0.85)] ${isMobile ? 'h-[92vh] rounded-xl' : 'h-[90vh] max-w-7xl rounded-2xl'}`}>
+            <div ref={shellRef} className={`relative flex w-full flex-col overflow-hidden border border-wuxia-gold/25 bg-[#090806] shadow-[0_0_70px_rgba(0,0,0,0.85)] ${isMobile ? 'h-[92vh] rounded-xl' : 'h-[90vh] max-w-7xl rounded-2xl'}`}>
                 <div className={`flex shrink-0 items-center justify-between border-b border-wuxia-gold/15 bg-[#16110a] ${isMobile ? 'px-3 py-2' : 'px-4 py-3'}`}>
                     <div className="min-w-0">
                         <div className={`font-serif font-bold text-wuxia-gold ${isMobile ? 'text-base tracking-[0.18em]' : 'text-lg tracking-[0.32em]'}`}>天下拍卖行</div>
@@ -260,7 +272,7 @@ const AuctionHouseModal: React.FC<Props> = ({
 
                 <div className="auction-house-body flex min-h-0 flex-1 flex-col bg-[#0b0907]">
                     <section className={`shrink-0 border-b border-wuxia-gold/10 bg-[#0e0b08] ${isMobile ? 'p-2' : 'p-3'}`}>
-                        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.85fr)]">
+                        <div className={`grid gap-3 ${isNarrowPanel ? '' : 'xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.85fr)]'}`}>
                             <div>
                                 <div className="mb-2 flex items-center justify-between text-xs text-wuxia-gold/70">
                                     <span>分类</span>
@@ -275,7 +287,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                                 </div>
                             </div>
 
-                            <div className={`${isMobile ? 'hidden' : ''} grid min-w-0 gap-3 rounded-xl border border-wuxia-gold/15 bg-[#11100d] p-2.5 lg:grid-cols-2`}>
+                            <div className={`${isNarrowPanel ? 'hidden' : ''} grid min-w-0 gap-3 rounded-xl border border-wuxia-gold/15 bg-[#11100d] p-2.5 lg:grid-cols-2`}>
                                 <div className="min-w-0">
                                     <div className="mb-2 flex items-center justify-between text-xs font-semibold text-wuxia-gold/80">
                                         <span>今日行情</span>
@@ -326,8 +338,8 @@ const AuctionHouseModal: React.FC<Props> = ({
                             </div>
                         </div>
 
-                        <div className={`mt-2 grid gap-2 ${isMobile ? 'grid-cols-2' : 'md:grid-cols-[1fr_120px_120px_130px_auto]'}`}>
-                            <select value={sortBy} onChange={(event) => setSortBy(event.target.value as 排序)} className={`rounded border border-wuxia-gold/20 bg-[#0d0d0d] px-2 py-2 text-xs text-wuxia-gold outline-none ${isMobile ? 'col-span-2' : ''}`}>
+                        <div className={`mt-2 grid gap-2 ${isNarrowPanel ? 'grid-cols-2' : 'md:grid-cols-[1fr_120px_120px_130px_auto]'}`}>
+                            <select value={sortBy} onChange={(event) => setSortBy(event.target.value as 排序)} className={`rounded border border-wuxia-gold/20 bg-[#0d0d0d] px-2 py-2 text-xs text-wuxia-gold outline-none ${isNarrowPanel ? 'col-span-2' : ''}`}>
                                 <option>热点优先</option>
                                 <option>最新上架</option>
                                 <option>价格升序</option>
@@ -345,7 +357,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                     </section>
 
                     <main className={`auction-house-list-panel min-h-0 flex-1 overflow-y-auto custom-scrollbar ${isMobile ? 'p-2' : 'p-3'}`}>
-                        <div className={`auction-house-item-grid grid justify-start ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-[repeat(auto-fill,minmax(13.5rem,15rem))] gap-3'}`}>
+                        <div className={`auction-house-item-grid grid ${isNarrowPanel ? 'grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-2' : 'grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))] gap-3'}`}>
                             {displayAuctions.map((entry) => {
                                 const styles = getRarityStyles(entry.物品?.品质 || '');
                                 const selected = selectedAuction?.ID === entry.ID;
