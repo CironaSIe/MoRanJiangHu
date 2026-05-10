@@ -309,6 +309,7 @@ type 主剧情发送依赖 = {
         gameTime: string;
         response: GameResponse;
         shouldApply?: () => boolean;
+        onRetry?: (attempt: number, maxAttempts: number, reason: string) => void;
     }) => Promise<{ updated: boolean; message: string; rawText?: string; commands: any[]; storyPlanCommands?: any[]; heroinePlanCommands?: any[] }>;
     后台执行变量生成: (params: {
         snapshot: 回合快照结构;
@@ -583,6 +584,7 @@ export const 执行主剧情发送工作流 = async (
         onError?: (errorText: string) => void;
         onSkip?: (errorText: string) => void;
         getErrorText?: (error: any) => string;
+        useGlobalAutoRetry?: boolean;
     }): Promise<{ completed: boolean; result?: T }> => {
         let manualAttempt = 0;
         while (true) {
@@ -590,7 +592,7 @@ export const 执行主剧情发送工作流 = async (
             params.beforeAttempt?.(manualAttempt);
             try {
                 const result = await deps.执行带自动重试的生成请求<T>({
-                    enabled: 独立阶段自动重试已启用,
+                    enabled: params.useGlobalAutoRetry !== false && 独立阶段自动重试已启用,
                     action: params.run,
                     onRetry: params.onAutoRetry
                 });
@@ -1087,9 +1089,6 @@ export const 执行主剧情发送工作流 = async (
                         });
                     }
                 }
-
-                deps.set后台队列处理中(false);
-
                 let worldEvolutionResult: 世界演变执行结果 | null = null;
                 const 变量生成后命令数 = Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands.length : 0;
                 if (worldEvolutionSplitEnabled) {
@@ -1188,6 +1187,7 @@ export const 执行主剧情发送工作流 = async (
                 const planningStage = await 执行可重试独立阶段({
                     stageId: "planning",
                     stageLabel: "规划分析",
+                    useGlobalAutoRetry: false,
                     beforeAttempt: (attempt) => {
                         options?.onPlanningProgress?.({
                             phase: "start",
@@ -1216,7 +1216,13 @@ export const 执行主剧情发送工作流 = async (
                         playerInput: sendInput,
                         gameTime: 环境时间转标准串(simulatedState.环境) || "未知时间",
                         response: responseForExecution,
-                        shouldApply: 本次仍是最新前台回合
+                        shouldApply: 本次仍是最新前台回合,
+                        onRetry: (attempt, maxAttempts, reason) => {
+                            options?.onPlanningProgress?.({
+                                phase: "start",
+                                text: `规划分析请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ""}`
+                            });
+                        }
                     }),
                     onError: (errorText) => {
                         options?.onPlanningProgress?.({

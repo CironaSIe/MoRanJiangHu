@@ -20,6 +20,8 @@ interface Props {
     onDeleteNpc?: (npcId: string) => void;
 }
 
+const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)?.性别 || '').trim() === '女';
+
 const MobileSocial: React.FC<Props> = ({
     socialList,
     cultivationSystemEnabled = true,
@@ -74,7 +76,8 @@ const MobileSocial: React.FC<Props> = ({
         () => currentNPC ? 构建NPC记忆展示结果(currentNPC.总结记忆, currentNPC.记忆) : { 总结记忆: [], 记忆: [], 原始总数: 0 },
         [currentNPC]
     );
-    const 展示女性扩展 = currentNPC?.性别 === '女' && Boolean(currentNPC?.是否主要角色);
+    const 当前角色是女性 = 是女性角色(currentNPC);
+    const 展示女性扩展 = 当前角色是女性 && Boolean(currentNPC?.是否主要角色);
     const 展示女性私密档案 = 展示女性扩展 && nsfwEnabled;
     const 取首个非空文本 = (...values: unknown[]): string => {
         for (const value of values) {
@@ -320,7 +323,7 @@ const MobileSocial: React.FC<Props> = ({
                                         {提取头像图片地址(npc) ? (
                                             <img src={提取头像图片地址(npc)} alt={npc.姓名} className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className={`w-full h-full flex items-center justify-center font-serif font-bold text-sm ${npc.性别 === '女' ? 'text-pink-500/50' : 'text-blue-500/50'}`}>
+                                            <div className={`w-full h-full flex items-center justify-center font-serif font-bold text-sm ${是女性角色(npc) ? 'text-pink-500/50' : 'text-blue-500/50'}`}>
                                                 {npc.姓名[0]}
                                             </div>
                                         )}
@@ -435,7 +438,7 @@ const MobileSocial: React.FC<Props> = ({
                                             </div>
 
                                             <div className="flex flex-wrap gap-1.5 mb-2">
-                                                <span className={`text-[9px] px-1.5 py-0.5 rounded border border-white/10 font-serif tracking-widest ${currentNPC.性别 === '女' ? 'bg-pink-900/20 text-pink-300' : 'bg-blue-900/20 text-blue-300'}`}>
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded border border-white/10 font-serif tracking-widest ${当前角色是女性 ? 'bg-pink-900/20 text-pink-300' : 'bg-blue-900/20 text-blue-300'}`}>
                                                     {currentNPC.性别} | {currentNPC.年龄}岁
                                                 </span>
                                                 {显示境界 && currentNPC.境界 && (
@@ -839,10 +842,16 @@ const MobileSocial: React.FC<Props> = ({
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="h-full flex flex-col items-center justify-center opacity-30 bg-black/20 rounded-xl border border-dashed border-white/10 p-6 text-center mt-4">
-                                        <div className="text-3xl mb-3 font-serif text-wuxia-gold/50 inline-flex"><IconMars size={30} /></div>
-                                        <div className="text-xs font-serif text-gray-500 tracking-widest uppercase">资料封存</div>
-                                        <div className="text-[8px] text-gray-600 mt-1 font-mono">CONFIDENTIAL INFO NOT AVAILABLE</div>
+                                    <div className="h-full flex flex-col items-center justify-center opacity-55 bg-black/20 rounded-xl border border-dashed border-white/10 p-6 text-center mt-4">
+                                        <div className="text-3xl mb-3 font-serif text-wuxia-gold/50 inline-flex">
+                                            {当前角色是女性 ? <IconHeart size={30} /> : <IconMars size={30} />}
+                                        </div>
+                                        <div className="text-xs font-serif text-gray-500 tracking-widest uppercase">
+                                            {当前角色是女性 ? '女性扩展档案待激活' : '资料封存'}
+                                        </div>
+                                        <div className="text-[8px] text-gray-600 mt-1 font-mono">
+                                            {当前角色是女性 ? 'SET AS IMPORTANT TO UNLOCK EXTENDED PROFILE' : 'CONFIDENTIAL INFO NOT AVAILABLE'}
+                                        </div>
                                     </div>
                                 )}
                             </div>

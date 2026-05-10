@@ -21,6 +21,8 @@ interface Props {
     onDeleteNpc?: (npcId: string) => void;
 }
 
+const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)?.性别 || '').trim() === '女';
+
 const SocialModal: React.FC<Props> = ({
     socialList,
     cultivationSystemEnabled = true,
@@ -73,7 +75,8 @@ const SocialModal: React.FC<Props> = ({
         () => currentNPC ? 构建NPC记忆展示结果(currentNPC.总结记忆, currentNPC.记忆) : { 总结记忆: [], 记忆: [], 原始总数: 0 },
         [currentNPC]
     );
-    const 展示女性扩展 = currentNPC?.性别 === '女' && Boolean(currentNPC?.是否主要角色);
+    const 当前角色是女性 = 是女性角色(currentNPC);
+    const 展示女性扩展 = 当前角色是女性 && Boolean(currentNPC?.是否主要角色);
     const 展示女性私密档案 = 展示女性扩展 && nsfwEnabled;
     const 取首个非空文本 = (...values: unknown[]): string => {
         for (const value of values) {
@@ -315,37 +318,40 @@ const SocialModal: React.FC<Props> = ({
                         <div className="flex gap-3 overflow-x-auto overflow-y-hidden custom-scrollbar px-5 pb-4 snap-x snap-mandatory">
                         {socialList.map((npc, index) => {
                             const npcStableId = 获取NPC稳定ID(npc, index);
+                            const isSelected = selectedId === npcStableId;
+                            const npcIsFemale = 是女性角色(npc);
                             return (
                             <button
                                 key={npcStableId}
+                                aria-pressed={isSelected}
                                 onClick={() => {
                                     setSelectedId(npcStableId);
                                     onSelectedNpcIdChange?.(npcStableId);
                                 }}
-                                className={`w-[245px] h-[76px] shrink-0 snap-start text-left p-2.5 rounded-xl transition-all relative group overflow-hidden flex items-center gap-3 ${selectedId === npcStableId
-                                    ? 'bg-gradient-to-b from-wuxia-gold/18 to-wuxia-gold/5 border border-wuxia-gold/40 shadow-[0_0_15px_rgba(212,175,55,0.15)]'
-                                    : 'border border-transparent hover:border-white/10 hover:bg-white/[0.03]'
+                                className={`social-roster-card w-[245px] h-[76px] shrink-0 snap-start text-left p-2.5 rounded-xl transition-all relative group overflow-hidden flex items-center gap-3 ${isSelected
+                                    ? 'social-roster-card--selected bg-gradient-to-r from-wuxia-gold/24 via-wuxia-gold/12 to-white/[0.05] border border-wuxia-gold/70 shadow-[0_0_18px_rgba(212,175,55,0.24)] ring-1 ring-wuxia-gold/35'
+                                    : 'social-roster-card--idle border border-white/10 bg-white/[0.02] hover:border-wuxia-gold/35 hover:bg-wuxia-gold/8'
                                     }`}
                             >
-                                {selectedId === npcStableId && (
-                                    <div className="absolute left-3 right-3 bottom-0 h-0.5 bg-wuxia-gold shadow-[0_0_10px_rgba(212,175,55,0.8)] z-10"></div>
+                                {isSelected && (
+                                    <div className="social-roster-card__mark absolute left-0 top-2 bottom-2 w-1 rounded-r bg-wuxia-gold shadow-[0_0_10px_rgba(212,175,55,0.8)] z-10"></div>
                                 )}
 
                                 <div className="relative w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-white/10 bg-black/50 group-hover:border-white/30 transition-colors">
                                     {提取头像图片地址(npc) ? (
                                         <img src={提取头像图片地址(npc)} alt={npc.姓名} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className={`w-full h-full flex items-center justify-center font-serif font-bold text-lg ${npc.性别 === '女' ? 'text-pink-500/50' : 'text-blue-500/50'}`}>
+                                        <div className={`w-full h-full flex items-center justify-center font-serif font-bold text-lg ${npcIsFemale ? 'text-pink-500/50' : 'text-blue-500/50'}`}>
                                             {npc.姓名[0]}
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <div className={`font-serif font-bold text-base truncate ${selectedId === npcStableId ? 'text-wuxia-gold drop-shadow-sm' : 'text-gray-200'}`}>
+                                    <div className={`social-roster-card__name font-serif font-bold text-base truncate ${isSelected ? 'text-wuxia-gold drop-shadow-sm' : 'text-gray-200'}`}>
                                         {npc.姓名}
                                     </div>
-                                    <div className="text-[10px] text-gray-500 flex items-center gap-1.5 mt-0.5">
+                                    <div className="social-roster-card__meta text-[10px] text-gray-500 flex items-center gap-1.5 mt-0.5">
                                         {显示境界 && npc.境界 && (
                                             <>
                                                 <span className="truncate">{npc.境界}</span>
@@ -356,7 +362,7 @@ const SocialModal: React.FC<Props> = ({
                                             {npc.是否在场 ? '在场' : '离线'}
                                         </span>
                                     </div>
-                                    <div className="text-[10px] text-pink-400/80 mt-1 truncate">
+                                    <div className="social-roster-card__relation text-[10px] text-pink-400/80 mt-1 truncate">
                                         {npc.关系状态 || '萍水相逢'}
                                     </div>
                                 </div>
@@ -909,10 +915,16 @@ const SocialModal: React.FC<Props> = ({
                                                 )}
                                             </div>
                                         ) : (
-                                            <div className="h-full flex flex-col items-center justify-center opacity-30 bg-black/20 rounded-xl border border-dashed border-white/10 p-8 text-center min-h-[300px]">
-                                                <div className="text-4xl mb-4 font-serif text-wuxia-gold/50 inline-flex"><IconMars size={36} /></div>
-                                                <div className="text-sm font-serif text-gray-500 tracking-widest uppercase">男性同伴档案已折叠</div>
-                                                <div className="text-[10px] text-gray-600 mt-2 font-mono">CONFIDENTIAL INFO NOT AVAILABLE</div>
+                                            <div className="h-full flex flex-col items-center justify-center opacity-55 bg-black/20 rounded-xl border border-dashed border-white/10 p-8 text-center min-h-[300px]">
+                                                <div className="text-4xl mb-4 font-serif text-wuxia-gold/50 inline-flex">
+                                                    {当前角色是女性 ? <IconHeart size={36} /> : <IconMars size={36} />}
+                                                </div>
+                                                <div className="text-sm font-serif text-gray-500 tracking-widest uppercase">
+                                                    {当前角色是女性 ? '女性扩展档案待激活' : '男性同伴档案已折叠'}
+                                                </div>
+                                                <div className="text-[10px] text-gray-600 mt-2 font-mono">
+                                                    {当前角色是女性 ? 'SET AS IMPORTANT TO UNLOCK EXTENDED PROFILE' : 'CONFIDENTIAL INFO NOT AVAILABLE'}
+                                                </div>
                                             </div>
                                         )}
                                     </div>

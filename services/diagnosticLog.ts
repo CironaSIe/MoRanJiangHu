@@ -26,6 +26,8 @@ const MAX_LOGS = 500;
 const logs: DiagnosticLogEntry[] = [];
 const listeners = new Set<Listener>();
 let installed = false;
+let autoReportTimer: ReturnType<typeof setTimeout> | null = null;
+let autoReportInFlight = false;
 
 const stringifyValue = (value: unknown): string => {
     if (typeof value === 'string') return value;
@@ -49,21 +51,41 @@ const emit = () => {
     });
 };
 
+const scheduleAutomaticErrorReport = (entry: DiagnosticLogEntry) => {
+    if (typeof window === 'undefined' || entry.level !== 'error') return;
+    if (autoReportTimer) {
+        window.clearTimeout(autoReportTimer);
+    }
+    autoReportTimer = window.setTimeout(() => {
+        autoReportTimer = null;
+        if (autoReportInFlight) return;
+        autoReportInFlight = true;
+        import('./diagnosticReport')
+            .then(module => module.submitAutomaticErrorDiagnosticReport(entry.message))
+            .catch(() => undefined)
+            .finally(() => {
+                autoReportInFlight = false;
+            });
+    }, 1500);
+};
+
 export const recordDiagnosticLog = (level: DiagnosticLogLevel, values: unknown[]) => {
     const rendered = values.map(stringifyValue).filter(Boolean);
     const message = rendered[0] || '(empty log)';
     const detail = rendered.length > 1 ? rendered.slice(1).join('\n') : undefined;
-    logs.unshift({
+    const entry = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         level,
         time: new Date().toISOString(),
         message,
         detail
-    });
+    };
+    logs.unshift(entry);
     if (logs.length > MAX_LOGS) {
         logs.length = MAX_LOGS;
     }
     emit();
+    scheduleAutomaticErrorReport(entry);
 };
 
 const normalizeLogLevel = (level: unknown): DiagnosticLogLevel => {

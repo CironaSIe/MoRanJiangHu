@@ -123,7 +123,16 @@ const 执行规划分析带超时 = async <T,>(task: (signal: AbortSignal) => Pr
     }
 };
 
-const 执行规划分析带超时和重试 = async <T,>(task: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+const 提取规划分析重试原因 = (error: any): string => {
+    if (typeof error?.message === 'string' && error.message.trim()) return error.message.trim();
+    if (typeof error === 'string' && error.trim()) return error.trim();
+    return '规划分析请求失败';
+};
+
+const 执行规划分析带超时和重试 = async <T,>(
+    task: (signal: AbortSignal) => Promise<T>,
+    onRetry?: (attempt: number, maxAttempts: number, reason: string) => void
+): Promise<T> => {
     let lastError: any = null;
     for (let attempt = 1; attempt <= 规划分析自动重试最大次数; attempt += 1) {
         try {
@@ -133,6 +142,8 @@ const 执行规划分析带超时和重试 = async <T,>(task: (signal: AbortSign
             if (error?.name === 'AbortError' || attempt >= 规划分析自动重试最大次数) {
                 throw error;
             }
+            const reason = 提取规划分析重试原因(error);
+            onRetry?.(attempt + 1, 规划分析自动重试最大次数, reason);
             console.warn(`[规划分析] 请求失败，自动重试 ${attempt + 1}/${规划分析自动重试最大次数}`, error);
         }
     }
@@ -229,6 +240,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         gameTime: string;
         response: GameResponse;
         shouldApply?: () => boolean;
+        onRetry?: (attempt: number, maxAttempts: number, reason: string) => void;
     }): Promise<统一规划分析结果> => {
         if (deps.规划分析进行中Ref?.current) {
             return {
@@ -365,7 +377,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             normalizedGameConfig
         );
 
-        const result = await 执行规划分析带超时((signal) => textAIService.generatePlanningAnalysis({
+        const result = await 执行规划分析带超时和重试((signal) => textAIService.generatePlanningAnalysis({
             playerName: (deps.角色?.姓名 || '').trim() || '未命名',
             currentStoryJson: JSON.stringify(planningStoryPayload, null, 2),
             currentHeroinePlanJson: JSON.stringify(planningHeroinePayload, null, 2),
@@ -392,7 +404,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             fandomEnabled,
             extraPrompt: planningExtraPrompt,
             gptMode: 独立规划分析GPT模式
-        }, planningApi, signal));
+        }, planningApi, signal), params.onRetry);
 
         const storyCommands = 过滤规划补丁命令(result.commands, ['剧情', 'gameState.剧情']);
         const storyPlanCommands = 过滤规划补丁命令(result.commands, activeStoryPlanTargets);

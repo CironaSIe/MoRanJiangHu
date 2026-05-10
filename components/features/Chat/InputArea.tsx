@@ -610,6 +610,25 @@ const InputArea: React.FC<Props> = ({
         }
     }, [polishProgress, worldEvolutionProgress, planningProgress]);
 
+    useEffect(() => {
+        if (!queueVisible || queueRunning) return;
+        const hasQueueError = pipelineStages.some((stage) => stage.progress?.phase === 'error');
+        if (hasQueueError) return;
+        const timerId = window.setTimeout(() => {
+            setQueueCollapsed(true);
+            setExpandedRawStageId(null);
+            setExpandedCommandStageId(null);
+        }, 1200);
+        return () => window.clearTimeout(timerId);
+    }, [
+        queueVisible,
+        queueRunning,
+        polishProgress?.phase,
+        effectiveVariableGenerationProgress?.phase,
+        effectiveWorldEvolutionProgress?.phase,
+        effectivePlanningProgress?.phase
+    ]);
+
     return (
         <div className="shrink-0 relative z-20 bg-gradient-to-t from-ink-black/90 via-ink-black/75 to-transparent pb-2 px-2 sm:px-4 flex flex-col gap-1 backdrop-blur-[2px]">
             {/* Quick Actions Chips (Fixed Box Size, Scrolling Text) */}
@@ -843,7 +862,15 @@ const InputArea: React.FC<Props> = ({
                     >
                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                         </svg>
+                    </button>
+                ) : postStoryQueueRunning ? (
+                    <button
+                        disabled
+                        className="w-10 sm:w-12 h-9 sm:h-11 shrink-0 bg-black/55 border border-wuxia-cyan/45 text-wuxia-cyan rounded-lg sm:rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.16)] cursor-wait"
+                        title="后台队列处理中"
+                    >
+                        <span className="inline-block w-5 h-5 border-2 border-wuxia-cyan/35 border-t-wuxia-cyan rounded-full animate-spin" />
                     </button>
                 ) : (
                     <button 
@@ -982,7 +1009,10 @@ const InputArea: React.FC<Props> = ({
                                     style={{ clipPath: 'polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)' }}
                                     title="收起独立更新阶段队列"
                                 >
-                                    {queueRunning ? '运行中' : '收起队列'}
+                                    <span className="inline-flex items-center justify-center gap-2">
+                                        {queueRunning && <span className="inline-block w-3 h-3 border-2 border-wuxia-cyan/40 border-t-wuxia-cyan rounded-full animate-spin" />}
+                                        <span>{queueRunning ? '运行中' : '收起队列'}</span>
+                                    </span>
                                 </button>
                             </div>
                         )}
@@ -995,7 +1025,10 @@ const InputArea: React.FC<Props> = ({
                                     style={{ clipPath: 'polygon(12% 0%, 88% 0%, 100% 100%, 0% 100%)' }}
                                     title="展开独立更新阶段队列"
                                 >
-                                    {queueRunning ? '队列中' : '队列'}
+                                    <span className="inline-flex items-center justify-center gap-2">
+                                        {queueRunning && <span className="inline-block w-3 h-3 border-2 border-wuxia-cyan/40 border-t-wuxia-cyan rounded-full animate-spin" />}
+                                        <span>{queueRunning ? '队列中' : '队列'}</span>
+                                    </span>
                                 </button>
                             </div>
                         ) : (
