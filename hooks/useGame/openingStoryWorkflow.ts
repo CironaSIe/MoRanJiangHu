@@ -67,6 +67,8 @@ import { 执行变量模型校准工作流 } from './variableModelWorkflow';
 import { 合并变量校准结果到响应 as 合并变量生成结果到响应 } from './variableCalibrationMerge';
 import { 保护开局生成门派状态 } from './storyState';
 
+const 开局规划分析请求超时毫秒 = 90000;
+
 type 开场命令基态 = {
     角色: 角色数据结构;
     环境: 环境信息结构;
@@ -282,6 +284,49 @@ const 过滤规划补丁命令 = (commands: TavernCommand[] | undefined, targets
     })
 );
 
+const 创建开局规划超时错误 = (): Error => {
+    const error = new Error(`开局规划分析请求超时（${Math.max(1, Math.ceil(开局规划分析请求超时毫秒 / 1000))} 秒）`);
+    error.name = 'TimeoutError';
+    return error;
+};
+
+const 执行开局规划带超时 = async <T,>(
+    parentSignal: AbortSignal,
+    task: (signal: AbortSignal) => Promise<T>
+): Promise<T> => {
+    if (parentSignal.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
+    }
+    const controller = new AbortController();
+    const timeoutError = 创建开局规划超时错误();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const abortByParent = () => controller.abort(parentSignal.reason || new DOMException('Aborted', 'AbortError'));
+    parentSignal.addEventListener('abort', abortByParent, { once: true });
+    try {
+        return await Promise.race([
+            task(controller.signal),
+            new Promise<T>((_, reject) => {
+                timer = setTimeout(() => {
+                    if (!controller.signal.aborted) {
+                        controller.abort(timeoutError);
+                    }
+                    reject(timeoutError);
+                }, 开局规划分析请求超时毫秒);
+            })
+        ]);
+    } catch (error) {
+        if (controller.signal.aborted && controller.signal.reason === timeoutError) {
+            throw timeoutError;
+        }
+        throw error;
+    } finally {
+        parentSignal.removeEventListener('abort', abortByParent);
+        if (timer) {
+            clearTimeout(timer);
+        }
+    }
+};
+
 const 读取提示词内容 = (promptPool: 提示词结构[], promptId: string): string => {
     const matched = Array.isArray(promptPool)
         ? promptPool.find((item) => item?.id === promptId)
@@ -376,6 +421,7 @@ export const 执行开场剧情生成工作流 = async (
         const 执行可重试开局阶段 = async <T,>(params: {
             stageLabel: string;
             run: () => Promise<T>;
+            forceAutoRetry?: boolean;
             beforeAttempt?: (attempt: number) => void;
             onAutoRetry?: (attempt: number, maxAttempts: number, reason: string) => void;
             onError?: (errorText: string) => void;
@@ -388,7 +434,7 @@ export const 执行开场剧情生成工作流 = async (
                 params.beforeAttempt?.(manualAttempt);
                 try {
                     const result = await deps.执行带自动重试的生成请求<T>({
-                        enabled: 开局独立阶段自动重试已启用,
+                        enabled: params.forceAutoRetry === true || 开局独立阶段自动重试已启用,
                         action: params.run,
                         onRetry: params.onAutoRetry
                     });
@@ -1119,6 +1165,7 @@ export const 执行开场剧情生成工作流 = async (
         if (接口配置是否可用(openingPlanningApi)) {
             const planningStage = await 执行可重试开局阶段({
                 stageLabel: '开局规划分析',
+                forceAutoRetry: true,
                 beforeAttempt: (attempt) => {
                     deps.设置开局规划进度({
                         phase: 'start',
@@ -1186,7 +1233,7 @@ export const 执行开场剧情生成工作流 = async (
                     ]
                         .filter(Boolean)
                         .join('\n\n');
-                    const planningResult = await textAIService.generatePlanningAnalysis({
+                    const planningResult = await 执行开局规划带超时(controller.signal, (signal) => textAIService.generatePlanningAnalysis({
                         playerName: (simulatedOpeningState.角色?.姓名 || deps.角色?.姓名 || '').trim() || '未命名',
                         currentStoryJson: JSON.stringify(裁剪修炼体系上下文数据({
                             剧情: simulatedOpeningState.剧情 || {},
@@ -1209,7 +1256,7 @@ export const 执行开场剧情生成工作流 = async (
                         fandomEnabled,
                         extraPrompt: planningExtraPrompt,
                         gptMode: openingGameConfig.独立APIGPT模式?.规划分析 === true
-                    }, openingPlanningApi, controller.signal);
+                    }, openingPlanningApi, signal));
                     const planningCommands = [
                         ...过滤规划补丁命令(planningResult.commands, ['剧情', 'gameState.剧情']),
                         ...过滤规划补丁命令(planningResult.commands, activeStoryPlanTargets),

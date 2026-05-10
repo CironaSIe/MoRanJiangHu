@@ -85,6 +85,59 @@ const 过滤规划补丁命令 = (commands: TavernCommand[] | undefined, targets
     })
 );
 
+const 规划分析请求超时毫秒 = 90000;
+const 规划分析自动重试最大次数 = 3;
+
+const 创建规划分析超时错误 = (): Error => {
+    const error = new Error(`规划分析请求超时（${Math.max(1, Math.ceil(规划分析请求超时毫秒 / 1000))} 秒），已跳过本轮后台规划分析。`);
+    error.name = 'TimeoutError';
+    return error;
+};
+
+const 执行规划分析带超时 = async <T,>(task: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const timeoutError = 创建规划分析超时错误();
+    try {
+        return await Promise.race([
+            task(controller.signal),
+            new Promise<T>((_, reject) => {
+                timer = setTimeout(() => {
+                    if (!controller.signal.aborted) {
+                        controller.abort(timeoutError);
+                    }
+                    reject(timeoutError);
+                }, 规划分析请求超时毫秒);
+            })
+        ]);
+    } catch (error) {
+        if (controller.signal.aborted && controller.signal.reason === timeoutError) {
+            throw timeoutError;
+        }
+        throw error;
+    } finally {
+        if (timer) {
+            clearTimeout(timer);
+        }
+    }
+};
+
+const 执行规划分析带超时和重试 = async <T,>(task: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= 规划分析自动重试最大次数; attempt += 1) {
+        try {
+            return await 执行规划分析带超时(task);
+        } catch (error: any) {
+            lastError = error;
+            if (error?.name === 'AbortError' || attempt >= 规划分析自动重试最大次数) {
+                throw error;
+            }
+            console.warn(`[规划分析] 请求失败，自动重试 ${attempt + 1}/${规划分析自动重试最大次数}`, error);
+        }
+    }
+    throw lastError;
+};
+
 export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) => {
     const 应用规划补丁命令 = (params: {
         commands: TavernCommand[];
@@ -296,7 +349,9 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             normalizedGameConfig
         );
 
-        const result = await textAIService.generatePlanningAnalysis({
+        let result;
+        try {
+            result = await 执行规划分析带超时和重试((signal) => textAIService.generatePlanningAnalysis({
             playerName: (deps.角色?.姓名 || '').trim() || '未命名',
             currentStoryJson: JSON.stringify(planningStoryPayload, null, 2),
             currentHeroinePlanJson: JSON.stringify(planningHeroinePayload, null, 2),
@@ -323,7 +378,23 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             fandomEnabled,
             extraPrompt: planningExtraPrompt,
             gptMode: 独立规划分析GPT模式
-        }, planningApi);
+            }, planningApi, signal));
+        } catch (error: any) {
+            if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+                return {
+                    updated: false,
+                    message: error?.message
+                        ? `${error.message}，自动重试仍未成功，已跳过本轮后台规划分析。`
+                        : '规划分析请求已中断，自动重试仍未成功，已跳过本轮后台规划分析。',
+                    rawText: '',
+                    commands: [],
+                    storyCommands: [],
+                    storyPlanCommands: [],
+                    heroinePlanCommands: []
+                };
+            }
+            throw error;
+        }
 
         const storyCommands = 过滤规划补丁命令(result.commands, ['剧情', 'gameState.剧情']);
         const storyPlanCommands = 过滤规划补丁命令(result.commands, activeStoryPlanTargets);

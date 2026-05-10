@@ -304,7 +304,7 @@ export const generateWorldData = async (
     streamOptions?: WorldStreamOptions,
     extraPrompt?: string,
     cotPseudoHistoryPrompt?: string,
-    config?: { 启用修炼体系?: boolean }
+    config?: { 启用修炼体系?: boolean; signal?: AbortSignal }
 ): Promise<string> => {
     if (!apiConfig.apiKey) throw new Error('Missing API Key');
 
@@ -327,7 +327,8 @@ export const generateWorldData = async (
 
     const rawText = await 请求模型文本(apiConfig, messages, {
         temperature: 0.8,
-        streamOptions
+        streamOptions,
+        signal: config?.signal
     });
 
     return 解析世界观提示词内容(rawText);
@@ -415,7 +416,8 @@ export const generateFandomRealmData = async (
     },
     apiConfig: 当前可用接口结构,
     streamOptions?: WorldStreamOptions,
-    extraPrompt?: string
+    extraPrompt?: string,
+    signal?: AbortSignal
 ): Promise<string> => {
     if (!apiConfig.apiKey) throw new Error('Missing API Key');
 
@@ -434,7 +436,8 @@ export const generateFandomRealmData = async (
             规范化文本补全消息链(messages, { 保留System: true, 合并同角色: false }),
             {
                 temperature: 0.5,
-                streamOptions: currentStreamOptions
+                streamOptions: currentStreamOptions,
+                signal
             }
         );
         return 解析境界体系提示词内容(rawText);

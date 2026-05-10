@@ -44,6 +44,47 @@ type 世界生成工作流依赖 = {
     替换流式草稿为失败提示: (history: 聊天记录结构[], errorMessage: string) => 聊天记录结构[];
 };
 
+const 世界观阶段超时毫秒 = 120000;
+const 境界阶段超时毫秒 = 120000;
+
+const 创建阶段超时错误 = (stageLabel: string, timeoutMs: number): Error => {
+    const error = new Error(`${stageLabel}超时（${Math.max(1, Math.ceil(timeoutMs / 1000))} 秒），请检查模型服务或稍后重试。`);
+    error.name = 'TimeoutError';
+    return error;
+};
+
+const 执行带超时 = async <T,>(
+    stageLabel: string,
+    timeoutMs: number,
+    task: (signal: AbortSignal) => Promise<T>
+): Promise<T> => {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const timeoutError = 创建阶段超时错误(stageLabel, timeoutMs);
+    try {
+        return await Promise.race([
+            task(controller.signal),
+            new Promise<T>((_, reject) => {
+                timer = setTimeout(() => {
+                    if (!controller.signal.aborted) {
+                        controller.abort(timeoutError);
+                    }
+                    reject(timeoutError);
+                }, timeoutMs);
+            })
+        ]);
+    } catch (error: any) {
+        if (controller.signal.aborted && controller.signal.reason === timeoutError) {
+            throw timeoutError;
+        }
+        throw error;
+    } finally {
+        if (timer) {
+            clearTimeout(timer);
+        }
+    }
+};
+
 export const 执行世界生成工作流 = async (
     worldConfig: WorldGenConfig,
     charData: 角色数据结构,
@@ -228,7 +269,7 @@ export const 执行世界生成工作流 = async (
                 }, 420);
             }
 
-            realmPromptContent = await textAIService.generateFandomRealmData(
+            realmPromptContent = await 执行带超时('同人境界体系生成', 境界阶段超时毫秒, (signal) => textAIService.generateFandomRealmData(
                 {
                     openingConfig
                 },
@@ -262,8 +303,9 @@ export const 执行世界生成工作流 = async (
                     : undefined,
                 normalizedWorldExtraRequirement
                     ? `【世界观额外要求】\n${normalizedWorldExtraRequirement}`
-                    : ''
-            );
+                    : '',
+                signal
+            ));
             if (realmStreamHeartbeat) clearInterval(realmStreamHeartbeat);
         }
 
@@ -346,7 +388,7 @@ export const 执行世界生成工作流 = async (
 
         const generatedWorldPrompt = useManualWorldPrompt
             ? textAIService.解析世界观提示词内容(normalizedManualWorldPrompt)
-            : await textAIService.generateWorldData(
+            : await 执行带超时('世界观生成', 世界观阶段超时毫秒, (signal) => textAIService.generateWorldData(
                 worldGenerationContext,
                 charData,
                 currentApi,
@@ -380,9 +422,10 @@ export const 执行世界生成工作流 = async (
                 worldGenerationExtraPrompt,
                 worldGenerationCotPseudoPrompt,
                 {
-                    启用修炼体系
+                    启用修炼体系,
+                    signal
                 }
-            );
+            ));
         if (worldStreamHeartbeat) clearInterval(worldStreamHeartbeat);
 
         const worldPromptContent = generatedWorldPrompt?.trim() || worldPromptSeed;
