@@ -30,7 +30,10 @@ import { RELEASE_INFO } from '../../data/releaseInfo';
 import {
     判断疑似网络或跨域错误,
     构建ComfyUI精确连接失败提示,
-    构建通用生图连接失败提示
+    构建OpenAI图片生成端点,
+    构建通用生图连接失败提示,
+    规范化OpenAI图片基础地址,
+    规范化OpenAI图片模型名称
 } from './imageGenerationDiagnostics';
 
 export interface 图片生成结果 {
@@ -145,7 +148,7 @@ const 获取NovelAI代理基础地址 = (baseUrlRaw: string): string => {
 };
 
 const 构建图片端点 = (baseUrlRaw: string, customPathRaw?: string): string => {
-    const normalizedBaseRaw = 规范化NovelAI基础地址(baseUrlRaw || '');
+    const normalizedBaseRaw = 规范化OpenAI图片基础地址(规范化NovelAI基础地址(baseUrlRaw || ''));
     const base = 清理末尾斜杠(normalizedBaseRaw || '');
     const customPath = (customPathRaw || '').trim();
     const novelAiProxyBase = 获取NovelAI代理基础地址(base);
@@ -157,20 +160,7 @@ const 构建图片端点 = (baseUrlRaw: string, customPathRaw?: string): string 
             : '/ai/generate-image';
         return `${novelAiProxyBase}/api/novelai${targetPath}`;
     }
-    if (/^https?:\/\//i.test(customPath)) {
-        return 清理末尾斜杠(customPath);
-    }
-    if (!base) return '';
-    if (customPath) {
-        const rawPath = customPath.startsWith('/') ? customPath : `/${customPath}`;
-        const normalizedPath = /\/v1$/i.test(base) && /^\/v1\//i.test(rawPath)
-            ? rawPath.replace(/^\/v1/i, '')
-            : rawPath;
-        return `${base}${normalizedPath}`;
-    }
-    if (/\/images\/generations$/i.test(base)) return base;
-    if (/\/v1$/i.test(base)) return `${base}/images/generations`;
-    return `${base}/v1/images/generations`;
+    return 构建OpenAI图片生成端点(base, customPath, { useRuntimeProxy: true });
 };
 
 const 推断图片Mime类型 = (fileName: string): string => {
@@ -3577,7 +3567,24 @@ export const generateImageByPrompt = async (
     const backendType = apiConfig.图片后端类型 || 'openai';
     const shouldUseCustomOpenAIPayload = apiConfig.图片走OpenAI自定义格式 === true;
     const isChatCompletionsEndpoint = /\/chat\/completions$/i.test(endpoint);
-    const isGptImageModel = /^(gpt-image|chatgpt-image)/i.test((apiConfig.model || '').trim());
+    const imageModel = 规范化OpenAI图片模型名称(apiConfig.model || '');
+    const isGptImageModel = /^(gpt-image|chatgpt-image)/i.test(imageModel);
+    const endpointInfo = (() => {
+        try {
+            return new URL(endpoint);
+        } catch {
+            return null;
+        }
+    })();
+    const originalBaseHost = (() => {
+        try {
+            return new URL(规范化OpenAI图片基础地址(apiConfig.baseUrl)).hostname;
+        } catch {
+            return '';
+        }
+    })();
+    const isPucodingImageEndpoint = /(^|\.)pucoding\.com$/i.test(originalBaseHost)
+        || /\/api\/pucoding-image\/v1\/images\//i.test(endpointInfo?.pathname || '');
     const negativePromptText = promptBundle.最终负向提示词;
     const promptWithInlineNegative = promptBundle.带内联负面提示词的正向提示词;
     const shouldSkipBaseNegative = options?.跳过基础负面提示词 === true;
@@ -3628,7 +3635,7 @@ export const generateImageByPrompt = async (
     } else {
         requestBody = isChatCompletionsEndpoint
             ? {
-                model: apiConfig.model,
+                model: imageModel || apiConfig.model,
                 stream: false,
                 messages: [
                     {
@@ -3638,13 +3645,17 @@ export const generateImageByPrompt = async (
                 ]
             }
             : {
-                model: apiConfig.model,
+                model: imageModel || apiConfig.model,
                 prompt: promptWithInlineNegative,
                 n: 1,
                 size
             };
         if (isGptImageModel && !isChatCompletionsEndpoint) {
-            requestBody.moderation = 'auto';
+            if (isPucodingImageEndpoint) {
+                requestBody.response_format = 'b64_json';
+            } else {
+                requestBody.moderation = 'auto';
+            }
         }
         if (!isGptImageModel && (shouldUseCustomOpenAIPayload || responseFormat === 'b64_json')) {
             requestBody.response_format = responseFormat === 'b64_json'
