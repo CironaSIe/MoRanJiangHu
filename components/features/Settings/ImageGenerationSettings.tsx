@@ -17,7 +17,16 @@ import { RELEASE_INFO } from '../../../data/releaseInfo';
 import { openExternalUrl } from '../../../services/appUpdate';
 import { 规范化接口设置, 获取NSFW文生图接口配置, 接口配置是否可用 } from '../../../utils/apiConfig';
 import { 自动场景横屏尺寸选项, 自动场景竖屏尺寸选项 } from '../../../utils/imageSizeOptions';
-import { buildDiscoveredBackendLabel, fetchDiscoveredImageBackends } from '../../../services/ai/imageBackendRegistry';
+import {
+    buildDiscoveredBackendLabel,
+    fetchDiscoveredImageBackends,
+    normalizeDiscoveredBackendUrl,
+    pickPreferredDiscoveredImageBackend,
+    readImageBackendConnectionStats,
+    recordImageBackendConnectionSuccess,
+    sortDiscoveredImageBackendsByPreference,
+    type ImageBackendConnectionStats
+} from '../../../services/ai/imageBackendRegistry';
 import { 规范化ComfyUI工作流JSON } from '../../../services/ai/comfyWorkflowTools';
 import { 构建ComfyUI精确连接失败提示, 翻译连接测试错误 } from '../../../services/ai/imageGenerationDiagnostics';
 
@@ -172,6 +181,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const [message, setMessage] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
     const [discoveredBackends, setDiscoveredBackends] = useState<发现图片后端记录结构[]>([]);
+    const [backendConnectionStats, setBackendConnectionStats] = useState<ImageBackendConnectionStats>(() => readImageBackendConnectionStats());
     const [discoveryLoading, setDiscoveryLoading] = useState(false);
     const [discoveryError, setDiscoveryError] = useState('');
     const [testingImageConnection, setTestingImageConnection] = useState(false);
@@ -193,6 +203,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         setTransformerPresetScope('nai');
         setProfileScope('npc');
         setDiscoveredBackends([]);
+        setBackendConnectionStats(readImageBackendConnectionStats());
         setDiscoveryError('');
     }, [settings]);
 
@@ -301,6 +312,18 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         : profileScope === 'item'
             ? ((form.功能模型占位 as any).当前物品生图配置档ID || '')
             : ((form.功能模型占位 as any).当前NPC生图配置档ID || '');
+    const 主后端发现列表 = useMemo(
+        () => sortDiscoveredImageBackendsByPreference(discoveredBackends, 'main', backendConnectionStats),
+        [backendConnectionStats, discoveredBackends]
+    );
+    const 场景后端发现列表 = useMemo(
+        () => sortDiscoveredImageBackendsByPreference(discoveredBackends, 'scene', backendConnectionStats),
+        [backendConnectionStats, discoveredBackends]
+    );
+    const NSFW后端发现列表 = useMemo(
+        () => sortDiscoveredImageBackendsByPreference(discoveredBackends, 'nsfw', backendConnectionStats),
+        [backendConnectionStats, discoveredBackends]
+    );
 
     const refreshDiscoveredBackends = React.useCallback(async () => {
         if (
@@ -330,6 +353,73 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         void refreshDiscoveredBackends();
     }, [refreshDiscoveredBackends]);
 
+    useEffect(() => {
+        if (!discoveredBackends.length) return;
+        setForm((prev) => {
+            const feature = prev.功能模型占位;
+            let nextFeature: 功能模型占位配置结构 | null = null;
+            const withChange = <K extends keyof 功能模型占位配置结构>(key: K, value: 功能模型占位配置结构[K]) => {
+                const current = (nextFeature || feature)[key];
+                if (current === value) return;
+                nextFeature = {
+                    ...(nextFeature || feature),
+                    [key]: value
+                } as 功能模型占位配置结构;
+            };
+            const applyMainCandidate = () => {
+                if (feature.文生图后端类型 !== 'comfyui') return;
+                const candidate = pickPreferredDiscoveredImageBackend(
+                    主后端发现列表,
+                    'main',
+                    {
+                        id: feature.当前图片后端发现ID,
+                        url: feature.文生图模型API地址
+                    },
+                    backendConnectionStats
+                );
+                if (!candidate) return;
+                withChange('当前图片后端发现ID', candidate.id);
+                withChange('文生图模型API地址', normalizeDiscoveredBackendUrl(candidate.url));
+            };
+            const applySceneCandidate = () => {
+                if (!feature.场景生图独立接口启用 || feature.场景生图后端类型 !== 'comfyui') return;
+                const candidate = pickPreferredDiscoveredImageBackend(
+                    场景后端发现列表,
+                    'scene',
+                    {
+                        id: feature.当前场景图片后端发现ID,
+                        url: feature.场景生图模型API地址
+                    },
+                    backendConnectionStats
+                );
+                if (!candidate) return;
+                withChange('当前场景图片后端发现ID', candidate.id);
+                withChange('场景生图模型API地址', normalizeDiscoveredBackendUrl(candidate.url));
+            };
+            const applyNSFWCandidate = () => {
+                if (!feature.NSFW生图独立接口启用 || feature.NSFW生图后端类型 !== 'comfyui') return;
+                const candidate = pickPreferredDiscoveredImageBackend(
+                    NSFW后端发现列表,
+                    'nsfw',
+                    {
+                        id: feature.当前NSFW图片后端发现ID,
+                        url: feature.NSFW生图模型API地址
+                    },
+                    backendConnectionStats
+                );
+                if (!candidate) return;
+                withChange('当前NSFW图片后端发现ID', candidate.id);
+                withChange('NSFW生图模型API地址', normalizeDiscoveredBackendUrl(candidate.url));
+            };
+
+            applyMainCandidate();
+            applySceneCandidate();
+            applyNSFWCandidate();
+
+            return nextFeature ? { ...prev, 功能模型占位: nextFeature } : prev;
+        });
+    }, [NSFW后端发现列表, backendConnectionStats, discoveredBackends.length, 主后端发现列表, 场景后端发现列表]);
+
     const updatePlaceholder = <K extends keyof 功能模型占位配置结构>(key: K, value: 功能模型占位配置结构[K]) => {
         setForm((prev) => ({
             ...prev,
@@ -345,7 +435,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         if (target === 'main') {
             updatePlaceholder('当前图片后端发现ID', backendId);
             if (matched) {
-                updatePlaceholder('文生图模型API地址', matched.url);
+                updatePlaceholder('文生图模型API地址', normalizeDiscoveredBackendUrl(matched.url));
             }
             return;
         }
@@ -353,14 +443,14 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         if (target === 'scene') {
             updatePlaceholder('当前场景图片后端发现ID', backendId);
             if (matched) {
-                updatePlaceholder('场景生图模型API地址', matched.url);
+                updatePlaceholder('场景生图模型API地址', normalizeDiscoveredBackendUrl(matched.url));
             }
             return;
         }
 
         updatePlaceholder('当前NSFW图片后端发现ID', backendId);
         if (matched) {
-            updatePlaceholder('NSFW生图模型API地址', matched.url);
+            updatePlaceholder('NSFW生图模型API地址', normalizeDiscoveredBackendUrl(matched.url));
         }
     };
 
@@ -786,6 +876,11 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status} ${await response.text().catch(() => '')}`.trim());
                 }
+                const matchedBackend = discoveredBackends.find((item) => (
+                    item.id === feature.当前图片后端发现ID
+                    || normalizeDiscoveredBackendUrl(item.url) === base
+                ));
+                setBackendConnectionStats(recordImageBackendConnectionSuccess('main', matchedBackend || base));
                 setMessage('ComfyUI 连接成功：后端在线，可以继续生图。');
                 return;
             }
@@ -846,6 +941,12 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             if (backend === 'comfyui') {
                 const response = await fetch(`${base}/system_stats`, { method: 'GET' });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const feature = form.功能模型占位;
+                const matchedBackend = discoveredBackends.find((item) => (
+                    item.id === feature.当前NSFW图片后端发现ID
+                    || normalizeDiscoveredBackendUrl(item.url) === base
+                ));
+                setBackendConnectionStats(recordImageBackendConnectionSuccess('nsfw', matchedBackend || base));
                 setMessage(`NSFW ComfyUI 连接成功：后端在线（${base}）。`);
                 return;
             }
@@ -1144,7 +1245,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                         <label className="text-sm font-bold text-rose-200">在线后端</label>
                         <InlineSelect
                             value={form.功能模型占位.当前NSFW图片后端发现ID}
-                            options={discoveredBackends.map((item) => ({
+                            options={NSFW后端发现列表.map((item) => ({
                                 value: item.id,
                                 label: buildDiscoveredBackendLabel(item)
                             }))}
@@ -1360,7 +1461,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 <label className="text-sm font-bold text-emerald-200">在线后端</label>
                                 <InlineSelect
                                     value={form.功能模型占位.当前图片后端发现ID}
-                                    options={discoveredBackends.map((item) => ({
+                                    options={主后端发现列表.map((item) => ({
                                         value: item.id,
                                         label: buildDiscoveredBackendLabel(item)
                                     }))}
@@ -2068,7 +2169,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                             <label className="text-sm font-bold text-sky-200">在线后端</label>
                                             <InlineSelect
                                                 value={form.功能模型占位.当前场景图片后端发现ID}
-                                                options={discoveredBackends.map((item) => ({
+                                                options={场景后端发现列表.map((item) => ({
                                                     value: item.id,
                                                     label: buildDiscoveredBackendLabel(item)
                                                 }))}

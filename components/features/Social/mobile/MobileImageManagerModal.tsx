@@ -1619,20 +1619,25 @@ const SceneTabContent: React.FC<TabProps> = ({
                     className="fixed inset-0 z-[320] bg-black/95 backdrop-blur-sm flex items-center justify-center p-3 animate-fadeIn"
                     onClick={() => setImageViewer(null)}
                 >
+                    <button
+                        type="button"
+                        className="fixed top-4 right-4 z-[340] flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-red-600/95 text-white shadow-[0_0_24px_rgba(220,38,38,1)] transition-all hover:scale-110 hover:bg-red-500 hover:shadow-[0_0_32px_rgba(220,38,38,1)]"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            setImageViewer(null);
+                        }}
+                        aria-label="关闭图片预览"
+                        title="关闭图片预览"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-7 h-7">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                     <div
                         className="relative inline-flex w-fit max-w-[94vw] max-h-[92vh] rounded-lg overflow-hidden border border-[#d4af37]/20 shadow-[0_0_40px_rgba(212,175,55,0.18)]"
                         onClick={(event) => event.stopPropagation()}
                     >
                         <img src={imageViewer.src} alt={imageViewer.alt} className="max-w-[94vw] max-h-[92vh] object-contain bg-black" />
-                        <button
-                            type="button"
-                            className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full bg-black/60 border border-gray-700 text-gray-300"
-                            onClick={() => setImageViewer(null)}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                            </svg>
-                        </button>
                     </div>
                 </div>
             )}
@@ -1848,20 +1853,25 @@ const HistoryTabContent: React.FC<TabProps> = ({
                     className="fixed inset-0 z-[320] bg-black/95 backdrop-blur-sm flex items-center justify-center p-3 animate-fadeIn"
                     onClick={() => setImageViewer(null)}
                 >
+                    <button
+                        type="button"
+                        className="fixed top-4 right-4 z-[340] flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-red-600/95 text-white shadow-[0_0_24px_rgba(220,38,38,1)] transition-all hover:scale-110 hover:bg-red-500 hover:shadow-[0_0_32px_rgba(220,38,38,1)]"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            setImageViewer(null);
+                        }}
+                        aria-label="关闭图片预览"
+                        title="关闭图片预览"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-7 h-7">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                     <div
                         className="relative inline-flex w-fit max-w-[94vw] max-h-[92vh] rounded-lg overflow-hidden border border-[#d4af37]/20 shadow-[0_0_40px_rgba(212,175,55,0.18)]"
                         onClick={(event) => event.stopPropagation()}
                     >
                         <img src={imageViewer.src} alt={imageViewer.alt} className="max-w-[94vw] max-h-[92vh] object-contain bg-black" />
-                        <button
-                            type="button"
-                            className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full bg-black/60 border border-gray-700 text-gray-300"
-                            onClick={() => setImageViewer(null)}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                            </svg>
-                        </button>
                     </div>
                 </div>
             )}

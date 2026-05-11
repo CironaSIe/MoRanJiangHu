@@ -1969,9 +1969,10 @@ const 已发现ComfyUI后端缓存有效期 = 60_000;
 
 export const 刷新已发现ComfyUI后端缓存 = async (registryUrl?: string): Promise<Array<{ url: string }>> => {
     try {
-        const { fetchDiscoveredImageBackends } = await import('../services/ai/imageBackendRegistry');
+        const { fetchDiscoveredImageBackends, sortDiscoveredImageBackendsByPreference } = await import('../services/ai/imageBackendRegistry');
         const items = await fetchDiscoveredImageBackends(registryUrl, 'comfyui');
-        已发现ComfyUI后端缓存 = items.map((item) => ({ url: item.url }));
+        已发现ComfyUI后端缓存 = sortDiscoveredImageBackendsByPreference(items, 'global')
+            .map((item) => ({ url: item.url }));
         已发现ComfyUI后端缓存时间 = Date.now();
         return 已发现ComfyUI后端缓存;
     } catch {
