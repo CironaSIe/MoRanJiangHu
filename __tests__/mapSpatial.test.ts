@@ -313,3 +313,74 @@ describe('地图空间道路规划', () => {
         expect(scene.当前层建筑物.some((item: any) => item.分类 === '房间')).toBe(true);
     });
 });
+
+
+describe('本批 bugfix 回归 - 地图 NPC 社交一致、建筑内部无道路、野外单主路', () => {
+    it('荒庙内部这类"庙"字层级被判为室内，不生成道路，且仅由墙/门/房间构成', () => {
+        const world = 补齐世界地图空间字段({
+            地图层级: [{
+                ID: 'layer_shrine',
+                名称: '荒庙内部',
+                层级: '具体地点',
+                网格宽度: 20,
+                网格高度: 16,
+                锚点坐标: { x: 0, y: 0 }
+            }],
+            地图建筑: [],
+            地图道路: [{
+                ID: 'old_ghost_road',
+                名称: '穿殿道',
+                所在层级ID: 'layer_shrine',
+                路径点: [
+                    { x: 1, y: 1 },
+                    { x: 18, y: 14 }
+                ]
+            }],
+            地图人物: []
+        } as any);
+
+        expect(world.地图道路.some((item: any) => item.所在层级ID === 'layer_shrine')).toBe(false);
+        const buildings = world.地图建筑.filter((item: any) => item.所在层级ID === 'layer_shrine');
+        const categories = new Set(buildings.map((item: any) => item.分类));
+        expect(categories.has('外墙')).toBe(true);
+        expect(categories.has('房间')).toBe(true);
+        expect(categories.has('门')).toBe(true);
+    });
+
+    it('野外层级（郊外荒庙）只保留 1 条主路，聚落网格的"主街/横巷/纵巷"会被清掉', () => {
+        const world = 补齐世界地图空间字段({
+            地图层级: [{
+                ID: 'layer_wild',
+                名称: '郊外荒庙旁',
+                描述: '城外一段野径，路旁有一座荒废的小庙。',
+                层级: '小地点',
+                网格宽度: 30,
+                网格高度: 22,
+                锚点坐标: { x: 0, y: 0 }
+            }],
+            地图建筑: [{
+                ID: 'shrine_body',
+                名称: '荒庙',
+                所在层级ID: 'layer_wild',
+                四角坐标: [
+                    { x: 12, y: 9 },
+                    { x: 18, y: 9 },
+                    { x: 18, y: 13 },
+                    { x: 12, y: 13 }
+                ]
+            }],
+            地图道路: [
+                { ID: 'w_main', 名称: '主街', 所在层级ID: 'layer_wild', 路径点: [{ x: 2, y: 5 }, { x: 28, y: 5 }] },
+                { ID: 'w_h1', 名称: '横巷01', 所在层级ID: 'layer_wild', 路径点: [{ x: 2, y: 10 }, { x: 28, y: 10 }] },
+                { ID: 'w_v1', 名称: '纵巷01', 所在层级ID: 'layer_wild', 路径点: [{ x: 8, y: 2 }, { x: 8, y: 20 }] },
+                { ID: 'w_ridge', 名称: '山道', 所在层级ID: 'layer_wild', 路径点: [{ x: 1, y: 11 }, { x: 28, y: 11 }] }
+            ],
+            地图人物: []
+        } as any);
+
+        const layerRoads = world.地图道路.filter((item: any) => item.所在层级ID === 'layer_wild');
+        expect(layerRoads.length).toBeLessThanOrEqual(1);
+        // 主街/横巷/纵巷 应该被野外策略移除
+        expect(layerRoads.some((item: any) => /主街|横巷|纵巷/.test(item.名称))).toBe(false);
+    });
+});

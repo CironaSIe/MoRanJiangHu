@@ -236,7 +236,8 @@ export default defineConfig(({ mode }) => {
         'dist/**',
         '.tmp*/**',
         'test-results/**',
-        'tests/e2e-*.spec.mjs'
+        'tests/e2e-*.spec.mjs',
+        'tests/bugfix-*.spec.mjs'
       ]
     }
   };

@@ -697,21 +697,35 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
             </div>
             {imageViewer && (
                 <div
-                    className="fixed inset-0 z-[360] flex items-center justify-end bg-black/82 pr-8 backdrop-blur-sm"
+                    className="fixed inset-0 z-[360] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
                     onClick={() => setImageViewer(null)}
+                    role="dialog"
+                    aria-label="物品图片预览"
                 >
-                    <div className="relative max-w-[85vw]" onClick={(event) => event.stopPropagation()}>
-                        <button
-                            type="button"
-                            onClick={() => setImageViewer(null)}
-                            className="absolute right-3 top-3 z-10 flex h-12 min-h-[48px] w-12 min-w-[48px] items-center justify-center rounded-full border-2 border-white bg-red-600 text-white shadow-[0_0_24px_rgba(220,38,38,0.75)] transition hover:scale-110 hover:bg-red-500 hover:shadow-[0_0_32px_rgba(248,113,113,0.95)]"
-                            aria-label="关闭图片预览"
-                        >
-                            <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <img src={imageViewer.src} alt={imageViewer.alt} className="max-h-[94vh] max-w-[85vw] rounded-lg border border-white/25 bg-black object-contain shadow-2xl" />
+                    {/* 固定在屏幕右上角的主关闭按钮：即便图片超大也能第一眼看到 */}
+                    <button
+                        type="button"
+                        onClick={() => setImageViewer(null)}
+                        className="fixed z-[380] flex h-14 min-h-[56px] w-14 min-w-[56px] items-center justify-center rounded-full border-[3px] border-white bg-red-600 text-white shadow-[0_0_32px_rgba(220,38,38,0.9)] transition hover:scale-110 hover:bg-red-500 hover:shadow-[0_0_48px_rgba(248,113,113,1)]"
+                        style={{ top: 'max(env(safe-area-inset-top, 0px), 16px)', right: 'max(env(safe-area-inset-right, 0px), 16px)' }}
+                        aria-label="关闭图片预览"
+                        title="关闭图片预览"
+                    >
+                        <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    {/* 底部可见的关闭提示按钮：作为第二入口，彻底避免"找不到退出" */}
+                    <button
+                        type="button"
+                        onClick={() => setImageViewer(null)}
+                        className="fixed bottom-6 left-1/2 z-[380] -translate-x-1/2 rounded-full border-2 border-white bg-red-600/95 px-5 py-2 text-sm font-bold tracking-widest text-white shadow-[0_0_16px_rgba(220,38,38,0.75)] hover:bg-red-500"
+                        style={{ bottom: 'max(env(safe-area-inset-bottom, 0px), 24px)' }}
+                    >
+                        关闭预览
+                    </button>
+                    <div className="relative max-h-full max-w-[92vw]" onClick={(event) => event.stopPropagation()}>
+                        <img src={imageViewer.src} alt={imageViewer.alt} className="max-h-[86vh] max-w-[92vw] rounded-lg border border-white/25 object-contain shadow-2xl" />
                     </div>
                 </div>
             )}

@@ -196,7 +196,7 @@ const GridMapScene: React.FC<Props> = ({
             || (normalizedPlayerName && 归一化地图文本(item?.名称) === normalizedPlayerName)
         ));
         const taken = new Set(basePeople.map((item) => `${item.所在层级ID}|${归一化地图文本(item.名称)}`));
-        return [
+        const combined = [
             ...basePeople,
             ...extraPeople.filter((item) => {
                 const normalizedName = 归一化地图文本(item?.名称);
@@ -209,14 +209,38 @@ const GridMapScene: React.FC<Props> = ({
                 return true;
             }),
         ];
-    }, [persistentPeople, defaultScene.当前层级?.ID, defaultScene.当前层人物, currentLayerId, playerName]);
+
+        // B5 修复：地图 NPC 只允许显示"主角 + 社交面板已存在"的角色，避免出现社交里没有的"幽灵 NPC"。
+        const socialNameSet = new Set(
+            (Array.isArray(socialList) ? socialList : [])
+                .map((npc: any) => 归一化地图文本(npc?.姓名 || npc?.名称))
+                .filter(Boolean)
+        );
+        const socialIdSet = new Set(
+            (Array.isArray(socialList) ? socialList : [])
+                .map((npc: any) => (typeof npc?.id === 'string' ? npc.id.trim() : (typeof npc?.ID === 'string' ? npc.ID.trim() : '')))
+                .filter(Boolean)
+        );
+        return combined.filter((person: any) => {
+            // 主角/当前玩家始终保留
+            if (person?.是否当前玩家 === true) return true;
+            const normalizedName = 归一化地图文本(person?.名称);
+            if (normalizedPlayerName && normalizedName === normalizedPlayerName) return true;
+            if (normalizedName === '主角') return true;
+            const linkedId = typeof person?.关联NPC === 'string'
+                ? person.关联NPC.trim()
+                : (typeof person?.关联NPCID === 'string'
+                    ? person.关联NPCID.trim()
+                    : (typeof person?.npcId === 'string' ? person.npcId.trim() : ''));
+            if (linkedId && socialIdSet.has(linkedId)) return true;
+            if (normalizedName && socialNameSet.has(normalizedName)) return true;
+            // 其余视为幽灵 NPC，直接过滤
+            return false;
+        });
+    }, [persistentPeople, defaultScene.当前层级?.ID, defaultScene.当前层人物, currentLayerId, playerName, socialList]);
 
     const layerChain = useMemo(
         () => (selectedLayer ? 构建层级链(layers, selectedLayer.ID) : []),
-        [layers, selectedLayer]
-    );
-    const parentLayer = useMemo(
-        () => selectedLayer?.父级ID ? layers.find((layer) => layer.ID === selectedLayer.父级ID) || null : null,
         [layers, selectedLayer]
     );
     const siblingLayers = useMemo(() => {
@@ -856,15 +880,6 @@ const GridMapScene: React.FC<Props> = ({
                             )) : '未命中层级'}
                         </div>
                         <div className="mt-2 text-xs text-[#6f4a26]">{layerSummaryText}</div>
-                        {parentLayer && (
-                            <button
-                                type="button"
-                                onClick={() => setSelectedLayerId(parentLayer.ID)}
-                                className="mt-3 rounded-full border border-[#d8c4a2] bg-[#fffaf0] px-3 py-1.5 text-[11px] text-[#4f2d16] hover:border-[#b45309]/55 hover:text-[#b45309]"
-                            >
-                                返回上一级：{parentLayer.名称}
-                            </button>
-                        )}
                     </div>
 
                     <div className="space-y-2">

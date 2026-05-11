@@ -267,6 +267,9 @@ export const useGameState = () => {
         checkSaves();
     }, [view]);
 
+    // 在初始化读取 savedTheme 之前，避免把内存默认值 'day' 写回 IDB 覆盖用户已保存的主题
+    const 主题持久化就绪Ref = useRef(false);
+
     // Init Settings
     useEffect(() => {
         const init = async () => {
@@ -304,6 +307,9 @@ export const useGameState = () => {
                 if (savedMemoryConfig) setMemoryConfig(规范化记忆配置(savedMemoryConfig as Partial<记忆配置结构>));
 
             } catch (e) { console.error(e); }
+            finally {
+                主题持久化就绪Ref.current = true;
+            }
         };
         init();
     }, []);
@@ -342,7 +348,11 @@ export const useGameState = () => {
     // Theme Application
     useEffect(() => {
         应用主题到根元素(currentTheme, document.documentElement);
-        dbService.保存设置(设置键.应用主题, currentTheme);
+        // 关键：只有在 init 从 IDB 读出 savedTheme 之后，才允许把 currentTheme 写回 IDB。
+        // 否则首次挂载时内存默认值 'day' 会抢先覆盖用户已持久化的主题，导致"主题保存不上"。
+        if (主题持久化就绪Ref.current) {
+            dbService.保存设置(设置键.应用主题, currentTheme);
+        }
     }, [currentTheme]);
 
     return {

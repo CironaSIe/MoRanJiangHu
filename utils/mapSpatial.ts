@@ -323,10 +323,18 @@ const 是否室内居所位置 = (text: unknown): boolean => 文本包含任一(
     '堂',
     '院',
     '庄',
+    // 明确带"内"字的室内场景（如"荒庙内部"、"宗祠内部"、"大殿内部"）
+    '内部',
+    // 独立的"室"字（书室/暖室 等），配合 "具体地点" 层级才生效
+    '室',
 ]);
 
 const 是否室内层级 = (layer?: 地图层级结构 | null): boolean => {
-    if (!layer || layer.层级 !== '具体地点') return false;
+    if (!layer) return false;
+    // 只有"具体地点"层才会被视为室内；用户反馈：最后一级应该是建筑内部，由墙/门/房间组成，不应再有道路。
+    // 为避免破坏旧存档里某些"具体地点"被当作子地点的用法，这里保持"名字命中才判为室内"。
+    // 关键词扩充（庙/寺/观/祠/殿/塔/室/府/馆/内部）以覆盖"荒庙内部"等用户用例。
+    if (layer.层级 !== '具体地点') return false;
     return 是否室内居所位置(`${layer.名称}${layer.描述}${layer.归属?.小地点 || ''}`);
 };
 
@@ -378,6 +386,21 @@ const 是否聚落层级 = (layer: 地图层级结构): boolean => {
     if (是否野外位置(text)) return false;
     if (文本包含任一(text, ['镇', '城', '坊', '市', '街', '巷', '村', '庄', '院', '宅', '府', '馆', '楼', '铺', '坊市', '客栈'])) return true;
     return layer.层级 === '小地点' || layer.层级 === '具体地点';
+};
+
+// 野外层级判定：用于让路网生成走"单主路贯穿"分支，而不是聚落横纵网格
+const 是否野外层级 = (layer?: 地图层级结构 | null): boolean => {
+    if (!layer) return false;
+    if (是否室内层级(layer)) return false;
+    const text = `${layer.名称}${layer.描述}${layer.归属?.中地点 || ''}${layer.归属?.小地点 || ''}`;
+    return 是否野外位置(text);
+};
+
+// 顶层大区判定：用于让地图渲染为"多城市 + 城际道路 + 宏观地貌"
+const 是否大区层级 = (layer?: 地图层级结构 | null): boolean => {
+    if (!layer) return false;
+    // 大地点层级 + 无父级，视为顶层大区
+    return layer.层级 === '大地点' && !layer.父级ID;
 };
 
 const 生成序号文本 = (index: number): string => String(index + 1).padStart(2, '0');
@@ -1629,6 +1652,39 @@ const 按层级补齐道路 = (
             layer.道路ID列表 = [];
             return;
         }
+        // 野外层级：把已经存在的多条道路（聚落网格 / 主街 / 横巷 / 纵巷 等）先压缩为最多 1 条主路
+        // 用户反馈："郊外荒庙道路不应该是网格样子，应该一条路贯穿地图，庙在路旁"
+        if (是否野外层级(layer)) {
+            const layerRoadIndices: number[] = [];
+            for (let index = 0; index < roads.length; index += 1) {
+                if (roads[index].所在层级ID === layer.ID) layerRoadIndices.push(index);
+            }
+            if (layerRoadIndices.length > 1) {
+                // 优先保留"主路/官道/山道/野径/小径"等单主路名；否则保留路径点最多的一条
+                const scoreRoad = (road: 地图道路结构): number => {
+                    const name = road.名称 || '';
+                    if (/官道|主路|大路|山道|大道/.test(name)) return 100;
+                    if (/野径|小径|小路|石径|古道/.test(name)) return 80;
+                    if (/主街|横巷|纵巷|街|巷|接入路|沿建筑/.test(name)) return -50;
+                    return (road.路径点 || []).length;
+                };
+                const sorted = layerRoadIndices
+                    .map((idx) => ({ idx, score: scoreRoad(roads[idx]) }))
+                    .sort((a, b) => b.score - a.score);
+                const keepIdx = sorted[0].idx;
+                // 从后往前删除未保留项
+                layerRoadIndices
+                    .filter((idx) => idx !== keepIdx)
+                    .sort((a, b) => b - a)
+                    .forEach((idx) => {
+                        const doomed = roads[idx];
+                        roadLookup.delete(`${doomed.所在层级ID}|${归一化地图文本(doomed.名称)}`);
+                        roads.splice(idx, 1);
+                    });
+            }
+            // 清理并重建 layer.道路ID列表
+            layer.道路ID列表 = roads.filter((r) => r.所在层级ID === layer.ID).map((r) => r.ID);
+        }
         const layerBuildings = buildings.filter((building) => building.所在层级ID === layer.ID);
         const layerBounds = layerBuildings.length > 0
             ? layerBuildings.reduce((bounds, building) => {
@@ -1843,6 +1899,17 @@ const 按层级补齐道路 = (
             .forEach((road) => {
                 road.路径点 = 规划避让建筑正交路径(road.路径点, layer, layerBuildings);
             });
+
+        // B9 保险：在聚落层再跑一次"建筑无重叠 + 路径避让"。
+        // 用户反馈青石镇反复出现建筑重叠、道路穿建筑，这是一道最终兜底。
+        if (是否聚落层级(layer) && layerBuildings.length > 0) {
+            避让层级建筑重叠(layer, layerBuildings);
+            roads
+                .filter((road) => road.所在层级ID === layer.ID)
+                .forEach((road) => {
+                    road.路径点 = 规划避让建筑正交路径(road.路径点, layer, layerBuildings);
+                });
+        }
     });
 
     return roads;
