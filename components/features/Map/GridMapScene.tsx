@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { 世界数据结构 } from '../../../models/world';
 import { 环境信息结构 } from '../../../models/environment';
 import {
-    构建地图空间场景,
+    构建已补齐地图空间场景,
     补齐世界地图空间字段,
     归一化地图文本,
 } from '../../../utils/mapSpatial';
@@ -140,7 +140,7 @@ const GridMapScene: React.FC<Props> = ({
     onOpenPerson,
 }) => {
     const normalizedWorld = useMemo(() => 补齐世界地图空间字段(world, { env }), [world, env]);
-    const defaultScene = useMemo(() => 构建地图空间场景(world, env, socialList, playerName), [world, env, socialList, playerName]);
+    const defaultScene = useMemo(() => 构建已补齐地图空间场景(normalizedWorld, env, socialList, playerName), [normalizedWorld, env, socialList, playerName]);
 
     const layers = Array.isArray(normalizedWorld.地图层级) ? normalizedWorld.地图层级 : [];
     const buildings = Array.isArray(normalizedWorld.地图建筑) ? normalizedWorld.地图建筑 : [];
@@ -453,7 +453,7 @@ const GridMapScene: React.FC<Props> = ({
         : '暂无层级';
 
     return (
-        <div className="grid h-full min-h-0 grid-cols-[1fr_auto] gap-3">
+        <div className={compact ? 'flex min-h-0 flex-col gap-3' : 'grid h-full min-h-0 grid-cols-[1fr_auto] gap-3'}>
             <section className="order-1 flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0]">
                 <div className="flex items-center justify-between gap-3 border-b border-[#d8c4a2] bg-[#fffdf6] px-4 py-3">
                     <div className="min-w-0">
@@ -720,7 +720,7 @@ const GridMapScene: React.FC<Props> = ({
                     </div>
                 </section>
 
-            <aside className="order-2 w-[380px] min-h-0 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+            <aside className={`${compact ? 'order-2 max-h-[520px] w-full' : 'order-2 w-[380px]'} min-h-0 flex flex-col gap-3 overflow-y-auto custom-scrollbar`}>
                 <div className="rounded-2xl border border-[#c7a56a]/45 bg-[#fffaf0] p-4">
                     <div className="mb-3 flex items-center justify-between gap-2 text-sm font-bold tracking-widest text-[#7a3f12]">
                         <span>地图层级</span>

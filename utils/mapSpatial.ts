@@ -1857,25 +1857,25 @@ const 构建临时人物 = (
     return transientPeople;
 };
 
-export const 构建地图空间场景 = (
-    worldLike: Partial<世界数据结构> | null | undefined,
+export const 构建已补齐地图空间场景 = (
+    normalizedWorld: Partial<世界数据结构> | null | undefined,
     env?: Partial<环境信息结构> | null,
     socialList?: any[],
     playerName?: string
 ): 地图空间场景结构 => {
-    const normalizedWorld = 补齐世界地图空间字段(worldLike, { env });
-    const layers = Array.isArray(normalizedWorld.地图层级) ? normalizedWorld.地图层级 : [];
-    const buildings = Array.isArray(normalizedWorld.地图建筑) ? normalizedWorld.地图建筑 : [];
-    const roads = Array.isArray(normalizedWorld.地图道路) ? normalizedWorld.地图道路 : [];
-    const basePeople = Array.isArray(normalizedWorld.地图人物) ? normalizedWorld.地图人物 : [];
-    const transientPeople = 构建临时人物(normalizedWorld, env, socialList, playerName);
+    const world = normalizedWorld && typeof normalizedWorld === 'object' ? normalizedWorld as 世界数据结构 : {} as 世界数据结构;
+    const layers = Array.isArray(world.地图层级) ? world.地图层级 : [];
+    const buildings = Array.isArray(world.地图建筑) ? world.地图建筑 : [];
+    const roads = Array.isArray(world.地图道路) ? world.地图道路 : [];
+    const basePeople = Array.isArray(world.地图人物) ? world.地图人物 : [];
+    const transientPeople = 构建临时人物(world, env, socialList, playerName);
     const transientKeys = new Set(transientPeople.map((item) => `${item.所在层级ID}|${归一化地图文本(item.名称)}`));
     const people = [
         ...basePeople.filter((item) => !transientKeys.has(`${item.所在层级ID}|${归一化地图文本(item.名称)}`)),
         ...transientPeople,
     ];
 
-    const { layer: currentLayer, matchedBuildingIds } = 查找当前层级(normalizedWorld, env);
+    const { layer: currentLayer, matchedBuildingIds } = 查找当前层级(world, env);
     const currentLayerId = currentLayer?.ID || '';
     const sameParentId = currentLayer?.父级ID || '';
 
@@ -1896,3 +1896,17 @@ export const 构建地图空间场景 = (
         命中建筑ID列表: matchedBuildingIds,
     };
 };
+
+export const 构建地图空间场景 = (
+    worldLike: Partial<世界数据结构> | null | undefined,
+    env?: Partial<环境信息结构> | null,
+    socialList?: any[],
+    playerName?: string
+): 地图空间场景结构 => (
+    构建已补齐地图空间场景(
+        补齐世界地图空间字段(worldLike, { env }),
+        env,
+        socialList,
+        playerName
+    )
+);

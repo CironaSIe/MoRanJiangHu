@@ -960,11 +960,29 @@ const 是空NPC装备 = (value: unknown): boolean => {
     return !text || 空NPC装备正则.test(text);
 };
 
+const 疑似NPC装备说明文本 = (value: unknown): boolean => {
+    const text = 规范化文本(value);
+    if (!text) return false;
+    if (text.length > 24) return true;
+    if (/[\n\r{}[\]<>]/.test(text)) return true;
+    if (/^[\-*•\d.、\s]*(?:主武器|副武器|服装|饰品|内衣|内裤|袜饰|鞋履)\s*[：:]/.test(text)) return true;
+    if (/[。！？；;]/.test(text)) return true;
+    if (/(?:根据|由于|作为|建议|应该|可以|生成|创建|补齐|默认|装备为|穿着|身穿|手持|佩戴|携带|这名|该角色|此人|她|他).{4,}/.test(text)) return true;
+    return false;
+};
+
+const 清理NPC装备名称 = (value: unknown): string => {
+    const text = 规范化文本(value, '无') || '无';
+    if (是空NPC装备(text)) return '无';
+    if (疑似NPC装备说明文本(text)) return '无';
+    return text;
+};
+
 const 标准化NPC装备 = (raw: any): Record<string, string> => {
     const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const out: Record<string, string> = { ...默认NPC装备 };
     NPC装备槽位.forEach((key) => {
-        out[key] = 规范化文本(source?.[key], '无') || '无';
+        out[key] = 清理NPC装备名称(source?.[key]);
     });
     return out;
 };
@@ -1064,7 +1082,7 @@ const 生成NPC默认装备 = (npc: any): Record<string, string> => {
     ].map((value) => 规范化文本(value)).filter(Boolean).join(' ');
     const isFemale = /女|小姐|姑娘|夫人|师姐|师妹|侍女/.test(text);
     const faction = 读取NPC门派组织(npc);
-    const factionPrefix = faction ? faction.replace(/(山庄|门|派|宗|宫|寨|帮|镖局|商会|书院|府|阁|堂)$/, '') : '';
+    const factionPrefix = faction ? faction.replace(/(?:山庄|镖局|商会|书院|门|派|宗|宫|寨|帮|府|阁|堂).*/, '') : '';
     const weapon = /医|药|丹/.test(text)
         ? '防身银针'
         : (factionPrefix ? `${factionPrefix}佩剑` : (isFemale ? '随身短剑' : '随身佩刀'));
