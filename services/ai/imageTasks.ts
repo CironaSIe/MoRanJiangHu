@@ -1622,14 +1622,25 @@ const 构建ComfyUI工作流 = (
 ): Record<string, unknown> => {
     const hasNegativePlaceholder = /(__NEGATIVE_PROMPT__|\{\{negative_prompt\}\})/.test(workflowText || '');
     const hasConditioningZeroOut = /ConditioningZeroOut/i.test(workflowText || '');
-    // If the workflow uses ConditioningZeroOut (Lumina2/Flux-like models), do NOT inject negative prompt
-    // into the positive prompt - these models don't understand "Negative prompt:" syntax and will
-    // treat it as positive content, causing watermarks/text to appear in generated images.
+    // For ConditioningZeroOut workflows (Lumina2/Flux-like models):
+    // 1. Do NOT inject negative prompt into positive prompt
+    // 2. Strip "no X" anti-pattern phrases from positive prompt - these models don't understand
+    //    negation and will treat "no watermark, no text" as positive content, generating those things.
+    let cleanedPrompt = prompt;
+    if (hasConditioningZeroOut) {
+        cleanedPrompt = prompt
+            .replace(/,?\s*no\s+(?:graphic design layout|poster layout|comic panel|text overlay|captions|subtitles|callout|speech bubble|watermark|logo|signature|typography|letters|Chinese characters|English letters|collage|panel layout|reference sheet|bottom strip)\b/gi, '')
+            .replace(/,?\s*plain single image\b/gi, '')
+            .replace(/,?\s*clean composition\b/gi, '')
+            .replace(/,\s*,/g, ',')
+            .replace(/^[\s,]+|[\s,]+$/g, '')
+            .trim();
+    }
     const promptValue = hasNegativePlaceholder
-        ? prompt
+        ? cleanedPrompt
         : hasConditioningZeroOut
-            ? prompt
-            : 为不支持独立负面字段的模型附加负面提示词(prompt, negativePrompt);
+            ? cleanedPrompt
+            : 为不支持独立负面字段的模型附加负面提示词(cleanedPrompt, negativePrompt);
     const isZImageTurboWorkflow = /mPMix_NSFW_V9_fp8|qwen_3_4b\.safetensors|qwen-image-2512-Q6_K|res_multistep|sgm_uniform/i.test(workflowText || '');
     const isQwenImageWorkflow = /qwen_image_fp8_e4m3fn|qwen_2\.5_vl_7b_fp8_scaled|qwen_image_vae/i.test(workflowText || '');
     const defaultSteps = isZImageTurboWorkflow ? 9 : (isQwenImageWorkflow ? 20 : 28);
