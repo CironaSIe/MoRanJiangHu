@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
 import {
     自动装备最佳装备,
@@ -440,7 +441,7 @@ const MobileInventoryModal: React.FC<Props> = ({ character, onClose, onCharacter
                     </div>
                 ) : null}
             </div>
-            {imageViewer && (
+            {imageViewer && typeof document !== 'undefined' && createPortal((
                 <div
                     className="fixed inset-0 z-[360] flex items-center justify-center p-3 backdrop-blur-sm"
                     style={{ backgroundColor: 'rgba(0,0,0,0.88)' }}
@@ -472,7 +473,7 @@ const MobileInventoryModal: React.FC<Props> = ({ character, onClose, onCharacter
                         <img src={imageViewer.src} alt={imageViewer.alt} className="max-h-[82vh] max-w-[92vw] rounded-lg border border-white/25 object-contain shadow-2xl" />
                     </div>
                 </div>
-            )}
+            ), document.body)}
         </div>
     );
 };

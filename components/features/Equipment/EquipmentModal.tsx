@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 角色数据结构, 装备槽位 } from '../../../types';
 import { 游戏物品 } from '../../../models/item';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
@@ -507,9 +508,10 @@ const EquipmentModal: React.FC<Props> = ({ character, onClose, onCharacterChange
                 </div>
             </div>
         </div>
-        {imageViewer && (
+        {imageViewer && typeof document !== 'undefined' && createPortal((
             <div
-                className="fixed inset-0 z-[360] flex items-center justify-end bg-black/82 pr-8 backdrop-blur-sm"
+                className="fixed inset-0 z-[360] flex items-center justify-end pr-8 backdrop-blur-sm"
+                style={{ backgroundColor: 'rgba(0,0,0,0.82)' }}
                 onClick={() => setImageViewer(null)}
             >
                 <div className="relative max-w-[85vw]" onClick={(event) => event.stopPropagation()}>
@@ -526,7 +528,7 @@ const EquipmentModal: React.FC<Props> = ({ character, onClose, onCharacterChange
                     <img src={imageViewer.src} alt={imageViewer.alt} className="max-h-[94vh] max-w-[85vw] rounded-lg border border-white/25 bg-black object-contain shadow-2xl" />
                 </div>
             </div>
-        )}
+        ), document.body)}
         </>
     );
 };

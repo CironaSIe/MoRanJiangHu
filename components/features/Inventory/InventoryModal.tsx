@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
 import {
     自动装备最佳装备,
@@ -695,7 +696,7 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
                     </div>
                 </div>
             </div>
-            {imageViewer && (
+            {imageViewer && typeof document !== 'undefined' && createPortal((
                 <div
                     className="fixed inset-0 z-[360] flex items-center justify-center p-4 backdrop-blur-sm"
                     style={{ backgroundColor: 'rgba(0,0,0,0.88)' }}
@@ -729,7 +730,7 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
                         <img src={imageViewer.src} alt={imageViewer.alt} className="max-h-[86vh] max-w-[92vw] rounded-lg border border-white/25 object-contain shadow-2xl" />
                     </div>
                 </div>
-            )}
+            ), document.body)}
         </div>
     );
 };

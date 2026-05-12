@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
     保存拍卖行状态,
     拍卖品记录,
@@ -474,9 +475,10 @@ const AuctionHouseModal: React.FC<Props> = ({
                     </main>
                 </div>
             </div>
-            {previewImage && (
+            {previewImage && typeof document !== 'undefined' && createPortal((
                 <div
-                    className="fixed inset-0 z-[260] flex items-center justify-end bg-black/85 p-4 pr-8"
+                    className="fixed inset-0 z-[260] flex items-center justify-end p-4 pr-8"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
                     role="dialog"
                     aria-modal="true"
                     aria-label="物品图像预览"
@@ -515,7 +517,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                         <div className="mt-2 text-right text-sm font-semibold text-wuxia-gold/85">{previewImage.title}</div>
                     </div>
                 </div>
-            )}
+            ), document.body)}
         </div>
     );
 };
