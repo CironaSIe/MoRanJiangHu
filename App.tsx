@@ -24,7 +24,7 @@ import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImp
 import { 小说拆分后台调度服务 } from './services/novelDecompositionScheduler';
 import { checkForAppUpdate, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
 import { RELEASE_INFO } from './data/releaseInfo';
-import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 从剧情响应构建拍卖行投放参数列表, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, type 拍卖行状态 } from './services/auctionHouse';
+import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 从剧情响应构建拍卖行投放参数列表, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 
@@ -1011,6 +1011,24 @@ const App: React.FC = () => {
         });
         console.info('[拍卖行桥接] 已从剧情回合投放事件货品', bridge.reason, paramsList.map((params) => params.事件名称).join(' / '));
     }, [latestAssistantMessage, currentEnvTime, state.环境, state.历史记录, auctionHouseScope]);
+
+    // 从世界势力互动中投放物品到拍卖行
+    const factionAuctionHandledRef = React.useRef<number>(0);
+    React.useEffect(() => {
+        const pendingItems = Array.isArray(state.世界?.拍卖行待投放物品) ? state.世界.拍卖行待投放物品 : [];
+        if (pendingItems.length === 0) return;
+        // 用长度+首项名称作为去重签名，避免重复投放
+        const signature = `${pendingItems.length}_${pendingItems[0]?.名称 || ''}`;
+        const signatureHash = signature.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
+        if (factionAuctionHandledRef.current === signatureHash) return;
+        factionAuctionHandledRef.current = signatureHash;
+        // 投放到拍卖行
+        setAuctionHouseState((prev) => {
+            const next = 从势力互动投放拍卖品(prev, pendingItems, { scope: auctionHouseScope });
+            return next;
+        });
+        console.info('[拍卖行桥接] 已从势力互动投放', pendingItems.length, '件物品');
+    }, [state.世界?.拍卖行待投放物品, auctionHouseScope]);
 
     React.useEffect(() => {
         const feature = state.apiConfig?.功能模型占位;
