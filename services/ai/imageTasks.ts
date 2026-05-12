@@ -2284,12 +2284,20 @@ export const buildNpcDirectImagePrompt = (
         读取NPC字段文本(source, '衣着')
     ];
 
-    const 装备短语 = 读取NPC对象片段(source, '当前装备');
-    if (装备短语) fragments.push(`装备：${装备短语}`);
-    const 背包短语 = 读取NPC数组片段(source, '背包');
-    if (背包短语) fragments.push(`随身物品：${背包短语}`);
-    const 补充视觉设定 = 读取NPC对象片段(source, '补充视觉设定');
-    if (补充视觉设定) fragments.push(`补充设定：${补充视觉设定}`);
+    // 注意：装备 / 背包 / 补充视觉设定 这些字段在游戏里通常是"名称:值"的结构化数据，
+    // 直接拼进 prompt 会让大量生图模型（尤其是 ComfyUI 原生 SDXL/Flux/Z-image）把"名称"、"装备"、":"等
+    // 字符当作要画在图上的文字。本次（v1.0.113 诊断）用户反馈图上出现"名称:青钢剑 类型:武型 品质:良品"。
+    // 因此这里只把"值"展开进 prompt（如 "红色长袍, 玄铁剑"），**丢掉字段名和冒号**，避免模型学成文字标签。
+    const 展开对象为值 = (key: string): string[] => {
+        const source2 = (source as any)?.[key];
+        if (!source2 || typeof source2 !== 'object' || Array.isArray(source2)) return [];
+        return Object.values(source2 as Record<string, unknown>)
+            .map((v) => (typeof v === 'string' ? v.trim() : ''))
+            .filter((v) => Boolean(v) && v !== '无');
+    };
+    展开对象为值('当前装备').forEach((val) => fragments.push(val));
+    // 背包物品不进入 NPC 生图 prompt：它们是随身道具，不是穿戴，容易让模型把丹药瓶子画到人手里
+    展开对象为值('补充视觉设定').forEach((val) => fragments.push(val));
 
     if (isNovelAI) {
         const characterCountTag = 生成NovelAI人物数量标签(source);
@@ -3209,11 +3217,29 @@ export const generateNpcSecretPartImagePrompt = async (
         throw new Error(`${部位}描述为空，无法生成${部位}特写。`);
     }
 
+    // 只给词组转化器传目标部位 + 身体视觉相关字段，避免把整个 NPC JSON（含装备/背包/关系/记忆等）
+    // 拼进 prompt 导致文字泄漏或模型偏离目标。诊断 diag_20260511181203 中用户反馈图上出现
+    // "图片不可用"/大量杂乱文字，部分根因就是这里输入太长太杂。
+    const 视觉相关字段 = {
+        姓名: 读取NPC字段文本(source, '姓名'),
+        性别: 读取NPC字段文本(source, '性别'),
+        年龄: 读取NPC字段文本(source, '年龄'),
+        身份: 读取NPC字段文本(source, '身份'),
+        境界: 读取NPC字段文本(source, '境界'),
+        外貌: 读取NPC字段文本(source, '外貌'),
+        身材: 读取NPC字段文本(source, '身材'),
+        衣着: 读取NPC字段文本(source, '衣着'),
+        胸部描述: 读取NPC字段文本(source, '胸部描述'),
+        小穴描述: 读取NPC字段文本(source, '小穴描述'),
+        屁穴描述: 读取NPC字段文本(source, '屁穴描述'),
+        性癖: 读取NPC字段文本(source, '性癖'),
+        敏感点: 读取NPC字段文本(source, '敏感点')
+    };
     const 原始描述 = JSON.stringify({
         部位,
         描述字段,
         描述文本,
-        角色资料: source
+        视觉相关字段
     }, null, 2);
     const 词组转化器AI角色提示词 = (apiConfig.词组转化器AI角色提示词 || '').trim();
     const 相关转换提示词 = (apiConfig.词组转化器提示词 || '').trim();
@@ -3904,4 +3930,134 @@ export const persistImageAssetLocally = async (
         图片URL: undefined,
         本地路径: assetRef
     };
+};
+
+const 读取图片生成结果DataUrl = async (result: 图片生成结果): Promise<string> => {
+    const source = (result?.本地路径 || result?.图片URL || '').trim();
+    if (!source) return '';
+    if (/^data:image\//i.test(source)) return source;
+    if (!/^https?:\/\//i.test(source) && !/^blob:/i.test(source)) return '';
+    const response = await fetch(source);
+    if (!response.ok) {
+        throw new Error(`读取待处理图片失败: ${response.status}`);
+    }
+    return blob转DataUrl(await response.blob());
+};
+
+const 加载DataUrl图片 = async (dataUrl: string): Promise<HTMLImageElement> => {
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('图片后处理失败：图片无法载入'));
+        image.src = dataUrl;
+    });
+};
+
+const 计算行差异 = (data: Uint8ClampedArray, width: number, yA: number, yB: number, step: number): number => {
+    let total = 0;
+    let count = 0;
+    for (let x = 0; x < width; x += step) {
+        const a = (yA * width + x) * 4;
+        const b = (yB * width + x) * 4;
+        total += Math.abs(data[a] - data[b]) + Math.abs(data[a + 1] - data[b + 1]) + Math.abs(data[a + 2] - data[b + 2]);
+        count += 1;
+    }
+    return count > 0 ? total / (count * 3) : 0;
+};
+
+const 计算区域边缘密度 = (data: Uint8ClampedArray, width: number, height: number, yStart: number, yEnd: number, step: number): number => {
+    let edges = 0;
+    let count = 0;
+    const start = Math.max(1, Math.min(height - 2, yStart));
+    const end = Math.max(start + 1, Math.min(height - 1, yEnd));
+    for (let y = start; y < end; y += step) {
+        for (let x = 1; x < width - 1; x += step) {
+            const current = (y * width + x) * 4;
+            const right = (y * width + Math.min(width - 1, x + step)) * 4;
+            const down = (Math.min(height - 1, y + step) * width + x) * 4;
+            const horizontal = Math.abs(data[current] - data[right]) + Math.abs(data[current + 1] - data[right + 1]) + Math.abs(data[current + 2] - data[right + 2]);
+            const vertical = Math.abs(data[current] - data[down]) + Math.abs(data[current + 1] - data[down + 1]) + Math.abs(data[current + 2] - data[down + 2]);
+            if (horizontal + vertical > 150) edges += 1;
+            count += 1;
+        }
+    }
+    return count > 0 ? edges / count : 0;
+};
+
+const 检测底部缩略图栏裁切线 = (ctx: CanvasRenderingContext2D, width: number, height: number): number | null => {
+    if (width < 256 || height < 256) return null;
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const { data } = imageData;
+    const step = Math.max(2, Math.floor(Math.min(width, height) / 256));
+    const bottomStart = Math.floor(height * 0.78);
+    const middleStart = Math.floor(height * 0.46);
+    const middleEnd = Math.floor(height * 0.64);
+    const bottomEdgeDensity = 计算区域边缘密度(data, width, height, bottomStart, height, step);
+    const middleEdgeDensity = 计算区域边缘密度(data, width, height, middleStart, middleEnd, step);
+    if (bottomEdgeDensity < Math.max(0.11, middleEdgeDensity * 1.45)) return null;
+
+    let bestY = 0;
+    let bestDiff = 0;
+    const scanStart = Math.floor(height * 0.62);
+    const scanEnd = Math.floor(height * 0.9);
+    for (let y = scanStart; y < scanEnd; y += step) {
+        const diff = 计算行差异(data, width, Math.max(0, y - step), Math.min(height - 1, y + step), step);
+        if (diff > bestDiff) {
+            bestDiff = diff;
+            bestY = y;
+        }
+    }
+
+    const minCropY = Math.floor(height * 0.68);
+    const maxCropY = Math.floor(height * 0.9);
+    if (bestY < minCropY || bestY > maxCropY || bestDiff < 22) {
+        return Math.floor(height * 0.84);
+    }
+    return bestY;
+};
+
+export const 修复部位特写底部缩略图栏 = async (
+    result: 图片生成结果
+): Promise<图片生成结果> => {
+    if (typeof document === 'undefined') return result;
+    let dataUrl = '';
+    try {
+        dataUrl = await 读取图片生成结果DataUrl(result);
+    } catch {
+        return result;
+    }
+    if (!dataUrl) return result;
+
+    try {
+        const image = await 加载DataUrl图片(dataUrl);
+        const width = image.naturalWidth || image.width;
+        const height = image.naturalHeight || image.height;
+        if (!width || !height) return result;
+
+        const sourceCanvas = document.createElement('canvas');
+        sourceCanvas.width = width;
+        sourceCanvas.height = height;
+        const sourceCtx = sourceCanvas.getContext('2d', { willReadFrequently: true });
+        if (!sourceCtx) return result;
+        sourceCtx.drawImage(image, 0, 0, width, height);
+
+        const cropY = 检测底部缩略图栏裁切线(sourceCtx, width, height);
+        if (!cropY || cropY >= Math.floor(height * 0.94)) return result;
+
+        const outputCanvas = document.createElement('canvas');
+        outputCanvas.width = width;
+        outputCanvas.height = cropY;
+        const outputCtx = outputCanvas.getContext('2d');
+        if (!outputCtx) return result;
+        outputCtx.drawImage(sourceCanvas, 0, 0, width, cropY, 0, 0, width, cropY);
+        const fixedDataUrl = outputCanvas.toDataURL('image/png');
+        return {
+            ...result,
+            图片URL: fixedDataUrl,
+            本地路径: undefined,
+            客户提示: result.客户提示 || '已自动裁切底部缩略图栏'
+        };
+    } catch {
+        return result;
+    }
 };

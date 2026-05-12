@@ -28,30 +28,84 @@ const 读取文本 = (value: unknown, fallback = '') => (
     typeof value === 'string' ? value.trim() : fallback
 );
 
-export const 构建物品视觉描述 = (item: any): string => [
-    item?.名称 ? `名称：${item.名称}` : '',
-    item?.类型 ? `类型：${item.类型}` : '',
-    item?.品质 ? `品质：${item.品质}` : '',
-    item?.描述 ? `描述：${item.描述}` : '',
-    Array.isArray(item?.词条列表) && item.词条列表.length > 0
-        ? `词条：${item.词条列表.map((entry: any) => [entry?.名称, entry?.属性, entry?.数值].filter(Boolean).join(' ')).filter(Boolean).join('；')}`
-        : '',
-    item?.来源描述 ? `来源：${item.来源描述}` : '',
-    item?.关联事件 ? `关联事件：${item.关联事件}` : '',
-].filter(Boolean).join('\n');
+/**
+ * 仅用于写入 `视觉描述` 字段的原始文本。
+ * 注意：物品生图的 prompt 必须避免出现"名称:X 类型:Y 品质:Z"这种结构化中文键值对，
+ * 否则大量模型会直接把它当成要画在图上的文字/标签 (历史事故：青钢剑图上出现 "名称:青钢剑 类型:武型 品质:良品")。
+ * 这里只保留描述性自然语言，不保留字段标签。
+ */
+export const 构建物品视觉描述 = (item: any): string => {
+    const parts: string[] = [];
+    const 描述 = 读取文本(item?.描述);
+    if (描述) parts.push(描述);
+    if (Array.isArray(item?.词条列表) && item.词条列表.length > 0) {
+        const 词条文案 = item.词条列表
+            .map((entry: any) => [entry?.名称, entry?.属性, entry?.数值].filter(Boolean).join(' '))
+            .filter(Boolean)
+            .join('；');
+        if (词条文案) parts.push(词条文案);
+    }
+    const 来源 = 读取文本(item?.来源描述);
+    if (来源) parts.push(来源);
+    const 关联 = 读取文本(item?.关联事件);
+    if (关联) parts.push(关联);
+    return parts.join('\n');
+};
 
 const 获取渲染风格要求 = (style: string): string => {
     switch (style) {
         case '写实道具':
-            return 'photorealistic single prop product shot, real metal leather cloth wood or paper materials, studio lighting, tactile surface detail, no ink painting, no guofeng illustration, no text, no letters, no label, no inscription, no logo, no watermark';
+            return 'photorealistic single prop product photography, isolated physical object only, real metal leather cloth wood or paper materials, studio lighting, tactile surface detail, neutral matte background, no card design, no UI icon layout, no poster layout, no ink painting, no guofeng illustration, no text, no letters, no label, no inscription, no logo, no watermark';
         case '像素图标':
             return 'high-end pixel art item icon, crisp silhouette, readable at small size, no text, no letters, no label, no logo, no watermark';
         case '3D渲染':
-            return 'stylized 3D game item render, centered product lighting, soft shadow, no text, no letters, no label, no inscription, no logo, no watermark';
+            return 'stylized 3D single prop render, centered product lighting, soft shadow, no card design, no text, no letters, no label, no inscription, no logo, no watermark';
         case '国风插画':
         default:
             return 'Chinese wuxia illustration style, ink wash texture, refined golden rim light';
     }
+};
+
+const 物品类型转英文 = (type: string): string => {
+    const map: Record<string, string> = {
+        '武器': 'weapon', '武型': 'weapon', '剑': 'sword', '刀': 'saber',
+        '防具': 'armor', '盔甲': 'armor', '衣服': 'garment',
+        '消耗品': 'consumable', '丹药': 'medicinal pill', '药': 'medicine',
+        '材料': 'crafting material', '符箓': 'talisman', '秘籍': 'scroll',
+        '任务': 'key item', '杂物': 'miscellaneous object',
+        '饰品': 'accessory', '暗器': 'hidden weapon'
+    };
+    for (const [cn, en] of Object.entries(map)) {
+        if (type.includes(cn)) return en;
+    }
+    return 'prop';
+};
+
+const 物品品质转英文 = (quality: string): string => {
+    const map: Record<string, string> = {
+        '传说': 'legendary', '绝世': 'mythic', '极品': 'top grade',
+        '稀有': 'rare', '珍品': 'rare', '良品': 'fine', '精品': 'fine',
+        '普通': 'common', '凡品': 'common', '杂物': 'cheap'
+    };
+    for (const [cn, en] of Object.entries(map)) {
+        if (quality.includes(cn)) return en;
+    }
+    return 'common';
+};
+
+const 构建物品视觉主体描述 = (item: any): string => {
+    const typeEn = 物品类型转英文(读取文本(item?.类型, '物品'));
+    const qualityEn = 物品品质转英文(读取文本(item?.品质, '普通'));
+    const description = 读取文本(item?.视觉描述 || item?.描述);
+    const tags = Array.isArray(item?.视觉标签)
+        ? item.视觉标签.map((tag: unknown) => 读取文本(tag)).filter(Boolean).join(', ')
+        : '';
+    // 只把中文"名称/描述"作为风格描写给模型，不再使用 "名称:X 类型:Y 品质:Z" 这种键值对格式
+    return [
+        `a single ${qualityEn} ${typeEn} prop`,
+        description ? `form and materials: ${description}` : '',
+        tags ? `material cues: ${tags}` : ''
+    ].filter(Boolean).join('\n');
 };
 
 export const 构建物品图提示词 = (
@@ -60,18 +114,15 @@ export const 构建物品图提示词 = (
 ): string => {
     const style = options?.画风 || '写实';
     const renderStyle = options?.渲染风格 || '写实道具';
+    // 精简 prompt：只保留"风格 + 物体 + 绝不画文字"三块核心，避免因 prompt 过长被模型忽略关键指令
     return [
         renderStyle === '写实道具'
-            ? '单个游戏物品的写实产品图，真实摄影质感，真实金属、皮革、布料、木材或纸张材质，主体居中，占画面约75%，中性深色影棚背景，柔和投影，清晰轮廓，高级游戏道具 UI 图标。不要国风插画，不要水墨，不要宣纸纹理，不要手绘，不要任何文字、字母、题字、铭牌、标签、印章、Logo、水印，不要人物。'
-            : '单个武侠/仙侠游戏物品图标资产，主体居中，占画面约75%，柔和投影，清晰轮廓，高级游戏道具 UI 图标，不要任何文字、字母、题字、铭牌、标签、印章、Logo、水印，不要人物。',
+            ? 'photorealistic product photo of a single physical game prop, centered on a plain neutral background, realistic materials and soft shadow'
+            : 'single game prop asset on a plain neutral background, centered composition, clean silhouette',
         获取渲染风格要求(renderStyle),
-        `物品名称：${item?.名称 || '无名物品'}`,
-        `类型与品质：${item?.品质 || '凡品'} ${item?.类型 || '杂物'}`,
-        `默认画风：${style}`,
-        options?.来源位置 ? `来源位置：${options.来源位置}` : '',
-        item?.视觉描述 ? `视觉描述：${item.视觉描述}` : '',
-        item?.描述 ? `物品描述：${item.描述}` : '',
-        Array.isArray(item?.视觉标签) && item.视觉标签.length > 0 ? `视觉标签：${item.视觉标签.join('，')}` : '',
+        style === '写实' ? 'photorealistic' : style,
+        构建物品视觉主体描述(item),
+        'absolutely no text, no letters, no numbers, no Chinese characters, no captions, no labels, no watermarks, no logos, no UI, no card frame, no badges'
     ].filter(Boolean).join('\n');
 };
 
@@ -103,9 +154,9 @@ export const 生成物品图标 = async (
         构图: '头像',
         尺寸: size,
         附加正向提示词: renderStyle === '写实道具'
-            ? 'single object, photorealistic item icon, centered product composition, neutral dark studio background, clean silhouette, realistic material, no text, no letters, no label, no inscription, no logo, no watermark'
-            : 'single object, item icon, centered composition, clean silhouette, no text, no letters, no label, no inscription, no logo, no watermark',
-        附加负面提示词: 'person, human, face, hand, text, typography, letters, words, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, logo, watermark, signature, white background, cluttered background, ink wash, guofeng illustration, Chinese painting, brush strokes, anime, cartoon, flat illustration',
+            ? 'single physical object only, photorealistic product photo, centered product composition, neutral matte studio background, clean silhouette, realistic material, no card design, no UI, no frame, no badges, no text, no letters, no label, no inscription, no logo, no watermark'
+            : 'single physical object only, centered composition, clean silhouette, no card design, no UI, no frame, no badges, no text, no letters, no label, no inscription, no logo, no watermark',
+        附加负面提示词: 'person, human, face, hand, text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, logo, watermark, signature, title, poster text, item card, game card, trading card, UI overlay, interface, badge, quality badge, rarity badge, speech bubble, dialogue box, border frame, decorative frame, white background, cluttered background, ink wash, guofeng illustration, Chinese painting, brush strokes, anime, cartoon, flat illustration',
     });
     const localResult = await persistImageAssetLocally(rawResult);
     const imageRecord: 物品生图结果 = {

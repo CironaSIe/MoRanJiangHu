@@ -5,6 +5,7 @@ import {
     构建已补齐地图空间场景,
     补齐世界地图空间字段,
     归一化地图文本,
+    取地图层级显示名,
 } from '../../../utils/mapSpatial';
 
 interface Props {
@@ -253,13 +254,45 @@ const GridMapScene: React.FC<Props> = ({
         [layers, selectedLayer]
     );
 
+    const mapWidth = Math.max(12, Number(selectedLayer?.网格宽度) || 24);
+    const mapHeight = Math.max(12, Number(selectedLayer?.网格高度) || 24);
+    const mapEdgePadding = Math.max(4, Math.min(8, Math.max(mapWidth, mapHeight) * 0.12));
+
+    // 前端兜底：给没有坐标的 NPC 按稳定哈希分配一个靠近建筑入口/地图中心的位置。
+    const currentLayerPeopleWithFallback = useMemo(() => {
+        if (currentLayerPeople.length === 0) return currentLayerPeople;
+        const stableHash = (input: string): number => {
+            let h = 2166136261;
+            for (let i = 0; i < input.length; i += 1) { h ^= input.charCodeAt(i); h = Math.imul(h, 16777619); }
+            return h >>> 0;
+        };
+        const anchors: Array<{ x: number; y: number }> = [];
+        currentLayerBuildings.forEach((b: any) => {
+            if (!Array.isArray(b?.四角坐标) || b.四角坐标.length < 4) return;
+            const xs = b.四角坐标.map((p: any) => Number(p?.x) || 0);
+            const ys = b.四角坐标.map((p: any) => Number(p?.y) || 0);
+            anchors.push({ x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 });
+        });
+        if (anchors.length === 0) anchors.push({ x: mapWidth / 2, y: mapHeight / 2 });
+        return currentLayerPeople.map((person: any) => {
+            const px = Number(person?.坐标?.x);
+            const py = Number(person?.坐标?.y);
+            if (Number.isFinite(px) && Number.isFinite(py) && (px !== 0 || py !== 0)) return person;
+            const seed = stableHash(`${currentLayerId}|${person?.ID || person?.名称 || ''}`);
+            const anchor = anchors[seed % anchors.length];
+            const angle = ((seed >> 4) % 360) * (Math.PI / 180);
+            const radius = 1.2 + ((seed >> 8) % 100) / 60;
+            return { ...person, 坐标: { x: 约束数值(anchor.x + Math.cos(angle) * radius, 1, mapWidth - 1), y: 约束数值(anchor.y + Math.sin(angle) * radius, 1, mapHeight - 1) } };
+        });
+    }, [currentLayerPeople, currentLayerBuildings, currentLayerId, mapWidth, mapHeight]);
+
     const features = useMemo(() => {
         const list: Array<{ id: string; kind: 'building' | 'road' | 'person'; data: any }> = [];
         currentLayerBuildings.forEach((item) => list.push({ id: `building:${item.ID}`, kind: 'building', data: item }));
         currentLayerRoads.forEach((item) => list.push({ id: `road:${item.ID}`, kind: 'road', data: item }));
-        currentLayerPeople.forEach((item) => list.push({ id: `person:${item.ID}`, kind: 'person', data: item }));
+        currentLayerPeopleWithFallback.forEach((item) => list.push({ id: `person:${item.ID}`, kind: 'person', data: item }));
         return list;
-    }, [currentLayerBuildings, currentLayerRoads, currentLayerPeople]);
+    }, [currentLayerBuildings, currentLayerRoads, currentLayerPeopleWithFallback]);
 
     useEffect(() => {
         if (!features.some((item) => item.id === selectedFeatureId)) {
@@ -274,9 +307,6 @@ const GridMapScene: React.FC<Props> = ({
         [features, selectedFeatureId]
     );
 
-    const mapWidth = Math.max(12, Number(selectedLayer?.网格宽度) || 24);
-    const mapHeight = Math.max(12, Number(selectedLayer?.网格高度) || 24);
-    const mapEdgePadding = Math.max(4, Math.min(8, Math.max(mapWidth, mapHeight) * 0.12));
     const 约束标签X = (x: number, width: number) => Math.max(0.25, Math.min(mapWidth - width - 0.25, x - width / 2));
     const 匹配社交人物 = (person: any) => {
         const normalizedName = 归一化地图文本(person?.名称);
@@ -318,7 +348,7 @@ const GridMapScene: React.FC<Props> = ({
                 bounds = 扩展边界(bounds, point);
             });
         });
-        currentLayerPeople.forEach((person) => {
+        currentLayerPeopleWithFallback.forEach((person) => {
             const point = person?.坐标;
             if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
             bounds = 扩展边界(bounds, { x: point.x - mapEdgePadding, y: point.y - mapEdgePadding });
@@ -335,7 +365,7 @@ const GridMapScene: React.FC<Props> = ({
         const width = right - x;
         const height = bottom - y;
         return { x, y, width: Math.max(1, width), height: Math.max(1, height) };
-    }, [currentLayerBuildings, currentLayerRoads, currentLayerPeople, mapWidth, mapHeight, mapEdgePadding]);
+    }, [currentLayerBuildings, currentLayerRoads, currentLayerPeopleWithFallback, mapWidth, mapHeight, mapEdgePadding]);
     const mapViewBox = useMemo(() => {
         const zoom = 约束数值(mapZoom, 1, 8);
         const width = Math.max(1, contentBounds.width / zoom);
@@ -422,7 +452,7 @@ const GridMapScene: React.FC<Props> = ({
             }
             return score;
         };
-        const orderedPeople = [...currentLayerPeople].sort((a, b) => {
+        const orderedPeople = [...currentLayerPeopleWithFallback].sort((a, b) => {
             const priorityA = (a?.是否当前玩家 ? 2 : 0) + (selectedFeatureId === `person:${a?.ID}` ? 1 : 0);
             const priorityB = (b?.是否当前玩家 ? 2 : 0) + (selectedFeatureId === `person:${b?.ID}` ? 1 : 0);
             return priorityB - priorityA;
@@ -507,7 +537,7 @@ const GridMapScene: React.FC<Props> = ({
                 labelShifted: Math.hypot((bestBox.x + bestBox.width / 2) - x, (bestBox.y + bestBox.height / 2) - y) > personOuterRadius + personLabelHeight * 0.85,
             };
         });
-    }, [currentLayerPeople, inverseViewScale, mapHeight, mapWidth, personLabelHeight, personOuterRadius, selectedFeatureId]);
+    }, [currentLayerPeopleWithFallback, inverseViewScale, mapHeight, mapWidth, personLabelHeight, personOuterRadius, selectedFeatureId]);
 
     const npcDebugRows = useMemo(() => {
         const keys = [
@@ -557,7 +587,7 @@ const GridMapScene: React.FC<Props> = ({
                 : `${selectedLayer?.描述 || '暂无描述。'}\n锚点：${selectedLayer ? 点位文本(selectedLayer.锚点坐标) : '无'}\n网格：${selectedLayer ? `${selectedLayer.网格宽度} x ${selectedLayer.网格高度}` : '无'}`;
 
     const layerSummaryText = selectedLayer
-        ? `${selectedLayer.层级} / 锚点 ${点位文本(selectedLayer.锚点坐标)} / ${selectedLayer.网格宽度}x${selectedLayer.网格高度}`
+        ? `${取地图层级显示名(selectedLayer.层级)} / 锚点 ${点位文本(selectedLayer.锚点坐标)} / ${selectedLayer.网格宽度}x${selectedLayer.网格高度}`
         : '暂无层级';
 
     return (
@@ -569,7 +599,7 @@ const GridMapScene: React.FC<Props> = ({
                         <div className="mt-1 truncate text-sm tracking-widest text-[#5f3a1e]">{env?.大地点 || '未知'} / {env?.中地点 || '未知'} / {env?.小地点 || '未知'} / {env?.具体地点 || '未知'}</div>
                     </div>
                     <div className="rounded-full border border-[#c7a56a]/55 bg-[#fff1d6] px-3 py-1 text-xs text-[#7a3f12]">
-                        建筑 {currentLayerBuildings.length} / 道路 {currentLayerRoads.length} / 人物 {currentLayerPeople.length}
+                        建筑 {currentLayerBuildings.length} / 道路 {currentLayerRoads.length} / 人物 {currentLayerPeopleWithFallback.length}
                     </div>
                 </div>
 
@@ -898,7 +928,7 @@ const GridMapScene: React.FC<Props> = ({
                                 >
                                     <div className="flex items-center justify-between gap-2">
                                         <span className="truncate font-serif text-sm font-bold">{layer.名称}</span>
-                                        <span className="text-xs text-[#6f4a26]">{layer.层级}</span>
+                                        <span className="text-xs text-[#6f4a26]">{取地图层级显示名(layer.层级)}</span>
                                     </div>
                                     <div className="mt-1 text-xs text-[#6f4a26]">
                                         建筑 {layer.建筑物ID列表.length} / 道路 {layer.道路ID列表.length} / 人物 {layer.人物ID列表.length}
@@ -959,7 +989,7 @@ const GridMapScene: React.FC<Props> = ({
                         <div>层级链：{layerChain.length > 0 ? layerChain.map((layer) => layer.名称).join(' / ') : '未知'}</div>
                         <div>建筑面：{currentLayerBuildings.length} 个</div>
                         <div>道路线：{currentLayerRoads.length} 条</div>
-                        <div>人物点：{currentLayerPeople.length} 个</div>
+                        <div>人物点：{currentLayerPeopleWithFallback.length} 个</div>
                     </div>
 
                     {debugEnabled && (

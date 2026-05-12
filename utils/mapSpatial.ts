@@ -122,6 +122,21 @@ export const 归一化地图文本 = (value: unknown): string => (
     String(value || '').trim().replace(/\s+/g, '').toLowerCase()
 );
 
+/**
+ * 客户希望的四个固定地图层级：国家 / 城市 / 街区 / 建筑物内部。
+ * 为了不破坏老存档的字段值，数据层仍然使用 大地点/中地点/小地点/具体地点，
+ * UI 层通过这个映射显示成固定的四级名。
+ */
+export const 地图层级显示名映射: Record<地图层级类型, string> = {
+    大地点: '国家',
+    中地点: '城市',
+    小地点: '街区',
+    具体地点: '建筑物内部',
+};
+export const 取地图层级显示名 = (type?: 地图层级类型 | null): string => (
+    type ? 地图层级显示名映射[type] || type : ''
+);
+
 const 稳定散列 = (text: string): number => {
     let hash = 0;
     for (let index = 0; index < text.length; index += 1) {
