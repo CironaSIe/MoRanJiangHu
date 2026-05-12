@@ -11,6 +11,7 @@ import type {
     地图人物结构,
 } from '../types';
 import { 优化地图布局 } from './mapLayoutOptimizer';
+import { 验证并修复地图数据 } from './mapValidator';
 
 type 地图层尺寸结构 = { width: number; height: number };
 
@@ -2113,6 +2114,9 @@ export const 补齐世界地图空间字段 = (
         const layer = layerById.get(person.所在层级ID);
         if (layer) 追加唯一值(layer.人物ID列表, person.ID);
     });
+
+    // 验证并修复地图数据（参考 WorldX 的审查循环模式）
+    验证并修复地图数据(layers, buildings, roads, people);
 
     return {
         ...world,

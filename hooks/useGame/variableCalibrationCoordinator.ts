@@ -79,7 +79,8 @@ const 构建基础状态 = (snapshot: 回合快照结构, 深拷贝: <T>(value: 
 });
 
 const 等待世界演变超时毫秒 = 20000;
-const 变量模型请求超时毫秒 = 90000;
+const 变量流式空闲超时毫秒 = 45000; // 流式输出空闲超时：45秒内无新数据则判定超时
+const 变量首次响应超时毫秒 = 90000; // 首次响应超时：90秒内未收到任何流式数据则判定超时
 const 变量流式进度间隔毫秒 = 700;
 const 变量流式预览字符上限 = 12000;
 
@@ -189,6 +190,50 @@ export const 创建变量校准协调器 = (deps: 变量生成工作流依赖) =
                     }
                 }
             };
+
+            // 流式空闲超时：每次收到新数据时重置计时器，只有持续无数据时才超时
+            let 流式空闲计时器 = 0;
+            let 已收到首次流式数据 = false;
+            const 重置流式空闲计时器 = () => {
+                if (流式空闲计时器) window.clearTimeout(流式空闲计时器);
+            };
+            const 执行变量模型带流式空闲超时 = async <T,>(task: () => Promise<T>): Promise<T> => {
+                const firstResponseTimeout = 变量首次响应超时毫秒;
+                const idleTimeout = 变量流式空闲超时毫秒;
+                let rejectFn: ((reason: Error) => void) | null = null;
+                const startIdleTimer = (ms: number, label: string) => {
+                    重置流式空闲计时器();
+                    流式空闲计时器 = window.setTimeout(() => {
+                        if (!controller.signal.aborted) controller.abort();
+                        const elapsed = 已收到首次流式数据 ? idleTimeout : firstResponseTimeout;
+                        记录变量生成诊断('error', 'stream-idle-timeout', {
+                            label,
+                            idleMs: ms,
+                            receivedFirstChunk: 已收到首次流式数据,
+                            latestStreamLength: 最近流式文本.length
+                        });
+                        rejectFn?.(创建超时错误(`变量模型${label}（${Math.max(1, Math.ceil(ms / 1000))} 秒无新数据）`));
+                    }, ms);
+                };
+                // 初始：等待首次响应
+                startIdleTimer(firstResponseTimeout, '等待首次响应超时');
+                // 暴露重置方法给 onStreamDelta
+                流式空闲重置回调 = () => {
+                    已收到首次流式数据 = true;
+                    startIdleTimer(idleTimeout, '流式输出空闲超时');
+                };
+                try {
+                    return await Promise.race([
+                        task(),
+                        new Promise<T>((_, reject) => { rejectFn = reject; })
+                    ]);
+                } finally {
+                    重置流式空闲计时器();
+                    流式空闲重置回调 = null;
+                }
+            };
+            let 流式空闲重置回调: (() => void) | null = null;
+
             if (deps.世界演变进行中Ref.current) {
                 params.onProgress?.({ phase: 'start', text: '等待世界演变完成后再开始变量生成...' });
                 记录变量生成诊断('info', 'wait-world-evolution');
@@ -213,7 +258,7 @@ export const 创建变量校准协调器 = (deps: 变量生成工作流依赖) =
                 isOpeningRound,
                 worldEvolutionEnabled
             });
-            const variableCalibration = await 执行带超时('变量模型请求', 变量模型请求超时毫秒, () => deps.执行变量模型校准工作流(
+            const variableCalibration = await 执行变量模型带流式空闲超时(() => deps.执行变量模型校准工作流(
                 {
                     playerInput: params.playerInput,
                     parsedResponse: calibrationResponse,
@@ -231,6 +276,7 @@ export const 创建变量校准协调器 = (deps: 变量生成工作流依赖) =
                     onStreamDelta: (_delta: string, accumulated: string) => {
                         if (controller.signal.aborted) return;
                         最近流式文本 = accumulated;
+                        流式空闲重置回调?.();
                         推送流式进度();
                     }
                 },
