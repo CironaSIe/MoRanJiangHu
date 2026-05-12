@@ -5,10 +5,12 @@ export const RELEASE_INFO = {
     "releaseChannel": "stable",
     "releasePublishedAt": "2026-05-12T19:51:46+08:00",
     "releaseNotes": [
-        "v1.0.120 fix: judgment breakdown white-on-white, skills all-zero fallback, world panel entry improved.",
-        "Judgment breakdown labels now use text-gray-200/300 which are properly overridden in day theme.",
-        "Skills fallback: if all skills are level-0 after AI generation, auto-infer from character background.",
-        "World button moved from position 12 to 6 in right menu. Bottom ticker label is now clickable to open world panel."
+        "正式发布 1.0.120，修复判定值拆解白字白底、技艺全为0、世界入口不明显三个问题。",
+        "判定值拆解细节中的标签和描述文字在白色主题下不再看不清（修复未被主题覆盖的浅色文字）。",
+        "技艺全为0时会根据角色出身背景自动推断基础技艺值（如药铺出身则医术入门，猎户则采集入门），主角和NPC均适用。",
+        "右侧菜单中「世界」按钮从第12位移到第6位（紧跟社交后面），更容易找到世界势力和世界大事。",
+        "底部「世界大事」滚动栏的标签改为可点击按钮，点击直接打开世界面板查看势力和大事详情。",
+        "网页端、APK 包和更新清单同步提升到 v1.0.120 / CODE 121。"
     ],
     "releaseHistory": [
         {
