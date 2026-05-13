@@ -9,7 +9,7 @@ import { 规范化记忆系统 } from './memoryUtils';
 import { formatHistoryToScript } from './historyUtils';
 import { 构建世界演变COT提示词, 世界演变COT伪装历史消息提示词 } from '../../prompts/runtime/worldEvolutionCot';
 import { 环境时间转标准串 } from './timeUtils';
-import { 构建世界演变上下文文本, 规范化世界演变命令列表 } from './worldEvolutionUtils';
+import { 构建世界演变上下文文本, 规范化世界演变命令列表, 整理客户可见世界大事 } from './worldEvolutionUtils';
 import type { 响应命令处理状态 } from './responseCommandProcessor';
 import { 构建同人运行时提示词包 } from '../../prompts/runtime/fandom';
 import { 获取激活小说拆分注入文本 } from '../../services/novelDecompositionInjection';
@@ -363,9 +363,13 @@ export const 执行世界演变更新工作流 = async (
             });
         }
 
-        const updates = probe.time('整理世界演变摘要', () => (Array.isArray(result.updates) ? result.updates : [])
+        const rawUpdates = probe.time('整理世界演变原始摘要', () => (Array.isArray(result.updates) ? result.updates : [])
             .map(item => item.trim())
             .filter(Boolean));
+        const updates = probe.time('净化客户可见世界大事', () => 整理客户可见世界大事(rawUpdates, normalizedCommands), {
+            rawUpdates: rawUpdates.length,
+            commands: normalizedCommands.length
+        });
         if (updates.length > 0) {
             probe.time('写入世界事件列表', () => deps.setWorldEvents(prev => [...updates, ...(Array.isArray(prev) ? prev : [])].slice(0, 30)), {
                 updates: updates.length

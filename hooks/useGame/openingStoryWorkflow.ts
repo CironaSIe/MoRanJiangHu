@@ -59,7 +59,7 @@ import {
 import { 提取响应规划文本 } from './thinkingContext';
 import { 环境时间转标准串 } from './timeUtils';
 import { 规范化记忆系统, 规范化记忆配置, 构建即时记忆条目, 构建短期记忆条目, 写入四段记忆 } from './memoryUtils';
-import { 构建世界演变上下文文本 } from './worldEvolutionUtils';
+import { 构建世界演变上下文文本, 规范化世界演变命令列表, 整理客户可见世界大事 } from './worldEvolutionUtils';
 import { 获取开局小说拆分注入文本, 获取激活小说拆分注入文本 } from '../../services/novelDecompositionInjection';
 import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
 import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
@@ -951,6 +951,7 @@ export const 执行开场剧情生成工作流 = async (
                             baseState: {
                                 角色: commandBaseState.角色,
                                 环境: commandBaseState.环境,
+                                世界: commandBaseState.世界,
                                 社交: commandBaseState.社交,
                                 战斗: commandBaseState.战斗,
                                 玩家门派: commandBaseState.玩家门派,
@@ -1128,27 +1129,31 @@ export const 执行开场剧情生成工作流 = async (
             });
             const worldResult = worldStage.result;
             if (worldStage.completed && worldResult) {
-                openingWorldInitUpdates = Array.isArray(worldResult.updates)
-                    ? worldResult.updates.map((item) => (item || '').trim()).filter(Boolean)
-                    : [];
+                const worldInitCommands = 规范化世界演变命令列表(worldResult.commands as any);
+                openingWorldInitUpdates = 整理客户可见世界大事(
+                    Array.isArray(worldResult.updates)
+                        ? worldResult.updates.map((item) => (item || '').trim()).filter(Boolean)
+                        : [],
+                    worldInitCommands
+                );
                 deps.设置开局世界演变进度({
-                    phase: (Array.isArray(worldResult.commands) && worldResult.commands.length > 0) || openingWorldInitUpdates.length > 0
+                    phase: worldInitCommands.length > 0 || openingWorldInitUpdates.length > 0
                         ? 'done'
                         : 'skipped',
                     text: (
-                        (Array.isArray(worldResult.commands) && worldResult.commands.length > 0) || openingWorldInitUpdates.length > 0
+                        worldInitCommands.length > 0 || openingWorldInitUpdates.length > 0
                             ? '动态世界初始化完成。'
                             : '动态世界初始化未产生更新。'
                     ),
                     rawText: worldResult.rawText,
-                    commandTexts: 构建带索引命令文本(worldResult.commands || [])
+                    commandTexts: 构建带索引命令文本(worldInitCommands)
                 });
-                if (Array.isArray(worldResult.commands) && worldResult.commands.length > 0) {
+                if (worldInitCommands.length > 0) {
                     responseForExecution = {
                         ...responseForExecution,
                         tavern_commands: [
                             ...(Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands : []),
-                            ...worldResult.commands
+                            ...worldInitCommands
                         ]
                     };
                     simulatedOpeningState = 保护开局门派(deps.processResponseCommands(responseForExecution, commandBaseState, { applyState: false }));

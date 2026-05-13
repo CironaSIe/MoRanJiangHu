@@ -10,7 +10,7 @@ import LandingPage from './components/layout/LandingPage';
 import InAppConfirmModal, { ConfirmOptions } from './components/ui/InAppConfirmModal';
 import ReleaseNotesModal from './components/ui/ReleaseNotesModal';
 import { useGame } from './hooks/useGame';
-import { 环境时间转标准串, normalizeCanonicalGameTime, 结构化时间转标准串 } from './hooks/useGame/timeUtils';
+import { 环境时间转标准串 } from './hooks/useGame/timeUtils';
 import { 获取文生图接口配置, 获取生图词组转化器接口配置, 接口配置是否可用 } from './utils/apiConfig';
 import { 构建字体注入样式文本, 构建UI文字CSS变量 } from './utils/visualSettings';
 import { 获取图片资源文本地址 } from './utils/imageAssets';
@@ -25,6 +25,7 @@ import { 小说拆分后台调度服务 } from './services/novelDecompositionSch
 import { checkForAppUpdate, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
+import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 
@@ -770,70 +771,8 @@ const App: React.FC = () => {
         return '';
     };
 
-    const toCanonicalGameTimestamp = (value: unknown): string | null => {
-        if (value && typeof value === 'object' && !Array.isArray(value)) {
-            return 结构化时间转标准串(value);
-        }
-        if (typeof value !== 'string') return null;
-        const trimmed = value.trim();
-        if (!trimmed) return null;
-        const direct = normalizeCanonicalGameTime(trimmed);
-        if (direct) return direct;
-        const match = trimmed.match(/^(\d{1,6})[-/年](\d{1,2})[-/月](\d{1,2})(?:日)?(?:\s+|[T])?(\d{1,2})[:：时](\d{1,2})/);
-        if (!match) return null;
-        const year = Number(match[1]);
-        const month = Number(match[2]);
-        const day = Number(match[3]);
-        const hour = Number(match[4]);
-        const minute = Number(match[5]);
-        if (
-            !Number.isFinite(year) ||
-            month < 1 || month > 12 ||
-            day < 1 || day > 31 ||
-            hour < 0 || hour > 23 ||
-            minute < 0 || minute > 59
-        ) {
-            return null;
-        }
-        const pad2 = (n: number) => Math.trunc(n).toString().padStart(2, '0');
-        return `${Math.trunc(year)}:${pad2(month)}:${pad2(day)}:${pad2(hour)}:${pad2(minute)}`;
-    };
-
-    const parseGameTimestampToNumber = (timeValue: unknown): number => {
-        const canonical = toCanonicalGameTimestamp(timeValue);
-        if (!canonical) return 0;
-        const m = canonical.match(/^(\d{1,6}):(\d{2}):(\d{2}):(\d{2}):(\d{2})$/);
-        if (!m) return 0;
-        const year = Number(m[1]);
-        const month = Number(m[2]);
-        const day = Number(m[3]);
-        const hour = Number(m[4]);
-        const minute = Number(m[5]);
-        return (((year * 12 + month) * 31 + day) * 24 + hour) * 60 + minute;
-    };
-
-    const formatGameTimestampForDisplay = (timeValue: unknown): string => {
-        const canonical = toCanonicalGameTimestamp(timeValue);
-        if (!canonical) return '未知时间';
-        const m = canonical.match(/^(\d{1,6}):(\d{2}):(\d{2}):(\d{2}):(\d{2})$/);
-        if (!m) return '未知时间';
-        return `${m[1]}年${m[2]}月${m[3]}日 ${m[4]}:${m[5]}`;
-    };
-
     const tickerEvents = React.useMemo(() => {
-        const ongoingEvents = Array.isArray(state.世界?.进行中事件) ? state.世界.进行中事件 : [];
-        const formatted = ongoingEvents
-            .sort((a, b) => parseGameTimestampToNumber(b.开始时间) - parseGameTimestampToNumber(a.开始时间))
-            .map(evt => {
-                const type = evt.类型 || '事件';
-                const start = formatGameTimestampForDisplay(evt.开始时间);
-                const title = evt.事件名 || '无标题';
-                const location = (Array.isArray(evt.关联地点) ? evt.关联地点[0] : '') || '未知地点';
-                return `【${type}】${start} ${title}（${location}）`;
-            })
-            .filter(Boolean);
-
-        return formatted.length > 0 ? formatted : state.worldEvents;
+        return 整理世界状态客户可见大事(state.世界, state.worldEvents);
     }, [state.世界, state.worldEvents]);
 
     const 启用同人模式 = React.useMemo(

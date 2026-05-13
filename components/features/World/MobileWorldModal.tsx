@@ -71,6 +71,9 @@ const MobileWorldModal: React.FC<Props> = ({
     const 活跃NPC列表 = useMemo(() => Array.isArray(world?.活跃NPC列表) ? world.活跃NPC列表 : [], [world]);
     const 世界镜头规划 = useMemo(() => Array.isArray(world?.世界镜头规划) ? world.世界镜头规划 : [], [world]);
     const 江湖史册 = useMemo(() => Array.isArray(world?.江湖史册) ? world.江湖史册 : [], [world]);
+    const 势力列表 = useMemo(() => Array.isArray(world?.势力列表) ? world.势力列表 : [], [world]);
+    const 势力互动历史 = useMemo(() => Array.isArray(world?.势力互动历史) ? world.势力互动历史 : [], [world]);
+    const 拍卖行待投放物品 = useMemo(() => Array.isArray(world?.拍卖行待投放物品) ? world.拍卖行待投放物品 : [], [world]);
 
     const hasRawMessage = typeof worldEvolutionLastRawText === 'string' && worldEvolutionLastRawText.trim().length > 0;
 
@@ -110,8 +113,8 @@ const MobileWorldModal: React.FC<Props> = ({
                             <div className="mt-1 text-base font-bold text-wuxia-red">{进行中事件.length}</div>
                         </div>
                         <div className="rounded-2xl border border-gray-700 bg-white/[0.03] px-2 py-2 text-center">
-                            <div className="text-[10px] tracking-[0.2em] text-gray-500">史册</div>
-                            <div className="mt-1 text-base font-bold text-gray-200">{江湖史册.length}</div>
+                            <div className="text-[10px] tracking-[0.2em] text-gray-500">势力</div>
+                            <div className="mt-1 text-base font-bold text-gray-200">{势力列表.length}</div>
                         </div>
                     </div>
 
@@ -254,6 +257,59 @@ const MobileWorldModal: React.FC<Props> = ({
 
                     {activeTab === 'npcs' && (
                         <div className="space-y-3">
+                            <div className="px-2 pb-1 text-[11px] font-bold text-orange-300 tracking-widest">江湖势力</div>
+                            {势力列表.map((faction, idx) => (
+                                <div key={`faction-${faction.ID || idx}`} className="rounded-3xl border border-orange-900/25 bg-gradient-to-br from-black/80 to-orange-950/10 p-4">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="text-base font-bold text-orange-200">{faction.名称 || `势力 ${idx + 1}`}</div>
+                                        <div className="shrink-0 rounded-full border border-orange-900/40 px-2 py-0.5 text-[10px] text-orange-300">实力 {Number(faction.实力等级) || 0}</div>
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
+                                        <span className="rounded bg-orange-900/25 px-2 py-0.5 text-orange-300">{faction.类型 || '势力'}</span>
+                                        {取文本(faction.地盘归属) && <span className="rounded bg-green-900/20 px-2 py-0.5 text-green-400">{faction.地盘归属}</span>}
+                                    </div>
+                                    <div className="mt-3 text-sm leading-7 text-gray-300">{取文本(faction.描述) || '暂无势力传闻。'}</div>
+                                    {取文本(faction.当前状态) && (
+                                        <div className="mt-3 rounded-2xl border border-orange-900/20 bg-black/40 px-3 py-3 text-xs leading-5 text-orange-100/80">{faction.当前状态}</div>
+                                    )}
+                                </div>
+                            ))}
+                            {势力列表.length === 0 && (
+                                <div className="rounded-3xl border border-dashed border-gray-800 bg-black/30 px-4 py-10 text-center text-sm text-gray-500">当前尚未显化江湖势力。</div>
+                            )}
+
+                            {势力互动历史.length > 0 && (
+                                <>
+                                    <div className="px-2 pt-4 pb-1 text-[11px] font-bold text-wuxia-gold tracking-widest">势力风闻</div>
+                                    {势力互动历史.slice(0, 6).map((event, idx) => (
+                                        <div key={`faction-event-${event.ID || idx}`} className="rounded-3xl border border-gray-800 bg-black/35 p-4">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="text-sm font-semibold text-gray-100">{取数组(event.参与势力).join('、') || '未知势力'}</div>
+                                                <div className="rounded-full border border-gray-700 px-2 py-0.5 text-[10px] text-gray-400">{event.类型 || '互动'}</div>
+                                            </div>
+                                            <div className="mt-2 text-sm leading-6 text-gray-300">{event.事件摘要 || '暂无摘要。'}</div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+
+                            {拍卖行待投放物品.length > 0 && (
+                                <>
+                                    <div className="px-2 pt-4 pb-1 text-[11px] font-bold text-purple-300 tracking-widest">市面风声</div>
+                                    {拍卖行待投放物品.slice(0, 6).map((item, idx) => (
+                                        <div key={`market-item-${item.名称 || idx}`} className="rounded-3xl border border-purple-900/25 bg-purple-950/10 p-4">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="text-sm font-semibold text-purple-100">{item.名称 || `未知物品 ${idx + 1}`}</div>
+                                                <div className="rounded-full border border-purple-900/40 px-2 py-0.5 text-[10px] text-purple-300">{item.品质 || '未知品质'}</div>
+                                            </div>
+                                            <div className="mt-2 text-xs text-gray-400">{item.类型 || '物品'}</div>
+                                            {取文本(item.描述) && <div className="mt-2 text-sm leading-6 text-gray-300">{item.描述}</div>}
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+
+                            <div className="px-2 pt-4 pb-1 text-[11px] font-bold text-wuxia-cyan tracking-widest">活跃群英</div>
                             {活跃NPC列表.length > 0 ? 活跃NPC列表.map((npc, idx) => (
                                 <div key={`npc-${idx}`} className="rounded-3xl border border-cyan-500/15 bg-gradient-to-br from-black/80 to-cyan-950/10 p-4">
                                     <div className="flex justify-between items-start">

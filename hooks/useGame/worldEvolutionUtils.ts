@@ -41,6 +41,9 @@ export const 规范化世界演变命令列表 = (commands: 世界演变命令[]
         '世界.已结算事件',
         '世界.世界镜头规划',
         '世界.江湖史册',
+        '世界.势力列表',
+        '世界.势力互动历史',
+        '世界.拍卖行待投放物品',
         '环境.天气',
         '环境.环境变量',
         '环境.大地点',
@@ -67,6 +70,174 @@ export const 规范化世界演变命令列表 = (commands: 世界演变命令[]
             })
         ));
 };
+
+const 客户可见世界大事上限 = 8;
+
+const 世界尺度关键词 = [
+    '江湖', '势力', '门派', '宗门', '帮派', '家族', '商会', '镖局', '官府', '黑市', '拍卖',
+    '联盟', '围剿', '劫掠', '争夺', '封锁', '追缉', '商路', '镖路', '渡口', '州', '郡',
+    '城', '县', '秘境', '传承', '残卷', '名宿', '魔教', '山寨', '灾', '疫', '粮', '盐',
+    '矿', '水路', '码头', '边关', '战事', '通缉', '悬赏'
+];
+
+const 内部结构关键词 = [
+    '活跃NPC列表', '活跃 NPC 列表', '活跃 NPC', '待执行事件', '进行中事件', '已结算事件',
+    '世界镜头规划', '事件池', '后台活跃对象', '后台对象', '后台待执行', '后台结构',
+    '命令', '变量', '字段', '路径', '数组', '结构', '对象', 'push', 'set ', 'delete ',
+    '初始化', '补写', '写入', '纳入', '落地', '迁移', '补位', '审计', '条数', '峰值',
+    '常态', '触发窗口', '计划执行时间', '最早执行时间', '最晚执行时间', '当前行动',
+    '当前状态', '行动开始时间', '行动结束时间'
+];
+
+const 私人近景关键词 = ['叔父', '父亲', '母亲', '家丁', '丫鬟', '卧房', '厢房', '屋内', '院中', '演武场', '晨间', '考校'];
+
+const 规整可见事件文本 = (raw: unknown): string => (typeof raw === 'string' ? raw : '')
+    .trim()
+    .replace(/^[-*]\s*/, '')
+    .replace(/^\d+\.\s*/, '')
+    .replace(/^【?说明】?\s*[:：]?\s*/, '')
+    .trim();
+
+const 包含任一关键词 = (text: string, keywords: string[]): boolean => keywords.some((keyword) => text.includes(keyword));
+
+export const 是否后台世界工程描述 = (raw: unknown): boolean => {
+    const text = 规整可见事件文本(raw);
+    if (!text) return true;
+    const compact = text.replace(/\s+/g, '');
+    const hasInternal = 包含任一关键词(text, 内部结构关键词) || 包含任一关键词(compact, 内部结构关键词.map((item) => item.replace(/\s+/g, '')));
+    if (hasInternal) return true;
+
+    const hasWorldScale = 包含任一关键词(text, 世界尺度关键词);
+    const hasPrivateLocal = 包含任一关键词(text, 私人近景关键词);
+    return hasPrivateLocal && !hasWorldScale;
+};
+
+const 取对象文本字段 = (value: any, fields: string[]): string => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+    for (const field of fields) {
+        const raw = value[field];
+        if (typeof raw === 'string' && raw.trim()) return raw.trim();
+        if (Array.isArray(raw) && raw.length > 0) {
+            const joined = raw.map((item) => typeof item === 'string' ? item.trim() : '').filter(Boolean).join('，');
+            if (joined) return joined;
+        }
+    }
+    return '';
+};
+
+const 取物品名称列表 = (value: any): string[] => {
+    const list = Array.isArray(value) ? value : [value];
+    return list
+        .map((item) => {
+            if (typeof item === 'string') return item.trim();
+            if (item && typeof item === 'object' && typeof item.名称 === 'string') return item.名称.trim();
+            return '';
+        })
+        .filter(Boolean);
+};
+
+const 从世界命令生成可见大事 = (commands: 世界演变命令[]): string[] => {
+    const results: string[] = [];
+    (Array.isArray(commands) ? commands : []).forEach((cmd) => {
+        const key = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '').replace(/^gameState\./, '');
+        const value = cmd?.value;
+        if (!key || cmd?.action === 'delete') return;
+
+        if (key.startsWith('世界.势力互动历史')) {
+            const summary = 取对象文本字段(value, ['事件摘要', '描述', '当前进展']);
+            const factions = Array.isArray(value?.参与势力) ? value.参与势力.filter(Boolean).join('、') : '';
+            const type = typeof value?.类型 === 'string' ? value.类型.trim() : '势力互动';
+            if (summary) {
+                results.push(factions ? `${factions}发生${type}：${summary}` : summary);
+            }
+            return;
+        }
+
+        if (key.startsWith('世界.拍卖行待投放物品')) {
+            const names = 取物品名称列表(value).slice(0, 3);
+            if (names.length > 0) {
+                results.push(`黑市与拍卖行传出风声：${names.join('、')}开始流入市面，引动多方打探。`);
+            }
+            return;
+        }
+
+        if (key.startsWith('世界.进行中事件') || key.startsWith('世界.已结算事件')) {
+            const title = 取对象文本字段(value, ['事件名', '标题']);
+            const detail = 取对象文本字段(value, ['当前进展', '事件结果', '长期影响', '事件说明']);
+            if (title && detail) results.push(`${title}：${detail}`);
+            else if (title) results.push(title);
+            return;
+        }
+
+        if (key.startsWith('世界.江湖史册')) {
+            const title = 取对象文本字段(value, ['标题']);
+            const detail = 取对象文本字段(value, ['归档内容', '长期影响']);
+            if (title && detail) results.push(`${title}：${detail}`);
+            else if (title) results.push(title);
+            return;
+        }
+
+        if (key.startsWith('世界.势力列表') && Array.isArray(value) && value.length > 0) {
+            const names = value
+                .map((item) => item && typeof item === 'object' && typeof item.名称 === 'string' ? item.名称.trim() : '')
+                .filter(Boolean)
+                .slice(0, 5);
+            if (names.length > 0) {
+                results.push(`江湖势力格局初定：${names.join('、')}等势力各据一方，关系暗流开始发酵。`);
+            }
+        }
+    });
+    return results;
+};
+
+export const 整理客户可见世界大事 = (
+    updates: string[],
+    commands: 世界演变命令[] = []
+): string[] => {
+    const fromUpdates = (Array.isArray(updates) ? updates : [])
+        .map(规整可见事件文本)
+        .filter(Boolean)
+        .filter((item) => !是否后台世界工程描述(item));
+    const synthesized = 从世界命令生成可见大事(commands)
+        .map(规整可见事件文本)
+        .filter(Boolean)
+        .filter((item) => !是否后台世界工程描述(item));
+    const seen = new Set<string>();
+    return [...fromUpdates, ...synthesized]
+        .filter((item) => {
+            if (seen.has(item)) return false;
+            seen.add(item);
+            return true;
+        })
+        .slice(0, 客户可见世界大事上限);
+};
+
+const 构建世界状态可见命令 = (worldLike: any): 世界演变命令[] => {
+    const world = worldLike && typeof worldLike === 'object' ? worldLike : {};
+    const commands: 世界演变命令[] = [];
+    const pushArray = (key: string, list: unknown) => {
+        if (!Array.isArray(list)) return;
+        list.forEach((value) => commands.push({ action: 'push', key, value }));
+    };
+
+    if (Array.isArray(world.势力列表) && world.势力列表.length > 0) {
+        commands.push({ action: 'set', key: '世界.势力列表', value: world.势力列表 });
+    }
+    pushArray('世界.势力互动历史', world.势力互动历史);
+    pushArray('世界.拍卖行待投放物品', world.拍卖行待投放物品);
+    pushArray('世界.进行中事件', world.进行中事件);
+    pushArray('世界.已结算事件', world.已结算事件);
+    pushArray('世界.江湖史册', world.江湖史册);
+    return commands;
+};
+
+export const 整理世界状态客户可见大事 = (
+    worldLike: any,
+    fallbackUpdates: string[] = []
+): string[] => 整理客户可见世界大事(
+    Array.isArray(fallbackUpdates) ? fallbackUpdates : [],
+    构建世界状态可见命令(worldLike)
+);
 
 export const 分析世界到期触发 = (worldLike: any, envLike: any) => {
     const currentCanonical = 环境时间转标准串(envLike) || (typeof envLike?.时间 === 'string' ? normalizeCanonicalGameTime(envLike.时间) : null);
