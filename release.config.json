@@ -2,7 +2,7 @@
   "versionCode": 137,
   "versionName": "1.0.136",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-05-13T22:40:57+08:00",
+  "releasePublishedAt": "2026-05-13T22:49:09+08:00",
   "releaseNotes": [
     "v1.0.136 正式发布：合并记忆精炼功能，并优化左侧角色栏折叠体验。",
     "互动历史支持多选回忆并由 AI 精炼为一条历史纪要，长期存档可以更方便地压缩和整理。",
