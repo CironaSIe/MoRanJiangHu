@@ -144,11 +144,11 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
             const currentSelectedPortraitImageId = typeof archive?.已选立绘图片ID === 'string' ? archive.已选立绘图片ID.trim() : '';
             const currentSelectedBackgroundImageId = typeof archive?.已选背景图片ID === 'string' ? archive.已选背景图片ID.trim() : '';
             const nextRecent = nextHistory[0];
-            const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId)
-                ? currentSelectedAvatarImageId
-                : (nextHistory.find((item: any) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
-                    || nextHistory.find((item: any) => item?.构图 !== '部位特写' && item?.状态 === 'success' && item?.id)?.id
-                    || undefined);
+                const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId)
+                    ? currentSelectedAvatarImageId
+                    : (nextHistory.find((item: any) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
+                        || nextHistory.find((item: any) => !['部位特写', '胸部', '小穴', '屁穴'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
+                        || undefined);
             return {
                 ...prev,
                 图片档案: nextHistory.length > 0 ? {

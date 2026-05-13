@@ -309,9 +309,34 @@ const WorldModal: React.FC<Props> = ({
                                                     )}
                                                     {faction.关系网 && typeof faction.关系网 === 'object' && Object.keys(faction.关系网).length > 0 && (
                                                         <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] text-gray-400">
-                                                            {Object.entries(faction.关系网).slice(0, 6).map(([name, relation]) => (
-                                                                <span key={name} className="rounded bg-black/40 px-2 py-0.5">{name}: {String(relation)}</span>
-                                                            ))}
+                                                            {(() => {
+                                                                const relations: [string, string][] = [];
+                                                                if (Array.isArray(faction.关系网)) {
+                                                                    faction.关系网.forEach((item: any) => {
+                                                                        if (item && typeof item === 'object') {
+                                                                            if (item.势力 && item.关系) relations.push([String(item.势力), String(item.关系)]);
+                                                                            else if (item.名称 && item.关系) relations.push([String(item.名称), String(item.关系)]);
+                                                                            else {
+                                                                                const keys = Object.keys(item);
+                                                                                if (keys.length > 0) relations.push([keys[0], String(item[keys[0]])]);
+                                                                            }
+                                                                        }
+                                                                    });
+                                                                } else {
+                                                                    Object.entries(faction.关系网).forEach(([k, v]) => {
+                                                                        if (v && typeof v === 'object') {
+                                                                            const valKeys = Object.keys(v);
+                                                                            if (valKeys.length > 0) relations.push([k, String((v as any)[valKeys[0]])]);
+                                                                            else relations.push([k, '未知']);
+                                                                        } else {
+                                                                            relations.push([k, String(v)]);
+                                                                        }
+                                                                    });
+                                                                }
+                                                                return relations.slice(0, 6).map(([name, rel], i) => (
+                                                                    <span key={`${name}-${i}`} className="rounded bg-black/40 px-2 py-0.5">{name}: {rel}</span>
+                                                                ));
+                                                            })()}
                                                         </div>
                                                     )}
                                                 </div>

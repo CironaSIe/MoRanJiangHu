@@ -1,6 +1,7 @@
 import React from 'react';
 import { 角色数据结构, 战斗状态结构 } from '../../../types';
 import { 生成战斗可视化数据, 逻辑判断知识库 } from '../../../utils/rulebook';
+import BattleRoundAnimation from './BattleRoundAnimation';
 
 interface Props {
     character: 角色数据结构;
@@ -124,6 +125,14 @@ const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '
                             </div>
                         </div>
                     </div>
+
+                    {battle?.是否战斗中 && (
+                        <BattleRoundAnimation
+                            character={character}
+                            battle={battle}
+                            compact
+                        />
+                    )}
 
                     <div className="rounded-xl border border-gray-800 bg-black/35 p-3">
                         <div className="text-[10px] text-gray-500 tracking-[0.2em] mb-2">敌方单位</div>

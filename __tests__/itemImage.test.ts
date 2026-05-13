@@ -27,15 +27,15 @@ describe('item image preset fallback', () => {
             }
         };
 
-        expect(获取物品已选图标地址(item)).toBe('/assets/item-presets/精钢长剑.svg');
+        expect(获取物品已选图标地址(item)).toBe('/assets/item-presets/精钢长剑.png');
     });
 
     it('uses distinct starter clothing presets for pants and shoes', () => {
         const pants: any = { 名称: '粗布长裤', 类型: '防具', 品质: '凡品' };
         const shoes: any = { 名称: '旧布鞋', 类型: '防具', 品质: '凡品' };
 
-        expect(获取物品已选图标地址(pants)).toBe('/assets/item-presets/粗布长裤.svg');
-        expect(获取物品已选图标地址(shoes)).toBe('/assets/item-presets/旧布鞋.svg');
+        expect(获取物品已选图标地址(pants)).toBe('/assets/item-presets/粗布长裤.png');
+        expect(获取物品已选图标地址(shoes)).toBe('/assets/item-presets/旧布鞋.png');
     });
 
     it('uses preset image first for every exact preset name', () => {

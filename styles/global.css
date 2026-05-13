@@ -1037,6 +1037,33 @@ html[data-theme="day"] .right-panel-bottom-fade {
   animation: sweep 3s infinite;
 }
 
+@keyframes damage-float {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 8px, 0) scale(0.85);
+    filter: blur(1px);
+  }
+  16% {
+    opacity: 1;
+    transform: translate3d(-50%, -4px, 0) scale(1.1);
+    filter: blur(0);
+  }
+  72% {
+    opacity: 1;
+    transform: translate3d(-50%, -34px, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -58px, 0) scale(0.92);
+  }
+}
+
+.animate-damage-float {
+  animation: damage-float 1.2s cubic-bezier(0.18, 0.82, 0.24, 1) forwards;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.9), 0 0 14px rgba(248, 113, 113, 0.55);
+  will-change: transform, opacity;
+}
+
 @media (min-width: 768px) {
   :root {
     --desktop-game-top: 75px;
