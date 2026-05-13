@@ -1,17 +1,17 @@
 import type { 物品图片档案 } from '../models/imageGeneration';
 
 const 默认拍卖物品图片映射: Record<string, string> = {
-    青锋短剑: 'https://cdn.nodeimage.com/i/BotZM3LfQPEZAR4SHgnDW10dNtygzxt8.png',
-    雁翎护腕: 'https://cdn.nodeimage.com/i/bvbQAFPfqeept5fGHbsYRplgDvlotGpy.png',
-    回春散: 'https://cdn.nodeimage.com/i/fDHFtkspJYRIsIezQXEgdXEsKiwZ6836.png',
-    寒潭玄铁屑: 'https://cdn.nodeimage.com/i/ZdMxoqulGLCivJpdJJ2YB9GLJEQ2pyCY.png',
-    '残页·归云步': 'https://cdn.nodeimage.com/i/gNi6KZT0bWQrfGajec8H2DHmjCFmZ206.png',
-    乌金软甲: 'https://cdn.nodeimage.com/i/yndDgXUenzRwY3l4vlv4KDuORNzZ0QTc.png',
-    无名刀谱拓本: 'https://cdn.nodeimage.com/i/vJk1qy6hhUcGYyz8VRFxJ8jDEOcLpLgt.png',
-    南荒毒砂: 'https://cdn.nodeimage.com/i/yQPXBY9AM2sLri626qrke9F81YCXPRBa.png',
-    白玉鱼佩: 'https://cdn.nodeimage.com/i/FlTGIrk3m1y4QDcbw7K5gUnQmQenJhV4.png',
-    破军弩机: 'https://cdn.nodeimage.com/i/gVR656veF42c9ztenLYpHQ58Zg0s2s5E.png',
-    药王谷旧丹方: 'https://cdn.nodeimage.com/i/lmAT0daIeKLmFAhIW2fWDo52UZ1Y4k3M.png'
+    青锋短剑: '/assets/auction-items/qingfeng-duanjian.png',
+    雁翎护腕: '/assets/auction-items/yanling-huwan.png',
+    回春散: '/assets/auction-items/huichun-san.png',
+    寒潭玄铁屑: '/assets/auction-items/hantan-xuantiexie.png',
+    '残页·归云步': '/assets/auction-items/canye-guiyunbu.png',
+    乌金软甲: '/assets/auction-items/wujin-ruanjia.png',
+    无名刀谱拓本: '/assets/auction-items/wuming-daopu-taben.png',
+    南荒毒砂: '/assets/auction-items/nanhuang-dusha.png',
+    白玉鱼佩: '/assets/auction-items/baiyu-yupei.png',
+    破军弩机: '/assets/auction-items/pojun-nuji.png',
+    药王谷旧丹方: '/assets/auction-items/yaowanggu-jiudanfang.png'
 };
 
 export const 获取默认拍卖物品图片档案 = (itemName: string): 物品图片档案 | undefined => {

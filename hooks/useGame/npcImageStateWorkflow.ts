@@ -152,7 +152,7 @@ export const 合并NPC图片档案 = (currentNpc: any, payload: any) => {
         ? payload.图片档案.已选背景图片ID.trim()
         : (typeof payload?.已选背景图片ID === 'string' ? payload.已选背景图片ID.trim() : '');
     const fallbackAvatarId = mergedHistory.find((item) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
-        || mergedHistory.find((item) => item?.构图 !== '部位特写' && item?.状态 === 'success' && item?.id)?.id
+        || mergedHistory.find((item) => !['部位特写', '胸部', '小穴', '屁穴'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
         || '';
     const fallbackPortraitId = mergedHistory.find((item) => (item?.构图 === '半身' || item?.构图 === '立绘') && item?.状态 === 'success' && item?.id)?.id
         || '';
@@ -268,7 +268,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                 const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId)
                     ? currentSelectedAvatarImageId
                     : (nextHistory.find((item: any) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
-                        || nextHistory.find((item: any) => item?.构图 !== '部位特写' && item?.状态 === 'success' && item?.id)?.id
+                        || nextHistory.find((item: any) => !['部位特写', '胸部', '小穴', '屁穴'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
                         || undefined);
                 return {
                     ...npc,
@@ -400,7 +400,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                 const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId)
                     ? currentSelectedAvatarImageId
                     : (nextHistory.find((item: any) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
-                        || nextHistory.find((item: any) => item?.构图 !== '部位特写' && item?.状态 === 'success' && item?.id)?.id
+                        || nextHistory.find((item: any) => !['部位特写', '胸部', '小穴', '屁穴'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
                         || undefined);
                 return {
                     ...npc,

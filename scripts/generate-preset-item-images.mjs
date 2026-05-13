@@ -25,6 +25,7 @@ const outDir = path.join(rootDir, '.tmp-preset-images');
 
 const items = [
   { filename: 'weapon-sword-fine-01.png', name: '青钢剑', type: '武器', quality: '良品', desc: 'a fine steel jian sword with blue-green tinted blade, simple crossguard, leather-wrapped handle' },
+  { filename: 'weapon-sword-fine-02.png', name: '精钢长剑', type: '武器', quality: '良品', desc: 'a refined steel long jian sword, polished mirror blade with faint hexagonal ridge, brass crossguard with simple ornament, dark leather cord wrapped grip, brass pommel cap, practical martial sword, clean craftsmanship' },
   { filename: 'weapon-sword-top-01.png', name: '玄铁重剑', type: '武器', quality: '极品', desc: 'a massive dark iron heavy sword, thick blade with no edge, raw brutal weight, dark metal surface' },
   { filename: 'weapon-sword-superior-01.png', name: '碧水长剑', type: '武器', quality: '上品', desc: 'an elegant long sword with water-blue blade, flowing wave patterns etched on steel, jade pommel' },
   { filename: 'weapon-sword-mythic-01.png', name: '断水剑', type: '武器', quality: '绝世', desc: 'a legendary thin blade that seems to cut through water itself, ethereal glow, impossibly sharp edge, ancient craftsmanship' },
@@ -42,6 +43,9 @@ const items = [
   { filename: 'armor-chain-superior-01.png', name: '锁子甲', type: '防具', quality: '上品', desc: 'a fine chainmail shirt with interlocking iron rings, flexible yet protective, worn over cloth padding' },
   { filename: 'armor-soft-mythic-01.png', name: '软猬甲', type: '防具', quality: '绝世', desc: 'a legendary soft inner armor covered in tiny steel barbs, looks like silk but deflects blades, hidden protection' },
   { filename: 'armor-cloth-common-01.png', name: '布衣', type: '防具', quality: '凡品', desc: 'a simple coarse cloth robe, plain undyed fabric, commoner garment, no protection' },
+  { filename: 'armor-training-common-01.png', name: '青色练功服', type: '防具', quality: '凡品', desc: 'a single folded dark teal green training uniform, traditional Chinese wuxia practice robe, cotton fabric with knotted frog buttons down the front, simple crossed collar, loose sleeves, plain fabric sash beside it, neatly laid flat on neutral background, no person wearing, isolated garment only' },
+  { filename: 'armor-pants-common-01.png', name: '粗布长裤', type: '防具', quality: '凡品', desc: 'a pair of loose wide-leg coarse cloth trousers, undyed beige linen fabric, traditional Chinese wuxia martial arts pants, cord waistband, plain folded flat on neutral background, isolated garment only, no person' },
+  { filename: 'armor-shoes-common-01.png', name: '旧布鞋', type: '防具', quality: '凡品', desc: 'a single pair of worn old Chinese cloth shoes, beige canvas upper with black cotton trim, thin multi-layered cloth sole, traditional rural footwear, slightly dirty and frayed, placed side by side on neutral background, isolated objects' },
   { filename: 'armor-robe-fine-01.png', name: '青衫', type: '防具', quality: '良品', desc: 'a scholar blue-green cotton robe, neat stitching, simple but dignified, literati style' },
   { filename: 'armor-bracer-fine-01.png', name: '护腕', type: '防具', quality: '良品', desc: 'a pair of leather bracers with metal studs, forearm protection, buckle straps' },
   { filename: 'pill-bigu-common-01.png', name: '辟谷丹', type: '消耗品', quality: '凡品', desc: 'a small brown medicinal pill in a simple clay jar, fasting pill that suppresses hunger' },
