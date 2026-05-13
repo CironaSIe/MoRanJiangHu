@@ -1338,8 +1338,9 @@ export const useGame = () => {
             apiConfigRef.current = config;
             setApiConfig(config);
             const registryUrl = (config as any)?.功能模型占位?.图片后端注册表地址;
-            if (registryUrl) {
-                刷新已发现ComfyUI后端缓存(registryUrl).catch(() => {});
+            const registryConnectToken = (config as any)?.功能模型占位?.图片后端自动连接口令;
+            if (registryUrl || registryConnectToken) {
+                刷新已发现ComfyUI后端缓存(registryUrl, registryConnectToken).catch(() => {});
             }
         },
         设置内置提示词列表: set内置提示词列表,

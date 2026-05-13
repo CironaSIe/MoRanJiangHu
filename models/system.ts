@@ -205,6 +205,8 @@ export interface 发现图片后端记录结构 {
     detectedFrom?: string;
     detectedAt: string;
     lastHeartbeatAt?: string;
+    connectTokenProtected?: boolean;
+    connectTokenMatched?: boolean;
     source: 'registry';
 }
 
@@ -280,6 +282,7 @@ export interface 功能模型占位配置结构 {
     文生图模型API地址: string;
     文生图模型API密钥: string;
     图片后端注册表地址: string;
+    图片后端自动连接口令: string;
     当前图片后端发现ID: string;
     ComfyUI工作流JSON: string;
     场景生图独立接口启用: boolean;

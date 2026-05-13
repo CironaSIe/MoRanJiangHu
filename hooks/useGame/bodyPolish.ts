@@ -15,6 +15,7 @@ import { 核心_文章优化思维链 } from '../../prompts/core/cotPolish';
 import { 构建COT伪装提示词 } from './promptRuntime';
 import { 环境时间转标准串 } from './timeUtils';
 import { 规范化环境信息, 构建完整地点文本 } from './stateTransforms';
+import { 规范化对白日志 } from '../../utils/dialogueLogNormalizer';
 
 type 正文日志结构 = Array<{ sender: string; text: string }>;
 
@@ -93,7 +94,7 @@ const 解析正文日志文本 = (bodyText: string): 正文日志结构 => {
         logs.push(current);
     }
 
-    return logs.filter(item => typeof item.text === 'string' && item.text.trim().length > 0);
+    return 规范化对白日志(logs.filter(item => typeof item.text === 'string' && item.text.trim().length > 0));
 };
 
 const 构建正文文本 = (logs: 正文日志结构): string => {
@@ -294,10 +295,10 @@ export const 执行正文润色 = async (
         polishExtraPrompt,
         polishCotPseudoPrompt
     );
-    const polishedLogs = 限制润色结果判定数量(
+    const polishedLogs = 规范化对白日志(限制润色结果判定数量(
         sourceLogs,
         解析正文日志文本(polishedResult.bodyText)
-    );
+    ));
     if (polishedLogs.length === 0) {
         return { response: baseResponse, applied: false, error: '优化后正文为空，已保留原文。', rawText: polishedResult.rawText };
     }

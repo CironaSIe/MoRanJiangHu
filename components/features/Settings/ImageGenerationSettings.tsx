@@ -436,7 +436,11 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         setDiscoveryLoading(true);
         setDiscoveryError('');
         try {
-            const items = await fetchDiscoveredImageBackends(form.功能模型占位.图片后端注册表地址, 'comfyui');
+            const items = await fetchDiscoveredImageBackends(
+                form.功能模型占位.图片后端注册表地址,
+                'comfyui',
+                form.功能模型占位.图片后端自动连接口令
+            );
             setDiscoveredBackends(items);
         } catch (error: any) {
             setDiscoveredBackends([]);
@@ -444,7 +448,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         } finally {
             setDiscoveryLoading(false);
         }
-    }, [form.功能模型占位.图片后端注册表地址, form.功能模型占位.NSFW生图独立接口启用, 当前后端, 当前场景后端, 当前NSFW后端]);
+    }, [form.功能模型占位.图片后端注册表地址, form.功能模型占位.图片后端自动连接口令, form.功能模型占位.NSFW生图独立接口启用, 当前后端, 当前场景后端, 当前NSFW后端]);
 
     useEffect(() => {
         void refreshDiscoveredBackends();
@@ -583,6 +587,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             '文生图模型使用模型',
             '文生图模型API地址',
             '文生图模型API密钥',
+            '图片后端自动连接口令',
             '文生图接口路径模式',
             '文生图预设接口路径',
             '文生图接口路径',
@@ -1592,7 +1597,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 {discoveryLoading ? '刷新中...' : '刷新列表'}
                             </GameButton>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-4 md:grid-cols-3">
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-emerald-200">注册表地址</label>
                                 <input
@@ -1600,6 +1605,16 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                     value={form.功能模型占位.图片后端注册表地址}
                                     onChange={(e) => updatePlaceholder('图片后端注册表地址', e.target.value)}
                                     placeholder="留空则使用当前站点 /api/image-backend/cnb-sync"
+                                    className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-emerald-400"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-emerald-200">CNB 用户名称</label>
+                                <input
+                                    type="text"
+                                    value={form.功能模型占位.图片后端自动连接口令}
+                                    onChange={(e) => updatePlaceholder('图片后端自动连接口令', e.target.value)}
+                                    placeholder="填写 CNB 个人主页头像下方的用户名称"
                                     className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-emerald-400"
                                 />
                             </div>
@@ -1620,9 +1635,10 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                         </div>
                         {selectedDiscoveredBackend && (
                             <div className="rounded-xl border border-emerald-500/20 bg-black/20 px-4 py-3 text-xs leading-6 text-emerald-100">
-                                当前已选：<code>{selectedDiscoveredBackend.url}</code>
+                                当前 ComfyUI 域名：<code>{selectedDiscoveredBackend.url}</code>
                                 {selectedDiscoveredBackend.workspace ? <> · 工作区：<code>{selectedDiscoveredBackend.workspace}</code></> : null}
                                 {selectedDiscoveredBackend.lastHeartbeatAt ? <> · 最近心跳：<code>{selectedDiscoveredBackend.lastHeartbeatAt}</code></> : null}
+                                {selectedDiscoveredBackend.connectTokenMatched ? <> · 用户名称已匹配</> : null}
                             </div>
                         )}
                         {discoveryError && (

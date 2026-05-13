@@ -198,6 +198,8 @@ CNB_SYNC_BACKEND_TYPE=comfyui
 - `node scripts/cnb-image-backend-sync.mjs --workspace ...` 会先调用 OpenAPI 启动 workspace，再继续做 `8188` 地址发现、健康检查与 worker 上报。
 - CNB 当前 OpenAPI 返回的是 WebIDE / SSH 等入口，不直接返回 `8188` 端口代理地址，所以端口地址仍然需要依赖环境内的 `CNB_VSCODE_PROXY_URI` 或直接传入 `CNB_IMAGE_BACKEND_URL`。
 - 脚本会等待后端健康检查通过后再上报，避免把还没起来的地址提前发出去。
+- 自动连接标识默认读取 `CNB_BUILD_USER_NICKNAME`，也就是 CNB 个人主页头像下方的用户名称；客户端填写同一个用户名称后，只会拉取匹配的 ComfyUI 后端并自动回填 API 地址。
+- 如确实需要覆盖默认标识，可显式设置 `CNB_IMAGE_BACKEND_CONNECT_TOKEN` 或 `CNB_SYNC_CONNECT_TOKEN`，脚本会优先使用显式值。
 - 如果只想先验证发现结果，可加 `--dry-run`。
 
 ### 推荐的 CNB 启动思路

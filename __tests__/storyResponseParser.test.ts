@@ -85,4 +85,22 @@ describe('storyResponseParser', () => {
             { sender: '旁白', text: '杨培强在自家后院晨练结束，杨青儿送来温水。林婉清随林家长辈登门拜访。' }
         ]);
     });
+
+    it('splits quoted dialogue embedded in narrator lines into character logs', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '【旁白】晨风卷过演武场，杨镇远负手站在石阶前，沉声道：“剑势散了，脚下也浮。再走一遍。”',
+            '【旁白】杨培强收剑回身，说道：“侄儿明白。”杨镇远点了点头，目光仍落在剑尖上。',
+            '</正文>',
+            '<短期记忆>杨镇远在演武场考校杨培强剑法。</短期记忆>'
+        ].join('\n'));
+
+        expect(parsed.logs).toEqual([
+            { sender: '旁白', text: '晨风卷过演武场，杨镇远负手站在石阶前' },
+            { sender: '杨镇远', text: '剑势散了，脚下也浮。再走一遍。' },
+            { sender: '旁白', text: '杨培强收剑回身' },
+            { sender: '杨培强', text: '侄儿明白。' },
+            { sender: '旁白', text: '杨镇远点了点头，目光仍落在剑尖上。' }
+        ]);
+    });
 });

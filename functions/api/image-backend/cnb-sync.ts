@@ -14,6 +14,7 @@ type SyncPayload = {
     port: number;
     url: string;
     healthUrl?: string;
+    connectTokenHash?: string;
     detectedFrom?: string;
     detectedAt: string;
     workspace?: string;
@@ -25,6 +26,7 @@ type RegistryItem = SyncPayload & {
     id: string;
     label: string;
     lastHeartbeatAt: string;
+    connectTokenProtected?: boolean;
     source: 'registry';
 };
 
@@ -53,6 +55,28 @@ const readBearerToken = (request: Request): string => {
 const readString = (value: unknown): string => (
     typeof value === 'string' ? value.trim() : ''
 );
+
+const hashConnectToken = async (value: unknown): Promise<string> => {
+    const token = readString(value);
+    if (!token) return '';
+    const data = new TextEncoder().encode(token);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(digest))
+        .map((byte) => byte.toString(16).padStart(2, '0'))
+        .join('');
+};
+
+const stripPrivateRegistryItem = (
+    item: RegistryItem,
+    options?: { connectTokenMatched?: boolean }
+): RegistryItem & { connectTokenMatched?: boolean } => {
+    const { connectTokenHash, workspaceStart, workspaceDetail, ...publicItem } = item;
+    return {
+        ...publicItem,
+        connectTokenProtected: Boolean(item.connectTokenHash || item.connectTokenProtected),
+        ...(options?.connectTokenMatched ? { connectTokenMatched: true } : {})
+    };
+};
 
 const normalizeSyncUrl = (value: string): string => {
     try {
@@ -130,7 +154,7 @@ const getRegistryObjectKey = (env: any): string => {
 
 const getRegistryTtlSeconds = (env: any): number => toPositiveInt(env?.CNB_SYNC_REGISTRY_TTL_SEC, 900);
 
-const sanitizePayload = (body: any, allowAnyUrl: boolean): SyncPayload | null => {
+const sanitizePayload = async (body: any, allowAnyUrl: boolean): Promise<SyncPayload | null> => {
     const normalizedUrl = normalizeSyncUrl(String(body?.url || ''));
     const requestedPort = toPositiveInt(body?.port, 0);
     const inferredPort = parsePortFromUrl(normalizedUrl);
@@ -148,6 +172,7 @@ const sanitizePayload = (body: any, allowAnyUrl: boolean): SyncPayload | null =>
         port,
         url: normalizedUrl,
         healthUrl: normalizeSyncUrl(String(body?.healthUrl || '')) || undefined,
+        connectTokenHash: await hashConnectToken(body?.connectToken || body?.autoConnectToken || body?.口令),
         detectedFrom: readString(body?.detectedFrom) || undefined,
         detectedAt: readString(body?.detectedAt || new Date().toISOString()) || new Date().toISOString(),
         workspace: readString(body?.workspace) || undefined,
@@ -199,6 +224,7 @@ const saveRegistryItem = async (env: any, payload: SyncPayload): Promise<Registr
         id: buildRegistryKey(payload),
         label: buildLabel(payload),
         lastHeartbeatAt: now,
+        connectTokenProtected: Boolean(payload.connectTokenHash),
         source: 'registry'
     };
 
@@ -238,8 +264,18 @@ const listRegistryItems = async (request: Request, env: any): Promise<RegistryIt
     const url = new URL(request.url);
     const backendType = readString(url.searchParams.get('backendType'));
     const customerId = readString(url.searchParams.get('customerId'));
+    const connectTokenHash = await hashConnectToken(
+        url.searchParams.get('connectToken')
+        || url.searchParams.get('autoConnectToken')
+        || url.searchParams.get('口令')
+    );
     const ttlMs = getRegistryTtlSeconds(env) * 1000;
     const now = Date.now();
+    const matchesConnectToken = (item: RegistryItem): boolean => {
+        const itemHash = readString(item.connectTokenHash);
+        if (connectTokenHash) return itemHash === connectTokenHash;
+        return !itemHash && !item.connectTokenProtected;
+    };
 
     const bucket = getRegistryBucket(env);
     if (bucket) {
@@ -250,8 +286,10 @@ const listRegistryItems = async (request: Request, env: any): Promise<RegistryIt
                 if (heartbeatTime && now - heartbeatTime > ttlMs) return false;
                 if (backendType && readString(item.backendType) !== backendType) return false;
                 if (customerId && readString(item.customerId) !== customerId) return false;
+                if (!matchesConnectToken(item)) return false;
                 return true;
             })
+            .map((item) => stripPrivateRegistryItem(item, { connectTokenMatched: Boolean(connectTokenHash) }))
             .sort((a, b) => {
                 const aTime = Date.parse(a.lastHeartbeatAt || a.detectedAt || '') || 0;
                 const bTime = Date.parse(b.lastHeartbeatAt || b.detectedAt || '') || 0;
@@ -279,7 +317,8 @@ const listRegistryItems = async (request: Request, env: any): Promise<RegistryIt
                 const heartbeatTime = Date.parse(item.lastHeartbeatAt || item.detectedAt || '');
                 if (heartbeatTime && now - heartbeatTime > ttlMs) continue;
                 if (customerId && readString(item.customerId) !== customerId) continue;
-                items.push(item);
+                if (!matchesConnectToken(item)) continue;
+                items.push(stripPrivateRegistryItem(item, { connectTokenMatched: Boolean(connectTokenHash) }));
             } catch {
                 continue;
             }
@@ -328,7 +367,7 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
         }
 
         const allowAnyUrl = readString(env?.CNB_SYNC_ALLOW_ANY_URL).toLowerCase() === 'true';
-        const payload = sanitizePayload(body, allowAnyUrl);
+        const payload = await sanitizePayload(body, allowAnyUrl);
         if (!payload) {
             return buildJsonResponse({ error: 'Missing or invalid sync payload' }, 400);
         }
@@ -344,7 +383,14 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
                     'Content-Type': 'application/json',
                     ...(forwardToken ? { 'Authorization': `Bearer ${forwardToken}` } : {})
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(stripPrivateRegistryItem({
+                    ...payload,
+                    id: buildRegistryKey(payload),
+                    label: buildLabel(payload),
+                    lastHeartbeatAt: new Date().toISOString(),
+                    connectTokenProtected: Boolean(payload.connectTokenHash),
+                    source: 'registry'
+                }))
             });
 
             const forwardText = await forwardResponse.text();
@@ -360,8 +406,15 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
                 ok: true,
                 forwarded: true,
                 registryStored: Boolean(registryItem),
-                payload,
-                item: registryItem
+                payload: registryItem ? stripPrivateRegistryItem(registryItem) : stripPrivateRegistryItem({
+                    ...payload,
+                    id: buildRegistryKey(payload),
+                    label: buildLabel(payload),
+                    lastHeartbeatAt: new Date().toISOString(),
+                    connectTokenProtected: Boolean(payload.connectTokenHash),
+                    source: 'registry'
+                }),
+                item: registryItem ? stripPrivateRegistryItem(registryItem) : null
             });
         }
 
@@ -369,8 +422,15 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
             ok: true,
             forwarded: false,
             registryStored: Boolean(registryItem),
-            payload,
-            item: registryItem
+            payload: registryItem ? stripPrivateRegistryItem(registryItem) : stripPrivateRegistryItem({
+                ...payload,
+                id: buildRegistryKey(payload),
+                label: buildLabel(payload),
+                lastHeartbeatAt: new Date().toISOString(),
+                connectTokenProtected: Boolean(payload.connectTokenHash),
+                source: 'registry'
+            }),
+            item: registryItem ? stripPrivateRegistryItem(registryItem) : null
         });
     } catch (error: any) {
         return buildJsonResponse({ error: error?.message || 'Unknown CNB sync error' }, 500);

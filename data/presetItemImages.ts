@@ -19,6 +19,7 @@ export interface 预置物品图片条目 {
 export const 预置物品图片列表: 预置物品图片条目[] = [
     // ─── 武器：剑 ───────────────────────────────────────────────────────
     { 名称: '青钢剑', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/MzHlups3ymlkKKeKdsWNYPR6BXM55aLG.png', 关键词: ['剑', '青钢', '铁剑'] },
+    { 名称: '精钢长剑', 类型: '武器', 品质: '良品', 图片URL: '/assets/item-presets/jinggang-changjian.svg', 关键词: ['剑', '精钢', '长剑'] },
     { 名称: '玄铁重剑', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/K2u7JlSJ2cahQCc3LwLslzVZpwQON28X.png', 关键词: ['重剑', '玄铁'] },
     { 名称: '碧水长剑', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/pDU6R0jYBwoFonwiEWV7Td5yLvwiPvGL.png', 关键词: ['长剑', '碧水'] },
     { 名称: '断水剑', 类型: '武器', 品质: '绝世', 图片URL: 'https://cdn.nodeimage.com/i/Y7vrdCBQy3oXeCnAgpHAdmdKZdyBDkfb.png', 关键词: ['断水', '名剑'] },
@@ -45,6 +46,9 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     { 名称: '软猬甲', 类型: '防具', 品质: '绝世', 图片URL: 'https://cdn.nodeimage.com/i/q8baHJP4UTg6KwfZT4j9RTr0hpCDNX1L.png', 关键词: ['软猬', '内甲'] },
     { 名称: '布衣', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/nmOqWbgYbQJ6B1tDdKTKZG88K7rtH83O.png', 关键词: ['布衣', '粗布', '麻衣'] },
     { 名称: '青衫', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/V80OIatPzWKYvVTlKGy5SkTOhEFcCYXX.png', 关键词: ['青衫', '长衫', '儒衫'] },
+    { 名称: '青色练功服', 类型: '防具', 品质: '凡品', 图片URL: '/assets/item-presets/qingse-liangongfu.svg', 关键词: ['练功服', '青色', '上装'] },
+    { 名称: '粗布长裤', 类型: '防具', 品质: '凡品', 图片URL: '/assets/item-presets/cubu-changku.svg', 关键词: ['长裤', '粗布', '下装'] },
+    { 名称: '旧布鞋', 类型: '防具', 品质: '凡品', 图片URL: '/assets/item-presets/jiu-buxie.svg', 关键词: ['布鞋', '旧鞋', '鞋履'] },
     { 名称: '护腕', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/McIGnhhGKjpaL556ERyKIitHiF7SjxO6.png', 关键词: ['护腕', '臂甲'] },
 
     // ─── 消耗品：丹药 ─────────────────────────────────────────────────────

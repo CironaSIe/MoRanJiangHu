@@ -11,12 +11,30 @@ const DEFAULT_DISCOVERY_KEYS = [
   'CODESPACE_VSCODE_PROXY_URI'
 ];
 
+const readFirstText = (...values) => {
+  for (const value of values) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+  return '';
+};
+
+const deriveDefaultConnectToken = () => readFirstText(
+  process.env.CNB_BUILD_USER_NICKNAME,
+  process.env.ACC_USER_NICKNAME,
+  process.env.CNB_BUILD_USER,
+  process.env.CNB_REPO_SLUG_LOWERCASE,
+  process.env.CNB_REPO_SLUG,
+  process.env.CNB_GROUP_SLUG
+);
+
 const parseArgs = (argv) => {
   const args = {
     start: '',
     port: DEFAULT_PORT,
     webhook: process.env.CNB_SYNC_WEBHOOK_URL || '',
     token: process.env.CNB_SYNC_WEBHOOK_TOKEN || '',
+    connectToken: process.env.CNB_IMAGE_BACKEND_CONNECT_TOKEN || process.env.CNB_SYNC_CONNECT_TOKEN || deriveDefaultConnectToken(),
     customerId: process.env.CNB_SYNC_CUSTOMER_ID || '',
     backendType: process.env.CNB_SYNC_BACKEND_TYPE || 'comfyui',
     waitMs: Math.max(1000, Number(process.env.CNB_SYNC_WAIT_MS || 120000) || 120000),
@@ -52,6 +70,11 @@ const parseArgs = (argv) => {
         break;
       case '--customer':
         args.customerId = argv[index + 1] || args.customerId;
+        if (argv[index + 1]) index += 1;
+        break;
+      case '--connect-token':
+      case '--auto-connect-token':
+        args.connectToken = argv[index + 1] || args.connectToken;
         if (argv[index + 1]) index += 1;
         break;
       case '--backend':
@@ -313,6 +336,7 @@ const buildSyncPayload = ({ args, discovery, readiness, workspace }) => ({
   port: args.port,
   url: discovery.url,
   healthUrl: readiness.healthUrl,
+  connectToken: args.connectToken || undefined,
   detectedFrom: discovery.source,
   detectedAt: new Date().toISOString(),
   workspace: process.env.CNB_WORKSPACE || args.cnbRepo || process.env.CNB_REPO_SLUG || process.env.GITHUB_REPOSITORY || undefined,

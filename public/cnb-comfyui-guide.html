@@ -158,6 +158,15 @@
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.06);
     }
+
+    .guide-image {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.2);
+    }
   </style>
 </head>
 <body>
@@ -165,7 +174,7 @@
     <section class="panel">
       <div class="badge">CNB COMFYUI GUIDE</div>
       <h1>如何构建属于自己的 CNB ComfyUI 后端</h1>
-      <p class="lead">客户侧操作其实很简单，不需要自己改脚本。注册并登录 CNB 后，Fork 指定仓库，点击红色按钮 <code>AI-创作启动</code>，再从 ComfyUI 导出 API workflow 上传到墨色江湖即可。</p>
+      <p class="lead">客户侧操作其实很简单。注册并登录 CNB 后，Fork 指定仓库，点击红色按钮 <code>AI-创作启动</code>，再在墨色江湖填自己的 CNB 用户名称，即可自动连接自己的 ComfyUI。</p>
 
       <ol class="steps">
         <li class="step">
@@ -186,12 +195,20 @@
         <li class="step">
           <div class="num">3</div>
           <div>
+            <h2>找到自己的 CNB 用户名称</h2>
+            <p>打开 CNB 个人主页，看左侧头像下方的中文用户名称。这个名称就是墨色江湖里的“CNB 用户名称”，也是后端默认上报的自动连接标识。示例图里应填写的是 <code>培根冲冲冲</code>。</p>
+            <img class="guide-image" src="/assets/tutorial/cnb-user-name-guide.png" alt="CNB 个人主页用户名称位置示意图" />
+          </div>
+        </li>
+        <li class="step">
+          <div class="num">4</div>
+          <div>
             <h2>点击红色按钮启动</h2>
             <p>进入自己 Fork 后的仓库页面，直接点击红色按钮 <code>AI-创作启动</code>。系统会自动拉起 AI 创作环境，并按预设流程启动 ComfyUI。</p>
           </div>
         </li>
         <li class="step">
-          <div class="num">4</div>
+          <div class="num">5</div>
           <div>
             <h2>保持 CNB 工作区页面打开</h2>
             <p>启动后会进入一个 CNB 的 VS Code / workspace 页面，请不要关闭这个页面，它需要一直开着用于保活。页面地址通常类似：</p>
@@ -200,21 +217,21 @@
           </div>
         </li>
         <li class="step">
-          <div class="num">5</div>
+          <div class="num">6</div>
           <div>
             <h2>回到墨色江湖自动发现后端</h2>
-            <p>等 CNB 环境启动完成后，回到墨色江湖的“自动发现 ComfyUI 后端”，点击刷新列表，选择自己的在线后端即可自动回填 API 地址。</p>
+            <p>等 CNB 环境启动完成后，回到墨色江湖的“自动发现 ComfyUI 后端”，填入自己的 CNB 用户名称并点击刷新列表。用户名称匹配后会显示当前 ComfyUI 域名，并自动回填 API 地址。</p>
           </div>
         </li>
         <li class="step">
-          <div class="num">6</div>
+          <div class="num">7</div>
           <div>
             <h2>导出 ComfyUI API 工作流</h2>
             <p>在已经启动的 ComfyUI 中打开你要使用的工作流，点击左上角菜单，选择 <code>导出（API）</code>，保存得到的 <code>.json</code> 文件。注意要选 API 导出，不是普通导出。</p>
           </div>
         </li>
         <li class="step">
-          <div class="num">7</div>
+          <div class="num">8</div>
           <div>
             <h2>上传到墨色江湖</h2>
             <p>回到墨色江湖的文生图设置，在 ComfyUI Workflow JSON 上方点击 <code>上传 API 文件</code>。系统会自动把常见提示词、负面提示词、尺寸和采样参数替换为占位符并填入配置。</p>
@@ -228,7 +245,7 @@
       </div>
 
       <div class="tip">
-        如果后端已经启动，但墨色江湖里还没出现在线地址，先点一次“刷新列表”。正常情况下，启动成功后系统会自动发现并展示在线的 <code>8188</code> ComfyUI 后端。使用期间请保持 CNB 的 VS Code / workspace 页面打开；如果页面关闭或休眠，生图可能提示连接不到服务器或跨域失败。上传 API workflow 后，生成时会把正文提示词、负面提示词和分辨率自动注入到工作流里。
+        如果后端已经启动，但墨色江湖里还没出现在线地址，先确认客户端填写的是 CNB 个人主页头像下方的用户名称，再点一次“刷新列表”。正常情况下，启动成功后系统会自动发现并展示匹配用户名称的 <code>8188</code> ComfyUI 域名。使用期间请保持 CNB 的 VS Code / workspace 页面打开；如果页面关闭或休眠，生图可能提示连接不到服务器或跨域失败。
       </div>
     </section>
   </main>

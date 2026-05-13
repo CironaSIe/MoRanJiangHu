@@ -1,4 +1,5 @@
 import { GameResponse } from '../../types';
+import { 规范化对白日志 } from '../../utils/dialogueLogNormalizer';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
 
 export interface StoryParseOptions {
@@ -1134,13 +1135,13 @@ const 解析标签协议响应 = (content: string): GameResponse | null => {
         .filter(Boolean)
         .join('\n\n');
 
-    let logs = 解析正文日志(bodyJudgeExtraction.cleanBody);
+    let logs = 规范化对白日志(解析正文日志(bodyJudgeExtraction.cleanBody));
     if (logs.length === 0) {
         const fallbackBody = titleSections.正文 || 提取候选正文文本(textWithoutThinking);
         const stripped = 提取正文中的Judge区块(清理正文初始化泄露内容(fallbackBody)).cleanBody
             .replace(/<[^>]+>/g, '\n');
         if (/【[^】]+】/.test(stripped)) {
-            logs = 解析正文日志(stripped);
+            logs = 规范化对白日志(解析正文日志(stripped));
         }
     }
     const commands = 解析命令块(commandBlock);
@@ -1188,7 +1189,7 @@ const 修复思考区后半段标签协议文本 = (sourceText: string): string 
 };
 
 const 归一化JSON结构响应 = (raw: any): GameResponse => {
-    const logs = Array.isArray(raw?.logs)
+    const logs = 规范化对白日志(Array.isArray(raw?.logs)
         ? raw.logs
             .map((item: any) => {
                 if (typeof item === 'string') {
@@ -1203,7 +1204,7 @@ const 归一化JSON结构响应 = (raw: any): GameResponse => {
                 return null;
             })
             .filter((item: any) => item && item.text.trim().length > 0)
-        : [];
+        : []);
 
     const thinkingFieldKeys = [
         't_input',

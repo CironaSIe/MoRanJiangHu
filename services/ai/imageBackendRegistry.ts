@@ -159,10 +159,15 @@ const buildRegistryUrl = (customUrl?: string): string => {
 
 export const fetchDiscoveredImageBackends = async (
     customUrl?: string,
-    backendType = 'comfyui'
+    backendType = 'comfyui',
+    connectToken?: string
 ): Promise<发现图片后端记录结构[]> => {
     const url = new URL(buildRegistryUrl(customUrl), typeof window !== 'undefined' ? window.location.origin : 'https://local.invalid');
     url.searchParams.set('backendType', backendType);
+    const normalizedConnectToken = (connectToken || '').trim();
+    if (normalizedConnectToken) {
+        url.searchParams.set('connectToken', normalizedConnectToken);
+    }
 
     const response = await fetch(url.toString(), {
         method: 'GET',
