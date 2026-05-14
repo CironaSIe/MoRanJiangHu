@@ -607,7 +607,7 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
                     <div className="flex items-center gap-1 sm:gap-3 shrink-0 ml-auto">
                         {isExpanded && (
                             <div className="hidden sm:flex text-[10px] bg-white/5 px-2.5 py-1 rounded-full text-gray-400 border border-white/10 backdrop-blur-sm">
-                                <span className="opacity-40 mr-1.5 font-sans tracking-tighter">对象</span>
+                                <span className="opacity-40 mr-1.5 font-sans tracking-tighter">判定角色</span>
                                 <span className="text-gray-200 font-bold max-w-[80px] truncate">{parsed.target}</span>
                             </div>
                         )}
@@ -658,7 +658,7 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
                         <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center max-w-full px-2 mb-4 sm:mb-5">
                             {parsed.target !== '自身' && (
                                 <div className="flex items-center text-[10px] sm:text-[11px] bg-black/50 border border-white/10 rounded-lg overflow-hidden shrink-0">
-                                    <span className="px-2 py-1 text-gray-500 bg-white/5">对象</span>
+                                    <span className="px-2 py-1 text-gray-500 bg-white/5">判定角色</span>
                                     <span className="px-2 py-1 text-gray-200 font-bold max-w-[100px] truncate">{parsed.target}</span>
                                 </div>
                             )}
@@ -684,7 +684,7 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
                                 </div>
                             )}
                             
-                            {(typeof parsed.delta === 'number' || typeof scoreDelta === 'number') && (
+                            {!hasScorePair && (typeof parsed.delta === 'number' || typeof scoreDelta === 'number') && (
                                 <div className="flex items-center text-[10px] sm:text-[11px] bg-amber-950/40 border border-amber-500/30 rounded-lg overflow-hidden shrink-0 hover:bg-amber-900/40 transition-colors">
                                     <span className="px-2 py-1 bg-amber-500/10 text-amber-500">差额</span>
                                     <span className={`px-2 py-1 font-bold font-mono ${(typeof parsed.delta === 'number' ? parsed.delta : scoreDelta!) >= 0 ? 'text-amber-300' : 'text-rose-400'}`}>
@@ -704,6 +704,7 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
                             </div>
                         )}
 
+                        {!hasScorePair && (
                         <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center max-w-full px-2">
                             {parsed.modifiers.map((detail, i) => {
                                 const isPositive = typeof detail.value === 'number' && detail.value > 0;
@@ -729,6 +730,7 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
                                 );
                             })}
                         </div>
+                        )}
                         
                         {/* 判定思考展开 */}
                         {thoughtLines.length > 0 && (
