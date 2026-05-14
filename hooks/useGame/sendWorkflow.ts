@@ -265,6 +265,8 @@ type 主剧情发送依赖 = {
     ) => Promise<{ response: GameResponse; applied: boolean; error?: string; rawText?: string }>;
     执行世界演变更新: (params?: 世界演变触发参数) => Promise<世界演变执行结果>;
     触发新增NPC自动生图: (npcs: any[]) => void;
+    触发对白NPC头像补全: (npcs: any[]) => void;
+    检查主角每回合生图: (player: 角色数据结构) => void;
     触发场景自动生图: (params: {
         response: GameResponse;
         bodyText?: string;
@@ -915,6 +917,8 @@ export const 执行主剧情发送工作流 = async (
         if (pushedNpcList.length > 0) {
             deps.触发新增NPC自动生图(pushedNpcList);
         }
+        deps.触发对白NPC头像补全(finalState.社交);
+        deps.检查主角每回合生图(finalState.角色);
 
         const latestBodyText = (Array.isArray(finalDisplayResponse.logs) ? finalDisplayResponse.logs : [])
             .map((log) => `${log?.sender || "旁白"}：${log?.text || ""}`)
@@ -1367,6 +1371,8 @@ export const 执行主剧情发送工作流 = async (
                 if (queuedNpcList.length > 0) {
                     deps.触发新增NPC自动生图(queuedNpcList);
                 }
+                deps.触发对白NPC头像补全(finalState.社交);
+                deps.检查主角每回合生图(finalState.角色);
 
                 void deps.performAutoSave({
                     history: [...updatedDisplayHistory, queuedAiMsg],

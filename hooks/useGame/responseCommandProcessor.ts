@@ -59,6 +59,88 @@ type 响应命令处理依赖 = {
     命令后校准?: (state: 响应命令处理状态) => { state: 响应命令处理状态; corrections?: string[] } | 响应命令处理状态;
 };
 
+const 归一化文本键 = (value: unknown): string => (
+    typeof value === 'string'
+        ? value.trim().replace(/\s+/g, '').toLowerCase()
+        : ''
+);
+
+const 是否对白NPC发送者 = (senderRaw: unknown, playerNameRaw: unknown): boolean => {
+    const sender = typeof senderRaw === 'string' ? senderRaw.trim() : '';
+    if (!sender) return false;
+    if (/^【?(?:旁白|判定|NSFW判定|免责声明|系统|旁述|叙述|作者|提示|错误)】?$/i.test(sender)) return false;
+    if (/^(?:disclaimer|system|narrator|assistant|user)$/i.test(sender)) return false;
+    const playerName = 归一化文本键(playerNameRaw);
+    if (playerName && 归一化文本键(sender) === playerName) return false;
+    return sender.length <= 16;
+};
+
+const 稳定哈希文本 = (text: string): string => {
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i += 1) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(36);
+};
+
+const 补入对白发送者到社交 = (
+    response: GameResponse,
+    socialList: any[],
+    playerName?: string
+): any[] => {
+    const logs = Array.isArray(response?.logs) ? response.logs : [];
+    if (logs.length <= 0) return socialList;
+
+    const existingKeys = new Set(
+        (Array.isArray(socialList) ? socialList : [])
+            .flatMap((npc: any) => [npc?.id, npc?.姓名, npc?.名称])
+            .map(归一化文本键)
+            .filter(Boolean)
+    );
+    const dialogueNameKeys = new Set<string>();
+    const pendingNames: string[] = [];
+    logs.forEach((log: any) => {
+        const sender = typeof log?.sender === 'string' ? log.sender.trim() : '';
+        const key = 归一化文本键(sender);
+        if (!是否对白NPC发送者(sender, playerName)) return;
+        dialogueNameKeys.add(key);
+        if (existingKeys.has(key)) return;
+        existingKeys.add(key);
+        pendingNames.push(sender);
+    });
+
+    const markedSocialList = (Array.isArray(socialList) ? socialList : []).map((npc: any) => {
+        const keys = [npc?.id, npc?.姓名, npc?.名称].map(归一化文本键).filter(Boolean);
+        if (!keys.some((key) => dialogueNameKeys.has(key))) return npc;
+        return {
+            ...npc,
+            对白登场: true,
+            自动补全头像: true
+        };
+    });
+
+    if (pendingNames.length <= 0) return markedSocialList;
+    const inferredNpcs = pendingNames.map((name) => ({
+        id: `npc_dialogue_${稳定哈希文本(name)}`,
+        姓名: name,
+        性别: '未知',
+        年龄: undefined,
+        境界: '未知境界',
+        身份: '剧情对话人物',
+        是否在场: true,
+        是否队友: false,
+        是否主要角色: false,
+        对白登场: true,
+        自动补全头像: true,
+        好感度: 0,
+        关系状态: '初识',
+        简介: `在剧情对话中登场的人物：${name}。`,
+        记忆: []
+    }));
+    return [...markedSocialList, ...inferredNpcs];
+};
+
 export const 执行响应命令处理 = (
     response: GameResponse,
     currentState: 响应命令处理状态,
@@ -129,7 +211,10 @@ export const 执行响应命令处理 = (
 
         battleBuffer = deps.战斗结束自动清空(battleBuffer, storyBuffer);
         charBuffer = deps.规范化角色物品容器映射(charBuffer);
-        socialBuffer = deps.规范化社交列表(socialBuffer);
+        socialBuffer = deps.规范化社交列表(
+            补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
+            { 合并同名: false }
+        );
         storyBuffer = deps.规范化剧情状态(storyBuffer);
 
         let finalState: 响应命令处理状态 = {
@@ -174,7 +259,10 @@ export const 执行响应命令处理 = (
     let finalState: 响应命令处理状态 = {
         角色: charBuffer,
         环境: deps.规范化环境信息(envBuffer),
-        社交: deps.规范化社交列表(socialBuffer),
+        社交: deps.规范化社交列表(
+            补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
+            { 合并同名: false }
+        ),
         世界: deps.规范化世界状态(worldBuffer),
         战斗: battleBuffer,
         玩家门派: deps.规范化门派状态(sectBuffer),

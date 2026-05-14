@@ -406,6 +406,7 @@ export const useGame = () => {
     const NPC生图进行中Ref = useRef<Set<string>>(new Set());
     const 主角生图进行中Ref = useRef<Set<string>>(new Set());
     const 主角自动生图处理器Ref = useRef<(player: 角色数据结构) => void>(() => undefined);
+    const 主角每回合生图检查器Ref = useRef<(player: 角色数据结构) => void>(() => undefined);
     const NPC香闺秘档生图进行中Ref = useRef<Set<string>>(new Set());
     const NPC自动生图签名Ref = useRef<Set<string>>(new Set());
     const NPC自动香闺秘档生图签名Ref = useRef<Set<string>>(new Set());
@@ -2082,6 +2083,15 @@ export const useGame = () => {
         });
     };
 
+    const 触发对白NPC头像补全 = (npcListRaw: any[]) => {
+        const npcList = (Array.isArray(npcListRaw) ? npcListRaw : [])
+            .filter((npc: any) => npc?.对白登场 === true || npc?.自动补全头像 === true);
+        if (npcList.length === 0) return;
+        npcList.forEach((npc) => {
+            void 执行NPC自动构图任务(npc, '头像', { force: true }).catch(() => undefined);
+        });
+    };
+
     const 构建主要角色资源缺口签名 = (npcList: any[]): string => {
         return (Array.isArray(npcList) ? npcList : [])
             .filter((npc) => npc?.是否主要角色 === true && typeof npc?.id === 'string' && npc.id.trim())
@@ -2870,6 +2880,16 @@ export const useGame = () => {
                 执行正文润色,
                 执行世界演变更新,
                 触发新增NPC自动生图,
+                触发对白NPC头像补全,
+                检查主角每回合生图: (player) => {
+                    const handler = 主角每回合生图检查器Ref.current;
+                    if (typeof handler !== 'function') return;
+                    try {
+                        handler(player);
+                    } catch (error) {
+                        console.warn('主角每回合生图检查器异常，已避免打断主线流程', error);
+                    }
+                },
                 触发场景自动生图,
                 应用常驻壁纸为背景,
                 提取新增NPC列表,
@@ -3311,7 +3331,8 @@ export const useGame = () => {
         clearPlayerPortraitImage: 清除主角立绘图片,
         removePlayerImageRecord: 删除主角图片记录,
         generatePlayerImageManually: 生成主角图片,
-        generatePlayerImagesAutomatically: 自动生成主角图片
+        generatePlayerImagesAutomatically: 自动生成主角图片,
+        ensurePlayerAvatarEachTurn: 检查主角每回合头像
     } = 创建主角图片工作流({
         获取角色: () => 角色,
         设置角色,
@@ -3347,6 +3368,13 @@ export const useGame = () => {
             return;
         }
         void 自动生成主角图片(player).catch(() => undefined);
+    };
+    主角每回合生图检查器Ref.current = (player: 角色数据结构) => {
+        if (typeof 检查主角每回合头像 !== 'function') {
+            console.warn('主角每回合头像检查方法尚未就绪，跳过本次自动触发');
+            return;
+        }
+        void 检查主角每回合头像(player).catch(() => undefined);
     };
 
     return {

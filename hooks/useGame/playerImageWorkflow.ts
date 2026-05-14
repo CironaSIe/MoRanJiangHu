@@ -115,6 +115,23 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
         }));
     };
 
+    const 主角已有头像 = (playerSnapshot?: 角色数据结构): boolean => {
+        const player = playerSnapshot || deps.获取角色();
+        if (typeof player?.头像图片URL === 'string' && player.头像图片URL.trim()) return true;
+        const archive = player?.图片档案 && typeof player.图片档案 === 'object' ? player.图片档案 : {};
+        const history = Array.isArray(archive?.生图历史) ? archive.生图历史 : [];
+        const selectedAvatarId = typeof archive?.已选头像图片ID === 'string' ? archive.已选头像图片ID.trim() : '';
+        if (selectedAvatarId && history.some((item: any) => item?.id === selectedAvatarId && item?.状态 === 'success' && 获取图片展示地址(item))) {
+            return true;
+        }
+        const recent = archive?.最近生图结果 || player?.最近生图结果;
+        return [recent, ...history].some((item: any) => (
+            item?.状态 === 'success'
+            && item?.构图 === '头像'
+            && Boolean(获取图片展示地址(item))
+        ));
+    };
+
     const selectPlayerAvatarImage = (imageId: string) => 更新玩家选图字段(
         '已选头像图片ID',
         imageId,
@@ -283,6 +300,25 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
         }
     };
 
+    const ensurePlayerAvatarEachTurn = async (playerSnapshot?: 角色数据结构) => {
+        const imageFeature = deps.读取文生图功能配置();
+        if (!imageFeature?.总开关) return;
+        const player = playerSnapshot || deps.获取角色();
+        if (主角已有头像(player)) return;
+        try {
+            await generatePlayerImage({
+                构图: '头像',
+                额外要求: '每回合检查发现主角缺少头像，仅补全头像；强调面部辨识度、清晰五官与稳定角色特征。'
+            }, {
+                source: 'auto',
+                showToast: false,
+                playerSnapshot: player
+            });
+        } catch (error) {
+            console.warn('主角每回合头像检查补全失败', error);
+        }
+    };
+
     return {
         updatePlayerAvatar,
         selectPlayerAvatarImage,
@@ -291,6 +327,7 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
         clearPlayerPortraitImage,
         removePlayerImageRecord,
         generatePlayerImageManually,
-        generatePlayerImagesAutomatically
+        generatePlayerImagesAutomatically,
+        ensurePlayerAvatarEachTurn
     };
 };
