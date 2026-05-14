@@ -3,7 +3,7 @@ export const RELEASE_INFO = {
     "versionCode": 141,
     "versionName": "1.0.140",
     "releaseChannel": "stable",
-    "releasePublishedAt": "2026-05-14T19:13:55.077+08:00",
+    "releasePublishedAt": "2026-05-14T19:15:15.519+08:00",
     "releaseNotes": [
         "v1.0.140 正式发布：新增同人世界观公共预设投稿，玩家可把经典同人世界观贡献给更多人体验。",
         "新建同人世界观时默认开启公共预设投稿，也可手动关闭；开启后开始生成会同步提交到官方 Worker 自动创建审核 PR。",
