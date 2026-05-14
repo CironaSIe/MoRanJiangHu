@@ -157,13 +157,13 @@ npm run cnb:workspace -- --repo bacon159-2026/comfyui-ql --branch main
 启动后端并自动发现后同步：
 
 ```bash
-npm run cnb:start -- "python main.py --port 8188"
+npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-header '*'"
 ```
 
 也可以直接调用脚本：
 
 ```bash
-node scripts/cnb-image-backend-sync.mjs --start "python main.py --port 8188"
+node scripts/cnb-image-backend-sync.mjs --start "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-header '*'"
 ```
 
 如果希望从本地或外部控制端直接先拉起 CNB workspace，再继续做 `8188` 地址发现和 worker 上报，可以这样调用：
@@ -212,13 +212,12 @@ CNB_SYNC_BACKEND_TYPE=comfyui
 4. 通过 `/api/image-backend/cnb-sync` 上报到中心 worker
 5. 客户端在设置页自动拉取在线后端列表，并下拉选择要使用的 ComfyUI
 
-示意命令：
+示意命令。不要使用 `init2`，也不要依赖 CNB 模板里的 `qd` 兜底命令；进入仓库后直接执行下面这条真实命令即可：
 
 ```bash
-bash ./Download/Comfy-Org-Z_image_turbo.sh && \
-sed -i 's/^cd \\/opt\\/ComfyUI && python main.py.*/cd \\/opt\\/ComfyUI \\&\\& python main.py --listen 0.0.0.0 --auto-launch --enable-cors-header \"*\"/g' $(which cnb) && \
-(cnb &) && \
-node /workspace/scripts/cnb-image-backend-sync.mjs --port 8188 --webhook https://your-domain.example.com/api/image-backend/cnb-sync
+cd /workspace && \
+npm install && \
+npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-header '*'"
 ```
 
 如果你的同步脚本不在同一个仓库里，也可以把 `scripts/cnb-image-backend-sync.mjs` 单独带过去执行。

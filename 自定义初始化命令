@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd /workspace
+
+if [ ! -d node_modules ]; then
+  npm install
+fi
+
+exec npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-header '*'"
