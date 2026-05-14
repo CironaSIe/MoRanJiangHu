@@ -27,6 +27,9 @@ const 构建数据集公开摘要 = (dataset?: 小说拆分数据集结构 | nul
         当前阶段概括: 截断文本(dataset.当前阶段概括, 3000),
         核心角色摘要: (dataset.核心角色摘要 || []).slice(0, 30).map((item) => 截断文本(item, 500)),
         核心角色: (dataset.核心角色 || []).slice(0, 80),
+        角色档案: (dataset.角色档案 || []).slice(0, 120),
+        势力档案: (dataset.势力档案 || []).slice(0, 80),
+        地图地点档案: (dataset.地图地点档案 || []).slice(0, 120),
         分段摘要: (dataset.分段列表 || []).slice(0, 24).map((segment) => ({
             标题: 读取文本(segment.标题),
             章节范围: 读取文本(segment.章节范围),
@@ -36,7 +39,10 @@ const 构建数据集公开摘要 = (dataset?: 小说拆分数据集结构 | nul
             本组概括: 截断文本(segment.本组概括, 1800),
             开局已成立事实: (segment.开局已成立事实 || []).slice(0, 20),
             原著硬约束: (segment.原著硬约束 || []).slice(0, 20).map((item) => 截断文本(item.内容, 600)),
-            登场角色: (segment.登场角色 || []).slice(0, 40)
+            登场角色: (segment.登场角色 || []).slice(0, 40),
+            角色档案: (segment.角色档案 || []).slice(0, 40),
+            势力档案: (segment.势力档案 || []).slice(0, 30),
+            地图地点档案: (segment.地图地点档案 || []).slice(0, 40)
         })),
         注入树摘要: (dataset.注入树 || []).slice(0, 40).map((node) => ({
             标题: 读取文本(node.标题),

@@ -190,7 +190,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
     
     const [stats, setStats] = useState<属性结构>(创建默认属性分配);
     const [openingConfig, setOpeningConfig] = useState<OpeningConfig>(默认开局配置);
-    const [openingConfigEnabled, setOpeningConfigEnabled] = useState(false);
+    const [openingConfigEnabled, setOpeningConfigEnabled] = useState(true);
 
     // Talents & Background
     const [selectedBackground, setSelectedBackground] = useState<背景结构>(预设背景[0]);
