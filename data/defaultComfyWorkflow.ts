@@ -292,5 +292,5 @@ const 默认ZImageTurboNSFWComfyUI工作流 = {
   }
 };
 
-export const 默认ComfyUI工作流JSON = JSON.stringify(默认NunchakuQwenImageComfyUI工作流, null, 2);
+export const 默认ComfyUI工作流JSON = JSON.stringify(默认ZImageTurboNSFWComfyUI工作流, null, 2);
 export const 默认NSFWComfyUI工作流JSON = JSON.stringify(默认ZImageTurboNSFWComfyUI工作流, null, 2);
