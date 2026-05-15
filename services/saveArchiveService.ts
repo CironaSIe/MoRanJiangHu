@@ -240,8 +240,10 @@ const 还原导入对象图片 = async (
     }
 };
 
-export const 导出ZIP存档文件 = async (): Promise<Blob> => {
-    const payload = await dbService.导出存档数据();
+export const 导出ZIP存档文件 = async (options?: { saves?: 存档结构[] }): Promise<Blob> => {
+    const payload = options?.saves
+        ? { saves: options.saves }
+        : await dbService.导出存档数据();
     const saves = Array.isArray(payload.saves) ? payload.saves : [];
     if (saves.length === 0) {
         throw new Error('当前没有可导出的存档');

@@ -1,6 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as dbService from '../../../services/dbService';
 import { 导出ZIP存档文件, 解析ZIP存档文件 } from '../../../services/saveArchiveService';
+import {
+    保存WebDAV同步配置,
+    下载WebDAV云存档,
+    列出WebDAV云存档,
+    增量同步到WebDAV,
+    测试WebDAV连接,
+    读取WebDAV同步配置,
+    type WebDAV云存档元数据,
+    type WebDAV同步配置
+} from '../../../services/webdavSync';
 import { 存档结构 } from '../../../types';
 import { parseJsonWithRepair } from '../../../utils/jsonRepair';
 import GameButton from '../../ui/GameButton';
@@ -19,10 +29,15 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
     const [saveProtectionEnabled, setSaveProtectionEnabled] = useState(false);
+    const [webdavConfig, setWebdavConfig] = useState<WebDAV同步配置>({ url: '', username: '', password: '' });
+    const [cloudSaves, setCloudSaves] = useState<WebDAV云存档元数据[]>([]);
+    const [selectedCloudSaveId, setSelectedCloudSaveId] = useState('');
+    const [cloudStatus, setCloudStatus] = useState('尚未连接 WebDAV 云同步');
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         void loadSaves();
+        void loadWebDAVConfig();
     }, []);
 
     const loadSaves = async () => {
@@ -38,6 +53,18 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadWebDAVConfig = async () => {
+        try {
+            const config = await 读取WebDAV同步配置();
+            if (config) {
+                setWebdavConfig(config);
+                setCloudStatus('已读取本机 WebDAV 配置，可刷新云端列表');
+            }
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -84,6 +111,128 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             tags.push('已裁剪');
         }
         return tags.join(' · ');
+    };
+
+    const 格式化云端时间 = (value: string): string => {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value || '未知时间';
+        const pad2 = (n: number) => Math.trunc(n).toString().padStart(2, '0');
+        return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+    };
+
+    const 构建云存档标签 = (item: WebDAV云存档元数据): string => {
+        const device = item.deviceLabel || (item.deviceType === 'phone' ? '手机' : '电脑');
+        const time = 格式化云端时间(item.syncedAt || item.savedAt);
+        return `${item.title || '未知角色'} · ${device} · ${time} · v${item.appVersion || '未知版本'}`;
+    };
+
+    const 读取当前WebDAV配置 = (): WebDAV同步配置 => ({
+        url: webdavConfig.url.trim(),
+        username: webdavConfig.username.trim(),
+        password: webdavConfig.password
+    });
+
+    const handleSaveWebDAVConfig = async () => {
+        if (syncing) return;
+        setSyncing(true);
+        try {
+            const config = 读取当前WebDAV配置();
+            await 保存WebDAV同步配置(config);
+            setCloudStatus('WebDAV 配置已保存到本机');
+        } catch (error: any) {
+            console.error(error);
+            alert(`保存 WebDAV 配置失败：${error?.message || '未知错误'}`);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleTestWebDAV = async () => {
+        if (syncing) return;
+        setSyncing(true);
+        try {
+            const config = 读取当前WebDAV配置();
+            await 保存WebDAV同步配置(config);
+            await 测试WebDAV连接(config);
+            setCloudStatus('WebDAV 连接成功');
+        } catch (error: any) {
+            console.error(error);
+            alert(`WebDAV 连接失败：${error?.message || '未知错误'}`);
+            setCloudStatus('WebDAV 连接失败');
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleRefreshCloudSaves = async () => {
+        if (syncing) return;
+        setSyncing(true);
+        try {
+            const config = 读取当前WebDAV配置();
+            await 保存WebDAV同步配置(config);
+            const list = await 列出WebDAV云存档(config);
+            setCloudSaves(list);
+            setSelectedCloudSaveId((current) => current && list.some((item) => item.id === current) ? current : (list[0]?.id || ''));
+            setCloudStatus(`已读取 ${list.length} 个云端存档`);
+        } catch (error: any) {
+            console.error(error);
+            alert(`刷新云端列表失败：${error?.message || '未知错误'}`);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleIncrementalWebDAVSync = async () => {
+        if (syncing) return;
+        setSyncing(true);
+        try {
+            const config = 读取当前WebDAV配置();
+            await 保存WebDAV同步配置(config);
+            const result = await 增量同步到WebDAV(config, saves);
+            const list = await 列出WebDAV云存档(config);
+            setCloudSaves(list);
+            setSelectedCloudSaveId((current) => current && list.some((item) => item.id === current) ? current : (list[0]?.id || ''));
+            setCloudStatus(`增量同步完成：上传 ${result.uploaded} 个，跳过 ${result.skipped} 个`);
+            alert(`WebDAV 增量同步完成：上传 ${result.uploaded} 个，跳过 ${result.skipped} 个。`);
+        } catch (error: any) {
+            console.error(error);
+            alert(`WebDAV 同步失败：${error?.message || '未知错误'}`);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleLoadCloudSave = async () => {
+        if (syncing || mode !== 'load') return;
+        const selected = cloudSaves.find((item) => item.id === selectedCloudSaveId);
+        if (!selected) {
+            alert('请先选择一个云端存档');
+            return;
+        }
+        const ok = requestConfirm
+            ? await requestConfirm({
+                title: '读取云存档',
+                message: `读取云存档：${构建云存档标签(selected)}？`,
+                confirmText: '读取'
+            })
+            : true;
+        if (!ok) return;
+
+        setSyncing(true);
+        try {
+            const config = 读取当前WebDAV配置();
+            await 保存WebDAV同步配置(config);
+            const { save } = await 下载WebDAV云存档(config, selected);
+            const result = await dbService.导入存档数据({ saves: [save] }, { 覆盖现有: false });
+            await loadSaves();
+            await Promise.resolve(onLoadGame(save));
+            setCloudStatus(`已读取云端存档，新增 ${result.imported} 条，跳过 ${result.skipped} 条`);
+        } catch (error: any) {
+            console.error(error);
+            alert(`读取云存档失败：${error?.message || '未知错误'}`);
+        } finally {
+            setSyncing(false);
+        }
     };
 
     const handleDelete = async (id: number, e: React.MouseEvent) => {
@@ -256,6 +405,71 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                 className="hidden"
                                 onChange={(e) => { void handleImportFileChange(e); }}
                             />
+                        </div>
+                        <div className="px-6 py-4 border-b border-gray-800/50 bg-black/20 space-y-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <div className="text-sm font-bold tracking-widest text-wuxia-gold">WebDAV 云同步</div>
+                                    <div className="text-[11px] text-gray-500 mt-1">{cloudStatus}</div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <GameButton onClick={() => { void handleSaveWebDAVConfig(); }} disabled={busy} variant="secondary" className="px-3 py-2 text-xs">
+                                        保存配置
+                                    </GameButton>
+                                    <GameButton onClick={() => { void handleTestWebDAV(); }} disabled={busy} variant="secondary" className="px-3 py-2 text-xs">
+                                        测试连接
+                                    </GameButton>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-[1.35fr_0.9fr_0.9fr] gap-2">
+                                <input
+                                    value={webdavConfig.url}
+                                    onChange={(event) => setWebdavConfig((prev) => ({ ...prev, url: event.target.value }))}
+                                    className="bg-black/40 border border-gray-700 rounded px-3 py-2 text-xs text-gray-200 outline-none focus:border-wuxia-gold/60"
+                                    placeholder="WebDAV 地址"
+                                    autoComplete="off"
+                                />
+                                <input
+                                    value={webdavConfig.username}
+                                    onChange={(event) => setWebdavConfig((prev) => ({ ...prev, username: event.target.value }))}
+                                    className="bg-black/40 border border-gray-700 rounded px-3 py-2 text-xs text-gray-200 outline-none focus:border-wuxia-gold/60"
+                                    placeholder="用户名"
+                                    autoComplete="username"
+                                />
+                                <input
+                                    value={webdavConfig.password}
+                                    onChange={(event) => setWebdavConfig((prev) => ({ ...prev, password: event.target.value }))}
+                                    className="bg-black/40 border border-gray-700 rounded px-3 py-2 text-xs text-gray-200 outline-none focus:border-wuxia-gold/60"
+                                    placeholder="密码"
+                                    type="password"
+                                    autoComplete="current-password"
+                                />
+                            </div>
+                            <div className="flex flex-col md:flex-row gap-2">
+                                <GameButton onClick={() => { void handleIncrementalWebDAVSync(); }} disabled={busy || saves.length === 0} variant="primary" className="px-4 py-2 text-xs">
+                                    增量同步到 WebDAV
+                                </GameButton>
+                                <GameButton onClick={() => { void handleRefreshCloudSaves(); }} disabled={busy} variant="secondary" className="px-4 py-2 text-xs">
+                                    刷新云端列表
+                                </GameButton>
+                                <select
+                                    value={selectedCloudSaveId}
+                                    onChange={(event) => setSelectedCloudSaveId(event.target.value)}
+                                    className="min-w-0 flex-1 bg-black/40 border border-gray-700 rounded px-3 py-2 text-xs text-gray-200 outline-none focus:border-wuxia-gold/60"
+                                >
+                                    <option value="">选择云端存档</option>
+                                    {cloudSaves.map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                            {构建云存档标签(item)}
+                                        </option>
+                                    ))}
+                                </select>
+                                {mode === 'load' && (
+                                    <GameButton onClick={() => { void handleLoadCloudSave(); }} disabled={busy || !selectedCloudSaveId} variant="primary" className="px-4 py-2 text-xs">
+                                        读取云存档
+                                    </GameButton>
+                                )}
+                            </div>
                         </div>
                         {saveProtectionEnabled && (
                             <div className="px-6 py-2 text-[11px] text-emerald-300 bg-emerald-900/10 border-b border-emerald-800/30">
