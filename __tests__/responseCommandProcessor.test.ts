@@ -127,6 +127,66 @@ describe('responseCommandProcessor current scene presence sync', () => {
     });
 });
 
+describe('responseCommandProcessor female relationship target major role fallback', () => {
+    it('marks newly generated female攻略对象 as a major role in the same turn', () => {
+        const state = 构建基础状态();
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '杨培强决定把苏晚晴锁定为攻略对象，后续重点推进她的关系线。' }
+            ],
+            tavern_commands: [
+                {
+                    action: 'push',
+                    key: '社交',
+                    value: {
+                        id: 'npc_su_wanqing',
+                        姓名: '苏晚晴',
+                        性别: '女',
+                        年龄: 19,
+                        身份: '新登场的医女',
+                        是否在场: true,
+                        是否队友: false,
+                        是否主要角色: false,
+                        好感度: 15,
+                        关系状态: '攻略对象',
+                        简介: '本回合新登场，并被主角列为攻略目标。',
+                        记忆: []
+                    }
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交.find((npc: any) => npc.姓名 === '苏晚晴')?.是否主要角色).toBe(true);
+    });
+
+    it('marks an existing female NPC as major when relationship is established by story fact', () => {
+        const state = 构建基础状态();
+        state.环境 = { 时间: '五月初二 夜' } as any;
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_luo_qingci',
+                姓名: '洛青瓷',
+                性别: '女',
+                年龄: 20,
+                身份: '剑阁弟子',
+                是否在场: true,
+                是否主要角色: false,
+                关系状态: '同伴',
+                记忆: []
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '这一夜后，杨培强与洛青瓷正式确立关系，她不再只是普通同伴。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交[0].是否主要角色).toBe(true);
+    });
+});
+
 describe('responseCommandProcessor equipment guard', () => {
     it('blocks silent equipment clearing without an explicit removal trigger', () => {
         const state = 构建基础状态();

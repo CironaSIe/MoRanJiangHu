@@ -381,6 +381,72 @@ const 应用生理事实到女性NPC = (
     });
 };
 
+const 攻略目标事实正则 = /(攻略(?:目标|对象)|目标(?:女主|女性|女子|姑娘)|锁定(?:为)?(?:女主|攻略对象|攻略目标)|追求对象|心仪对象|倾慕对象|重点推进(?:对象)?|纳入(?:女主|攻略|关系)(?:线|对象|目标)?)/;
+const 关系成立事实正则 = /(发生(?:了)?关系|确立(?:了)?关系|关系(?:已经|正式)?(?:成立|确定|突破|升温)|成为(?:道侣|伴侣|恋人|情人|红颜|妻子|夫人)|结为(?:道侣|伴侣|夫妻)|定情|互许终身|私定终身|双修关系|亲密关系(?:成立|确定|突破)?|初次亲密关系|初夜|破处|失身|内射|中出)/;
+const 关系目标字段正则 = /(攻略|女主|目标|追求|心仪|倾慕|恋人|伴侣|道侣|情人|红颜|妻子|夫人|定情|亲密|初夜|失身|双修|发生关系|关系突破)/;
+
+const 提取关系目标事实文本 = (response: GameResponse): string => {
+    const parts = [提取响应事实文本(response)];
+    if (Array.isArray(response?.tavern_commands)) {
+        response.tavern_commands.forEach((cmd: any) => {
+            parts.push(typeof cmd?.key === 'string' ? cmd.key : '');
+            if (typeof cmd?.value === 'string') {
+                parts.push(cmd.value);
+            } else if (cmd?.value && typeof cmd.value === 'object') {
+                try {
+                    parts.push(JSON.stringify(cmd.value));
+                } catch {
+                    // ignore non-serializable command values
+                }
+            }
+        });
+    }
+    return parts.filter(Boolean).join('\n');
+};
+
+const NPC字段是否含关系目标语义 = (npc: any): boolean => {
+    const scalarText = [
+        npc?.关系状态,
+        npc?.身份,
+        npc?.简介,
+        npc?.核心性格特征,
+        npc?.关系突破条件,
+        npc?.好感度突破条件,
+        npc?.对主角称呼,
+        npc?.备注,
+        npc?.标签
+    ].filter((value) => typeof value === 'string').join(' ');
+    if (关系目标字段正则.test(scalarText)) return true;
+    const relationText = Array.isArray(npc?.关系网变量)
+        ? npc.关系网变量.map((item: any) => [item?.对象姓名, item?.关系, item?.备注].filter(Boolean).join(' ')).join(' ')
+        : '';
+    if (关系目标字段正则.test(relationText)) return true;
+    const memoryText = Array.isArray(npc?.记忆)
+        ? npc.记忆.map((item: any) => typeof item?.内容 === 'string' ? item.内容 : '').join(' ')
+        : '';
+    return 关系目标字段正则.test(memoryText);
+};
+
+const 应用女性关系目标主要角色兜底 = (
+    response: GameResponse,
+    socialList: any[]
+): any[] => {
+    if (!Array.isArray(socialList) || socialList.length <= 0) return socialList;
+    const factText = 提取关系目标事实文本(response);
+    const hasGlobalTargetFact = 攻略目标事实正则.test(factText) || 关系成立事实正则.test(factText);
+    let changed = false;
+    const nextList = socialList.map((npc: any) => {
+        if (!npc || typeof npc !== 'object' || !是否女性NPC(npc) || npc?.是否主要角色 === true) return npc;
+        const name = 读取NPC名称(npc);
+        const mentionedAsTarget = Boolean(name && factText.includes(name) && hasGlobalTargetFact);
+        const fieldMarked = NPC字段是否含关系目标语义(npc);
+        if (!mentionedAsTarget && !fieldMarked) return npc;
+        changed = true;
+        return { ...npc, 是否主要角色: true };
+    });
+    return changed ? nextList : socialList;
+};
+
 const 死亡事实肯定正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|当场(?:死|亡|身亡|毙命)|再无(?:气息|生机)|命丧|头颅落地|心脉(?:断绝|俱断)|被[^。！？\n\r]{0,24}杀死|杀死(?:了)?)/;
 const 死亡事实否定正则 = /(未死|没死|没有死|并未死|尚未死|不曾死|差点|险些|几乎|差一点|差些|昏死|假死|装死|濒死|垂死|重伤|保住(?:了)?性命|留有一线生机|逃过一劫)/;
 const 死亡状态正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|已故)/;
@@ -608,6 +674,10 @@ export const 执行响应命令处理 = (
             { 合并同名: false }
         );
         socialBuffer = deps.规范化社交列表(
+            应用女性关系目标主要角色兜底(response, socialBuffer),
+            { 合并同名: false }
+        );
+        socialBuffer = deps.规范化社交列表(
             应用死亡事实到NPC(response, socialBuffer, envBuffer),
             { 合并同名: false }
         );
@@ -664,11 +734,14 @@ export const 执行响应命令处理 = (
                 response,
                 应用死亡事实到NPC(
                     response,
-                    应用生理事实到女性NPC(
+                    应用女性关系目标主要角色兜底(
                         response,
-                        补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
-                        envBuffer,
-                        charBuffer?.姓名
+                        应用生理事实到女性NPC(
+                            response,
+                            补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
+                            envBuffer,
+                            charBuffer?.姓名
+                        )
                     ),
                     envBuffer
                 ),
