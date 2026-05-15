@@ -158,7 +158,7 @@ const 默认ZImageTurboComfyUI工作流 = {
   },
   "39": {
     "inputs": {
-      "clip_name": "qwen_3_4b.safetensors",
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
       "type": "qwen_image",
       "device": "default"
     },
@@ -169,7 +169,7 @@ const 默认ZImageTurboComfyUI工作流 = {
   },
   "40": {
     "inputs": {
-      "vae_name": "ae.safetensors"
+      "vae_name": "qwen_image_vae.safetensors"
     },
     "class_type": "VAELoader",
     "_meta": {
@@ -248,7 +248,7 @@ const 默认ZImageTurboComfyUI工作流 = {
   },
   "47": {
     "inputs": {
-      "shift": 3,
+      "shift": 3.1,
       "model": [
         "53",
         0
