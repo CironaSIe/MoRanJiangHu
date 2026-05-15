@@ -429,6 +429,29 @@ export const 构建NPC上下文 = (
         return 读取文本(npc, '敏感点');
     };
 
+    const 标准化名器档案 = (npc: any) => {
+        const source = Array.isArray(npc?.名器档案) ? npc.名器档案 : [];
+        const normalized = source
+            .map((entry: any) => 清理空字段({
+                部位: 读取文本(entry?.部位) || undefined,
+                名称: 读取文本(entry?.名称) || undefined,
+                品质: 读取文本(entry?.品质) || undefined,
+                来源世界书: 读取文本(entry?.来源世界书) || undefined,
+                稳定描述: 读取文本(entry?.稳定描述) || undefined,
+                效果: entry?.效果 && typeof entry.效果 === 'object' ? 清理空字段({
+                    判定修正: typeof entry.效果?.判定修正 === 'number' ? entry.效果.判定修正 : undefined,
+                    魅力修正: typeof entry.效果?.魅力修正 === 'number' ? entry.效果.魅力修正 : undefined,
+                    亲密推进修正: typeof entry.效果?.亲密推进修正 === 'number' ? entry.效果.亲密推进修正 : undefined,
+                    双修收益修正: typeof entry.效果?.双修收益修正 === 'number' ? entry.效果.双修收益修正 : undefined,
+                    风险修正: typeof entry.效果?.风险修正 === 'number' ? entry.效果.风险修正 : undefined,
+                    标签: Array.isArray(entry.效果?.标签) ? entry.效果.标签.map(读取文本).filter(Boolean).slice(0, 8) : undefined,
+                    说明: 读取文本(entry.效果?.说明) || undefined
+                }) : undefined
+            }))
+            .filter((entry: any) => entry?.部位 && entry?.名称);
+        return normalized.length > 0 ? normalized : undefined;
+    };
+
     const 提取基础数据 = (npc: any, index: number, 是否队友: boolean) => {
         const 核心性格特征 = typeof npc?.核心性格特征 === 'string' ? npc.核心性格特征.trim() : '';
         const 好感度突破条件 = typeof npc?.好感度突破条件 === 'string' ? npc.好感度突破条件.trim() : '';
@@ -470,6 +493,7 @@ export const 构建NPC上下文 = (
             胸部描述: 读取胸部描述(npc) || undefined,
             小穴描述: 读取小穴描述(npc) || undefined,
             屁穴描述: 读取屁穴描述(npc) || undefined,
+            名器档案: 标准化名器档案(npc),
             性癖: 读取性癖(npc) || undefined,
             敏感点: 读取敏感点(npc) || undefined,
             子宫: (() => {

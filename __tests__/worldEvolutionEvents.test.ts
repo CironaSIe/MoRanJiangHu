@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { normalizeStateCommandKey } from '../utils/stateHelpers';
 import { 校验变量命令是否登记 } from '../utils/variableRegistry';
 import {
+    构建世界演变上下文文本,
     是否后台世界工程描述,
+    提取正文势力补录线索,
     整理客户可见世界大事,
     整理世界状态客户可见大事,
     规范化世界演变命令列表
@@ -135,5 +137,55 @@ describe('worldEvolution visible events', () => {
             key: '世界.势力列表',
             value: [{ ID: 'qingyun', 名称: '青云门' }]
         }, baseState as any).allowed).toBe(true);
+    });
+
+    it('surfaces new faction-like names from current story text for world-evolution backfill', () => {
+        const hints = 提取正文势力补录线索({
+            text: '正文中出现了西州‘陇西李氏’，并暗示他们正在与四海商会争夺一批旧契。',
+            worldData: {
+                势力列表: [
+                    { ID: 'sihai', 名称: '四海商会' },
+                    { ID: 'tiejian', 名称: '天剑宗' }
+                ]
+            }
+        });
+
+        expect(hints).toHaveLength(1);
+        expect(hints[0]).toContain('陇西李氏');
+        expect(hints[0]).toContain('类型倾向：家族');
+        expect(hints[0]).toContain('地盘线索：西州');
+        expect(hints[0]).toContain('push 世界.势力列表');
+        expect(hints.join('\n')).not.toContain('正文提到疑似新势力「四海商会」');
+    });
+
+    it('does not suggest faction backfill when the faction already exists', () => {
+        const hints = 提取正文势力补录线索({
+            text: '西州“陇西李氏”已经派人追查旧契下落。',
+            worldData: {
+                势力列表: [
+                    { ID: 'longxi_lishi', 名称: '陇西李氏' }
+                ]
+            }
+        });
+
+        expect(hints).toEqual([]);
+    });
+
+    it('injects faction backfill candidates into world-evolution context', () => {
+        const context = 构建世界演变上下文文本({
+            worldData: {
+                势力列表: [
+                    { ID: 'sihai', 名称: '四海商会' }
+                ]
+            },
+            currentTurnBody: '李府旧账牵出西州“陇西李氏”，这支世家可能牵动边地商路。',
+            currentTurnPlanText: '',
+            currentTurnCommandsText: ''
+        });
+
+        expect(context).toContain('【正文势力补录候选】');
+        expect(context).toContain('陇西李氏');
+        expect(context).toContain('势力补录：正文提到疑似新势力');
+        expect(context).toContain('push 世界.势力列表');
     });
 });

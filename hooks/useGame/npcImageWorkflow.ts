@@ -68,7 +68,16 @@ const 获取画风附加要求 = (style?: 当前可用接口结构['画风']): s
         case '国风':
             return '附加画风要求：整体画面偏国风武侠/仙侠 2D 插画，强调中式审美、写意气韵、丝绸与古典服饰纹理、含蓄雾气和笔触感。';
         case '写实':
-            return '附加画风要求：整体画面偏细腻质感的 2D 写实插画，强调微观材质、体积光影和成熟审美，但禁止真人照片感。';
+            return '附加画风要求：整体画面必须偏照片级写实/电影剧照质感（photorealistic cinematic still），强调真实皮肤、真实布料、真实金属与自然镜头光影，避免动漫线稿、赛璐璐、扁平插画和卡通脸。';
+        default:
+            return '';
+    }
+};
+
+const 获取画风负面提示词 = (style?: 当前可用接口结构['画风']): string => {
+    switch (style) {
+        case '写实':
+            return 'anime, manga, cartoon, cel shading, flat illustration, 2d illustration, line art, drawn face, toon face, game cg, visual novel, chibi, exaggerated anime eyes';
         default:
             return '';
     }
@@ -314,7 +323,8 @@ export const 执行NPC生图工作流 = async (
         角色锚点前置注入提示词
     ].filter(Boolean).join(', ');
     const 年龄负向提示词 = 构建年龄负向提示词(目标年龄);
-    const 合并负向画师串 = [性别负向提示词, 年龄负向提示词, (画师串预设?.负面提示词 || '').trim(), (角色锚点?.负面提示词 || '').trim(), (PNG画风预设?.负面提示词 || '').trim()].filter(Boolean).join(', ');
+    const 画风负面提示词 = 获取画风负面提示词(画风);
+    const 合并负向画师串 = [性别负向提示词, 年龄负向提示词, 画风负面提示词, (画师串预设?.负面提示词 || '').trim(), (角色锚点?.负面提示词 || '').trim(), (PNG画风预设?.负面提示词 || '').trim()].filter(Boolean).join(', ');
     const PNG参数 = PNG画风预设?.优先复刻原参数 === true ? PNG画风预设?.参数 : undefined;
     const 额外要求 = (options?.额外要求 || '').trim();
     const 尺寸 = (options?.尺寸 || '').trim();

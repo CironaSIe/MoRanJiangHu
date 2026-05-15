@@ -57,6 +57,38 @@ export interface 小说拆分角色推进结构 {
     对下一组影响: string[];
 }
 
+export interface 小说拆分角色档案结构 {
+    名称: string;
+    身份: string;
+    所属势力: string;
+    初始立场: string;
+    关系摘要: string[];
+    状态摘要: string[];
+    首次出现: string;
+    重要性: '核心' | '重要' | '一般';
+}
+
+export interface 小说拆分势力档案结构 {
+    名称: string;
+    类型: string;
+    地盘: string;
+    代表人物: string[];
+    立场目标: string;
+    当前状态: string;
+    关系摘要: string[];
+    首次出现: string;
+}
+
+export interface 小说拆分地图地点档案结构 {
+    名称: string;
+    层级: '大地点' | '中地点' | '小地点' | '具体地点' | '未知';
+    上级地点: string;
+    所属势力: string;
+    地貌功能: string;
+    关键设施: string[];
+    首次出现: string;
+}
+
 export interface 小说拆分章节结构 {
     id: string;
     数据集ID: string;
@@ -92,6 +124,9 @@ export interface 小说拆分分段结构 {
     关键事件: 小说拆分事件结构[];
     角色推进: 小说拆分角色推进结构[];
     登场角色: string[];
+    角色档案: 小说拆分角色档案结构[];
+    势力档案: 小说拆分势力档案结构[];
+    地图地点档案: 小说拆分地图地点档案结构[];
     时间线: 小说拆分时间线事件结构[];
     时间线起点: string;
     时间线终点: string;
@@ -134,6 +169,9 @@ export interface 小说拆分数据集结构 {
     当前阶段概括?: string;
     核心角色摘要: string[];
     核心角色: string[];
+    角色档案: 小说拆分角色档案结构[];
+    势力档案: 小说拆分势力档案结构[];
+    地图地点档案: 小说拆分地图地点档案结构[];
     分段列表: 小说拆分分段结构[];
     注入树: 小说拆分树节点结构[];
     createdAt: number;

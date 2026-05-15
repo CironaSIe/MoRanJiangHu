@@ -16,6 +16,8 @@ import { 获取激活小说拆分注入文本 } from '../../services/novelDecomp
 import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 提取响应规划文本 } from './thinkingContext';
 import { 创建工作流性能诊断 } from '../../utils/performanceDebug';
+import { 后台分段执行, 后台让出主线程 } from '../../utils/backgroundScheduling';
+import { 执行游戏后台重计算 } from '../../utils/gameHeavyWorkerClient';
 
 export type 世界演变触发参数 = {
     来源?: 'manual' | 'auto_due' | 'story_dynamic' | 'story_dynamic_and_due';
@@ -267,7 +269,8 @@ export const 执行世界演变更新工作流 = async (
         }
         deps.世界演变去重签名Ref.current = signature;
 
-        const worldContext = probe.time('构建世界演变上下文文本', () => 构建世界演变上下文文本({
+        await 后台让出主线程();
+        const worldContextPayload = {
             worldPrompt,
             worldEvolutionPrompt,
             envData: worldEnv,
@@ -281,18 +284,34 @@ export const 执行世界演变更新工作流 = async (
             currentGameTime: 环境时间转标准串(worldEnv) || '',
             dynamicHints,
             dueHints
-        }), {
+        };
+        const worldContext = await probe.timeAsync('构建世界演变上下文文本(worker)', () => 执行游戏后台重计算<string>(
+            'buildWorldEvolutionContext',
+            worldContextPayload,
+            () => 后台分段执行(() => 构建世界演变上下文文本(worldContextPayload))
+        ), {
             dynamicHints: dynamicHints.length,
             dueHints: dueHints.length
         });
-        const worldbookExtraPrompt = probe.time('构建世界演变世界书注入', () => 按功能开关过滤提示词内容(构建世界书注入文本({
+        const worldEvolutionWorldbookParams = {
             books: deps.worldbooks,
             scopes: ['world_evolution'],
             environment: worldEnv,
             world: worldState,
             history: deps.历史记录,
             extraTexts: [currentTurnPlanText, ...dynamicHints, ...dueHints]
-        }).combinedText, worldRuntimeGameConfig), {
+        };
+        const worldbookExtraPrompt = await probe.timeAsync('构建世界演变世界书注入(worker)', () => 执行游戏后台重计算<string>(
+            'buildWorldbookText',
+            {
+                worldbookParams: worldEvolutionWorldbookParams,
+                gameConfig: worldRuntimeGameConfig
+            },
+            () => 后台分段执行(() => 按功能开关过滤提示词内容(
+                构建世界书注入文本(worldEvolutionWorldbookParams).combinedText,
+                worldRuntimeGameConfig
+            ))
+        ), {
             worldbookCount: Array.isArray(deps.worldbooks) ? deps.worldbooks.length : 0
         });
         const novelDecompositionPrompt = await probe.timeAsync('构建世界演变小说拆分注入', async () => 按功能开关过滤提示词内容(await 获取激活小说拆分注入文本(
@@ -345,12 +364,18 @@ export const 执行世界演变更新工作流 = async (
             updatesCount: Array.isArray(result.updates) ? result.updates.length : 0,
             rawTextLength: typeof result.rawText === 'string' ? result.rawText.length : 0
         });
-        const normalizedCommands = probe.time('规范化世界演变命令', () => 规范化世界演变命令列表(result.commands as any));
+        await 后台让出主线程();
+        const normalizedCommands = await probe.timeAsync('规范化世界演变命令(worker)', () => 执行游戏后台重计算<any[]>(
+            'normalizeWorldEvolutionCommands',
+            { commands: result.commands as any },
+            () => 后台分段执行(() => 规范化世界演变命令列表(result.commands as any))
+        ));
         const rawCommandCount = Array.isArray(result.commands) ? result.commands.length : 0;
         const rawText = typeof result.rawText === 'string' ? result.rawText.trim() : '';
 
         if (normalizedCommands.length > 0) {
-            probe.time('应用世界演变命令', () => deps.processResponseCommands(
+            await 后台让出主线程();
+            await 后台分段执行(() => probe.time('应用世界演变命令', () => deps.processResponseCommands(
                 {
                     logs: [],
                     tavern_commands: normalizedCommands
@@ -360,7 +385,7 @@ export const 执行世界演变更新工作流 = async (
             ), {
                 commandCount: normalizedCommands.length,
                 applyState: params?.applyCommands !== false
-            });
+            }));
         }
 
         const rawUpdates = probe.time('整理世界演变原始摘要', () => (Array.isArray(result.updates) ? result.updates : [])
@@ -371,6 +396,7 @@ export const 执行世界演变更新工作流 = async (
             commands: normalizedCommands.length
         });
         if (updates.length > 0) {
+            await 后台让出主线程();
             probe.time('写入世界事件列表', () => deps.setWorldEvents(prev => [...updates, ...(Array.isArray(prev) ? prev : [])].slice(0, 30)), {
                 updates: updates.length
             });

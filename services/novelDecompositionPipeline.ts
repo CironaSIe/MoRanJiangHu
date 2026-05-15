@@ -266,6 +266,78 @@ const 统计核心角色 = (segments: 小说拆分分段结构[]): Array<[string
         .slice(0, 8);
 };
 
+const 合并同名结构 = <T extends { 名称: string }>(
+    items: T[],
+    merge: (left: T, right: T) => T
+): T[] => {
+    const ordered: T[] = [];
+    const indexMap = new Map<string, number>();
+    items.forEach((item) => {
+        const name = (item?.名称 || '').trim();
+        if (!name) return;
+        const key = name.replace(/\s+/g, '');
+        const existingIndex = indexMap.get(key);
+        if (typeof existingIndex === 'number') {
+            ordered[existingIndex] = merge(ordered[existingIndex], item);
+            return;
+        }
+        indexMap.set(key, ordered.length);
+        ordered.push(item);
+    });
+    return ordered;
+};
+
+const 聚合角色档案 = (segments: 小说拆分分段结构[]): 小说拆分数据集结构['角色档案'] => (
+    合并同名结构(
+        segments.flatMap((segment) => segment.角色档案 || []),
+        (left, right) => ({
+            ...left,
+            身份: left.身份 || right.身份,
+            所属势力: left.所属势力 || right.所属势力,
+            初始立场: left.初始立场 || right.初始立场,
+            关系摘要: 去重文本列表([...(left.关系摘要 || []), ...(right.关系摘要 || [])], 20),
+            状态摘要: 去重文本列表([...(left.状态摘要 || []), ...(right.状态摘要 || [])], 20),
+            首次出现: left.首次出现 || right.首次出现,
+            重要性: left.重要性 === '核心' || right.重要性 === '核心'
+                ? '核心'
+                : left.重要性 === '重要' || right.重要性 === '重要'
+                    ? '重要'
+                    : '一般'
+        })
+    ).slice(0, 120)
+);
+
+const 聚合势力档案 = (segments: 小说拆分分段结构[]): 小说拆分数据集结构['势力档案'] => (
+    合并同名结构(
+        segments.flatMap((segment) => segment.势力档案 || []),
+        (left, right) => ({
+            ...left,
+            类型: left.类型 || right.类型,
+            地盘: left.地盘 || right.地盘,
+            代表人物: 去重文本列表([...(left.代表人物 || []), ...(right.代表人物 || [])], 20),
+            立场目标: left.立场目标 || right.立场目标,
+            当前状态: right.当前状态 || left.当前状态,
+            关系摘要: 去重文本列表([...(left.关系摘要 || []), ...(right.关系摘要 || [])], 20),
+            首次出现: left.首次出现 || right.首次出现
+        })
+    ).slice(0, 80)
+);
+
+const 聚合地图地点档案 = (segments: 小说拆分分段结构[]): 小说拆分数据集结构['地图地点档案'] => (
+    合并同名结构(
+        segments.flatMap((segment) => segment.地图地点档案 || []),
+        (left, right) => ({
+            ...left,
+            层级: left.层级 !== '未知' ? left.层级 : right.层级,
+            上级地点: left.上级地点 || right.上级地点,
+            所属势力: left.所属势力 || right.所属势力,
+            地貌功能: left.地貌功能 || right.地貌功能,
+            关键设施: 去重文本列表([...(left.关键设施 || []), ...(right.关键设施 || [])], 20),
+            首次出现: left.首次出现 || right.首次出现
+        })
+    ).slice(0, 120)
+);
+
 const 构建树节点 = (params: {
     datasetId: string;
     title: string;
@@ -428,6 +500,9 @@ export const 根据章节生成分段列表 = (dataset: 小说拆分数据集结
             关键事件: [],
             角色推进: [],
             登场角色: [],
+            角色档案: [],
+            势力档案: [],
+            地图地点档案: [],
             时间线: [],
             时间线起点: '',
             时间线终点: '',
@@ -465,6 +540,9 @@ const 规范化AI结果到分段 = (
     | '关键事件'
     | '角色推进'
     | '登场角色'
+    | '角色档案'
+    | '势力档案'
+    | '地图地点档案'
     | '时间线'
     | '时间线起点'
     | '时间线终点'
@@ -524,6 +602,41 @@ const 规范化AI结果到分段 = (
             对下一组影响: 去重文本列表(item.对下一组影响 || [], 12)
         })).filter((item) => item.角色名)
         : [];
+    const 角色档案 = Array.isArray(result.characterProfiles)
+        ? result.characterProfiles.map((item) => ({
+            名称: 清理章节编号文本(item.名称 || ''),
+            身份: 清理章节编号文本(item.身份 || ''),
+            所属势力: 清理章节编号文本(item.所属势力 || ''),
+            初始立场: 清理章节编号文本(item.初始立场 || ''),
+            关系摘要: 去重文本列表(item.关系摘要 || [], 12),
+            状态摘要: 去重文本列表(item.状态摘要 || [], 12),
+            首次出现: 清理章节编号文本(item.首次出现 || ''),
+            重要性: item.重要性 === '核心' || item.重要性 === '重要' ? item.重要性 : '一般' as const
+        })).filter((item) => item.名称)
+        : [];
+    const 势力档案 = Array.isArray(result.factionProfiles)
+        ? result.factionProfiles.map((item) => ({
+            名称: 清理章节编号文本(item.名称 || ''),
+            类型: 清理章节编号文本(item.类型 || ''),
+            地盘: 清理章节编号文本(item.地盘 || ''),
+            代表人物: 去重文本列表(item.代表人物 || [], 12),
+            立场目标: 清理章节编号文本(item.立场目标 || ''),
+            当前状态: 清理章节编号文本(item.当前状态 || ''),
+            关系摘要: 去重文本列表(item.关系摘要 || [], 12),
+            首次出现: 清理章节编号文本(item.首次出现 || '')
+        })).filter((item) => item.名称)
+        : [];
+    const 地图地点档案 = Array.isArray(result.locationProfiles)
+        ? result.locationProfiles.map((item) => ({
+            名称: 清理章节编号文本(item.名称 || ''),
+            层级: item.层级 === '大地点' || item.层级 === '中地点' || item.层级 === '小地点' || item.层级 === '具体地点' ? item.层级 : '未知' as const,
+            上级地点: 清理章节编号文本(item.上级地点 || ''),
+            所属势力: 清理章节编号文本(item.所属势力 || ''),
+            地貌功能: 清理章节编号文本(item.地貌功能 || ''),
+            关键设施: 去重文本列表(item.关键设施 || [], 12),
+            首次出现: 清理章节编号文本(item.首次出现 || '')
+        })).filter((item) => item.名称)
+        : [];
 
     const AI登场角色 = 去重文本列表(result.appearingCharacters || [], 24);
     const 时间线 = 构建分段时间线({
@@ -559,6 +672,9 @@ const 规范化AI结果到分段 = (
         关键事件,
         角色推进,
         登场角色,
+        角色档案,
+        势力档案,
+        地图地点档案,
         时间线,
         时间线起点,
         时间线终点
@@ -767,6 +883,9 @@ const 构建规划分段内容 = (segment: 小说拆分分段结构): string => 
     segment.可提前铺垫.length > 0 ? `可提前铺垫：${segment.可提前铺垫.map(格式化可见信息条目摘要).join('；')}` : '',
     segment.关键事件.length > 0 ? `关键事件：${segment.关键事件.map((event) => 格式化事件摘要(event.事件名, [event.开始时间, ...event.触发条件, 格式化信息可见性摘要(event.信息可见性)])).join('；')}` : '',
     segment.角色推进.length > 0 ? `角色推进：${segment.角色推进.map((item) => 格式化事件摘要(item.角色名, [...item.本组变化, ...item.本组后状态])).join('；')}` : '',
+    segment.角色档案.length > 0 ? `角色档案：${segment.角色档案.map((item) => 格式化事件摘要(item.名称, [item.身份, item.所属势力, item.初始立场, ...item.状态摘要])).join('；')}` : '',
+    segment.势力档案.length > 0 ? `势力档案：${segment.势力档案.map((item) => 格式化事件摘要(item.名称, [item.类型, item.地盘, item.当前状态, item.立场目标])).join('；')}` : '',
+    segment.地图地点档案.length > 0 ? `地图地点：${segment.地图地点档案.map((item) => 格式化事件摘要(item.名称, [item.层级, item.上级地点, item.所属势力, item.地貌功能])).join('；')}` : '',
     segment.时间线起点 ? `区间时间：${segment.时间线起点} -> ${segment.时间线终点}` : ''
 ].filter(Boolean).join('\n');
 
@@ -777,6 +896,9 @@ const 构建世界演变分段内容 = (segment: 小说拆分分段结构): stri
     segment.可提前铺垫.length > 0 ? `可提前铺垫：${segment.可提前铺垫.map(格式化可见信息条目摘要).join('；')}` : '',
     segment.角色推进.length > 0 ? `角色推进：${segment.角色推进.map((item) => 格式化事件摘要(item.角色名, [...item.本组后状态, ...item.对下一组影响])).join('；')}` : '',
     segment.登场角色.length > 0 ? `关联角色：${segment.登场角色.join('、')}` : '',
+    segment.角色档案.length > 0 ? `角色档案：${segment.角色档案.map((item) => 格式化事件摘要(item.名称, [item.身份, item.所属势力, item.初始立场, ...item.状态摘要])).join('；')}` : '',
+    segment.势力档案.length > 0 ? `势力档案：${segment.势力档案.map((item) => 格式化事件摘要(item.名称, [item.类型, item.地盘, item.当前状态, item.立场目标])).join('；')}` : '',
+    segment.地图地点档案.length > 0 ? `地图地点：${segment.地图地点档案.map((item) => 格式化事件摘要(item.名称, [item.层级, item.上级地点, item.所属势力, item.地貌功能])).join('；')}` : '',
     segment.时间线起点 ? `区间时间：${segment.时间线起点} -> ${segment.时间线终点}` : ''
 ].filter(Boolean).join('\n');
 
@@ -824,6 +946,30 @@ export const 基于分段构建注入树 = (dataset: 小说拆分数据集结构
         type: 'stage_summary',
         order: 10,
         targets: ['planning']
+    });
+    const characterArchiveNode = 构建树节点({
+        datasetId: dataset.id,
+        title: '原著角色档案',
+        content: (dataset.角色档案 || []).map((item) => 格式化事件摘要(item.名称, [item.身份, item.所属势力, item.初始立场, ...item.状态摘要])).join('；'),
+        type: 'summary',
+        order: 20,
+        targets: ['planning', 'world_evolution']
+    });
+    const factionArchiveNode = 构建树节点({
+        datasetId: dataset.id,
+        title: '原著势力档案',
+        content: (dataset.势力档案 || []).map((item) => 格式化事件摘要(item.名称, [item.类型, item.地盘, item.当前状态, item.立场目标])).join('；'),
+        type: 'summary',
+        order: 30,
+        targets: ['planning', 'world_evolution']
+    });
+    const locationArchiveNode = 构建树节点({
+        datasetId: dataset.id,
+        title: '原著地图地点档案',
+        content: (dataset.地图地点档案 || []).map((item) => 格式化事件摘要(item.名称, [item.层级, item.上级地点, item.所属势力, item.地貌功能])).join('；'),
+        type: 'summary',
+        order: 40,
+        targets: ['planning', 'world_evolution']
     });
     const mainStorySegmentChildren = completedSegments.map((segment, index) => 构建树节点({
         datasetId: dataset.id,
@@ -931,6 +1077,9 @@ export const 基于分段构建注入树 = (dataset: 小说拆分数据集结构
     });
     return [
         stageNode,
+        characterArchiveNode,
+        factionArchiveNode,
+        locationArchiveNode,
         segmentGroup,
         planningSegmentGroup,
         worldSegmentGroup,
@@ -950,6 +1099,9 @@ export const 聚合小说拆分数据集 = (dataset: 小说拆分数据集结构
         ? 合成阶段概括(completedSegments, 'stage')
         : '';
     const coreRoleStats = 统计核心角色(completedSegments);
+    const 角色档案 = 聚合角色档案(completedSegments);
+    const 势力档案 = 聚合势力档案(completedSegments);
+    const 地图地点档案 = 聚合地图地点档案(completedSegments);
 
     return {
         ...dataset,
@@ -959,9 +1111,15 @@ export const 聚合小说拆分数据集 = (dataset: 小说拆分数据集结构
         当前阶段概括: stageSummary,
         核心角色摘要: coreRoleStats.map(([role, count]) => `${role}：关联 ${count} 个分段`),
         核心角色: coreRoleStats.map(([role]) => role),
+        角色档案,
+        势力档案,
+        地图地点档案,
         注入树: 基于分段构建注入树({
             ...dataset,
-            当前阶段概括: stageSummary
+            当前阶段概括: stageSummary,
+            角色档案,
+            势力档案,
+            地图地点档案
         }),
         updatedAt: Date.now()
     };

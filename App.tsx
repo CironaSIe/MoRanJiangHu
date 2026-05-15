@@ -31,6 +31,7 @@ import { checkForAppUpdate, subscribeAppUpdateProgress, type AppUpdateProgressSt
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
+import { getDiagnosticLogs, subscribeDiagnosticLogs } from './services/diagnosticLog';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 
@@ -291,7 +292,7 @@ class ModalErrorBoundary extends React.Component<
                     <div className="mt-4 text-xs leading-5 text-red-200/70">
                         {isLazyImportError
                             ? '检测到页面资源已经更新，但当前页面还停留在旧版本。点击下面按钮刷新后，通常就能直接恢复。'
-                            : '请把这段报错截图发我，我就能继续按具体原因修。'}
+                            : '这次错误已写入运行日志。可打开“设置 → 运行日志”查看详情、复制诊断或点击“上报日志”提交给维护人员。'}
                     </div>
                     {isLazyImportError && (
                         <button
@@ -362,6 +363,7 @@ const App: React.FC = () => {
     const autoItemImageRunningRef = React.useRef<Set<string>>(new Set());
     const autoItemImageFailedAtRef = React.useRef<Map<string, number>>(new Map());
     const auctionSettlementHandledRef = React.useRef<Set<string>>(new Set());
+    const 最近运行报错提示IDRef = React.useRef('');
     const auctionHouseScope = React.useMemo(() => 构建拍卖行存储作用域({
         游戏初始时间: state.游戏初始时间,
         角色数据: state.角色,
@@ -382,6 +384,24 @@ const App: React.FC = () => {
     }, []);
 
     React.useEffect(() => subscribeAppUpdateProgress(setAppUpdateProgress), []);
+    React.useEffect(() => {
+        const subscribedAt = Date.now();
+        const unsubscribe = subscribeDiagnosticLogs(() => {
+            const latestError = getDiagnosticLogs().find((entry) => {
+                if (entry.level !== 'error') return false;
+                const entryTime = Date.parse(entry.time);
+                return Number.isFinite(entryTime) && entryTime >= subscribedAt;
+            });
+            if (!latestError || 最近运行报错提示IDRef.current === latestError.id) return;
+            最近运行报错提示IDRef.current = latestError.id;
+            actions.pushNotification({
+                title: '运行报错已记录',
+                message: '可打开“设置 → 运行日志”查看详情、复制诊断或点击“上报日志”提交给维护人员。',
+                tone: 'error'
+            });
+        });
+        return unsubscribe;
+    }, [actions]);
     React.useEffect(() => {
         const next = 清理并补货(读取拍卖行状态(auctionHouseScope));
         setAuctionHouseState(next);
@@ -899,7 +919,8 @@ const App: React.FC = () => {
                 物品品质: item?.品质,
                 生成时间: record?.生成时间,
                 状态: record?.状态 || 'success',
-                构图: record?.构图
+                构图: record?.构图,
+                错误信息: typeof record?.错误信息 === 'string' ? record.错误信息.trim() : ''
             }));
         });
         const auctionRecords = (Array.isArray(auctionHouseState?.拍卖品列表) ? auctionHouseState.拍卖品列表 : []).flatMap((entry: any) => {
@@ -912,7 +933,8 @@ const App: React.FC = () => {
                 物品品质: item?.品质,
                 生成时间: record?.生成时间,
                 状态: record?.状态 || 'success',
-                构图: record?.构图
+                构图: record?.构图,
+                错误信息: typeof record?.错误信息 === 'string' ? record.错误信息.trim() : ''
             }));
         });
         return [...bagRecords, ...auctionRecords];
@@ -1278,6 +1300,12 @@ const App: React.FC = () => {
         setShowMobileMusic(false);
     }, [setters]);
 
+    React.useEffect(() => {
+        if (state.view === 'game') return;
+        setDesktopDetailFullscreen(false);
+        document.body.classList.remove('desktop-detail-resizing');
+    }, [state.view]);
+
     const collapseDesktopDetailToInitial = React.useCallback(() => {
         setDesktopDetailFullscreen(false);
         closeAllPanels();
@@ -1434,6 +1462,27 @@ const App: React.FC = () => {
         void actions.performAutoSave?.({ role: nextCharacter, force: true });
         actions.pushNotification({ title: '藏经阁学习成功', message: `已习得「${learnedSkill.名称}」，可在功法页查看。`, tone: 'success' });
     }, [actions, setters, state.玩家门派?.名称, state.角色]);
+    const handleLearnNpcSkill = React.useCallback((npc: any, skill: any) => {
+        const npcName = String(npc?.姓名 || npc?.名称 || '该人物').trim();
+        const skillName = String(skill?.名称 || '技艺').trim();
+        const skillLevel = String(skill?.等级 || '未入门').trim();
+        const proficiency = Number(skill?.熟练度 ?? 0);
+        if (!npcName || !skillName || !Number.isFinite(proficiency)) return;
+        const playerSkill = (Array.isArray(state.角色?.技艺) ? state.角色.技艺 : [])
+            .find((item: any) => item?.名称 === skillName);
+        const playerSkillText = playerSkill
+            ? `主角当前${skillName}：${playerSkill.等级 || '未入门'}，熟练度${Number(playerSkill.熟练度 || 0)}。`
+            : `主角当前尚未稳定记录${skillName}技艺。`;
+        actions.appendSystemMessage?.(
+            `[学艺请求] 玩家已选择向${npcName}学习${skillName}技艺。对方当前${skillName}：${skillLevel}，熟练度${Math.max(0, Math.floor(proficiency))}。${playerSkillText}下一回合 AI 必须在正文中反馈请教过程、对方态度、学习条件与阶段结果；若学习有效，在<变量规划>中更新角色.技艺里${skillName}的熟练度/等级/描述，并按事实同步${npcName}的记忆、好感或关系状态。`,
+            { position: 'after_last_turn' }
+        );
+        actions.pushNotification({
+            title: '学艺请求已记录',
+            message: `下回合将向${npcName}请教「${skillName}」。`,
+            tone: 'success'
+        });
+    }, [actions, state.角色?.技艺]);
     const handleAcceptSectMission = React.useCallback((mission: any) => {
         if (!mission?.id) return;
         const nextSect = {
@@ -1961,17 +2010,19 @@ const App: React.FC = () => {
             danger: true
         });
         if (!ok) return;
+        closeAllPanels();
         actions.handleReturnToHome();
         setters.setShowSettings(false);
-    }, [actions, requestConfirm, setters]);
+    }, [actions, closeAllPanels, requestConfirm, setters]);
     const handleReturnToHomeWithAutoSave = React.useCallback(async () => {
         try {
             await actions.performAutoSave({ force: true });
+            closeAllPanels();
             actions.handleReturnToHome();
         } catch (error: any) {
             window.alert(`自动存档失败：${error?.message || '未知错误'}`);
         }
-    }, [actions]);
+    }, [actions, closeAllPanels]);
     const openPolishSettings = React.useCallback(() => {
         closeAllPanels();
         setters.setActiveTab('polish');
@@ -2554,6 +2605,49 @@ const App: React.FC = () => {
                             />
                         )}
                     </div>
+
+                    {desktopRightDetailPanelOpen && (
+                        <>
+                            {!desktopDetailFullscreen && (
+                                <div
+                                    className="desktop-detail-resize-handle"
+                                    role="separator"
+                                    aria-label="拖拽调整详情栏宽度"
+                                    title="拖拽调整详情栏宽度，双击恢复本页默认宽度"
+                                    onPointerDown={startDesktopDetailResize}
+                                    onDoubleClick={resetDesktopDetailWidth}
+                                />
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => desktopDetailFullscreen ? exitDesktopDetailFullscreen() : setDesktopDetailFullscreen(true)}
+                                className={`desktop-detail-expand-toggle${desktopDetailFullscreen ? ' desktop-detail-expand-toggle--fullscreen' : ''}`}
+                                aria-label={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
+                                title={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
+                            >
+                                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                    {desktopDetailFullscreen ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+                                    ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m15 6-6 6 6 6" />
+                                    )}
+                                </svg>
+                            </button>
+                            {!desktopDetailFullscreen && (
+                                <button
+                                    type="button"
+                                    onClick={collapseDesktopDetailToInitial}
+                                    className="desktop-detail-collapse-toggle"
+                                    aria-label="回到初始状态"
+                                    title="回到初始状态"
+                                >
+                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+                                    </svg>
+                                </button>
+                            )}
+                        </>
+                    )}
 
                     {meta.notifications && meta.notifications.length > 0 && (
                         <div className="fixed right-4 bottom-16 md:bottom-14 z-[10000] flex flex-col gap-2 pointer-events-none">
@@ -3252,6 +3346,7 @@ const App: React.FC = () => {
                                     onToggleMajorRole={actions.updateNpcMajorRole}
                                     onTogglePresence={actions.updateNpcPresence}
                                     onDeleteNpc={actions.removeNpc}
+                                    onLearnSkill={handleLearnNpcSkill}
                                 />
                             ) : (
                                 <SocialModal
@@ -3265,6 +3360,7 @@ const App: React.FC = () => {
                                     onToggleMajorRole={actions.updateNpcMajorRole}
                                     onTogglePresence={actions.updateNpcPresence}
                                     onDeleteNpc={actions.removeNpc}
+                                    onLearnSkill={handleLearnNpcSkill}
                                 />
                             )}
                         </懒加载边界>
@@ -3502,48 +3598,6 @@ const App: React.FC = () => {
                         </懒加载边界>
                     )}
                 </div>
-            )}
-            {desktopRightDetailPanelOpen && (
-                <>
-                    {!desktopDetailFullscreen && (
-                        <div
-                            className="desktop-detail-resize-handle"
-                            role="separator"
-                            aria-label="拖拽调整详情栏宽度"
-                            title="拖拽调整详情栏宽度，双击恢复本页默认宽度"
-                            onPointerDown={startDesktopDetailResize}
-                            onDoubleClick={resetDesktopDetailWidth}
-                        />
-                    )}
-                    <button
-                        type="button"
-                        onClick={() => desktopDetailFullscreen ? exitDesktopDetailFullscreen() : setDesktopDetailFullscreen(true)}
-                        className={`desktop-detail-expand-toggle${desktopDetailFullscreen ? ' desktop-detail-expand-toggle--fullscreen' : ''}`}
-                        aria-label={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
-                        title={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
-                    >
-                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                            {desktopDetailFullscreen ? (
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
-                            ) : (
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m15 6-6 6 6 6" />
-                            )}
-                        </svg>
-                    </button>
-                    {!desktopDetailFullscreen && (
-                        <button
-                            type="button"
-                            onClick={collapseDesktopDetailToInitial}
-                            className="desktop-detail-collapse-toggle"
-                            aria-label="回到初始状态"
-                            title="回到初始状态"
-                        >
-                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
-                            </svg>
-                        </button>
-                    )}
-                </>
             )}
         </div>
     </MusicProvider>

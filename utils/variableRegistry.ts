@@ -87,6 +87,18 @@ const 在同数组对象中存在字段 = (rootValue: any, tokens: 路径片段[
     return false;
 };
 
+const 社交NPC可新增字段 = new Set([
+    '名器档案'
+]);
+
+const 是允许新增社交NPC字段 = (root: string, tokens: 路径片段[]): boolean => {
+    if (root !== '社交') return false;
+    if (tokens.length < 2) return false;
+    if (typeof tokens[0] !== 'number') return false;
+    const field = tokens[1];
+    return typeof field === 'string' && 社交NPC可新增字段.has(field);
+};
+
 const 收集变量路径 = (value: any, prefix: string, result: string[], depth: number) => {
     result.push(prefix);
     if (depth <= 0 || value === null || value === undefined || typeof value !== 'object') return;
@@ -163,7 +175,7 @@ export const 校验变量命令是否登记 = (
         return { allowed: true, normalizedKey };
     }
 
-    if ((cmd.action === 'set' || cmd.action === 'add') && 在同数组对象中存在字段(rootValue, tokens)) {
+    if ((cmd.action === 'set' || cmd.action === 'add') && (在同数组对象中存在字段(rootValue, tokens) || 是允许新增社交NPC字段(parsed.root, tokens))) {
         return { allowed: true, normalizedKey };
     }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { 获取物品已选图标地址 } from '../utils/itemImage';
+import { 构建物品图提示词, 构建物品负面提示词 } from '../services/ai/itemImageGeneration';
 
 describe('item image preset fallback', () => {
     it('uses safe preset icons for known starter equipment instead of stale generated images', () => {
@@ -110,5 +111,50 @@ describe('item image preset fallback', () => {
         };
 
         expect(获取物品已选图标地址(item)).toBe('https://example.com/generated-spaced-name.png');
+    });
+});
+
+describe('item image prompt classification', () => {
+    it('treats training clothes as soft fabric garments even when item type is armor', () => {
+        const prompt = 构建物品图提示词({
+            名称: '灰黑练功服',
+            类型: '防具',
+            品质: '凡品',
+            描述: '一套灰黑色的练功服，布料结实，适合日常练武。'
+        });
+
+        expect(prompt).toContain('cloth kung fu training uniform');
+        expect(prompt).toContain('soft textile clothing item');
+        expect(prompt).toContain('flexible drape');
+        expect(prompt).not.toMatch(/\b(?:no|not)\b/i);
+        expect(prompt).not.toContain('armor prop');
+    });
+
+    it('keeps exclusions in the negative prompt for cloth shoes instead of the positive prompt', () => {
+        const item = {
+            名称: '千层底布鞋',
+            类型: '防具',
+            品质: '凡品',
+            描述: '手纳的千层底布鞋，鞋面灰黑，适合长途赶路。'
+        };
+        const prompt = 构建物品图提示词(item);
+        const negativePrompt = 构建物品负面提示词(item);
+
+        expect(prompt).toContain('cloth shoes');
+        expect(prompt).not.toMatch(/\b(?:no|not)\b/i);
+        expect(negativePrompt).toContain('leather dress shoe');
+        expect(negativePrompt).toContain('polished leather shoe');
+    });
+
+    it('keeps real defensive gear classified as armor', () => {
+        const prompt = 构建物品图提示词({
+            名称: '精铁护腕',
+            类型: '防具',
+            品质: '良品',
+            描述: '一对精铁打造的护腕。'
+        });
+
+        expect(prompt).toContain('fine armor prop');
+        expect(prompt).not.toContain('soft textile clothing item');
     });
 });

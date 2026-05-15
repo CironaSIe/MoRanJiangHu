@@ -24,6 +24,8 @@ type 流式草稿显示结构 = {
     是否思考中: boolean;
     正文内容: string;
     原始内容: string;
+    是否状态提示: boolean;
+    是否失败提示: boolean;
 };
 
 const 解析流式草稿显示 = (content: string): 流式草稿显示结构 => {
@@ -32,7 +34,22 @@ const 解析流式草稿显示 = (content: string): 流式草稿显示结构 => 
         return {
             是否思考中: false,
             正文内容: '',
-            原始内容: ''
+            原始内容: '',
+            是否状态提示: false,
+            是否失败提示: false
+        };
+    }
+
+    const trimmedSource = source.trim();
+    const 是否状态提示 = /^【(?:生成中|自动重试中)】/.test(trimmedSource);
+    const 是否失败提示 = /^(?:【(?:生成失败|开局生成失败|开局剧情重生成失败)】|\[(?:开局生成失败|开局剧情重生成失败)\])/.test(trimmedSource);
+    if (是否状态提示 || 是否失败提示) {
+        return {
+            是否思考中: false,
+            正文内容: trimmedSource,
+            原始内容: source,
+            是否状态提示,
+            是否失败提示
         };
     }
 
@@ -57,14 +74,18 @@ const 解析流式草稿显示 = (content: string): 流式草稿显示结构 => 
         return {
             是否思考中: false,
             正文内容: 提取正文片段(afterThinking),
-            原始内容: source
+            原始内容: source,
+            是否状态提示: false,
+            是否失败提示: false
         };
     }
 
     return {
         是否思考中: source.trim().length > 0,
         正文内容: '',
-        原始内容: source
+        原始内容: source,
+        是否状态提示: false,
+        是否失败提示: false
     };
 };
 
@@ -81,6 +102,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
     const 待抑制自动滚动Ref = React.useRef(false);
     const 抑制滚动位置Ref = React.useRef<number | null>(null);
     const 回合容器Refs = React.useRef<Record<number, HTMLDivElement | null>>({});
+    const 消息容器Refs = React.useRef<Record<number, HTMLDivElement | null>>({});
     const lastAutoScrolledTurnSignatureRef = React.useRef('');
 
     const 清理隐藏按钮计时器 = React.useCallback(() => {
@@ -190,12 +212,36 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
     const 最新回合定位签名 = React.useMemo(() => {
         if (latestTurnAnchorIndex < 0 || latestTurnAnchorIndex >= history.length) return '';
         const latestTurn = history[latestTurnAnchorIndex];
+        if (latestTurn?.autoScrollToTurnIcon !== true && latestTurn?.autoScrollToTurnStart !== true) return '';
         return [
             latestTurnAnchorIndex,
             latestTurn?.timestamp || 0,
-            latestTurn?.autoScrollToTurnIcon === true ? '1' : '0'
+            latestTurn?.autoScrollToTurnStart === true ? 'start' : 'turn'
         ].join(':');
     }, [history, latestTurnAnchorIndex]);
+
+    // Slice by real turns (assistant structured responses), not by message count.
+    const sliceIndex = React.useMemo(() => {
+        if (turnAnchors.length <= normalizedRenderCount) return 0;
+        const firstVisibleAnchorPos = turnAnchors.length - normalizedRenderCount;
+        if (firstVisibleAnchorPos <= 0) return 0;
+
+        // Include the user input/system notes between previous turn and current visible turn.
+        const previousAnchor = turnAnchors[firstVisibleAnchorPos - 1];
+        return Math.min(history.length, previousAnchor.index + 1);
+    }, [history.length, normalizedRenderCount, turnAnchors]);
+
+    const 获取本回合起点索引 = React.useCallback((assistantIndex: number): number => {
+        for (let index = assistantIndex - 1; index >= sliceIndex; index -= 1) {
+            if (history[index]?.role === 'user') return index;
+            if (history[index]?.role === 'assistant' && history[index]?.structuredResponse) break;
+        }
+        for (let index = assistantIndex - 1; index >= 0; index -= 1) {
+            if (history[index]?.role === 'user') return index;
+            if (history[index]?.role === 'assistant' && history[index]?.structuredResponse) break;
+        }
+        return assistantIndex;
+    }, [history, sliceIndex]);
 
     React.useEffect(() => {
         const el = scrollRef.current;
@@ -225,17 +271,6 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
         };
     }, [清理隐藏按钮计时器]);
 
-    // Slice by real turns (assistant structured responses), not by message count.
-    const sliceIndex = React.useMemo(() => {
-        if (turnAnchors.length <= normalizedRenderCount) return 0;
-        const firstVisibleAnchorPos = turnAnchors.length - normalizedRenderCount;
-        if (firstVisibleAnchorPos <= 0) return 0;
-
-        // Include the user input/system notes between previous turn and current visible turn.
-        const previousAnchor = turnAnchors[firstVisibleAnchorPos - 1];
-        return Math.min(history.length, previousAnchor.index + 1);
-    }, [history.length, normalizedRenderCount, turnAnchors]);
-
     const visibleHistory = history.slice(sliceIndex);
     const hiddenCount = sliceIndex;
     const hiddenTurns = Math.max(0, turnAnchors.length - normalizedRenderCount);
@@ -244,14 +279,18 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
         if (!最新回合定位签名 || loading || 待抑制自动滚动Ref.current) return;
         if (lastAutoScrolledTurnSignatureRef.current === 最新回合定位签名) return;
         const container = scrollRef.current;
-        const turnEl = 回合容器Refs.current[latestTurnAnchorIndex];
-        if (!container || !turnEl) return;
+        const latestTurn = history[latestTurnAnchorIndex];
+        const targetIndex = latestTurn?.autoScrollToTurnStart === true
+            ? 获取本回合起点索引(latestTurnAnchorIndex)
+            : latestTurnAnchorIndex;
+        const targetEl = 消息容器Refs.current[targetIndex] || 回合容器Refs.current[latestTurnAnchorIndex];
+        if (!container || !targetEl) return;
         lastAutoScrolledTurnSignatureRef.current = 最新回合定位签名;
         let raf1 = 0;
         let raf2 = 0;
         raf1 = window.requestAnimationFrame(() => {
             raf2 = window.requestAnimationFrame(() => {
-                const nextTop = Math.max(0, turnEl.offsetTop - 12);
+                const nextTop = Math.max(0, targetEl.offsetTop - 12);
                 container.scrollTop = nextTop;
                 set接近底部(false);
                 清理隐藏按钮计时器();
@@ -262,7 +301,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
             if (raf1) window.cancelAnimationFrame(raf1);
             if (raf2) window.cancelAnimationFrame(raf2);
         };
-    }, [最新回合定位签名, latestTurnAnchorIndex, loading, scrollRef, 清理隐藏按钮计时器]);
+    }, [最新回合定位签名, latestTurnAnchorIndex, loading, scrollRef, 清理隐藏按钮计时器, history, 获取本回合起点索引]);
 
     return (
         <div className="relative flex-1 min-h-0">
@@ -293,7 +332,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
                     if (msg.role === 'assistant' && msg.structuredResponse) {
                         const turnNum = turnNumberByIndex.get(absoluteIdx) ?? 0;
                         return (
-                            <div key={absoluteIdx} ref={(node) => { 回合容器Refs.current[absoluteIdx] = node; }}>
+                            <div key={absoluteIdx} ref={(node) => { 回合容器Refs.current[absoluteIdx] = node; 消息容器Refs.current[absoluteIdx] = node; }}>
                                 <TurnItem
                                     response={msg.structuredResponse}
                                     turnNumber={turnNum}
@@ -320,7 +359,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
                     // 2. User Input (Right aligned)
                     if (msg.role === 'user') {
                         return (
-                             <div key={absoluteIdx} className="flex w-full justify-end animate-slide-in mb-8">
+                             <div key={absoluteIdx} ref={(node) => { 消息容器Refs.current[absoluteIdx] = node; }} className="flex w-full justify-end animate-slide-in mb-8">
                                 <div className="relative max-w-[88%] sm:max-w-[80%] bg-ink-gray text-wuxia-gold px-3 py-3 sm:p-4 clip-message-right shadow-lg border-r-2 border-wuxia-gold" style={chatStyle}>
                                     <p className="whitespace-pre-wrap leading-relaxed text-base sm:text-lg">
                                         {msg.content}
@@ -341,9 +380,15 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
                         const displayText = shouldCollapseThinking
                             ? (streamDisplay.正文内容 || liveDraftText || (msg.content || '...'))
                             : (msg.content || '...');
+                        const footerLabel = streamDisplay.是否失败提示
+                            ? 'FAILED'
+                            : (streamDisplay.是否状态提示 ? 'WAITING' : 'STREAMING');
+                        const footerLabelClass = streamDisplay.是否失败提示
+                            ? 'text-red-300/85 font-mono tracking-[0.12em]'
+                            : 'text-wuxia-cyan/75 font-mono tracking-[0.12em]';
 
                         return (
-                            <div key={absoluteIdx} className="flex w-full justify-center animate-slide-in mb-6">
+                            <div key={absoluteIdx} ref={(node) => { 消息容器Refs.current[absoluteIdx] = node; }} className="flex w-full justify-center animate-slide-in mb-6">
                                 <div className="w-full max-w-3xl px-1 md:px-4">
                                     <div className="relative mx-auto max-w-[94%] md:max-w-[88%] rounded-2xl border border-wuxia-cyan/40 bg-gradient-to-b from-wuxia-cyan/10 via-black/55 to-black/65 px-4 py-3 shadow-[0_8px_28px_rgba(0,0,0,0.45)]">
                                         <span className="block tracking-[0.2em] text-wuxia-cyan/90 font-mono mb-2" style={{ fontSize: 微字号 }}>
@@ -366,7 +411,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
                                             {displayText || (shouldCollapseThinking && streamDisplay.是否思考中 ? '...' : '...')}
                                         </p>
                                         <div className="mt-2 flex items-center justify-between">
-                                            <span className="text-wuxia-cyan/75 font-mono tracking-[0.12em]" style={{ fontSize: 微字号 }}>STREAMING</span>
+                                            <span className={footerLabelClass} style={{ fontSize: 微字号 }}>{footerLabel}</span>
                                             <span className="inline-flex items-center gap-1 text-wuxia-cyan/70">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-wuxia-cyan/70 animate-pulse"></span>
                                                 <span className="w-1.5 h-1.5 rounded-full bg-wuxia-cyan/55 animate-pulse [animation-delay:120ms]"></span>
@@ -382,7 +427,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
                     // 4. System info messages
                     if (msg.role === 'system') {
                         return (
-                            <div key={absoluteIdx} className="flex w-full justify-center mb-4 opacity-90">
+                            <div key={absoluteIdx} ref={(node) => { 消息容器Refs.current[absoluteIdx] = node; }} className="flex w-full justify-center mb-4 opacity-90">
                                 <div className="bg-black/40 text-wuxia-gold/90 px-4 py-2 border border-wuxia-gold/30 font-mono rounded" style={{ fontSize: 紧凑等宽字号 }}>
                                     {msg.content}
                                 </div>
@@ -392,7 +437,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
 
                     // 5. Fallback for unknown role
                     return (
-                        <div key={absoluteIdx} className="flex w-full justify-center mb-4 opacity-70">
+                        <div key={absoluteIdx} ref={(node) => { 消息容器Refs.current[absoluteIdx] = node; }} className="flex w-full justify-center mb-4 opacity-70">
                             <div className="bg-red-900/20 text-red-400 px-4 py-1 border border-red-900/50 font-mono" style={{ fontSize: 紧凑等宽字号 }}>
                                 [{String(msg.role ?? 'unknown').toUpperCase()}] {msg.content}
                             </div>

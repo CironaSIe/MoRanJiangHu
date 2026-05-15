@@ -18,6 +18,7 @@ interface Props {
     onToggleMajorRole?: (npcId: string, nextIsMajor: boolean) => void;
     onTogglePresence?: (npcId: string, nextIsPresent: boolean) => void;
     onDeleteNpc?: (npcId: string) => void;
+    onLearnSkill?: (npc: NPC结构, skill: any) => void;
 }
 
 const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)?.性别 || '').trim() === '女';
@@ -32,7 +33,8 @@ const MobileSocial: React.FC<Props> = ({
     nsfwEnabled = false,
     onToggleMajorRole,
     onTogglePresence,
-    onDeleteNpc
+    onDeleteNpc,
+    onLearnSkill
 }) => {
     const [selectedId, setSelectedId] = useState<string | null>(
         socialList.length > 0 ? socialList[0].id : null
@@ -171,6 +173,7 @@ const MobileSocial: React.FC<Props> = ({
     const 读取NPC技艺 = (npc: NPC结构) => (
         Array.isArray((npc as any)?.技艺) ? (npc as any).技艺 : []
     ).filter((item: any) => item && typeof item === 'object');
+    const 可请求学艺 = (skill: any): boolean => Number.isFinite(Number(skill?.熟练度));
     const 展示关系驱动面板 = 展示女性扩展;
     const 当前关系网 = currentNPC ? 读取关系网(currentNPC) : [];
     const 当前子宫档案 = currentNPC ? 读取当前子宫档案(currentNPC) : undefined;
@@ -579,7 +582,18 @@ const MobileSocial: React.FC<Props> = ({
                                             <div className="grid grid-cols-2 gap-1.5">
                                                 {读取NPC技艺(currentNPC).map((skill: any, idx) => (
                                                     <div key={`${skill.名称}-${idx}`} className="rounded border border-sky-900/30 bg-sky-950/10 px-2 py-1">
-                                                        <div className="text-[9px] text-sky-100">{skill.名称}</div>
+                                                        <div className="flex items-start justify-between gap-1">
+                                                            <div className="min-w-0 text-[9px] text-sky-100">{skill.名称}</div>
+                                                            {onLearnSkill && 可请求学艺(skill) && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => onLearnSkill(currentNPC, skill)}
+                                                                    className="shrink-0 rounded border border-sky-400/30 bg-sky-900/30 px-1.5 py-0.5 text-[8px] text-sky-100"
+                                                                >
+                                                                    学艺
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                         <div className="text-[8px] text-gray-500">{skill.等级 || '未入门'} · {Number(skill.熟练度 || 0)}</div>
                                                     </div>
                                                 ))}

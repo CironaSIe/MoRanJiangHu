@@ -146,7 +146,7 @@ const SettingsModal: React.FC<Props> = ({
     const diagnosticsEnabled = (gameConfig as any)?.启用研发诊断模式 === true;
     const visibleTabItems = diagnosticsEnabled
         ? tabItems
-        : tabItems.filter((item) => !['npc_management', 'logs', 'context', 'history'].includes(item.id));
+        : tabItems.filter((item) => !['npc_management', 'context', 'history'].includes(item.id));
 
     const 设置加载占位 = (
         <div className="flex min-h-[240px] items-center justify-center rounded-xl border border-wuxia-gold/10 bg-black/20 text-sm tracking-[0.2em] text-wuxia-gold/70">

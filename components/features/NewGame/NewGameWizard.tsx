@@ -7,6 +7,7 @@ import { OrnateBorder } from '../../ui/decorations/OrnateBorder';
 import InlineSelect from '../../ui/InlineSelect';
 import * as dbService from '../../../services/dbService';
 import { 读取小说拆分数据集列表 } from '../../../services/novelDecompositionStore';
+import { 提交同人世界观预设 } from '../../../services/fandomPresetSubmission';
 import { 合并去重开局预设方案, 标准化开局预设方案, 生成自定义开局预设ID, 自定义开局预设存储键 } from '../../../utils/customNewGamePresets';
 import {
     关系侧重选项,
@@ -18,6 +19,7 @@ import {
     创建默认属性分配,
     新开局步骤列表,
     默认开局配置,
+    获取难度设定,
     获取难度总属性点,
     获取同人角色替换规则列表,
     格式化角色替换规则摘要,
@@ -26,6 +28,7 @@ import {
 } from '../../../utils/openingConfig';
 import { 默认境界母板提示词 } from '../../../prompts/runtime/fandom';
 import { 设置键 } from '../../../utils/settingsSchema';
+import { 根据名称映射天赋抽卡, 根据名称映射抽卡, 补全天赋抽卡名称列表, 补全抽卡名称列表, 天赋抽卡数量, 出身抽卡数量, 抽取天赋卡牌, 抽取卡牌 } from '../../../utils/talentDraw';
 
 interface Props {
     onComplete: (
@@ -187,11 +190,19 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
     
     const [stats, setStats] = useState<属性结构>(创建默认属性分配);
     const [openingConfig, setOpeningConfig] = useState<OpeningConfig>(默认开局配置);
-    const [openingConfigEnabled, setOpeningConfigEnabled] = useState(false);
+    const [openingConfigEnabled, setOpeningConfigEnabled] = useState(true);
 
     // Talents & Background
     const [selectedBackground, setSelectedBackground] = useState<背景结构>(预设背景[0]);
+    const [出身选择模式, set出身选择模式] = useState<'抽卡' | '列表'>('抽卡');
+    const [出身抽卡名称列表, set出身抽卡名称列表] = useState<string[]>([]);
+    const [出身抽卡轮次, set出身抽卡轮次] = useState(1);
+    const [出身已重Roll次数, set出身已重Roll次数] = useState(0);
     const [selectedTalents, setSelectedTalents] = useState<天赋结构[]>([]);
+    const [天赋选择模式, set天赋选择模式] = useState<'抽卡' | '列表'>('抽卡');
+    const [天赋抽卡名称列表, set天赋抽卡名称列表] = useState<string[]>([]);
+    const [天赋抽卡轮次, set天赋抽卡轮次] = useState(1);
+    const [天赋已重Roll次数, set天赋已重Roll次数] = useState(0);
     const [自定义天赋列表, 设置自定义天赋列表] = useState<天赋结构[]>([]);
     const [自定义背景列表, 设置自定义背景列表] = useState<背景结构[]>([]);
     const [自定义开局预设列表, 设置自定义开局预设列表] = useState<开局预设方案结构[]>([]);
@@ -208,6 +219,9 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
     const [正在编辑开局预设ID, set正在编辑开局预设ID] = useState('');
     const [customPresetMeta, setCustomPresetMeta] = useState<自定义开局预设元信息>({ 名称: '', 简介: '' });
     const [openingExtraRequirement, setOpeningExtraRequirement] = useState('');
+    const [同人预设投稿已启用, set同人预设投稿已启用] = useState(true);
+    const [同人预设投稿状态, set同人预设投稿状态] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+    const [同人预设投稿消息, set同人预设投稿消息] = useState('');
 
     // --- Logic ---
     const monthOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
@@ -252,6 +266,47 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
         () => [...预设天赋, ...自定义天赋列表.filter(item => !预设天赋.some(p => p.名称 === item.名称))],
         [自定义天赋列表]
     );
+    const 当前抽卡出身选项 = useMemo(
+        () => 根据名称映射抽卡(出身抽卡名称列表, 全部背景选项),
+        [出身抽卡名称列表, 全部背景选项]
+    );
+    const 当前抽卡天赋选项 = useMemo(
+        () => 根据名称映射天赋抽卡(天赋抽卡名称列表, 全部天赋选项),
+        [天赋抽卡名称列表, 全部天赋选项]
+    );
+    useEffect(() => {
+        set出身抽卡名称列表(prev => 补全抽卡名称列表(prev, 全部背景选项, 出身抽卡数量));
+    }, [全部背景选项]);
+    useEffect(() => {
+        set天赋抽卡名称列表(prev => 补全天赋抽卡名称列表(prev, 全部天赋选项, 天赋抽卡数量));
+    }, [全部天赋选项]);
+    useEffect(() => {
+        set出身已重Roll次数(0);
+        set出身抽卡轮次(1);
+        set天赋已重Roll次数(0);
+        set天赋抽卡轮次(1);
+    }, [worldConfig.difficulty]);
+    const 重抽出身卡牌 = () => {
+        if (出身剩余重Roll次数 <= 0) {
+            alert(`当前难度“${当前难度设定.label}”的出身重 roll 次数已用完`);
+            return;
+        }
+        set出身抽卡名称列表(抽取卡牌(全部背景选项, 出身抽卡数量).map(item => item.名称));
+        set出身抽卡轮次(prev => prev + 1);
+        set出身已重Roll次数(prev => prev + 1);
+    };
+    const 重抽天赋卡牌 = () => {
+        if (天赋剩余重Roll次数 <= 0) {
+            alert(`当前难度“${当前难度设定.label}”的天赋重 roll 次数已用完`);
+            return;
+        }
+        set天赋抽卡名称列表(抽取天赋卡牌(全部天赋选项, 天赋抽卡数量).map(item => item.名称));
+        set天赋抽卡轮次(prev => prev + 1);
+        set天赋已重Roll次数(prev => prev + 1);
+    };
+    const 取消选择天赋 = (名称: string) => {
+        setSelectedTalents(prev => prev.filter(item => item.名称 !== 名称));
+    };
     const 重置自定义天赋编辑 = () => {
         setCustomTalent({ 名称: '', 描述: '', 效果: '' });
         set正在编辑天赋名('');
@@ -473,6 +528,11 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
     const remainingPoints = totalStatBudget - usedPoints;
     const stepProgress = ((step + 1) / STEPS.length) * 100;
     const currentStepLabel = STEPS[step] || '创建';
+    const 当前难度设定 = useMemo(() => 获取难度设定(worldConfig.difficulty), [worldConfig.difficulty]);
+    const 出身剩余重Roll次数 = Math.max(0, 当前难度设定.天赋重Roll次数 - 出身已重Roll次数);
+    const 天赋剩余重Roll次数 = Math.max(0, 当前难度设定.天赋重Roll次数 - 天赋已重Roll次数);
+    const 当前出身展示列表 = 出身选择模式 === '抽卡' ? 当前抽卡出身选项 : 全部背景选项;
+    const 难度判定修正文本 = 当前难度设定.判定修正 > 0 ? `+${当前难度设定.判定修正}` : String(当前难度设定.判定修正);
     const selectedTalentNames = selectedTalents.map(item => item.名称);
     const 背景长期说明 = '背景代表长期身份资源、社会关系、风险来源与成长路径，不应只决定第一幕处境。';
     const 天赋说明 = '天赋代表长期倾向与修行适配，优先影响成长曲线、事件判定与路线优势。';
@@ -484,6 +544,52 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
         () => 获取同人角色替换规则列表(openingConfig, charName),
         [openingConfig, charName]
     );
+    const 是否可提交同人世界观预设 = Boolean(
+        (openingConfig.同人融合.作品名 || '').trim()
+        || (当前附加小说数据集?.作品名 || 当前附加小说数据集?.标题 || '').trim()
+        || (worldConfig.worldName || '').trim()
+    ) && Boolean(
+        (worldConfig.manualWorldPrompt || '').trim()
+        || (worldConfig.worldExtraRequirement || '').trim()
+        || 当前附加小说数据集
+    );
+    const 执行同人世界观预设投稿 = async (params?: {
+        world?: WorldGenConfig;
+        opening?: OpeningConfig;
+        dataset?: 小说拆分数据集结构 | null;
+        silent?: boolean;
+    }) => {
+        if (同人预设投稿状态 === 'submitting') return;
+        if (!params?.silent) {
+            const confirmed = requestConfirm
+                ? await requestConfirm({
+                    title: '贡献为公共同人预设',
+                    message: '将把作品名、世界观提示词、境界提示词和小说分解摘要提交到官方 Worker，由 Worker 自动创建 GitHub PR。不会上传你本地的完整小说原文。是否继续？',
+                    confirmText: '提交并生成 PR',
+                    cancelText: '暂不提交'
+                })
+                : window.confirm('将把作品名、世界观提示词、境界提示词和小说分解摘要提交到官方 Worker，由 Worker 自动创建 GitHub PR。不会上传你本地的完整小说原文。是否继续？');
+            if (!confirmed) return;
+        }
+        try {
+            set同人预设投稿状态('submitting');
+            set同人预设投稿消息('正在提交公共预设投稿...');
+            const result = await 提交同人世界观预设({
+                worldConfig: params?.world || worldConfig,
+                openingConfig: params?.opening || openingConfig,
+                dataset: params?.dataset === undefined ? 当前附加小说数据集 : params.dataset
+            });
+            set同人预设投稿状态('success');
+            set同人预设投稿消息(result.pullRequestUrl ? `已创建投稿 PR：${result.pullRequestUrl}` : (result.message || '已提交公共预设投稿。'));
+            if (result.pullRequestUrl && !params?.silent) {
+                window.open(result.pullRequestUrl, '_blank', 'noopener,noreferrer');
+            }
+        } catch (error: any) {
+            set同人预设投稿状态('error');
+            set同人预设投稿消息(error?.message || '提交失败，请稍后重试。');
+        }
+    };
+    const 提交同人世界观预设投稿 = async () => 执行同人世界观预设投稿();
     const 读取UTF8文本文件 = async (file: File): Promise<string> => (
         new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -947,6 +1053,19 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
             })
             : true;
         if (!ok) return;
+        if (
+            !preset
+            && 同人预设投稿已启用
+            && effectiveOpeningConfig?.同人融合.enabled
+            && 是否可提交同人世界观预设
+        ) {
+            void 执行同人世界观预设投稿({
+                world: effectiveWorldConfig,
+                opening: effectiveOpeningConfig,
+                dataset: 当前附加小说数据集,
+                silent: true
+            });
+        }
         onComplete(effectiveWorldConfig, charData, effectiveOpeningConfig, 'all', true, effectiveOpeningExtraRequirement.trim());
     };
 
@@ -1068,6 +1187,39 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
                                                 options={难度下拉选项}
                                                 onChange={(difficulty) => setWorldConfig({ ...worldConfig, difficulty })}
                                             />
+                                        </div>
+                                        <div className="md:col-span-2 rounded-2xl border border-wuxia-gold/20 bg-black/30 p-4">
+                                            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                                                <div>
+                                                    <div className="text-sm font-bold text-wuxia-gold">
+                                                        {当前难度设定.label} · {当前难度设定.shortLabel}
+                                                    </div>
+                                                    <div className="mt-1 text-xs leading-6 text-gray-400">{当前难度设定.description}</div>
+                                                </div>
+                                                <div className="text-[11px] text-gray-500 md:text-right">推荐：{当前难度设定.推荐人群}</div>
+                                            </div>
+                                            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                                                <div className="rounded-xl border border-white/8 bg-black/30 px-3 py-3">
+                                                    <div className="text-gray-500">起始属性点</div>
+                                                    <div className="mt-1 text-lg font-mono text-wuxia-gold">{当前难度设定.起始属性点}</div>
+                                                </div>
+                                                <div className="rounded-xl border border-white/8 bg-black/30 px-3 py-3">
+                                                    <div className="text-gray-500">天赋重 roll</div>
+                                                    <div className="mt-1 text-lg font-mono text-wuxia-cyan">{当前难度设定.天赋重Roll次数}</div>
+                                                </div>
+                                                <div className="rounded-xl border border-white/8 bg-black/30 px-3 py-3">
+                                                    <div className="text-gray-500">玩家判定修正</div>
+                                                    <div className={`mt-1 text-lg font-mono ${当前难度设定.判定修正 >= 0 ? 'text-green-400' : 'text-red-400'}`}>{难度判定修正文本}</div>
+                                                </div>
+                                                <div className="rounded-xl border border-white/8 bg-black/30 px-3 py-3">
+                                                    <div className="text-gray-500">失败代价</div>
+                                                    <div className="mt-1 text-[11px] leading-5 text-gray-300">{当前难度设定.失败代价}</div>
+                                                </div>
+                                            </div>
+                                            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] leading-5 text-gray-400">
+                                                <div>敌方强度：{当前难度设定.敌方强度}</div>
+                                                <div>资源压力：{当前难度设定.资源压力}</div>
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm text-wuxia-cyan font-bold">世界版图</label>
@@ -1393,6 +1545,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
                                         <div className="mb-4 rounded-xl border border-wuxia-gold/15 bg-black/25 px-4 py-3 text-[11px] leading-6 text-gray-400">
                                             当前难度总点数上限：<span className="text-wuxia-gold">{totalStatBudget}</span>。
                                             六维默认值均为 <span className="text-wuxia-gold">{属性最小值}</span>，单项最高 <span className="text-wuxia-gold">{属性最大值}</span>。
+                                            判定修正 <span className={当前难度设定.判定修正 >= 0 ? 'text-green-400' : 'text-red-400'}>{难度判定修正文本}</span>，天赋可重 roll <span className="text-wuxia-cyan">{当前难度设定.天赋重Roll次数}</span> 次。
                                         </div>
                                         <div className="space-y-4 pt-4 border-t border-wuxia-gold/20">
                                             {Object.entries(stats).map(([key, val]) => (
@@ -1498,8 +1651,46 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
                                     </div>
                                 )}
 
+                                
+                                <div className="mb-5 rounded-2xl border border-gray-800 bg-black/25 p-4">
+                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                        <div>
+                                            <div className="text-[11px] uppercase tracking-[0.28em] text-wuxia-cyan/70 font-mono">Origin Draw #{出身抽卡轮次}</div>
+                                            <div className="mt-1 text-xs text-gray-500">抽卡模式本轮展示 {当前抽卡出身选项.length}/{Math.min(出身抽卡数量, 全部背景选项.length)} 个出身；已用 {出身已重Roll次数}/{当前难度设定.天赋重Roll次数} 次。</div>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <div className="flex rounded-full border border-gray-700 bg-black/35 p-1 text-xs">
+                                                {(['抽卡', '列表'] as const).map((mode) => (
+                                                    <button
+                                                        key={mode}
+                                                        type="button"
+                                                        onClick={() => set出身选择模式(mode)}
+                                                        className={`rounded-full px-4 py-1.5 transition-all ${
+                                                            出身选择模式 === mode
+                                                                ? 'border border-wuxia-cyan/45 bg-wuxia-cyan/20 text-wuxia-cyan'
+                                                                : 'text-gray-400 hover:text-wuxia-gold'
+                                                        }`}
+                                                    >
+                                                        {mode === '抽卡' ? '抽卡模式' : '全部列表'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {出身选择模式 === '抽卡' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={重抽出身卡牌}
+                                                    disabled={出身剩余重Roll次数 <= 0}
+                                                    className="rounded-full border border-wuxia-gold/40 bg-wuxia-gold/10 px-4 py-2 text-xs text-wuxia-gold transition-colors hover:border-wuxia-gold hover:bg-wuxia-gold/20 hover:text-white disabled:cursor-not-allowed disabled:border-gray-700 disabled:bg-black/30 disabled:text-gray-600"
+                                                >
+                                                    重抽出身 {出身剩余重Roll次数}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {全部背景选项.map((bg, idx) => {
+                                    {当前出身展示列表.map((bg, idx) => {
                                         const isSelected = selectedBackground.名称 === bg.名称;
                                         return (
                                             <div
@@ -1542,9 +1733,14 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
                                     <div className="flex flex-col items-start md:items-end gap-3">
                                         <div className="flex flex-wrap gap-2 justify-start md:justify-end">
                                             {selectedTalentNames.length > 0 ? selectedTalentNames.map(name => (
-                                                <span key={name} className="rounded-full border border-wuxia-red/35 bg-wuxia-red/10 px-3 py-1 text-xs text-wuxia-red">
-                                                    {name}
-                                                </span>
+                                                <button
+                                                    key={name}
+                                                    type="button"
+                                                    onClick={() => 取消选择天赋(name)}
+                                                    className="rounded-full border border-wuxia-red/35 bg-wuxia-red/10 px-3 py-1 text-xs text-wuxia-red transition-colors hover:border-wuxia-red hover:bg-wuxia-red/20 hover:text-white"
+                                                >
+                                                    {name} ×
+                                                </button>
                                             )) : (
                                                 <span className="text-xs text-gray-500">尚未选择天赋</span>
                                             )}
@@ -1608,11 +1804,52 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
                                         <h3 className="text-2xl font-serif font-bold text-wuxia-gold mt-2">天赋选择</h3>
                                         <p className="text-xs text-gray-400 mt-2 leading-6">选择最多三个天赋，组合出你的长期成长风格、擅长判定与可走路线。</p>
                                     </div>
-                                    <div className="text-xs text-gray-500">建议搭配：战斗 + 生存 + 社交 / 探索，角色会更立体</div>
+                                    <div className="flex flex-col items-start md:items-end gap-2">
+                                        <div className="flex rounded-full border border-gray-700 bg-black/35 p-1 text-xs">
+                                            {(['抽卡', '列表'] as const).map((mode) => (
+                                                <button
+                                                    key={mode}
+                                                    type="button"
+                                                    onClick={() => set天赋选择模式(mode)}
+                                                    className={`rounded-full px-4 py-1.5 transition-all ${
+                                                        天赋选择模式 === mode
+                                                            ? 'bg-wuxia-red/25 text-wuxia-red border border-wuxia-red/45'
+                                                            : 'text-gray-400 hover:text-wuxia-gold'
+                                                    }`}
+                                                >
+                                                    {mode === '抽卡' ? '抽卡模式' : '全部列表'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {天赋选择模式 === '抽卡' ? (
+                                            <button
+                                                type="button"
+                                                onClick={重抽天赋卡牌}
+                                                disabled={天赋剩余重Roll次数 <= 0}
+                                                className="rounded-full border border-wuxia-cyan/40 bg-wuxia-cyan/10 px-4 py-2 text-xs text-wuxia-cyan transition-all hover:border-wuxia-gold hover:text-wuxia-gold disabled:cursor-not-allowed disabled:border-gray-700 disabled:bg-black/30 disabled:text-gray-600"
+                                            >
+                                                重 roll（剩余 {天赋剩余重Roll次数}）
+                                            </button>
+                                        ) : (
+                                            <div className="text-xs text-gray-500">建议搭配：战斗 + 生存 + 社交 / 探索，角色会更立体</div>
+                                        )}
+                                    </div>
                                 </div>
 
+                                {天赋选择模式 === '抽卡' && (
+                                    <div className="mb-5 rounded-2xl border border-wuxia-red/25 bg-gradient-to-br from-wuxia-red/10 via-black/30 to-wuxia-cyan/5 px-4 py-3">
+                                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                            <div>
+                                                <div className="text-[11px] uppercase tracking-[0.3em] text-wuxia-red/70 font-mono">Draw Round #{天赋抽卡轮次}</div>
+                                                <div className="mt-1 text-sm text-gray-300">本轮抽出 {当前抽卡天赋选项.length}/{Math.min(天赋抽卡数量, 全部天赋选项.length)} 张天赋卡，当前难度可重 roll {当前难度设定.天赋重Roll次数} 次。</div>
+                                            </div>
+                                            <div className="text-[11px] text-gray-500">已用 {天赋已重Roll次数}/{当前难度设定.天赋重Roll次数} 次；已选天赋会保留，可点击上方标签取消。</div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                    {全部天赋选项.map((t, idx) => {
+                                    {(天赋选择模式 === '抽卡' ? 当前抽卡天赋选项 : 全部天赋选项).map((t, idx) => {
                                         const isSelected = !!selectedTalents.find(x => x.名称 === t.名称);
                                         return (
                                             <div
@@ -1931,6 +2168,44 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
                                                         : 当前附加小说数据集
                                                             ? `当前选择：${当前附加小说数据集.作品名 || 当前附加小说数据集.标题}，后续主剧情 / 规划分析 / 世界演变都会优先使用这部小说的分解注入。`
                                                             : '启用后请选择一部小说分解数据集。'}
+                                                </div>
+                                                <div className="rounded-xl border border-wuxia-gold/20 bg-black/25 p-3 space-y-2">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <div className="text-sm text-wuxia-gold font-bold">贡献为公共同人预设</div>
+                                                            <div className="text-[11px] text-gray-500 leading-5">
+                                                                默认开启。开始生成时会同步提交作品名、世界观提示词、境界提示词和分解摘要到官方 Worker，由 Worker 自动创建 GitHub PR；不会上传小说原文。
+                                                            </div>
+                                                        </div>
+                                                        <div className="shrink-0">
+                                                            <开关按钮
+                                                                checked={同人预设投稿已启用}
+                                                                label={同人预设投稿已启用 ? '自动投稿' : '已关闭'}
+                                                                onToggle={() => set同人预设投稿已启用(prev => !prev)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <GameButton
+                                                        type="button"
+                                                        onClick={() => { void 提交同人世界观预设投稿(); }}
+                                                        disabled={!是否可提交同人世界观预设 || 同人预设投稿状态 === 'submitting'}
+                                                        variant="secondary"
+                                                        className="px-3 py-2 text-[11px] disabled:opacity-45 disabled:cursor-not-allowed"
+                                                        contentClassName="tracking-normal"
+                                                    >
+                                                        {同人预设投稿状态 === 'submitting' ? '提交中...' : '立即生成 PR'}
+                                                    </GameButton>
+                                                    {同人预设投稿消息 && (
+                                                        <div className={`text-[11px] leading-5 break-all ${
+                                                            同人预设投稿状态 === 'error'
+                                                                ? 'text-red-300'
+                                                                : 同人预设投稿状态 === 'success'
+                                                                    ? 'text-green-300'
+                                                                    : 'text-gray-400'
+                                                        }`}>
+                                                            {同人预设投稿消息}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

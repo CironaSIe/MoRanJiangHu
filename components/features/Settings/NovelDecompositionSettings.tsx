@@ -1001,6 +1001,10 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
             分段列表: [],
             当前阶段概括: '',
             核心角色摘要: [],
+            核心角色: [],
+            角色档案: [],
+            势力档案: [],
+            地图地点档案: [],
             注入树: [],
             updatedAt: now
         };
@@ -1080,6 +1084,10 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                         分段列表: expectedSegments,
                         当前阶段概括: '',
                         核心角色摘要: [],
+                        核心角色: [],
+                        角色档案: [],
+                        势力档案: [],
+                        地图地点档案: [],
                         注入树: [],
                         updatedAt: Date.now()
                     });

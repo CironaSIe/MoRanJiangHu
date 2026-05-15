@@ -21,6 +21,8 @@ import { 获取激活小说拆分注入文本 } from '../../services/novelDecomp
 import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
 import { 创建工作流性能诊断 } from '../../utils/performanceDebug';
+import { 后台分段执行, 后台让出主线程 } from '../../utils/backgroundScheduling';
+import { 执行游戏后台重计算 } from '../../utils/gameHeavyWorkerClient';
 
 type 规划更新工作流依赖 = {
     apiConfig: any;
@@ -385,7 +387,8 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
                 : [])
         ]);
 
-        const worldbookExtra = probe.time('构建规划世界书注入', () => 按功能开关过滤提示词内容(构建世界书注入文本({
+        await 后台让出主线程();
+        const planningWorldbookParams = {
             books: Array.isArray(deps.worldbooks) ? deps.worldbooks : [],
             scopes: heroineEnabled ? ['story_plan', 'heroine_plan'] : ['story_plan'],
             environment: params.state.环境,
@@ -393,7 +396,18 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             world: params.state.世界,
             history: deps.历史记录,
             extraTexts: [params.playerInput, latestBodyText, currentPlanText, ...auditFocus]
-        }).combinedText, normalizedGameConfig), {
+        };
+        const worldbookExtra = await probe.timeAsync('构建规划世界书注入(worker)', () => 执行游戏后台重计算<string>(
+            'buildWorldbookText',
+            {
+                worldbookParams: planningWorldbookParams,
+                gameConfig: normalizedGameConfig
+            },
+            () => 后台分段执行(() => 按功能开关过滤提示词内容(
+                构建世界书注入文本(planningWorldbookParams).combinedText,
+                normalizedGameConfig
+            ))
+        ), {
             worldbookCount: Array.isArray(deps.worldbooks) ? deps.worldbooks.length : 0,
             auditFocusCount: auditFocus.length
         });
@@ -424,22 +438,46 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             normalizedGameConfig
         );
 
-        const currentStoryJson = probe.time('序列化剧情规划载荷', () => JSON.stringify(planningStoryPayload, null, 2));
-        const currentHeroinePlanJson = probe.time('序列化女主规划载荷', () => JSON.stringify(planningHeroinePayload, null, 2));
-        const worldJson = probe.time('序列化世界载荷', () => JSON.stringify(
-            裁剪修炼体系上下文数据(deps.规范化世界状态(params.state.世界), normalizedGameConfig),
-            null,
-            2
+        await 后台让出主线程();
+        const currentStoryJson = await probe.timeAsync('序列化剧情规划载荷(worker)', () => 执行游戏后台重计算<string>(
+            'stringifyTrimCultivation',
+            { value: planningStoryPayload, gameConfig: normalizedGameConfig, space: 2 },
+            () => 后台分段执行(() => JSON.stringify(planningStoryPayload, null, 2))
         ));
-        const socialJson = probe.time('序列化社交载荷', () => JSON.stringify(
-            裁剪修炼体系上下文数据(deps.规范化社交列表(params.state.社交), normalizedGameConfig),
-            null,
-            2
+        const currentHeroinePlanJson = await probe.timeAsync('序列化女主规划载荷(worker)', () => 执行游戏后台重计算<string>(
+            'stringifyTrimCultivation',
+            { value: planningHeroinePayload, gameConfig: normalizedGameConfig, space: 2 },
+            () => 后台分段执行(() => JSON.stringify(planningHeroinePayload, null, 2))
         ));
-        const envJson = probe.time('序列化环境载荷', () => JSON.stringify(
-            裁剪修炼体系上下文数据(deps.规范化环境信息(params.state.环境), normalizedGameConfig),
-            null,
-            2
+        const normalizedWorldPayload = deps.规范化世界状态(params.state.世界);
+        const normalizedSocialPayload = deps.规范化社交列表(params.state.社交);
+        const normalizedEnvPayload = deps.规范化环境信息(params.state.环境);
+        const worldJson = await probe.timeAsync('序列化世界载荷(worker)', () => 执行游戏后台重计算<string>(
+            'stringifyTrimCultivation',
+            { value: normalizedWorldPayload, gameConfig: normalizedGameConfig, space: 2 },
+            () => 后台分段执行(() => JSON.stringify(
+                裁剪修炼体系上下文数据(normalizedWorldPayload, normalizedGameConfig),
+                null,
+                2
+            ))
+        ));
+        const socialJson = await probe.timeAsync('序列化社交载荷(worker)', () => 执行游戏后台重计算<string>(
+            'stringifyTrimCultivation',
+            { value: normalizedSocialPayload, gameConfig: normalizedGameConfig, space: 2 },
+            () => 后台分段执行(() => JSON.stringify(
+                裁剪修炼体系上下文数据(normalizedSocialPayload, normalizedGameConfig),
+                null,
+                2
+            ))
+        ));
+        const envJson = await probe.timeAsync('序列化环境载荷(worker)', () => 执行游戏后台重计算<string>(
+            'stringifyTrimCultivation',
+            { value: normalizedEnvPayload, gameConfig: normalizedGameConfig, space: 2 },
+            () => 后台分段执行(() => JSON.stringify(
+                裁剪修炼体系上下文数据(normalizedEnvPayload, normalizedGameConfig),
+                null,
+                2
+            ))
         ));
         probe.mark('规划分析请求载荷准备完成', {
             storyJsonLength: currentStoryJson.length,
@@ -513,7 +551,8 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             };
         }
 
-        const patched = probe.time('应用规划补丁命令', () => 应用规划补丁命令({
+        await 后台让出主线程();
+        const patched = await 后台分段执行(() => probe.time('应用规划补丁命令', () => 应用规划补丁命令({
             commands,
             env: params.state.环境,
             social: params.state.社交,
@@ -523,7 +562,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             heroinePlan: params.state.女主剧情规划,
             fandomStoryPlan: params.state.同人剧情规划,
             fandomHeroinePlan: params.state.同人女主剧情规划
-        }), { commandCount: commands.length });
+        }), { commandCount: commands.length }));
         const syncedPatchedStory = await probe.timeAsync('同步小说分解时间校准', () => 同步剧情小说分解时间校准({
             previousStory: params.state.剧情,
             nextStory: patched.story,
@@ -542,6 +581,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
                 heroinePlanCommands: []
             };
         }
+        await 后台让出主线程();
         probe.time('写入规划分析状态', () => {
             deps.设置剧情(syncedPatchedStory);
             if (fandomEnabled) {

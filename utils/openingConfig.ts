@@ -16,13 +16,99 @@ export const 默认属性值 = 3;
 export const 属性最小值 = 3;
 export const 属性最大值 = 10;
 
-export const 难度总属性点映射: Record<游戏难度, number> = {
-    relaxed: 38,
-    easy: 34,
-    normal: 30,
-    hard: 26,
-    extreme: 22
+export type 难度设定结构 = {
+    id: 游戏难度;
+    label: string;
+    shortLabel: string;
+    description: string;
+    起始属性点: number;
+    天赋重Roll次数: number;
+    判定修正: number;
+    敌方强度: string;
+    资源压力: string;
+    失败代价: string;
+    推荐人群: string;
 };
+
+export const 难度设定表: Record<游戏难度, 难度设定结构> = {
+    relaxed: {
+        id: 'relaxed',
+        label: '轻松',
+        shortLabel: '剧情模式',
+        description: '适合先看世界、轻松体验剧情推进，资源与失败压力最低。',
+        起始属性点: 38,
+        天赋重Roll次数: 12,
+        判定修正: 3,
+        敌方强度: '敌人更保守，跨级压力下降',
+        资源压力: '经验、掉落与恢复更宽松',
+        失败代价: '多为轻伤、少量损耗或可补救后果',
+        推荐人群: '想体验剧情、探索设定或测试新开局'
+    },
+    easy: {
+        id: 'easy',
+        label: '简单',
+        shortLabel: '稳健养成',
+        description: '适合正常养成但保留较高容错，资源循环比较顺。',
+        起始属性点: 34,
+        天赋重Roll次数: 8,
+        判定修正: 1,
+        敌方强度: '敌人略弱，普通冲突更好处理',
+        资源压力: '收益略高，物价略低，恢复较稳定',
+        失败代价: '会受伤或损失资源，但大多能补救',
+        推荐人群: '第一次正式开档或想少一点折磨'
+    },
+    normal: {
+        id: 'normal',
+        label: '正常',
+        shortLabel: '标准江湖',
+        description: '标准体验，强调风险、收益、关系与代价之间的平衡。',
+        起始属性点: 30,
+        天赋重Roll次数: 5,
+        判定修正: 0,
+        敌方强度: '敌人按标准强度行动',
+        资源压力: '收益与消耗按标准江湖压力结算',
+        失败代价: '失败会带来伤势、关系或剧情门控损失',
+        推荐人群: '想体验默认平衡的长期存档'
+    },
+    hard: {
+        id: 'hard',
+        label: '困难',
+        shortLabel: '高压实战',
+        description: '更看重路线规划、补给、人情和战术判断，失误更疼。',
+        起始属性点: 26,
+        天赋重Roll次数: 3,
+        判定修正: -1,
+        敌方强度: '敌人更积极，攻防与追击压力提升',
+        资源压力: '收益减少，物价偏高，恢复更慢',
+        失败代价: '更容易留下长期后遗症或丢失关键机会',
+        推荐人群: '熟悉系统后想要更硬的生存压力'
+    },
+    extreme: {
+        id: 'extreme',
+        label: '极限',
+        shortLabel: '残酷求生',
+        description: '高风险挑战，任何错误都可能滚成不可逆后果。',
+        起始属性点: 22,
+        天赋重Roll次数: 1,
+        判定修正: -3,
+        敌方强度: '敌人强势且世界反应更严酷',
+        资源压力: '收益稀缺，消耗和物价压力最高',
+        失败代价: '可能触发重伤、残废、清算或主线断裂',
+        推荐人群: '想要硬核求生和高失败代价'
+    }
+};
+
+export const 难度总属性点映射: Record<游戏难度, number> = {
+    relaxed: 难度设定表.relaxed.起始属性点,
+    easy: 难度设定表.easy.起始属性点,
+    normal: 难度设定表.normal.起始属性点,
+    hard: 难度设定表.hard.起始属性点,
+    extreme: 难度设定表.extreme.起始属性点
+};
+
+export const 获取难度设定 = (difficulty?: 游戏难度): 难度设定结构 => (
+    难度设定表[difficulty || 'normal'] || 难度设定表.normal
+);
 
 export const 初始关系模板选项: Array<{ value: 初始关系模板类型; label: string; hint: string }> = [
     { value: '独行少系', label: '独行少系', hint: '初始社交网收束为 1~2 人，更偏向孤身闯荡。' },
@@ -150,7 +236,7 @@ export const 格式化角色替换规则摘要 = (
 };
 
 export const 获取难度总属性点 = (difficulty?: 游戏难度): number => (
-    难度总属性点映射[difficulty || 'normal'] || 难度总属性点映射.normal
+    获取难度设定(difficulty).起始属性点
 );
 
 export const 创建默认属性分配 = () => ({

@@ -159,6 +159,23 @@
       background: rgba(255, 255, 255, 0.06);
     }
 
+    pre {
+      margin: 12px 0 0;
+      padding: 14px;
+      overflow-x: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(0, 0, 0, 0.24);
+      color: #f8f0df;
+      line-height: 1.65;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+      white-space: pre;
+    }
+
     .guide-image {
       display: block;
       width: 100%;
@@ -174,7 +191,7 @@
     <section class="panel">
       <div class="badge">CNB COMFYUI GUIDE</div>
       <h1>如何构建属于自己的 CNB ComfyUI 后端</h1>
-      <p class="lead">客户侧操作其实很简单。注册并登录 CNB 后，Fork 指定仓库，点击红色按钮 <code>AI-创作启动</code>，再在墨色江湖填自己的 CNB 用户名称，即可自动连接自己的 ComfyUI。</p>
+      <p class="lead">客户侧操作其实很简单。注册并登录 CNB 后，Fork 指定仓库，进入工作区执行真实启动命令，再在墨色江湖填自己的 CNB 用户名称，即可自动连接自己的 ComfyUI。</p>
 
       <ol class="steps">
         <li class="step">
@@ -203,8 +220,11 @@
         <li class="step">
           <div class="num">4</div>
           <div>
-            <h2>点击红色按钮启动</h2>
-            <p>进入自己 Fork 后的仓库页面，直接点击红色按钮 <code>AI-创作启动</code>。系统会自动拉起 AI 创作环境，并按预设流程启动 ComfyUI。</p>
+            <h2>进入工作区执行启动命令</h2>
+            <p>进入自己 Fork 后的仓库页面，打开 CNB 工作区终端。不要执行 <code>init2</code>，也不要依赖模板里的 <code>qd</code> 兜底命令，直接运行下面这条真实命令：</p>
+            <pre><code>cd /workspace && \
+npm install && \
+npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-header '*'"</code></pre>
           </div>
         </li>
         <li class="step">

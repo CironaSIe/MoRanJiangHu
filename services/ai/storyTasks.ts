@@ -119,6 +119,38 @@ export interface NovelDecompositionCharacterProgressAnalysisResult {
     对下一组影响: string[];
 }
 
+export interface NovelDecompositionCharacterProfileAnalysisResult {
+    名称: string;
+    身份: string;
+    所属势力: string;
+    初始立场: string;
+    关系摘要: string[];
+    状态摘要: string[];
+    首次出现: string;
+    重要性: '核心' | '重要' | '一般';
+}
+
+export interface NovelDecompositionFactionProfileAnalysisResult {
+    名称: string;
+    类型: string;
+    地盘: string;
+    代表人物: string[];
+    立场目标: string;
+    当前状态: string;
+    关系摘要: string[];
+    首次出现: string;
+}
+
+export interface NovelDecompositionLocationProfileAnalysisResult {
+    名称: string;
+    层级: '大地点' | '中地点' | '小地点' | '具体地点' | '未知';
+    上级地点: string;
+    所属势力: string;
+    地貌功能: string;
+    关键设施: string[];
+    首次出现: string;
+}
+
 export interface NovelDecompositionAnalysisResult {
     groupNumber: number;
     chapterRange: string;
@@ -136,6 +168,9 @@ export interface NovelDecompositionAnalysisResult {
     timelineEnd: string;
     keyEvents: NovelDecompositionEventAnalysisResult[];
     characterProgressions: NovelDecompositionCharacterProgressAnalysisResult[];
+    characterProfiles: NovelDecompositionCharacterProfileAnalysisResult[];
+    factionProfiles: NovelDecompositionFactionProfileAnalysisResult[];
+    locationProfiles: NovelDecompositionLocationProfileAnalysisResult[];
     rawText: string;
 }
 
@@ -808,6 +843,9 @@ const 新小说拆分标题别名映射 = {
     原著硬约束: ['原著硬约束'],
     可提前铺垫: ['可提前铺垫'],
     登场角色: ['登场角色'],
+    角色档案: ['角色档案', '人物档案'],
+    势力档案: ['势力档案', '组织档案'],
+    地图地点档案: ['地图地点档案', '地点档案', '地图档案'],
     时间线起点: ['时间线起点', '本组开始时间', '本组开始时间线'],
     时间线终点: ['时间线终点', '本组结束时间', '本组结束时间线'],
     关键事件: ['关键事件'],
@@ -902,6 +940,9 @@ const 提取新小说拆分标题区块 = (text: string): Record<新小说拆分
         原著硬约束: [],
         可提前铺垫: [],
         登场角色: [],
+        角色档案: [],
+        势力档案: [],
+        地图地点档案: [],
         时间线起点: [],
         时间线终点: [],
         关键事件: [],
@@ -1013,6 +1054,18 @@ const 解析新小说拆分分隔列表 = (value: string): string[] => (value ||
     .split(/[、,，/｜|；;]/)
     .map((item) => item.trim())
     .filter((item) => item && item !== '无');
+
+const 解析新小说拆分重要性 = (value: unknown): '核心' | '重要' | '一般' => {
+    const text = String(value || '').trim();
+    if (text === '核心' || /core|主角|核心/.test(text)) return '核心';
+    if (text === '重要' || /important|关键|主要/.test(text)) return '重要';
+    return '一般';
+};
+
+const 解析新小说拆分地点层级 = (value: unknown): '大地点' | '中地点' | '小地点' | '具体地点' | '未知' => {
+    const text = String(value || '').trim();
+    return text === '大地点' || text === '中地点' || text === '小地点' || text === '具体地点' ? text : '未知';
+};
 
 const 解析新小说拆分数字 = (value: string, fallback = 1): number => {
     const numeric = Number((value || '').trim());
@@ -1168,6 +1221,21 @@ const 规范化新小说拆分结果 = (base: Omit<NovelDecompositionAnalysisRes
                 对下一组影响: 新小说拆分去重文本列表(item?.对下一组影响 || [], 12)
             }))
             .filter((item) => item.角色名)
+        : [],
+    characterProfiles: Array.isArray(base.characterProfiles)
+        ? base.characterProfiles
+            .map((item) => 规范化新小说拆分角色档案(item))
+            .filter((item) => item.名称)
+        : [],
+    factionProfiles: Array.isArray(base.factionProfiles)
+        ? base.factionProfiles
+            .map((item) => 规范化新小说拆分势力档案(item))
+            .filter((item) => item.名称)
+        : [],
+    locationProfiles: Array.isArray(base.locationProfiles)
+        ? base.locationProfiles
+            .map((item) => 规范化新小说拆分地点档案(item))
+            .filter((item) => item.名称)
         : []
 });
 
@@ -1211,6 +1279,20 @@ const 解析新小说拆分标签结果 = (rawText: string): NovelDecompositionA
                     .map((entry) => 解析新小说拆分可见信息条目(entry))
                     .filter((item) => item.内容),
                 appearingCharacters: 解析新小说拆分列表区块(sections.登场角色),
+                characterProfiles: 解析新小说拆分条目块(sections.角色档案).map((entry) => 规范化新小说拆分角色档案({
+                    ...entry,
+                    关系摘要: 解析新小说拆分分隔列表(entry.关系摘要 || ''),
+                    状态摘要: 解析新小说拆分分隔列表(entry.状态摘要 || '')
+                })),
+                factionProfiles: 解析新小说拆分条目块(sections.势力档案).map((entry) => 规范化新小说拆分势力档案({
+                    ...entry,
+                    代表人物: 解析新小说拆分分隔列表(entry.代表人物 || ''),
+                    关系摘要: 解析新小说拆分分隔列表(entry.关系摘要 || '')
+                })),
+                locationProfiles: 解析新小说拆分条目块(sections.地图地点档案).map((entry) => 规范化新小说拆分地点档案({
+                    ...entry,
+                    关键设施: 解析新小说拆分分隔列表(entry.关键设施 || '')
+                })),
                 timelineStart: (sections.时间线起点 || '').trim(),
                 timelineEnd: (sections.时间线终点 || '').trim(),
                 keyEvents: 解析新小说拆分条目块(sections.关键事件).map((entry) => ({
@@ -1309,6 +1391,21 @@ const 解析新小说拆分结果 = (rawText: string): NovelDecompositionAnalysi
                 : Array.isArray(data?.登场角色)
                     ? data.登场角色.map((item: any) => String(item || '').trim()).filter(Boolean)
                     : [],
+            characterProfiles: Array.isArray(data?.characterProfiles)
+                ? data.characterProfiles.map((item: any) => 规范化新小说拆分角色档案(item)).filter((item: any) => item.名称)
+                : Array.isArray(data?.角色档案)
+                    ? data.角色档案.map((item: any) => 规范化新小说拆分角色档案(item)).filter((item: any) => item.名称)
+                    : [],
+            factionProfiles: Array.isArray(data?.factionProfiles)
+                ? data.factionProfiles.map((item: any) => 规范化新小说拆分势力档案(item)).filter((item: any) => item.名称)
+                : Array.isArray(data?.势力档案)
+                    ? data.势力档案.map((item: any) => 规范化新小说拆分势力档案(item)).filter((item: any) => item.名称)
+                    : [],
+            locationProfiles: Array.isArray(data?.locationProfiles)
+                ? data.locationProfiles.map((item: any) => 规范化新小说拆分地点档案(item)).filter((item: any) => item.名称)
+                : Array.isArray(data?.地图地点档案)
+                    ? data.地图地点档案.map((item: any) => 规范化新小说拆分地点档案(item)).filter((item: any) => item.名称)
+                    : [],
             timelineStart: typeof data?.timelineStart === 'string'
                 ? data.timelineStart.trim()
                 : typeof data?.时间线起点 === 'string'
@@ -1397,6 +1494,38 @@ const 解析规划补丁结果 = (
         notes
     };
 };
+
+const 规范化新小说拆分角色档案 = (raw: any): NovelDecompositionCharacterProfileAnalysisResult => ({
+    名称: typeof raw?.名称 === 'string' ? raw.名称.trim() : typeof raw?.name === 'string' ? raw.name.trim() : '',
+    身份: typeof raw?.身份 === 'string' ? raw.身份.trim() : typeof raw?.identity === 'string' ? raw.identity.trim() : '',
+    所属势力: typeof raw?.所属势力 === 'string' ? raw.所属势力.trim() : typeof raw?.faction === 'string' ? raw.faction.trim() : '',
+    初始立场: typeof raw?.初始立场 === 'string' ? raw.初始立场.trim() : typeof raw?.stance === 'string' ? raw.stance.trim() : '',
+    关系摘要: 新小说拆分去重文本列表(Array.isArray(raw?.关系摘要) ? raw.关系摘要 : Array.isArray(raw?.relationships) ? raw.relationships : [], 12),
+    状态摘要: 新小说拆分去重文本列表(Array.isArray(raw?.状态摘要) ? raw.状态摘要 : Array.isArray(raw?.states) ? raw.states : [], 12),
+    首次出现: typeof raw?.首次出现 === 'string' ? raw.首次出现.trim() : typeof raw?.firstSeen === 'string' ? raw.firstSeen.trim() : '',
+    重要性: 解析新小说拆分重要性(raw?.重要性 ?? raw?.importance)
+});
+
+const 规范化新小说拆分势力档案 = (raw: any): NovelDecompositionFactionProfileAnalysisResult => ({
+    名称: typeof raw?.名称 === 'string' ? raw.名称.trim() : typeof raw?.name === 'string' ? raw.name.trim() : '',
+    类型: typeof raw?.类型 === 'string' ? raw.类型.trim() : typeof raw?.type === 'string' ? raw.type.trim() : '',
+    地盘: typeof raw?.地盘 === 'string' ? raw.地盘.trim() : typeof raw?.territory === 'string' ? raw.territory.trim() : '',
+    代表人物: 新小说拆分去重文本列表(Array.isArray(raw?.代表人物) ? raw.代表人物 : Array.isArray(raw?.representatives) ? raw.representatives : [], 12),
+    立场目标: typeof raw?.立场目标 === 'string' ? raw.立场目标.trim() : typeof raw?.goal === 'string' ? raw.goal.trim() : '',
+    当前状态: typeof raw?.当前状态 === 'string' ? raw.当前状态.trim() : typeof raw?.status === 'string' ? raw.status.trim() : '',
+    关系摘要: 新小说拆分去重文本列表(Array.isArray(raw?.关系摘要) ? raw.关系摘要 : Array.isArray(raw?.relationships) ? raw.relationships : [], 12),
+    首次出现: typeof raw?.首次出现 === 'string' ? raw.首次出现.trim() : typeof raw?.firstSeen === 'string' ? raw.firstSeen.trim() : ''
+});
+
+const 规范化新小说拆分地点档案 = (raw: any): NovelDecompositionLocationProfileAnalysisResult => ({
+    名称: typeof raw?.名称 === 'string' ? raw.名称.trim() : typeof raw?.name === 'string' ? raw.name.trim() : '',
+    层级: 解析新小说拆分地点层级(raw?.层级 ?? raw?.level),
+    上级地点: typeof raw?.上级地点 === 'string' ? raw.上级地点.trim() : typeof raw?.parent === 'string' ? raw.parent.trim() : '',
+    所属势力: typeof raw?.所属势力 === 'string' ? raw.所属势力.trim() : typeof raw?.faction === 'string' ? raw.faction.trim() : '',
+    地貌功能: typeof raw?.地貌功能 === 'string' ? raw.地貌功能.trim() : typeof raw?.function === 'string' ? raw.function.trim() : '',
+    关键设施: 新小说拆分去重文本列表(Array.isArray(raw?.关键设施) ? raw.关键设施 : Array.isArray(raw?.facilities) ? raw.facilities : [], 12),
+    首次出现: typeof raw?.首次出现 === 'string' ? raw.首次出现.trim() : typeof raw?.firstSeen === 'string' ? raw.firstSeen.trim() : ''
+});
 
 const 构建规划分析消息链 = (
     params: {

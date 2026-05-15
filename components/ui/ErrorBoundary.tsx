@@ -47,7 +47,7 @@ class ErrorBoundary extends React.Component<Props, State> {
                 <div className="mx-auto max-w-3xl rounded-2xl border border-amber-300/30 bg-stone-950/95 p-5 shadow-2xl">
                     <div className="text-xl font-bold text-amber-200">应用界面加载失败</div>
                     <p className="mt-3 text-sm leading-6 text-amber-100/85">
-                        这通常是前端渲染时遇到了异常。请先刷新页面重试；如果仍然失败，把下面的错误信息发给维护人员即可定位。
+                        这通常是前端渲染时遇到了异常。请先刷新页面重试；如果仍然失败，可打开“设置 → 运行日志”查看详情、复制诊断或点击“上报日志”提交给维护人员。
                     </p>
                     <pre className="mt-4 max-h-[45vh] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-amber-300/15 bg-black/45 p-4 text-xs leading-6 text-amber-50">
                         {stack || message}

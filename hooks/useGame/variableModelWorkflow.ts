@@ -161,6 +161,27 @@ const 文本疑似占位 = (value: unknown): boolean => {
     return /^(普通|正常|略)$/.test(normalized);
 };
 
+const 私密字段缺少名器锚点 = (value: unknown): boolean => {
+    const text = 读取文本(value);
+    if (文本疑似占位(text)) return true;
+    if (/名器|无名器|无对应名器/.test(text)) return false;
+    if (/^[^：:]{2,12}[：:]/.test(text)) return false;
+    return true;
+};
+
+const 名器档案不完整 = (value: unknown): boolean => {
+    if (!Array.isArray(value) || value.length < 3) return true;
+    const requiredParts = ['胸部', '小穴', '屁穴'];
+    return requiredParts.some((part) => {
+        const entry = value.find((item: any) => item?.部位 === part);
+        if (!entry || typeof entry !== 'object') return true;
+        if (文本疑似占位(entry?.名称)) return true;
+        if (文本疑似占位(entry?.稳定描述)) return true;
+        if (!entry?.效果 || typeof entry.效果 !== 'object' || 文本疑似占位(entry.效果?.说明)) return true;
+        return false;
+    });
+};
+
 const 高颜值关键词 = [
     '漂亮', '美貌', '惊艳', '绝色', '清丽', '妩媚', '美艳', '艳丽',
     '秀美', '绝美', '倾城', '国色', '明艳', '俏丽', '动人', '美人', '佳人'
@@ -207,9 +228,10 @@ const 构建社交档案完整性审计提示 = (socialRaw: unknown): string => 
             if (文本疑似占位(npc?.外貌描写)) 重要女性缺口.push('外貌描写');
             if (文本疑似占位(npc?.身材描写)) 重要女性缺口.push('身材描写');
             if (文本疑似占位(npc?.衣着风格)) 重要女性缺口.push('衣着风格');
-            if (文本疑似占位(npc?.胸部描述)) 重要女性缺口.push('胸部描述');
-            if (文本疑似占位(npc?.小穴描述)) 重要女性缺口.push('小穴描述');
-            if (文本疑似占位(npc?.屁穴描述)) 重要女性缺口.push('屁穴描述');
+            if (私密字段缺少名器锚点(npc?.胸部描述)) 重要女性缺口.push('胸部描述(需名器名称或无名器结论)');
+            if (私密字段缺少名器锚点(npc?.小穴描述)) 重要女性缺口.push('小穴描述(需名器名称或无名器结论)');
+            if (私密字段缺少名器锚点(npc?.屁穴描述)) 重要女性缺口.push('屁穴描述(需名器名称或无名器结论)');
+            if (名器档案不完整(npc?.名器档案)) 重要女性缺口.push('名器档案(胸部/小穴/屁穴结构化效果)');
             if (文本疑似占位(npc?.性癖)) 重要女性缺口.push('性癖');
             if (文本疑似占位(npc?.敏感点)) 重要女性缺口.push('敏感点');
             if (!npc?.子宫 || 文本疑似占位(npc?.子宫?.状态) || 文本疑似占位(npc?.子宫?.宫口状态)) {
@@ -239,10 +261,25 @@ const 构建社交档案完整性审计提示 = (socialRaw: unknown): string => 
         '【当前社交档案完整性审计】',
         '- 每回合变量更新都要复核现有 `社交` 档案是否存在结构缺口、占位值或关键字段遗漏，不只看本回合新登场人物。',
         '- 若本回合正文、`<变量规划>`、当前状态与既有档案真值已经足以支撑缺项，就同步补齐；不要继续保留半残对象。',
+        '- 对“女性 + 主要角色 + 高颜值明确”的 NPC，`胸部描述 / 小穴描述 / 屁穴描述`必须分别写成“名器名称或无名器结论：具体档案描述”；不要只写泛化形容词，也不要把名器判定只放在正文或记忆里。',
+        '- `小穴描述`优先使用名器录的小穴名器名称，`屁穴描述`优先使用后庭篇名器名称，`胸部描述`若无胸乳类名器条目则写“无对应名器：...”并补足常态档案。',
+        '- 同步维护 `名器档案`：至少胸部/小穴/屁穴三条，名称和三处描述一致；若已启用名器世界书，效果字段必须从对应“固定机制效果表”复制，AI 只负责选择名器，不自行生成品质、修正、标签或说明。',
         '',
         ...visibleLines
     ].join('\n');
 };
+
+const 名器世界书触发词 = [
+    '名器',
+    '名器录',
+    '初次判定',
+    '索引表',
+    '名器概率表',
+    '臀部名器',
+    '索引表-臀部',
+    '后庭名器',
+    '索引表-后庭'
+].join('\n');
 
 const 序列化命令去重键 = (cmd: TavernCommand): string => {
     let valueText = 'null';
@@ -314,7 +351,10 @@ export const 执行变量模型校准工作流 = async (
             scopes: ['variable_calibration'],
             environment: params.baseState.环境,
             social: params.baseState.社交,
-            extraTexts: [params.playerInput]
+            extraTexts: [
+                params.playerInput,
+                runtimeGameConfig.启用NSFW模式 === true ? 名器世界书触发词 : ''
+            ]
         }).combinedText, runtimeGameConfig),
         按功能开关过滤提示词内容(fandomPromptBundle.同人设定摘要, runtimeGameConfig),
         socialCompletenessAuditPrompt,

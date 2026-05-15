@@ -4,7 +4,7 @@ import {
     用已发现ComfyUI后端替换地址,
     type 当前可用接口结构
 } from '../../utils/apiConfig';
-import type { 香闺秘档部位类型 } from '../../models/imageGeneration';
+import type { 生图构图类型, 香闺秘档部位类型 } from '../../models/imageGeneration';
 import type { PNG解析参数结构, PNG画风预设来源类型, 角色锚点结构, 图片词组序列化策略类型 } from '../../models/system';
 import { 角色图片分词COT伪装历史消息提示词 } from '../../prompts/runtime/imageTokenizerCharacterCot';
 import { 场景图片分词COT伪装历史消息提示词 } from '../../prompts/runtime/imageTokenizerSceneCot';
@@ -91,8 +91,8 @@ type NPC秘档部位提示词选项 = {
 type 分词器任务类型 = '角色' | '场景' | '部位特写';
 
 const 自动去水印负面提示词 = 'text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, watermark, signature, username, logo, artist name, web address, url, copyright, subtitle, subtitles, title, poster text, comic text, manga text, dialogue text, speech bubble, dialogue box, word balloon, UI overlay, interface text, date stamp, QR code, barcode, poster layout, magazine cover, comic page, comic panel, manga panel, callout, text box, white oval bubble, black outline bubble, overlay, title card, credits, framed text, floating label, name tag';
-const 全局无文字正向提示词 = 'plain single image, clean composition, no graphic design layout, no poster layout, no comic panel, no text overlay, no captions, no subtitles, no callout, no speech bubble, no watermark, no logo, no signature, no typography, no letters, no Chinese characters, no English letters';
-const 部位特写单图正向提示词 = 'single image, one frame, one subject only, extreme close-up macro crop, target fills the frame, plain blurred background, no collage, no panel layout, no reference sheet, no bottom strip';
+const 全局无文字正向提示词 = 'plain single image, clean composition, uncluttered visual presentation, natural subject focus, clear silhouette';
+const 部位特写单图正向提示词 = 'single image, one frame, one subject only, extreme close-up macro crop, target fills the frame, plain blurred background, cohesive macro composition';
 const 部位特写反拼贴负面提示词 = 'multiple views, split screen, panel layout, comic panel, comic page, manga panel, story panels, collage, contact sheet, reference sheet, character sheet, turnaround, comparison sheet, montage, triptych, diptych, quadriptych, grid layout, tiled composition, thumbnails, bottom strip, inset image, duplicate anatomy, mirrored anatomy, repeated organ, multiple organs, multiple nipples, extra nipples, multiple genitals, extra genitals';
 const 默认NovelAI负面提示词 = 'photorealistic, realistic, 3d, rendering, unreal engine, octane render, real life, photography, bokeh, lowres, bad anatomy, bad hands, text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, logo, blurry, artist name, border, out of frame, subtitles, title, poster text, speech bubble, dialogue box, word balloon, UI overlay, date stamp, QR code, barcode';
 const 默认分词器AI角色提示词 = [
@@ -1807,9 +1807,17 @@ const 提取ComfyUI失败信息 = (historyPayload: any): string | null => {
     const messages = Array.isArray(status.messages) ? status.messages : [];
     const executionError = messages.find((entry: any) => Array.isArray(entry) && String(entry[0] || '').toLowerCase().includes('error'));
     if (statusText === 'error' || executionError) {
-        const detail = Array.isArray(executionError)
-            ? JSON.stringify(executionError[1] || executionError).slice(0, 800)
-            : '';
+        const payload = Array.isArray(executionError) ? (executionError[1] || executionError) : null;
+        const nodeId = typeof payload?.node_id === 'string' ? payload.node_id : '';
+        const nodeType = typeof payload?.node_type === 'string' ? payload.node_type : '';
+        const exceptionType = typeof payload?.exception_type === 'string' ? payload.exception_type : '';
+        const exceptionMessage = typeof payload?.exception_message === 'string' ? payload.exception_message.trim() : '';
+        const detailParts = [
+            nodeId || nodeType ? `节点 ${nodeId || '未知'}${nodeType ? ` (${nodeType})` : ''}` : '',
+            exceptionType || exceptionMessage ? `${exceptionType || 'Error'}${exceptionMessage ? `: ${exceptionMessage}` : ''}` : '',
+            payload ? `原始错误：${JSON.stringify(payload).slice(0, 4000)}` : ''
+        ].filter(Boolean);
+        const detail = detailParts.join('\n');
         return `ComfyUI 工作流执行失败${detail ? `：${detail}` : ''}`;
     }
     if (completed && statusText === 'success' && !提取ComfyUI图片地址(historyPayload, '')) {
@@ -3697,7 +3705,7 @@ export const generateImageByPrompt = async (
     prompt: string,
     apiConfig: 当前可用接口结构,
     signal?: AbortSignal,
-    options?: { 构图?: '头像' | '半身' | '立绘' | '场景' | '部位特写'; 场景类型?: 场景生成类型; 附加正向提示词?: string; 附加负面提示词?: string; 尺寸?: string; 跳过基础负面提示词?: boolean; PNG参数?: PNG解析参数结构 }
+    options?: { 构图?: 生图构图类型; 场景类型?: 场景生成类型; 附加正向提示词?: string; 附加负面提示词?: string; 尺寸?: string; 跳过基础负面提示词?: boolean; PNG参数?: PNG解析参数结构 }
 ): Promise<图片生成结果> => {
     const endpoint = 构建图片端点(apiConfig.baseUrl, apiConfig.图片接口路径);
     if (!endpoint) throw new Error('Missing API Base URL');

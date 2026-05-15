@@ -337,6 +337,143 @@ const 提炼世界演变剧情锚点 = (storyLike: unknown) => {
     };
 };
 
+const 势力名称后缀正则 = '(?:家族|世家|氏族|宗门|门派|商会|镖局|官府|帮派|联盟|山庄|武馆|书院|寺|观|教|宫|谷|岛|寨|庄|堡|门|派|宗|帮|盟|氏)';
+const 地盘线索正则 = '[\\u4e00-\\u9fa5]{1,6}(?:州|郡|城|县|府|国|关|镇|山|谷|岛|港|渡|域)';
+const 势力包裹符号正则 = /[\s"'“”‘’「」『』《》【】（）()、，,。.!！?？:：;；]/g;
+const 候选势力噪声词 = new Set([
+    '机会', '大会', '晚会', '不会', '便会', '只会', '就会', '却会', '总会',
+    '入门', '出门', '山门', '门', '派', '宗', '帮', '盟', '氏'
+]);
+
+const 规范化势力名称 = (raw: unknown): string => (
+    typeof raw === 'string' ? raw : ''
+)
+    .replace(势力包裹符号正则, '')
+    .trim();
+
+const 清理地盘线索 = (raw: unknown): string => 规范化势力名称(raw)
+    .replace(/^.*[了在至到赴入出往从向于]/, '')
+    .trim();
+
+const 清理候选势力名称 = (raw: string, territory?: string): string => {
+    let name = 规范化势力名称(raw)
+        .replace(/^[的之与和及同由从向在对为把将被令让使其这那此]+/, '')
+        .replace(/[的之与和及同由从向在对为把将被令让使其这那此]+$/, '');
+
+    const cleanedTerritory = 清理地盘线索(territory || '');
+    if (cleanedTerritory && name.startsWith(cleanedTerritory) && name.length > cleanedTerritory.length + 1) {
+        name = name.slice(cleanedTerritory.length);
+    }
+
+    const embeddedTerritory = name.match(new RegExp(`^(${地盘线索正则})(${势力名称后缀正则.replace('(?:', '[\\u4e00-\\u9fa5]{2,12}(?:')})$`));
+    if (embeddedTerritory?.[2]) {
+        name = embeddedTerritory[2];
+    }
+
+    return name;
+};
+
+const 推断势力类型 = (name: string): string => {
+    if (/家族|世家|氏族|氏$/.test(name)) return '家族';
+    if (/商会/.test(name)) return '商会';
+    if (/镖局/.test(name)) return '镖局';
+    if (/官府|府衙|衙门/.test(name)) return '官府';
+    if (/联盟|盟$/.test(name)) return '散修联盟';
+    if (/帮派|帮$|寨|堡/.test(name)) return '帮派';
+    if (/宗门|门派|宗$|门$|派$|寺|观|教|宫|谷|岛|山庄|武馆|书院/.test(name)) return '门派';
+    return '其他';
+};
+
+const 提取既有势力名称集合 = (worldLike: unknown): string[] => {
+    const world = worldLike && typeof worldLike === 'object' && !Array.isArray(worldLike)
+        ? worldLike as Record<string, unknown>
+        : {};
+    const factionList = Array.isArray(world.势力列表) ? world.势力列表 : [];
+    return factionList
+        .flatMap((item) => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+            const record = item as Record<string, unknown>;
+            return [record.名称, record.ID]
+                .map(规范化势力名称)
+                .filter(Boolean);
+        });
+};
+
+const 是否候选势力噪声 = (name: string): boolean => {
+    if (name.length < 2 || name.length > 12) return true;
+    if (候选势力噪声词.has(name)) return true;
+    if (/^[一二三四五六七八九十百千万年月日时刻]+/.test(name)) return true;
+    return false;
+};
+
+const 势力名称已存在 = (name: string, existingNames: string[]): boolean => {
+    const normalized = 规范化势力名称(name);
+    if (!normalized) return true;
+    return existingNames.some((existing) => {
+        if (!existing) return false;
+        return existing === normalized || existing.includes(normalized) || normalized.includes(existing);
+    });
+};
+
+const 取证据片段 = (text: string, start: number, length: number): string => text
+    .slice(Math.max(0, start - 12), Math.min(text.length, start + length + 12))
+    .replace(/\s+/g, ' ')
+    .trim();
+
+export const 提取正文势力补录线索 = (params: {
+    text?: string;
+    worldData?: unknown;
+}): string[] => {
+    const text = (params.text || '').trim();
+    if (!text) return [];
+
+    const existingNames = 提取既有势力名称集合(params.worldData);
+    const candidates = new Map<string, { 名称: string; 类型: string; 地盘线索: string; 证据: string }>();
+    const addCandidate = (rawName: string, start: number, rawLength: number, territory?: string) => {
+        const name = 清理候选势力名称(rawName, territory);
+        if (是否候选势力噪声(name)) return;
+        if (势力名称已存在(name, existingNames)) return;
+
+        const key = 规范化势力名称(name);
+        if (!key || candidates.has(key)) return;
+        candidates.set(key, {
+            名称: name,
+            类型: 推断势力类型(name),
+            地盘线索: 清理地盘线索(territory || ''),
+            证据: 取证据片段(text, start, rawLength)
+        });
+    };
+
+    const regionPattern = new RegExp(`(${地盘线索正则})[的境内所属所辖一带附近\\s，、：:；;“"‘'「『《]*([\\u4e00-\\u9fa5]{2,12}${势力名称后缀正则})[”"’'」』》]?`, 'g');
+    for (const match of text.matchAll(regionPattern)) {
+        const territory = match[1] || '';
+        const rawName = match[2] || '';
+        const nameOffset = match[0].indexOf(rawName);
+        addCandidate(rawName, match.index + Math.max(0, nameOffset), rawName.length, territory);
+    }
+
+    const quotedPattern = new RegExp(`[“"‘'「『《]([\\u4e00-\\u9fa5]{2,12}${势力名称后缀正则})[”"’'」』》]`, 'g');
+    for (const match of text.matchAll(quotedPattern)) {
+        const rawName = match[1] || '';
+        const nameOffset = match[0].indexOf(rawName);
+        addCandidate(rawName, match.index + Math.max(0, nameOffset), rawName.length);
+    }
+
+    const standalonePattern = new RegExp(`(?:^|[^\\u4e00-\\u9fa5])([\\u4e00-\\u9fa5]{2,12}${势力名称后缀正则})(?=$|[^\\u4e00-\\u9fa5])`, 'g');
+    for (const match of text.matchAll(standalonePattern)) {
+        const rawName = match[1] || '';
+        const nameOffset = match[0].indexOf(rawName);
+        addCandidate(rawName, match.index + Math.max(0, nameOffset), rawName.length);
+    }
+
+    return Array.from(candidates.values())
+        .slice(0, 5)
+        .map((candidate) => {
+            const territoryText = candidate.地盘线索 || '未明';
+            return `正文提到疑似新势力「${candidate.名称}」（类型倾向：${candidate.类型}，地盘线索：${territoryText}，证据：${candidate.证据}）。当前世界.势力列表未包含；若它具备资源、地盘、血缘组织、商路、冲突或政治影响，请用 \`push 世界.势力列表 = {...}\` 补完整势力结构，并同步必要的关系网或势力互动。`;
+        });
+};
+
 export const 构建世界演变上下文文本 = (params: {
     worldPrompt?: string;
     worldEvolutionPrompt?: string;
@@ -367,9 +504,14 @@ export const 构建世界演变上下文文本 = (params: {
     const dueHints = (Array.isArray(params.dueHints) ? params.dueHints : [])
         .map(item => (item || '').trim())
         .filter(Boolean);
+    const factionBackfillHints = 提取正文势力补录线索({
+        text: [currentTurnBody, currentTurnPlanText, currentTurnCommandsText].filter(Boolean).join('\n'),
+        worldData: params.worldData
+    });
     const evolutionCandidates = [
         ...dynamicHints.map(item => `线索驱动：${item}`),
-        ...dueHints.map(item => `到期驱动：${item}`)
+        ...dueHints.map(item => `到期驱动：${item}`),
+        ...factionBackfillHints.map(item => `势力补录：${item}`)
     ];
 
     return [
@@ -411,6 +553,9 @@ export const 构建世界演变上下文文本 = (params: {
         '',
         '【到期触发摘要】',
         dueHints.length > 0 ? dueHints.map(item => `- ${item}`).join('\n') : '- 无',
+        '',
+        '【正文势力补录候选】',
+        factionBackfillHints.length > 0 ? factionBackfillHints.map(item => `- ${item}`).join('\n') : '- 无',
         '',
         '【本回合可触发演变候选】',
         evolutionCandidates.length > 0 ? evolutionCandidates.map(item => `- ${item}`).join('\n') : '- 无'

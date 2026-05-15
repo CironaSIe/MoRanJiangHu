@@ -50,7 +50,16 @@ const 获取画风附加要求 = (style?: 当前可用接口结构['画风']): s
         case '国风':
             return '附加画风要求：整体场景偏国风武侠/仙侠 2D 插画，强调山水写意、中式建筑细节、空气透视、烟霞与古典氛围。';
         case '写实':
-            return '附加画风要求：整体场景偏细腻质感的 2D 写实环境插画，强调木石布料材质、体积光影和空间真实感，但禁止照片感。';
+            return '附加画风要求：整体场景必须偏照片级写实/电影剧照质感（photorealistic cinematic still），强调真实空间透视、真实材质、自然镜头光影和生活化细节，避免动漫背景、赛璐璐、扁平插画和卡通人物。';
+        default:
+            return '';
+    }
+};
+
+const 获取画风负面提示词 = (style?: 当前可用接口结构['画风']): string => {
+    switch (style) {
+        case '写实':
+            return 'anime, manga, cartoon, cel shading, flat illustration, 2d illustration, line art, drawn face, toon face, game cg, visual novel, chibi, exaggerated anime eyes';
         default:
             return '';
     }
@@ -126,7 +135,8 @@ export const 执行场景生图工作流 = async (
         .join(', ');
     const 兼容模式风格提示词 = 词组转化兼容模式 ? 非画师风格正面提示词 : '';
     const 前置正向提示词 = [画师串, 词组转化兼容模式 ? '' : 非画师风格正面提示词].filter(Boolean).join(', ');
-    const 合并负向画师串 = [(画师串预设?.负面提示词 || '').trim(), 角色锚点负面提示词, (PNG画风预设?.负面提示词 || '').trim()].filter(Boolean).join(', ');
+    const 画风负面提示词 = 获取画风负面提示词(params.画风);
+    const 合并负向画师串 = [画风负面提示词, (画师串预设?.负面提示词 || '').trim(), 角色锚点负面提示词, (PNG画风预设?.负面提示词 || '').trim()].filter(Boolean).join(', ');
     const 纯场景额外负面提示词 = params.构图要求 === '纯场景'
         ? 'people, person, human, man, woman, boy, girl, child, silhouette, crowd, face, eyes, hands, body, nude, nsfw, character, portrait, 1girl, 1boy, 1man, 1woman'
         : '';

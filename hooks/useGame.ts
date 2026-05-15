@@ -144,6 +144,7 @@ import { 合并变量校准结果到响应 as 合并变量生成结果到响应 
 import { 获取图片展示地址, 压缩图片资源字段 } from '../utils/imageAssets';
 import { 设置键 } from '../utils/settingsSchema';
 import { countOpenAIChatMessagesTokens, countOpenAITextTokens } from '../utils/tokenEstimate';
+import { 执行游戏后台重计算 } from '../utils/gameHeavyWorkerClient';
 
 const 加载图片AI服务 = () => import('../services/ai/image/runtime');
 const 加载NPC生图工作流 = () => import('./useGame/npcImageWorkflow');
@@ -406,6 +407,7 @@ export const useGame = () => {
     const NPC生图进行中Ref = useRef<Set<string>>(new Set());
     const 主角生图进行中Ref = useRef<Set<string>>(new Set());
     const 主角自动生图处理器Ref = useRef<(player: 角色数据结构) => void>(() => undefined);
+    const 主角每回合生图检查器Ref = useRef<(player: 角色数据结构) => void>(() => undefined);
     const NPC香闺秘档生图进行中Ref = useRef<Set<string>>(new Set());
     const NPC自动生图签名Ref = useRef<Set<string>>(new Set());
     const NPC自动香闺秘档生图签名Ref = useRef<Set<string>>(new Set());
@@ -1343,12 +1345,39 @@ export const useGame = () => {
             if (registryUrl || registryConnectToken) {
                 刷新已发现ComfyUI后端缓存(registryUrl, registryConnectToken).then((backends) => {
                     if (!backends?.length) return;
-                    const bestUrl = backends[0]?.url;
+                    const normalizeUrl = (value: unknown) => String(value || '').trim().replace(/\/+$/, '');
+                    const bestUrl = normalizeUrl(backends[0]?.url);
                     if (!bestUrl) return;
                     const cur = apiConfigRef.current as any;
                     const f = cur?.功能模型占位;
-                    if (f?.文生图后端类型 === 'comfyui' && !f?.文生图模型API地址?.trim()) {
-                        const next = { ...cur, 功能模型占位: { ...f, 文生图模型API地址: bestUrl } };
+                    if (!f) return;
+                    const isCnbUrl = (value: string) => /\.cnb\.run(?:[/:]|$)/i.test(value);
+                    let nextFeature = f;
+                    const syncComfyDiscoveredUrl = (
+                        enabled: boolean,
+                        backendType: unknown,
+                        idKey: string,
+                        urlKey: string
+                    ) => {
+                        if (!enabled || backendType !== 'comfyui') return;
+                        const currentUrl = normalizeUrl(nextFeature?.[urlKey]);
+                        const selectedId = String(nextFeature?.[idKey] || '').trim();
+                        const matched = selectedId ? backends.find((item) => item.id === selectedId) : null;
+                        const nextUrl = normalizeUrl(matched?.url || (!currentUrl || isCnbUrl(currentUrl) ? bestUrl : ''));
+                        if (!nextUrl || nextUrl === currentUrl) return;
+                        nextFeature = {
+                            ...nextFeature,
+                            [urlKey]: nextUrl,
+                            ...(matched?.id ? { [idKey]: matched.id } : {})
+                        };
+                    };
+
+                    syncComfyDiscoveredUrl(true, f.文生图后端类型, '当前图片后端发现ID', '文生图模型API地址');
+                    syncComfyDiscoveredUrl(Boolean(f.场景生图独立接口启用), f.场景生图后端类型, '当前场景图片后端发现ID', '场景生图模型API地址');
+                    syncComfyDiscoveredUrl(Boolean(f.NSFW生图独立接口启用), f.NSFW生图后端类型, '当前NSFW图片后端发现ID', 'NSFW生图模型API地址');
+
+                    if (nextFeature !== f) {
+                        const next = { ...cur, 功能模型占位: nextFeature };
                         apiConfigRef.current = next;
                         setApiConfig(next);
                         dbService.保存设置(设置键.API配置, next).catch(() => {});
@@ -2055,6 +2084,15 @@ export const useGame = () => {
         });
     };
 
+    const 触发对白NPC头像补全 = (npcListRaw: any[]) => {
+        const npcList = (Array.isArray(npcListRaw) ? npcListRaw : [])
+            .filter((npc: any) => npc?.对白登场 === true || npc?.自动补全头像 === true);
+        if (npcList.length === 0) return;
+        npcList.forEach((npc) => {
+            void 执行NPC自动构图任务(npc, '头像', { force: true }).catch(() => undefined);
+        });
+    };
+
     const 构建主要角色资源缺口签名 = (npcList: any[]): string => {
         return (Array.isArray(npcList) ? npcList : [])
             .filter((npc) => npc?.是否主要角色 === true && typeof npc?.id === 'string' && npc.id.trim())
@@ -2365,19 +2403,26 @@ export const useGame = () => {
             世界书附加文本?: string[];
             openingConfig?: OpeningConfig;
         }
-    ) => 构建系统提示词工作流({
-        promptPool,
-        memoryData,
-        socialData,
-        statePayload,
-        gameConfig,
-        memoryConfig,
-        fallbackPlayerName: 角色?.姓名,
-        builtinPromptEntries: 内置提示词列表,
-        worldbooks: 世界书列表,
-        worldEvolutionEnabled: 世界演变功能已开启(),
-        options
-    });
+    ) => {
+        const payload = {
+            promptPool,
+            memoryData,
+            socialData,
+            statePayload,
+            gameConfig,
+            memoryConfig,
+            fallbackPlayerName: 角色?.姓名,
+            builtinPromptEntries: 内置提示词列表,
+            worldbooks: 世界书列表,
+            worldEvolutionEnabled: 世界演变功能已开启(),
+            options
+        };
+        return 执行游戏后台重计算(
+            'buildSystemPrompt',
+            payload,
+            () => 构建系统提示词工作流(payload)
+        );
+    };
 
     const processResponseCommands = (
         response: GameResponse,
@@ -2843,6 +2888,16 @@ export const useGame = () => {
                 执行正文润色,
                 执行世界演变更新,
                 触发新增NPC自动生图,
+                触发对白NPC头像补全,
+                检查主角每回合生图: (player) => {
+                    const handler = 主角每回合生图检查器Ref.current;
+                    if (typeof handler !== 'function') return;
+                    try {
+                        handler(player);
+                    } catch (error) {
+                        console.warn('主角每回合生图检查器异常，已避免打断主线流程', error);
+                    }
+                },
                 触发场景自动生图,
                 应用常驻壁纸为背景,
                 提取新增NPC列表,
@@ -3284,7 +3339,8 @@ export const useGame = () => {
         clearPlayerPortraitImage: 清除主角立绘图片,
         removePlayerImageRecord: 删除主角图片记录,
         generatePlayerImageManually: 生成主角图片,
-        generatePlayerImagesAutomatically: 自动生成主角图片
+        generatePlayerImagesAutomatically: 自动生成主角图片,
+        ensurePlayerAvatarEachTurn: 检查主角每回合头像
     } = 创建主角图片工作流({
         获取角色: () => 角色,
         设置角色,
@@ -3320,6 +3376,13 @@ export const useGame = () => {
             return;
         }
         void 自动生成主角图片(player).catch(() => undefined);
+    };
+    主角每回合生图检查器Ref.current = (player: 角色数据结构) => {
+        if (typeof 检查主角每回合头像 !== 'function') {
+            console.warn('主角每回合头像检查方法尚未就绪，跳过本次自动触发');
+            return;
+        }
+        void 检查主角每回合头像(player).catch(() => undefined);
     };
 
     return {

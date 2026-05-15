@@ -249,9 +249,11 @@ type 主剧情发送依赖 = {
     设置剧情: (value: 剧情系统结构) => void;
     设置历史记录: (value: 聊天记录结构[] | ((prev: 聊天记录结构[]) => 聊天记录结构[])) => void;
     应用并同步记忆系统: (memory: 记忆系统结构, options?: { 静默总结提示?: boolean }) => void;
-    构建系统提示词: (promptPool: any[], memoryData: 记忆系统结构, socialData: any[], statePayload: any, options?: any) => 主剧情系统上下文 & {
+    构建系统提示词: (promptPool: any[], memoryData: 记忆系统结构, socialData: any[], statePayload: any, options?: any) => Promise<主剧情系统上下文 & {
         runtimePromptStates: Record<string, any>;
-    };
+    }> | (主剧情系统上下文 & {
+        runtimePromptStates: Record<string, any>;
+    });
     processResponseCommands: (
         response: GameResponse,
         baseState?: Partial<响应命令处理状态>,
@@ -265,6 +267,8 @@ type 主剧情发送依赖 = {
     ) => Promise<{ response: GameResponse; applied: boolean; error?: string; rawText?: string }>;
     执行世界演变更新: (params?: 世界演变触发参数) => Promise<世界演变执行结果>;
     触发新增NPC自动生图: (npcs: any[]) => void;
+    触发对白NPC头像补全: (npcs: any[]) => void;
+    检查主角每回合生图: (player: 角色数据结构) => void;
     触发场景自动生图: (params: {
         response: GameResponse;
         bodyText?: string;
@@ -647,7 +651,7 @@ export const 执行主剧情发送工作流 = async (
 
     try {
         const recallContextActiveForMain = recallFeatureEnabled && Boolean(recallTag);
-        const builtContext = deps.构建系统提示词(
+        const builtContext = await deps.构建系统提示词(
             currentState.prompts,
             updatedMemSys,
             currentState.社交,
@@ -886,7 +890,8 @@ export const 执行主剧情发送工作流 = async (
             gameTime: nextGameTime,
             inputTokens,
             responseDurationSec,
-            outputTokens: deps.估算AI输出Token(rawAiText, activeApi?.model)
+            outputTokens: deps.估算AI输出Token(rawAiText, activeApi?.model),
+            autoScrollToTurnStart: isStreaming
         };
         if (isStreaming) {
             deps.设置历史记录(prev => {
@@ -915,6 +920,8 @@ export const 执行主剧情发送工作流 = async (
         if (pushedNpcList.length > 0) {
             deps.触发新增NPC自动生图(pushedNpcList);
         }
+        deps.触发对白NPC头像补全(finalState.社交);
+        deps.检查主角每回合生图(finalState.角色);
 
         const latestBodyText = (Array.isArray(finalDisplayResponse.logs) ? finalDisplayResponse.logs : [])
             .map((log) => `${log?.sender || "旁白"}：${log?.text || ""}`)
@@ -1021,13 +1028,14 @@ export const 执行主剧情发送工作流 = async (
                                         }
                                         return -1;
                                     })();
-                                if (fallbackIndex < 0) return [...prev, { ...polishedAiMsg, autoScrollToTurnIcon: false }];
+                                if (fallbackIndex < 0) return [...prev, { ...polishedAiMsg, autoScrollToTurnIcon: false, autoScrollToTurnStart: false }];
                                 return prev.map((item, index) => {
                                     if (index !== fallbackIndex) return item;
                                     return {
                                         ...item,
                                         ...polishedAiMsg,
-                                        autoScrollToTurnIcon: false
+                                        autoScrollToTurnIcon: false,
+                                        autoScrollToTurnStart: false
                                     };
                                 });
                             });
@@ -1351,14 +1359,15 @@ export const 执行主剧情发送工作流 = async (
                             }
                             return -1;
                         })();
-                    if (fallbackIndex < 0) return [...prev, { ...queuedAiMsg, autoScrollToTurnIcon: false }];
+                    if (fallbackIndex < 0) return [...prev, { ...queuedAiMsg, autoScrollToTurnIcon: false, autoScrollToTurnStart: false }];
                     return prev.map((item, index) => {
                         if (index !== fallbackIndex) return item;
 
                         return {
                             ...item,
                             ...queuedAiMsg,
-                            autoScrollToTurnIcon: false
+                            autoScrollToTurnIcon: false,
+                            autoScrollToTurnStart: false
                         };
                     });
                 });
@@ -1367,6 +1376,8 @@ export const 执行主剧情发送工作流 = async (
                 if (queuedNpcList.length > 0) {
                     deps.触发新增NPC自动生图(queuedNpcList);
                 }
+                deps.触发对白NPC头像补全(finalState.社交);
+                deps.检查主角每回合生图(finalState.角色);
 
                 void deps.performAutoSave({
                     history: [...updatedDisplayHistory, queuedAiMsg],

@@ -68,6 +68,8 @@ import { 合并变量校准结果到响应 as 合并变量生成结果到响应 
 import { 保护开局生成门派状态 } from './storyState';
 
 const 开局规划分析请求超时毫秒 = 90000;
+const 开场剧情首次流式响应超时毫秒 = 90000;
+const 开场剧情流式空闲超时毫秒 = 45000;
 
 type 开场命令基态 = {
     角色: 角色数据结构;
@@ -150,14 +152,21 @@ type 开场剧情生成依赖 = {
     setWorldEvents: (value: string[]) => void;
     应用并同步记忆系统: (memory: 记忆系统结构) => void;
     performAutoSave: (snapshot?: 自动存档快照结构) => Promise<void>;
-    构建系统提示词: (promptPool: 提示词结构[], memoryData: 记忆系统结构, socialData: any[], statePayload: any, options?: any) => 酒馆上下文结构 & {
+    构建系统提示词: (promptPool: 提示词结构[], memoryData: 记忆系统结构, socialData: any[], statePayload: any, options?: any) => Promise<酒馆上下文结构 & {
         contextPieces: 酒馆上下文结构['contextPieces'] & {
             AI角色声明?: string;
             输出协议提示词?: string;
             字数要求提示词?: string;
             免责声明输出提示词?: string;
         };
-    };
+    }> | (酒馆上下文结构 & {
+        contextPieces: 酒馆上下文结构['contextPieces'] & {
+            AI角色声明?: string;
+            输出协议提示词?: string;
+            字数要求提示词?: string;
+            免责声明输出提示词?: string;
+        };
+    });
     processResponseCommands: (response: GameResponse, baseState?: 开场命令基态, options?: { applyState?: boolean }) => 开场命令基态;
     规范化环境信息: (envLike?: any) => 环境信息结构;
     规范化剧情状态: (raw?: any, envLike?: any) => 剧情系统结构;
@@ -288,6 +297,65 @@ const 创建开局规划超时错误 = (): Error => {
     const error = new Error(`开局规划分析请求超时（${Math.max(1, Math.ceil(开局规划分析请求超时毫秒 / 1000))} 秒）`);
     error.name = 'TimeoutError';
     return error;
+};
+
+const 创建开场剧情流式超时错误 = (label: string, timeoutMs: number): Error => {
+    const error = new Error(`开场剧情${label}（${Math.max(1, Math.ceil(timeoutMs / 1000))} 秒无新数据）`);
+    error.name = 'TimeoutError';
+    return error;
+};
+
+const 执行开场剧情流式请求带空闲超时 = async <T,>(
+    parentSignal: AbortSignal,
+    task: (signal: AbortSignal, markStreamActivity: () => void) => Promise<T>
+): Promise<T> => {
+    if (parentSignal.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
+    }
+    const requestController = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let rejectTimeout: ((reason: Error) => void) | null = null;
+    let settled = false;
+    const abortByParent = () => requestController.abort(parentSignal.reason || new DOMException('Aborted', 'AbortError'));
+    const clearTimer = () => {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    };
+    const startTimer = (timeoutMs: number, label: string) => {
+        clearTimer();
+        timer = setTimeout(() => {
+            if (settled) return;
+            const timeoutError = 创建开场剧情流式超时错误(label, timeoutMs);
+            if (!requestController.signal.aborted) {
+                requestController.abort(timeoutError);
+            }
+            rejectTimeout?.(timeoutError);
+        }, timeoutMs);
+    };
+    const markStreamActivity = () => {
+        startTimer(开场剧情流式空闲超时毫秒, '流式输出空闲超时');
+    };
+    parentSignal.addEventListener('abort', abortByParent, { once: true });
+    startTimer(开场剧情首次流式响应超时毫秒, '等待首次响应超时');
+    try {
+        return await Promise.race([
+            task(requestController.signal, markStreamActivity),
+            new Promise<T>((_, reject) => { rejectTimeout = reject; })
+        ]);
+    } catch (error) {
+        const signalReason = requestController.signal.reason as any;
+        if (requestController.signal.aborted && signalReason?.name === 'TimeoutError') {
+            throw signalReason;
+        }
+        throw error;
+    } finally {
+        settled = true;
+        parentSignal.removeEventListener('abort', abortByParent);
+        clearTimer();
+        rejectTimeout = null;
+    }
 };
 
 const 执行开局规划带超时 = async <T,>(
@@ -558,7 +626,7 @@ export const 执行开场剧情生成工作流 = async (
             ? `【小说分解章节锚点】\n${filteredOpeningNovelDecompositionPrompt}`
             : '';
 
-        const openingContext = deps.构建系统提示词(
+        const openingContext = await deps.构建系统提示词(
             openingPromptSnapshot,
             openingMem,
             contextData.社交 || [],
@@ -767,44 +835,55 @@ export const 执行开场剧情生成工作流 = async (
                 if (useStreaming) {
                     openingDeltaReceived = false;
                 }
-                return textAIService.generateStoryResponse(
-                    '',
-                    '',
-                    '',
-                    apiForOpening,
-                    controller.signal,
-                    useStreaming
-                        ? {
-                            stream: true,
-                            onDelta: (_delta, accumulated) => {
-                                openingDeltaReceived = true;
-                                deps.设置历史记录(prev => prev.map(item => {
-                                    if (
-                                        item.timestamp === streamMarker &&
-                                        item.role === 'assistant' &&
-                                        !item.structuredResponse
-                                    ) {
-                                        return { ...item, content: accumulated };
-                                    }
-                                    return item;
-                                }));
+                const requestOpeningStory = (
+                    signal: AbortSignal,
+                    markStreamActivity?: () => void
+                ) => textAIService.generateStoryResponse(
+                        '',
+                        '',
+                        '',
+                        apiForOpening,
+                        signal,
+                        useStreaming
+                            ? {
+                                stream: true,
+                                onDelta: (_delta, accumulated) => {
+                                    openingDeltaReceived = true;
+                                    markStreamActivity?.();
+                                    deps.设置历史记录(prev => prev.map(item => {
+                                        if (
+                                            item.timestamp === streamMarker &&
+                                            item.role === 'assistant' &&
+                                            !item.structuredResponse
+                                        ) {
+                                            return { ...item, content: accumulated };
+                                        }
+                                        return item;
+                                    }));
+                                }
                             }
+                            : undefined,
+                        openingTavernPresetModeEnabled ? '' : openingCombinedExtraPrompt,
+                        {
+                            orderedMessages: openingOrderedMessages,
+                            enableCotInjection: openingCotPseudoEnabled,
+                            leadingSystemPrompt: openingContext.contextPieces.AI角色声明,
+                            styleAssistantPrompt: [openingPerspectivePrompt, openingStyleAssistantPrompt, openingRealWorldModePrompt].filter(Boolean).join('\n\n'),
+                            outputProtocolPrompt: openingOutputProtocolPrompt,
+                            cotPseudoHistoryPrompt: openingCotPseudoPrompt,
+                            lengthRequirementPrompt: openingLengthRequirementPrompt,
+                            disclaimerRequirementPrompt: openingDisclaimerRequirementPrompt,
+                            validateTagCompleteness: openingGameConfig.启用标签检测完整性 === true,
+                            enableTagRepair: openingGameConfig.启用标签修复 !== false,
+                            requireActionOptionsTag: openingGameConfig.启用行动选项 !== false
                         }
-                        : undefined,
-                    openingTavernPresetModeEnabled ? '' : openingCombinedExtraPrompt,
-                    {
-                        orderedMessages: openingOrderedMessages,
-                        enableCotInjection: openingCotPseudoEnabled,
-                        leadingSystemPrompt: openingContext.contextPieces.AI角色声明,
-                        styleAssistantPrompt: [openingPerspectivePrompt, openingStyleAssistantPrompt, openingRealWorldModePrompt].filter(Boolean).join('\n\n'),
-                        outputProtocolPrompt: openingOutputProtocolPrompt,
-                        cotPseudoHistoryPrompt: openingCotPseudoPrompt,
-                        lengthRequirementPrompt: openingLengthRequirementPrompt,
-                        disclaimerRequirementPrompt: openingDisclaimerRequirementPrompt,
-                        validateTagCompleteness: openingGameConfig.启用标签检测完整性 === true,
-                        enableTagRepair: openingGameConfig.启用标签修复 !== false,
-                        requireActionOptionsTag: openingGameConfig.启用行动选项 !== false
-                    }
+                    );
+                if (!useStreaming) {
+                    return requestOpeningStory(controller.signal);
+                }
+                return 执行开场剧情流式请求带空闲超时(
+                    controller.signal,
+                    (signal, markStreamActivity) => requestOpeningStory(signal, markStreamActivity)
                 );
             }
         });

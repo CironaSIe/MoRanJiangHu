@@ -1,14 +1,65 @@
 import { WorldGenConfig, 角色数据结构 } from '../../types';
 import { 构建修炼体系附加块 } from '../../utils/promptFeatureToggles';
 
-export const 构建世界观锚点提示词 = (worldConfig: WorldGenConfig, charData: 角色数据结构): string => `
+const 世界锚点难度说明表 = {
+    relaxed: {
+        label: '轻松',
+        起始属性点: 38,
+        天赋重Roll次数: 12,
+        判定修正: 6,
+        资源压力: '经验、掉落与恢复更宽松',
+        失败代价: '多为轻伤、少量损耗或可补救后果'
+    },
+    easy: {
+        label: '简单',
+        起始属性点: 34,
+        天赋重Roll次数: 8,
+        判定修正: 3,
+        资源压力: '收益略高，物价略低，恢复较稳定',
+        失败代价: '会受伤或损失资源，但大多能补救'
+    },
+    normal: {
+        label: '正常',
+        起始属性点: 30,
+        天赋重Roll次数: 5,
+        判定修正: 0,
+        资源压力: '收益与消耗按标准江湖压力结算',
+        失败代价: '失败会带来伤势、关系或剧情门控损失'
+    },
+    hard: {
+        label: '困难',
+        起始属性点: 26,
+        天赋重Roll次数: 3,
+        判定修正: -3,
+        资源压力: '收益减少，物价偏高，恢复更慢',
+        失败代价: '更容易留下长期后遗症或丢失关键机会'
+    },
+    extreme: {
+        label: '极限',
+        起始属性点: 22,
+        天赋重Roll次数: 1,
+        判定修正: -6,
+        资源压力: '收益稀缺，消耗和物价压力最高',
+        失败代价: '可能触发重伤、残废、清算或主线断裂'
+    }
+} as const;
+
+const 获取世界锚点难度说明 = (difficulty?: string) => (
+    世界锚点难度说明表[(difficulty || 'normal') as keyof typeof 世界锚点难度说明表] || 世界锚点难度说明表.normal
+);
+
+export const 构建世界观锚点提示词 = (worldConfig: WorldGenConfig, charData: 角色数据结构): string => {
+    const 难度设定 = 获取世界锚点难度说明(worldConfig.difficulty);
+    const 判定修正 = 难度设定.判定修正 > 0 ? `+${难度设定.判定修正}` : String(难度设定.判定修正);
+    return `
 【当前存档世界锚点（World Bible Anchor）】
 - 世界名称: ${worldConfig.worldName}
 - 世界规模: ${worldConfig.worldSize}
 - 王朝格局: ${worldConfig.dynastySetting}
 - 宗门密度: ${worldConfig.sectDensity}
 - 天骄设定: ${worldConfig.tianjiaoSetting}
-- 游戏难度: ${worldConfig.difficulty || 'normal'}
+- 游戏难度: ${难度设定.label}（${worldConfig.difficulty || 'normal'}）
+- 难度参数: 起始属性点${难度设定.起始属性点}；天赋重 roll ${难度设定.天赋重Roll次数}次；玩家判定修正${判定修正}；${难度设定.资源压力}；${难度设定.失败代价}
 - 世界观额外要求: ${worldConfig.worldExtraRequirement?.trim() || '无'}
 
 【世界母本硬边界】
@@ -30,6 +81,7 @@ ${构建修炼体系附加块(`- 初始境界: ${charData.境界}`)}
 - 背景: ${charData.出身背景?.名称 || '未知'}（${charData.出身背景?.描述 || '无描述'}）
 - 仅用于避免世界观与建档发生硬冲突，不据此生成玩家专属世界结构、玩家专属势力保护、玩家专属天命安排。
 `.trim();
+};
 
 export const 构建世界观种子提示词 = (worldConfig: WorldGenConfig, charData: 角色数据结构): string => {
     const anchor = 构建世界观锚点提示词(worldConfig, charData);
