@@ -263,7 +263,7 @@ const LandingPage: React.FC<Props> = ({
                     </button>
                     <button
                         type="button"
-                        onClick={onOpenReleaseNotes}
+                        onClick={() => { void openExternalUrl(RELEASE_INFO.releaseNotesUrl); }}
                         className="min-h-[40px] border border-sky-500/25 bg-sky-500/10 px-4 py-2 text-xs tracking-[0.16em] text-sky-200 transition-colors hover:bg-sky-500/15"
                     >
                         更新日志
