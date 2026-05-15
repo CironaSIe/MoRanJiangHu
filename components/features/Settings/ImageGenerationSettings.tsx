@@ -517,9 +517,15 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             applySceneCandidate();
             applyNSFWCandidate();
 
-            return nextFeature ? { ...prev, 功能模型占位: nextFeature } : prev;
+            if (!nextFeature) return prev;
+            const normalized = 规范化接口设置({
+                ...prev,
+                功能模型占位: nextFeature
+            });
+            queueMicrotask(() => onSave(normalized));
+            return normalized;
         });
-    }, [NSFW后端发现列表, backendConnectionStats, discoveredBackends.length, 主后端发现列表, 场景后端发现列表]);
+    }, [NSFW后端发现列表, backendConnectionStats, discoveredBackends.length, onSave, 主后端发现列表, 场景后端发现列表]);
 
     const updatePlaceholder = <K extends keyof 功能模型占位配置结构>(key: K, value: 功能模型占位配置结构[K]) => {
         setForm((prev) => ({

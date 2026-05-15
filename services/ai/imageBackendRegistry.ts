@@ -108,6 +108,11 @@ export const sortDiscoveredImageBackendsByPreference = (
     stats: ImageBackendConnectionStats = readImageBackendConnectionStats()
 ): 发现图片后端记录结构[] => {
     return [...items].sort((a, b) => {
+        const matchedA = a.connectTokenMatched === true ? 1 : 0;
+        const matchedB = b.connectTokenMatched === true ? 1 : 0;
+        if (matchedA !== matchedB) {
+            return matchedB - matchedA;
+        }
         const statsA = pickBestStatsEntry(stats, target, a);
         const statsB = pickBestStatsEntry(stats, target, b);
         if (statsA.successCount !== statsB.successCount) {
