@@ -181,6 +181,138 @@ const 提取响应事实文本 = (response: GameResponse): string => {
     return parts.join('\n');
 };
 
+const 体内射精事实正则 = /(内射|中出|射(?:进|入|在)(?:了)?(?:[^。！？\n\r]{0,24})?(?:体内|阴道|小穴|蜜穴|子宫|宫口|最深处)|精液(?:[^。！？\n\r]{0,24})?(?:灌入|注入|射入|填满|流入|涌入|进入)(?:[^。！？\n\r]{0,24})?(?:体内|阴道|小穴|蜜穴|子宫|宫口|最深处)|(?:子宫|宫口|最深处)(?:[^。！？\n\r]{0,24})?(?:精液|白浊))/;
+const 初次关系事实正则 = /(破处|初夜|第一次|失身|处子(?:之身)?(?:已|被|给|让)?|不再是处女|不再未经人事|插(?:进|入)|贯穿|进入(?:了)?(?:[^。！？\n\r]{0,24})?(?:小穴|阴道|蜜穴|体内|最深处)|(?:小穴|阴道|蜜穴)(?:[^。！？\n\r]{0,24})?(?:被|已|让)?(?:进入|占有|贯穿|破开)|体内射精|内射|中出)/;
+const 私密状态未经历正则 = /(未经人事|未经房事|未曾人事|未曾经人事|尚未人事|尚未完全开发|未完全开发|处子|处女|完璧|无人采撷|未被使用|未曾使用|未开苞|初绽未开)/;
+
+const 是否女性NPC = (npc: any): boolean => (
+    typeof npc?.性别 === 'string' && npc.性别.trim() === '女'
+);
+
+const 读取NPC名称 = (npc: any): string => (
+    typeof npc?.姓名 === 'string' && npc.姓名.trim()
+        ? npc.姓名.trim()
+        : typeof npc?.名称 === 'string' && npc.名称.trim()
+            ? npc.名称.trim()
+            : ''
+);
+
+const 提取生理事实相关女性NPC索引 = (responseFactText: string, socialList: any[]): number | null => {
+    if (!体内射精事实正则.test(responseFactText) && !初次关系事实正则.test(responseFactText)) return null;
+
+    const femaleCandidates = (Array.isArray(socialList) ? socialList : [])
+        .map((npc: any, index: number) => ({ npc, index, name: 读取NPC名称(npc) }))
+        .filter((item) => 是否女性NPC(item.npc));
+    if (femaleCandidates.length <= 0) return null;
+
+    const mentioned = femaleCandidates.filter((item) => item.name && responseFactText.includes(item.name));
+    if (mentioned.length === 1) return mentioned[0].index;
+    if (mentioned.length > 1) {
+        const presentMentioned = mentioned.filter((item) => item.npc?.是否在场 === true);
+        if (presentMentioned.length === 1) return presentMentioned[0].index;
+        const mainMentioned = mentioned.filter((item) => item.npc?.是否主要角色 === true);
+        if (mainMentioned.length === 1) return mainMentioned[0].index;
+        return mentioned[0].index;
+    }
+
+    const presentFemale = femaleCandidates.filter((item) => item.npc?.是否在场 === true);
+    if (presentFemale.length === 1) return presentFemale[0].index;
+    return null;
+};
+
+const 构建体内射精记录描述 = (responseFactText: string, playerName?: string): string => {
+    const normalized = responseFactText.replace(/\s+/g, ' ').trim();
+    const match = normalized.match(/[^。！？\n\r]{0,36}(?:内射|中出|射(?:进|入)|精液|白浊|子宫|宫口)[^。！？\n\r]{0,56}[。！？]?/);
+    const detail = (match?.[0] || '').trim();
+    const actor = playerName || '主角';
+    return detail ? `${actor}与其发生体内射精事件：${detail}` : `${actor}与其发生体内射精事件。`;
+};
+
+const 构建初夜描述 = (responseFactText: string, playerName?: string): string => {
+    const normalized = responseFactText.replace(/\s+/g, ' ').trim();
+    const match = normalized.match(/[^。！？\n\r]{0,36}(?:破处|初夜|第一次|失身|插(?:进|入)|贯穿|进入|内射|中出)[^。！？\n\r]{0,56}[。！？]?/);
+    const detail = (match?.[0] || '').trim();
+    const actor = playerName || '主角';
+    return detail ? `${actor}与其发生初次亲密关系：${detail}` : `${actor}与其发生初次亲密关系。`;
+};
+
+const 更新小穴经历状态描述 = (rawValue: unknown): string | undefined => {
+    const text = typeof rawValue === 'string' ? rawValue.trim() : '';
+    if (!text) return undefined;
+    const stateNote = '已发生初次关系，原“未经人事”状态失效';
+    if (text.includes(stateNote)) return text;
+    if (私密状态未经历正则.test(text)) {
+        return text.replace(私密状态未经历正则, stateNote);
+    }
+    return `${text}；状态：${stateNote}。`;
+};
+
+const 生成临时内射记录日期 = (envLike: any): string => (
+    typeof envLike?.时间 === 'string' && envLike.时间.trim()
+        ? envLike.时间.trim()
+        : new Date().toISOString()
+);
+
+const 应用生理事实到女性NPC = (
+    response: GameResponse,
+    socialList: any[],
+    envLike: any,
+    playerName?: string
+): any[] => {
+    const responseFactText = 提取响应事实文本(response);
+    const targetIndex = 提取生理事实相关女性NPC索引(responseFactText, socialList);
+    if (targetIndex === null) return socialList;
+
+    const hasInternalEjaculation = 体内射精事实正则.test(responseFactText);
+    const hasFirstSexFact = hasInternalEjaculation || 初次关系事实正则.test(responseFactText);
+    const eventDate = 生成临时内射记录日期(envLike);
+    const description = 构建体内射精记录描述(responseFactText, playerName);
+    const firstNightDescription = 构建初夜描述(responseFactText, playerName);
+    return socialList.map((npc: any, index: number) => {
+        if (index !== targetIndex || !npc || typeof npc !== 'object') return npc;
+        const currentWomb = npc.子宫 && typeof npc.子宫 === 'object' ? npc.子宫 : {};
+        const currentRecords = Array.isArray(currentWomb.内射记录) ? currentWomb.内射记录 : [];
+        const alreadyRecorded = currentRecords.some((record: any) => (
+            typeof record?.日期 === 'string'
+            && record.日期 === eventDate
+            && typeof record?.描述 === 'string'
+            && record.描述.includes('体内射精事件')
+        ));
+        const nextRecords = alreadyRecorded
+            ? currentRecords
+            : [
+                ...currentRecords,
+                {
+                    日期: eventDate,
+                    描述: description,
+                    怀孕判定日: '待判定'
+                }
+            ];
+        const nextVulvaDescription = hasFirstSexFact ? 更新小穴经历状态描述(npc.小穴描述) : undefined;
+        const shouldRecordFirstNight = hasFirstSexFact && (npc.是否处女 === true || typeof npc.是否处女 !== 'boolean' || !npc.初夜夺取者);
+        return {
+            ...npc,
+            ...(hasFirstSexFact ? {
+                是否处女: false,
+                初夜夺取者: npc.初夜夺取者 || playerName || '主角',
+                初夜时间: npc.初夜时间 || eventDate,
+                初夜描述: npc.初夜描述 || (shouldRecordFirstNight ? firstNightDescription : undefined),
+                ...(nextVulvaDescription ? { 小穴描述: nextVulvaDescription } : {})
+            } : {}),
+            子宫: {
+                状态: typeof currentWomb.状态 === 'string' && currentWomb.状态.trim()
+                    ? currentWomb.状态
+                    : '未受孕',
+                宫口状态: typeof currentWomb.宫口状态 === 'string' && currentWomb.宫口状态.trim()
+                    ? currentWomb.宫口状态
+                    : '射精后待观察',
+                ...currentWomb,
+                内射记录: hasInternalEjaculation ? nextRecords : currentRecords
+            }
+        };
+    });
+};
+
 const 装备移除触发正则 = /(卸下|脱下|取下|摘下|换下|换装|更换|丢弃|扔掉|遗弃|卖出|售卖|出售|卖给|卖了|卖掉|上架|典当|赠予|交给|交出|缴械|被夺|夺走|抢走|没收|遗失|失落|掉落|损坏|毁坏|破碎|断裂|烧毁|腐蚀|消耗|报废|解除装备|卸除装备)/;
 
 const 命令是否有装备移除触发 = (cmd: any, responseFactText: string): boolean => {
@@ -312,6 +444,10 @@ export const 执行响应命令处理 = (
             补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
             { 合并同名: false }
         );
+        socialBuffer = deps.规范化社交列表(
+            应用生理事实到女性NPC(response, socialBuffer, envBuffer, charBuffer?.姓名),
+            { 合并同名: false }
+        );
         storyBuffer = deps.规范化剧情状态(storyBuffer);
 
         let finalState: 响应命令处理状态 = {
@@ -357,7 +493,12 @@ export const 执行响应命令处理 = (
         角色: charBuffer,
         环境: deps.规范化环境信息(envBuffer),
         社交: deps.规范化社交列表(
-            补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
+            应用生理事实到女性NPC(
+                response,
+                补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
+                envBuffer,
+                charBuffer?.姓名
+            ),
             { 合并同名: false }
         ),
         世界: deps.规范化世界状态(worldBuffer),
