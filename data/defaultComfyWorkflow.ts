@@ -248,12 +248,11 @@ const 默认ZImageTurboComfyUI工作流 = {
   },
   "46": {
     "inputs": {
-      "unet_name": "z_image_turbo_bf16.safetensors",
-      "weight_dtype": "default"
+      "model_name": "z_image_turbo_bf16.safetensors"
     },
-    "class_type": "UNETLoader",
+    "class_type": "NunchakuZImageDiTLoader",
     "_meta": {
-      "title": "默认非NSFW主模型 - Z-Image Turbo"
+      "title": "默认非NSFW主模型 - Nunchaku Z-Image Turbo"
     }
   },
   "47": {

@@ -382,8 +382,13 @@ const App: React.FC = () => {
 
     React.useEffect(() => subscribeAppUpdateProgress(setAppUpdateProgress), []);
     React.useEffect(() => {
+        const subscribedAt = Date.now();
         const unsubscribe = subscribeDiagnosticLogs(() => {
-            const latestError = getDiagnosticLogs().find((entry) => entry.level === 'error');
+            const latestError = getDiagnosticLogs().find((entry) => {
+                if (entry.level !== 'error') return false;
+                const entryTime = Date.parse(entry.time);
+                return Number.isFinite(entryTime) && entryTime >= subscribedAt;
+            });
             if (!latestError || 最近运行报错提示IDRef.current === latestError.id) return;
             最近运行报错提示IDRef.current = latestError.id;
             actions.pushNotification({

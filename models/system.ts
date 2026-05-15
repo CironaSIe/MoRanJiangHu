@@ -288,6 +288,7 @@ export interface 功能模型占位配置结构 {
     图片后端注册表地址: string;
     图片后端自动连接口令: string;
     当前图片后端发现ID: string;
+    使用默认ComfyUI工作流: boolean;
     ComfyUI工作流JSON: string;
     场景生图独立接口启用: boolean;
     场景生图后端类型: 文生图后端类型;
@@ -295,6 +296,7 @@ export interface 功能模型占位配置结构 {
     场景生图模型API地址: string;
     场景生图模型API密钥: string;
     当前场景图片后端发现ID: string;
+    使用默认场景ComfyUI工作流: boolean;
     场景ComfyUI工作流JSON: string;
     NSFW生图独立接口启用: boolean;
     NSFW生图后端类型: 文生图后端类型;
@@ -302,6 +304,7 @@ export interface 功能模型占位配置结构 {
     NSFW生图模型API地址: string;
     NSFW生图模型API密钥: string;
     当前NSFW图片后端发现ID: string;
+    使用默认NSFWComfyUI工作流: boolean;
     NSFWComfyUI工作流JSON: string;
     文生图接口路径模式: 文生图接口路径模式类型;
     文生图预设接口路径: 文生图预设接口路径类型;
