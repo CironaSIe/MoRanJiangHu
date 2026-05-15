@@ -3,6 +3,7 @@ import { GameResponse, NPC结构, 视觉设置结构 } from '../../../types';
 import { NarratorRenderer, CharacterRenderer, JudgmentRenderer } from './MessageRenderers';
 import GameButton from '../../ui/GameButton';
 import { 构建区域文字样式 } from '../../../utils/visualSettings';
+import { 规范化可渲染对白日志 } from '../../../utils/dialogueLogNormalizer';
 
 interface Props {
     response: GameResponse;
@@ -141,7 +142,7 @@ const TurnItem: React.FC<Props> = ({
     }, [可切换原文优化视图, showOriginalBody]);
 
     const 当前正文日志 = showOriginalBody && 可切换原文优化视图 ? 原始正文日志 : (Array.isArray(response.logs) ? response.logs : []);
-    const displayLogs = 当前正文日志
+    const displayLogs = 规范化可渲染对白日志(当前正文日志
         .filter(log => !isDisclaimerLog(log))
         .map((log) => ({
             ...log,
@@ -149,7 +150,7 @@ const TurnItem: React.FC<Props> = ({
                 .replace(/<\s*judge\s*>[\s\S]*?(?:<\s*\/\s*judge\s*>|$)/gi, '')
                 .replace(/^\s+/, '')
         }))
-        .filter(log => log.text.trim().length > 0);
+        .filter(log => log.text.trim().length > 0));
     const judgeBlocks = Array.isArray(response.judge_blocks)
         ? response.judge_blocks.filter(block => ((block?.text || block?.raw || '').trim().length > 0))
         : [];

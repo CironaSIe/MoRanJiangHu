@@ -5,9 +5,13 @@ type NormalizeOptions = {
 };
 
 const 引号对白正则 = /[“"「『]([^”"」』\n]{1,500})[”"」』]/g;
+const 开头引号正则 = /^[“"「『]/;
+const 结尾引号正则 = /[”"」』]$/;
 const 说话尾迹正则 = /(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/;
 const 语气修饰尾迹正则 = /(?:轻声|低声|沉声|冷声|温声|柔声|厉声|朗声|小声|淡淡|缓缓|忽然|忽地|笑着|苦笑着|皱眉|抬眼|侧首|回头|点头|摇头|叹息|压低声音)\s*$/;
-const 泛称说话人正则 = /^(?:他|她|它|你|我|这人|那人|有人|众人|对方|男子|女子|少年|少女|老人|老者|汉子|侍女|侍从|弟子|门人|店小二)$/;
+const 泛称说话人正则 = /^(?:他|她|它|你|我|这人|那人|有人|众人|众弟子|众门人|众侍从|众士卒|众人齐声|众弟子齐声|众门人齐声|众侍从齐声|众士卒齐声|对方|男子|女子|少年|少女|老人|老者|汉子|侍女|侍从|弟子|门人|店小二)$/;
+const 非单一说话人正则 = /^(?:旁白|判定|NSFW判定|系统|众人|众弟子|众门人|众侍从|众士卒|众人齐声|众弟子齐声|众门人齐声|众侍从齐声|众士卒齐声|所有人|全场|人群|群声|齐声|同门|弟子们|门人们)$/;
+const 拟声词正则 = /^(?:啊+|呀+|唔+|嗯+|呃+|哼+|哈+|呵+|嘿+|咳+|轰+|砰+|啪+|咚+|铛+|嗡+|哗+|唰+|嗖+|吱+|喀+|咔+|沙+|呼+|呜+|嗷+|嘶+|噗+|扑通+|哗啦+|咔嚓+|轰隆+|咳咳+|哈哈+|呵呵+|嘿嘿+|呜呜+)[。！？!?…~～—-]*$/;
 
 const 转义正则文本 = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -27,6 +31,7 @@ const 清理说话人 = (value: string): string => {
     text = text.replace(/^(?:那|这)(?=[\u4e00-\u9fff]{2,})/, '').trim();
     if (!text || text.length > 12) return '';
     if (/[：:，,。！？!?；;\n]/.test(text)) return '';
+    if (非单一说话人正则.test(text) || 泛称说话人正则.test(text)) return '';
     return text;
 };
 
@@ -109,6 +114,68 @@ const 合并相邻同发送者 = (logs: GameLog[]): GameLog[] => {
         merged.push({ sender, text });
     });
     return merged;
+};
+
+const 查找首段闭合引号位置 = (text: string): number => {
+    const source = (text || '').trim();
+    if (!source) return -1;
+    const open = source[0];
+    const close = open === '“' ? '”'
+        : open === '「' ? '」'
+            : open === '『' ? '』'
+                : open === '"' ? '"'
+                    : '';
+    if (!close) return -1;
+    return source.indexOf(close, 1);
+};
+
+const 是完整引号对白 = (text: string): boolean => {
+    const source = (text || '').trim();
+    return Boolean(source && 开头引号正则.test(source) && 结尾引号正则.test(source) && 查找首段闭合引号位置(source) === source.length - 1);
+};
+
+const 剥离外层引号 = (text: string): string => {
+    const source = (text || '').trim();
+    if (!是完整引号对白(source)) return source;
+    return source.slice(1, -1).trim();
+};
+
+const 是否无效角色对白 = (sender: string, text: string): boolean => {
+    const normalizedSender = 清理说话人(sender);
+    if (!normalizedSender || 非单一说话人正则.test(normalizedSender) || 泛称说话人正则.test(normalizedSender)) return true;
+    const speech = 剥离外层引号(text);
+    if (!speech || 拟声词正则.test(speech)) return true;
+    if (/^(?:众人|众弟子|众门人|众侍从|众士卒|所有人|全场|人群).{0,8}(?:齐声|一起|同时)/.test(speech)) return true;
+    return false;
+};
+
+export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): GameLog[] => {
+    const normalized = (Array.isArray(logs) ? logs : []).flatMap((item) => {
+        const sender = (item?.sender || '旁白').trim() || '旁白';
+        const text = typeof item?.text === 'string' ? item.text.trim() : String(item?.text ?? '').trim();
+        if (!text) return [];
+        if (sender === '旁白') return [{ sender, text }];
+        if (/^(【)?(?:判定|NSFW判定|先机|瞄准|接战|对撞|对抗|防御|化解|伤害|态势|反击|反馈|消耗|洞察|衰退)(】)?$/.test(sender)) {
+            return [{ sender, text }];
+        }
+        if (是完整引号对白(text)) {
+            return 是否无效角色对白(sender, text) ? [{ sender: '旁白', text }] : [{ sender, text }];
+        }
+
+        const closingIndex = 开头引号正则.test(text) ? 查找首段闭合引号位置(text) : -1;
+        if (closingIndex > 0) {
+            const quoted = text.slice(0, closingIndex + 1).trim();
+            const rest = text.slice(closingIndex + 1).trim();
+            const parts: GameLog[] = [];
+            if (quoted && !是否无效角色对白(sender, quoted)) parts.push({ sender, text: quoted });
+            else if (quoted) parts.push({ sender: '旁白', text: quoted });
+            if (rest) parts.push({ sender: '旁白', text: rest });
+            return parts;
+        }
+
+        return [{ sender: '旁白', text }];
+    });
+    return 合并相邻同发送者(normalized);
 };
 
 const 拆分旁白夹杂对白 = (log: GameLog, knownSpeakers: string[]): GameLog[] => {

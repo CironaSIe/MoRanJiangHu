@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseStoryRawText } from '../services/ai/storyResponseParser';
+import { 规范化可渲染对白日志 } from '../utils/dialogueLogNormalizer';
 
 describe('storyResponseParser', () => {
     it('does not fold variable plan or short memory into body fallback', () => {
@@ -101,6 +102,21 @@ describe('storyResponseParser', () => {
             { sender: '旁白', text: '杨培强收剑回身' },
             { sender: '杨培强', text: '侄儿明白。' },
             { sender: '旁白', text: '杨镇远点了点头，目光仍落在剑尖上。' }
+        ]);
+    });
+
+    it('keeps only fully quoted single-speaker text as character bubbles for rendering', () => {
+        const rendered = 规范化可渲染对白日志([
+            { sender: '杨培强', text: '“弟子，领命。”\n\n风，渐渐停了。\n\n铅灰色的云层开始散去。' },
+            { sender: '众人齐声', text: '“遵命！”' },
+            { sender: '杨镇远', text: '风声穿过长廊。' },
+            { sender: '杨青儿', text: '“哥，小心些。”' }
+        ]);
+
+        expect(rendered).toEqual([
+            { sender: '杨培强', text: '“弟子，领命。”' },
+            { sender: '旁白', text: '风，渐渐停了。\n\n铅灰色的云层开始散去。\n“遵命！”\n风声穿过长廊。' },
+            { sender: '杨青儿', text: '“哥，小心些。”' }
         ]);
     });
 });
