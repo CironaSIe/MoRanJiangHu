@@ -158,8 +158,8 @@ const 默认ZImageTurboComfyUI工作流 = {
   },
   "39": {
     "inputs": {
-      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
-      "type": "qwen_image",
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "lumina2",
       "device": "default"
     },
     "class_type": "CLIPLoader",
@@ -169,7 +169,7 @@ const 默认ZImageTurboComfyUI工作流 = {
   },
   "40": {
     "inputs": {
-      "vae_name": "qwen_image_vae.safetensors"
+      "vae_name": "ae.safetensors"
     },
     "class_type": "VAELoader",
     "_meta": {
@@ -246,40 +246,27 @@ const 默认ZImageTurboComfyUI工作流 = {
       "title": "正面提示词编码"
     }
   },
+  "46": {
+    "inputs": {
+      "unet_name": "z_image_turbo_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "默认非NSFW主模型 - Z-Image Turbo"
+    }
+  },
   "47": {
     "inputs": {
-      "shift": 3.1,
+      "shift": 3,
       "model": [
-        "53",
+        "46",
         0
       ]
     },
     "class_type": "ModelSamplingAuraFlow",
     "_meta": {
       "title": "采样算法（AuraFlow）"
-    }
-  },
-  "49": {
-    "inputs": {
-      "unet_name": "qwen-image-2512-Q6_K.gguf"
-    },
-    "class_type": "UnetLoaderGGUF",
-    "_meta": {
-      "title": "默认非NSFW主模型 - Qwen GGUF"
-    }
-  },
-  "53": {
-    "inputs": {
-      "model": [
-        "49",
-        0
-      ],
-      "lora_name": "Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors",
-      "strength_model": 1
-    },
-    "class_type": "LoraLoaderModelOnly",
-    "_meta": {
-      "title": "Qwen Lightning 4steps LoRA"
     }
   },
   "54": {
