@@ -142,10 +142,165 @@ const 默认NunchakuQwenImageComfyUI工作流 = {
   }
 };
 
+const 默认ZImageTurboComfyUI工作流 = {
+  "9": {
+    "inputs": {
+      "filename_prefix": "z-image/non-nsfw",
+      "images": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "39": {
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "40": {
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "41": {
+    "inputs": {
+      "width": "__WIDTH__",
+      "height": "__HEIGHT__",
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "空Latent图像（SD3）"
+    }
+  },
+  "43": {
+    "inputs": {
+      "samples": [
+        "44",
+        0
+      ],
+      "vae": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "44": {
+    "inputs": {
+      "seed": "__SEED__",
+      "steps": "__STEPS__",
+      "cfg": "__CFG__",
+      "sampler_name": "__SAMPLER__",
+      "scheduler": "__SCHEDULER__",
+      "denoise": 1,
+      "model": [
+        "47",
+        0
+      ],
+      "positive": [
+        "45",
+        0
+      ],
+      "negative": [
+        "54",
+        0
+      ],
+      "latent_image": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "45": {
+    "inputs": {
+      "text": "__PROMPT__",
+      "clip": [
+        "39",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "正面提示词编码"
+    }
+  },
+  "47": {
+    "inputs": {
+      "shift": 3,
+      "model": [
+        "53",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "采样算法（AuraFlow）"
+    }
+  },
+  "49": {
+    "inputs": {
+      "unet_name": "qwen-image-2512-Q6_K.gguf"
+    },
+    "class_type": "UnetLoaderGGUF",
+    "_meta": {
+      "title": "默认非NSFW主模型 - Qwen GGUF"
+    }
+  },
+  "53": {
+    "inputs": {
+      "model": [
+        "49",
+        0
+      ],
+      "lora_name": "Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors",
+      "strength_model": 1
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "Qwen Lightning 4steps LoRA"
+    }
+  },
+  "54": {
+    "inputs": {
+      "text": "__NEGATIVE_PROMPT__",
+      "clip": [
+        "39",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "负面提示词编码"
+    }
+  }
+};
+
 const 默认ZImageTurboNSFWComfyUI工作流 = {
   "9": {
     "inputs": {
-      "filename_prefix": "z-image/z",
+      "filename_prefix": "z-image/nsfw",
       "images": [
         "43",
         0
@@ -187,18 +342,6 @@ const 默认ZImageTurboNSFWComfyUI工作流 = {
       "title": "空Latent图像（SD3）"
     }
   },
-  "42": {
-    "inputs": {
-      "conditioning": [
-        "45",
-        0
-      ]
-    },
-    "class_type": "ConditioningZeroOut",
-    "_meta": {
-      "title": "条件零化"
-    }
-  },
   "43": {
     "inputs": {
       "samples": [
@@ -232,7 +375,7 @@ const 默认ZImageTurboNSFWComfyUI工作流 = {
         0
       ],
       "negative": [
-        "42",
+        "54",
         0
       ],
       "latent_image": [
@@ -255,7 +398,7 @@ const 默认ZImageTurboNSFWComfyUI工作流 = {
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "CLIP文本编码"
+      "title": "正面提示词编码"
     }
   },
   "46": {
@@ -265,7 +408,7 @@ const 默认ZImageTurboNSFWComfyUI工作流 = {
     },
     "class_type": "UNETLoader",
     "_meta": {
-      "title": "UNet加载器"
+      "title": "NSFW主模型加载 - mPMix"
     }
   },
   "47": {
@@ -281,16 +424,20 @@ const 默认ZImageTurboNSFWComfyUI工作流 = {
       "title": "采样算法（AuraFlow）"
     }
   },
-  "49": {
+  "54": {
     "inputs": {
-      "unet_name": "qwen-image-2512-Q6_K.gguf"
+      "text": "__NEGATIVE_PROMPT__",
+      "clip": [
+        "39",
+        0
+      ]
     },
-    "class_type": "UnetLoaderGGUF",
+    "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "Unet Loader (GGUF)"
+      "title": "负面提示词编码"
     }
   }
 };
 
-export const 默认ComfyUI工作流JSON = JSON.stringify(默认ZImageTurboNSFWComfyUI工作流, null, 2);
+export const 默认ComfyUI工作流JSON = JSON.stringify(默认ZImageTurboComfyUI工作流, null, 2);
 export const 默认NSFWComfyUI工作流JSON = JSON.stringify(默认ZImageTurboNSFWComfyUI工作流, null, 2);
