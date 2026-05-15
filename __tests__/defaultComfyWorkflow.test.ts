@@ -46,8 +46,13 @@ describe('默认 ComfyUI 生图配置', () => {
         expect(nsfwConfig?.ComfyUI工作流JSON).toBe(默认NSFWComfyUI工作流JSON);
         expect(默认ComfyUI工作流JSON).not.toBe(默认NSFWComfyUI工作流JSON);
         expect(workflow).not.toEqual(nsfwWorkflow);
-        expect(workflow['46'].class_type).toBe('NunchakuZImageDiTLoader');
-        expect(workflow['46'].inputs.model_name).toBe('z_image_turbo_bf16.safetensors');
+        expect(workflow['9'].inputs.filename_prefix).toBe('z-image/non-nsfw');
+        expect(nsfwWorkflow['9'].inputs.filename_prefix).toBe('z-image/nsfw');
+        expect(workflow['46'].class_type).toBe('UNETLoader');
+        expect(workflow['46'].inputs.unet_name).toBe('mPMix_NSFW_V9_fp8.safetensors');
+        expect(workflow['47'].inputs.model).toEqual(['53', 0]);
+        expect(workflow['53'].class_type).toBe('LoraLoaderModelOnly');
+        expect(workflow['53'].inputs.lora_name).toBe('Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors');
         expect(workflow['40'].inputs.vae_name).toBe('ae.safetensors');
         expect(workflow['45'].inputs.text).toBe('__PROMPT__');
         expect(workflow['54'].inputs.text).toBe('__NEGATIVE_PROMPT__');
@@ -60,6 +65,8 @@ describe('默认 ComfyUI 生图配置', () => {
         expect(workflow['44'].inputs.scheduler).toBe('__SCHEDULER__');
         expect(JSON.stringify(workflow)).not.toContain('qwen-image-2512-Q6_K.gguf');
         expect(JSON.stringify(workflow)).not.toContain('UnetLoaderGGUF');
+        expect(JSON.stringify(workflow)).not.toContain('NunchakuZImageDiTLoader');
+        expect(JSON.stringify(workflow)).not.toContain('z_image_turbo_bf16.safetensors');
         expect(nsfwWorkflow['46'].inputs.unet_name).toBe('mPMix_NSFW_V9_fp8.safetensors');
         expect(nsfwWorkflow['47'].inputs.model).toEqual(['53', 0]);
         expect(nsfwWorkflow['53'].class_type).toBe('LoraLoaderModelOnly');
@@ -112,6 +119,22 @@ describe('默认 ComfyUI 生图配置', () => {
             '49': {
                 inputs: { unet_name: 'qwen-image-2512-Q6_K.gguf' },
                 class_type: 'UnetLoaderGGUF'
+            }
+        });
+        const settings = 构建ComfyUI测试设置({
+            ComfyUI工作流JSON: legacyWorkflow
+        });
+
+        expect(settings.功能模型占位.使用默认ComfyUI工作流).toBe(true);
+        expect(settings.功能模型占位.ComfyUI工作流JSON).toBe('');
+        expect(获取文生图接口配置(settings)?.ComfyUI工作流JSON).toBe(默认ComfyUI工作流JSON);
+    });
+
+    it('migrates Nunchaku Z-Image workflows that fail with missing quantization weight metadata', () => {
+        const legacyWorkflow = JSON.stringify({
+            '46': {
+                inputs: { model_name: 'z_image_turbo_bf16.safetensors' },
+                class_type: 'NunchakuZImageDiTLoader'
             }
         });
         const settings = 构建ComfyUI测试设置({
