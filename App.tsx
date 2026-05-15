@@ -1297,6 +1297,12 @@ const App: React.FC = () => {
         setShowMobileMusic(false);
     }, [setters]);
 
+    React.useEffect(() => {
+        if (state.view === 'game') return;
+        setDesktopDetailFullscreen(false);
+        document.body.classList.remove('desktop-detail-resizing');
+    }, [state.view]);
+
     const collapseDesktopDetailToInitial = React.useCallback(() => {
         setDesktopDetailFullscreen(false);
         closeAllPanels();
@@ -1798,17 +1804,19 @@ const App: React.FC = () => {
             danger: true
         });
         if (!ok) return;
+        closeAllPanels();
         actions.handleReturnToHome();
         setters.setShowSettings(false);
-    }, [actions, requestConfirm, setters]);
+    }, [actions, closeAllPanels, requestConfirm, setters]);
     const handleReturnToHomeWithAutoSave = React.useCallback(async () => {
         try {
             await actions.performAutoSave({ force: true });
+            closeAllPanels();
             actions.handleReturnToHome();
         } catch (error: any) {
             window.alert(`自动存档失败：${error?.message || '未知错误'}`);
         }
-    }, [actions]);
+    }, [actions, closeAllPanels]);
     const openPolishSettings = React.useCallback(() => {
         closeAllPanels();
         setters.setActiveTab('polish');
@@ -2389,6 +2397,49 @@ const App: React.FC = () => {
                             />
                         )}
                     </div>
+
+                    {desktopRightDetailPanelOpen && (
+                        <>
+                            {!desktopDetailFullscreen && (
+                                <div
+                                    className="desktop-detail-resize-handle"
+                                    role="separator"
+                                    aria-label="拖拽调整详情栏宽度"
+                                    title="拖拽调整详情栏宽度，双击恢复本页默认宽度"
+                                    onPointerDown={startDesktopDetailResize}
+                                    onDoubleClick={resetDesktopDetailWidth}
+                                />
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => desktopDetailFullscreen ? exitDesktopDetailFullscreen() : setDesktopDetailFullscreen(true)}
+                                className={`desktop-detail-expand-toggle${desktopDetailFullscreen ? ' desktop-detail-expand-toggle--fullscreen' : ''}`}
+                                aria-label={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
+                                title={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
+                            >
+                                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                    {desktopDetailFullscreen ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+                                    ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m15 6-6 6 6 6" />
+                                    )}
+                                </svg>
+                            </button>
+                            {!desktopDetailFullscreen && (
+                                <button
+                                    type="button"
+                                    onClick={collapseDesktopDetailToInitial}
+                                    className="desktop-detail-collapse-toggle"
+                                    aria-label="回到初始状态"
+                                    title="回到初始状态"
+                                >
+                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+                                    </svg>
+                                </button>
+                            )}
+                        </>
+                    )}
 
                     {meta.notifications && meta.notifications.length > 0 && (
                         <div className="fixed right-4 bottom-16 md:bottom-14 z-[10000] flex flex-col gap-2 pointer-events-none">
@@ -3335,48 +3386,6 @@ const App: React.FC = () => {
                         </懒加载边界>
                     )}
                 </div>
-            )}
-            {desktopRightDetailPanelOpen && (
-                <>
-                    {!desktopDetailFullscreen && (
-                        <div
-                            className="desktop-detail-resize-handle"
-                            role="separator"
-                            aria-label="拖拽调整详情栏宽度"
-                            title="拖拽调整详情栏宽度，双击恢复本页默认宽度"
-                            onPointerDown={startDesktopDetailResize}
-                            onDoubleClick={resetDesktopDetailWidth}
-                        />
-                    )}
-                    <button
-                        type="button"
-                        onClick={() => desktopDetailFullscreen ? exitDesktopDetailFullscreen() : setDesktopDetailFullscreen(true)}
-                        className={`desktop-detail-expand-toggle${desktopDetailFullscreen ? ' desktop-detail-expand-toggle--fullscreen' : ''}`}
-                        aria-label={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
-                        title={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
-                    >
-                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                            {desktopDetailFullscreen ? (
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
-                            ) : (
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m15 6-6 6 6 6" />
-                            )}
-                        </svg>
-                    </button>
-                    {!desktopDetailFullscreen && (
-                        <button
-                            type="button"
-                            onClick={collapseDesktopDetailToInitial}
-                            className="desktop-detail-collapse-toggle"
-                            aria-label="回到初始状态"
-                            title="回到初始状态"
-                        >
-                            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
-                            </svg>
-                        </button>
-                    )}
-                </>
             )}
         </div>
     </MusicProvider>

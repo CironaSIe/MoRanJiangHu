@@ -692,6 +692,8 @@ const 是否旧默认无独立负面ComfyUI工作流 = (value: string): boolean 
     if (!text) return false;
     return /qwen-image-2512-Q6_K/i.test(text)
         || /UnetLoaderGGUF/i.test(text)
+        || /NunchakuZImageDiTLoader/i.test(text)
+        || /z_image_turbo_bf16\.safetensors/i.test(text)
         || (
             /ConditioningZeroOut/i.test(text)
             && /mPMix_NSFW_V9_fp8/i.test(text)

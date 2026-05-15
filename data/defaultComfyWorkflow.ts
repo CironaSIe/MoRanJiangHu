@@ -439,5 +439,22 @@ const 默认ZImageTurboNSFWComfyUI工作流 = {
   }
 };
 
-export const 默认ComfyUI工作流JSON = JSON.stringify(默认ZImageTurboComfyUI工作流, null, 2);
+const 默认稳定普通ComfyUI工作流 = {
+  ...默认ZImageTurboNSFWComfyUI工作流,
+  "9": {
+    ...默认ZImageTurboNSFWComfyUI工作流["9"],
+    "inputs": {
+      ...默认ZImageTurboNSFWComfyUI工作流["9"].inputs,
+      "filename_prefix": "z-image/non-nsfw"
+    }
+  },
+  "46": {
+    ...默认ZImageTurboNSFWComfyUI工作流["46"],
+    "_meta": {
+      "title": "普通主模型加载 - mPMix"
+    }
+  }
+};
+
+export const 默认ComfyUI工作流JSON = JSON.stringify(默认稳定普通ComfyUI工作流, null, 2);
 export const 默认NSFWComfyUI工作流JSON = JSON.stringify(默认ZImageTurboNSFWComfyUI工作流, null, 2);
