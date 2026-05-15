@@ -71,6 +71,19 @@ describe('responseCommandProcessor dialogue social sync', () => {
         expect(result.社交[0].对白登场).toBe(true);
         expect(result.社交[0].自动补全头像).toBe(true);
     });
+
+    it('does not add narration fragments as dialogue NPCs', () => {
+        const state = 构建基础状态();
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '只能强辩', text: '我并非有意隐瞒。' },
+                { sender: '杨青儿', text: '兄长，先别急。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交.map((npc: any) => npc.姓名)).toEqual(['杨青儿']);
+    });
 });
 
 describe('responseCommandProcessor equipment guard', () => {

@@ -129,6 +129,14 @@ describe('NPC old save compatibility', () => {
                 自动补全头像: true
             },
             {
+                id: 'npc_dialogue_argument_fragment',
+                姓名: '只能强辩',
+                性别: '未知',
+                身份: '剧情对话人物',
+                对白登场: true,
+                自动补全头像: true
+            },
+            {
                 id: 'npc_su_waner',
                 姓名: '苏婉儿',
                 性别: '女',

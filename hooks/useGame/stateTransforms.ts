@@ -1744,6 +1744,7 @@ const 合并NPC图片档案对象 = (leftRaw: any, rightRaw: any): any | undefin
 
 const 噪声NPC姓名片段正则 = /(?:轻声|低声|细语|小声|柔声|温声|沉声|冷声|厉声|压低|喃喃|喃语|嘀咕|说道|说着|问道|答道|开口|补充|解释|提醒|笑着|苦笑|皱眉|抬眼|抬头|看向|望向|回头|点头|摇头|叹息|擦净|将|把|并|却|已经|刚刚)/;
 const 噪声NPC姓名收尾正则 = /(?:地|着|了|道|问|说)$/;
+const 噪声NPC姓名完整短语正则 = /^(?:(?:他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人))?(?:只能|只好|只得|不得不|勉强|连忙|赶紧|急忙|仍旧|还是|却|并|但|又|便|就|再)?(?:强辩|辩解|解释|补充|提醒|回答|答话|应声|开口|说道|说着|问道|答道|低声|轻声|沉声|苦笑|皱眉|点头|摇头|叹息|看向|望向|回头|抬眼|抬头|擦净)$/;
 
 const 是否噪声NPC姓名 = (value: unknown): boolean => {
     const name = 规范化文本(value);
@@ -1751,6 +1752,7 @@ const 是否噪声NPC姓名 = (value: unknown): boolean => {
     if (name.length > 12) return true;
     if (/[，。！？；：、,.!?;:\s\n\r]/.test(name)) return true;
     if (/^(旁白|判定|NSFW判定|免责声明|disclaimer)$/.test(name)) return true;
+    if (噪声NPC姓名完整短语正则.test(name)) return true;
     if (/^(?:他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人).{1,10}$/.test(name) && 噪声NPC姓名片段正则.test(name)) return true;
     if (name.length >= 4 && 噪声NPC姓名收尾正则.test(name) && 噪声NPC姓名片段正则.test(name)) return true;
     return false;

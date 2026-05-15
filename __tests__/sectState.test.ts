@@ -27,7 +27,7 @@ describe('门派状态规范化', () => {
         expect(normalized.重要成员).toEqual([]);
     });
 
-    it('有效门派仍可补齐可用默认结构', () => {
+    it('有效门派不再本地补固定同门', () => {
         const normalized = 规范化门派状态({
             ID: 'sect_qingyun',
             名称: '青云山庄',
@@ -35,32 +35,33 @@ describe('门派状态规范化', () => {
         });
 
         expect(normalized.ID).toBe('sect_qingyun');
-        expect(normalized.重要成员.length).toBeGreaterThan(0);
+        expect(normalized.重要成员).toEqual([]);
+        expect(normalized.任务列表.length).toBeGreaterThan(0);
         expect(是否无门派标识(normalized.ID)).toBe(false);
     });
 
-    it('家族门派默认同门使用家族姓氏', () => {
+    it('家族门派不再本地套用固定同门姓氏', () => {
         const normalized = 规范化门派状态({
             ID: 'Org001',
             名称: '杨家堡',
             玩家职位: '少主'
         });
 
-        expect(normalized.重要成员.length).toBeGreaterThanOrEqual(6);
-        expect(normalized.重要成员.every((member: any) => String(member?.姓名 || '').startsWith('杨'))).toBe(true);
+        expect(normalized.重要成员).toEqual([]);
+        expect(normalized.名称).toBe('杨家堡');
     });
 
-    it('已有少量门派成员时仍补齐默认同门', () => {
+    it('已有少量门派成员时只保留明确成员', () => {
         const normalized = 规范化门派状态({
             ID: 'Org001',
             名称: '杨家堡',
             玩家职位: '少主',
-            重要成员: [{ id: 'NPC002', 姓名: '杨震', 性别: '男', 年龄: 48, 身份: '堡主' }]
+            重要成员: [{ id: 'NPC002', 姓名: '杨承岳', 性别: '男', 年龄: 48, 身份: '堡主' }]
         });
 
-        expect(normalized.重要成员.length).toBeGreaterThanOrEqual(6);
-        expect(normalized.重要成员.filter((member: any) => member?.姓名 === '杨震')).toHaveLength(1);
-        expect(normalized.重要成员.every((member: any) => String(member?.姓名 || '').startsWith('杨'))).toBe(true);
+        expect(normalized.重要成员).toHaveLength(1);
+        expect(normalized.重要成员[0]?.姓名).toBe('杨承岳');
+        expect(normalized.重要成员.some((member: any) => ['沈若嫣', '杨震', '陆明澈'].includes(member?.姓名))).toBe(false);
     });
 
     it('开局命令基态会保留已选择生成的门派和同门', () => {
@@ -97,7 +98,7 @@ describe('门派状态规范化', () => {
 
         expect(commandBase.玩家门派.名称).toBe('玄墨派');
         expect(commandBase.玩家门派.玩家职位).toBe('外门弟子');
-        expect(commandBase.玩家门派.重要成员.length).toBeGreaterThanOrEqual(6);
+        expect(commandBase.玩家门派.重要成员).toEqual([]);
     });
 
     it('开局门派贡献足够时不再本地固定补功法，交给 AI 开局变量生成', () => {
@@ -203,7 +204,7 @@ describe('门派状态规范化', () => {
         }, base, { 开局生成门派: true } as any);
 
         expect(protectedState.玩家门派.名称).toBe('玄墨派');
-        expect(protectedState.玩家门派.重要成员.length).toBeGreaterThanOrEqual(6);
+        expect(protectedState.玩家门派.重要成员).toEqual([]);
         expect(protectedState.角色.所属门派ID).toBe('玄墨派');
         expect(protectedState.角色.门派职位).toBe('外门弟子');
     });
