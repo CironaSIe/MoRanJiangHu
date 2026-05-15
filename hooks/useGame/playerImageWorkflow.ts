@@ -43,6 +43,9 @@ type 主角图片工作流依赖 = {
 };
 
 export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) => {
+    const 主角头像自动补全失败冷却毫秒 = 10 * 60 * 1000;
+    let 主角头像自动补全下次允许时间 = 0;
+
     const 主角锚点是否匹配当前角色 = (anchor: any, playerSnapshot: 角色数据结构): boolean => {
         if (!anchor) return false;
         const currentGender = typeof playerSnapshot?.性别 === 'string' ? playerSnapshot.性别.trim() : '';
@@ -262,7 +265,11 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
     };
 
     const generatePlayerImageManually = async (options?: 主角生图选项) => {
-        await generatePlayerImage(options, { source: 'manual', showToast: true });
+        try {
+            await generatePlayerImage(options, { source: 'manual', showToast: true });
+        } catch {
+            // generatePlayerImage 已经写入任务失败状态并弹出错误提示；这里吞掉异常，避免按钮点击产生全局 unhandledrejection。
+        }
     };
 
     const generatePlayerImagesAutomatically = async (playerSnapshot?: 角色数据结构) => {
@@ -305,6 +312,8 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
         if (!imageFeature?.总开关) return;
         const player = playerSnapshot || deps.获取角色();
         if (主角已有头像(player)) return;
+        const now = Date.now();
+        if (主角头像自动补全下次允许时间 > now) return;
         try {
             await generatePlayerImage({
                 构图: '头像',
@@ -314,7 +323,9 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
                 showToast: false,
                 playerSnapshot: player
             });
+            主角头像自动补全下次允许时间 = 0;
         } catch (error) {
+            主角头像自动补全下次允许时间 = Date.now() + 主角头像自动补全失败冷却毫秒;
             console.warn('主角每回合头像检查补全失败', error);
         }
     };

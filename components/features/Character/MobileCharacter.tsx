@@ -211,7 +211,7 @@ const MobileCharacter: React.FC<Props> = ({
     const handleGenerate = async () => {
         if (!onGeneratePlayerImage) return;
         await runAction(`generate_${generateOptions.构图 || 'image'}`, async () => {
-            await onGeneratePlayerImage({
+            await Promise.resolve(onGeneratePlayerImage({
                 构图: generateOptions.构图,
                 画风: generateOptions.画风,
                 画师串: (generateOptions.画师串 || '').trim() || undefined,
@@ -219,7 +219,7 @@ const MobileCharacter: React.FC<Props> = ({
                 PNG画风预设ID: (generateOptions.PNG画风预设ID || '').trim() || undefined,
                 额外要求: (generateOptions.额外要求 || '').trim() || undefined,
                 尺寸: (generateOptions.尺寸 || '').trim() || undefined
-            });
+            })).catch(() => undefined);
         });
     };
 
