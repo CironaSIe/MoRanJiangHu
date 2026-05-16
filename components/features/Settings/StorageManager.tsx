@@ -472,7 +472,10 @@ const StorageManager: React.FC<Props> = ({ requestConfirm }) => {
         }
     };
 
-    const getPercent = (val: number) => Math.min((val / (info.usage || 1)) * 100, 100);
+    const getQuotaPercent = (val: number) => {
+        const percent = info.quota > 0 ? Math.min((val / info.quota) * 100, 100) : 0;
+        return val > 0 && percent > 0 ? Math.max(percent, 0.25) : 0;
+    };
     const renderNotice = () => notice ? (
         <div className={`text-xs px-3 py-2 border rounded ${
             notice.type === 'success'
@@ -496,12 +499,12 @@ const StorageManager: React.FC<Props> = ({ requestConfirm }) => {
                 </div>
 
                 <div className="w-full h-4 bg-gray-900 rounded-full overflow-hidden flex mb-4 border border-gray-800">
-                    <div className="h-full bg-wuxia-gold transition-all duration-500" style={{ width: `${getPercent(info.details.saves)}%` }} title="存档"></div>
-                    <div className="h-full bg-wuxia-gold/90 transition-all duration-500" style={{ width: `${getPercent(info.details.prompts)}%` }} title="提示词"></div>
-                    <div className="h-full bg-wuxia-gold/80 transition-all duration-500" style={{ width: `${getPercent(info.details.settings)}%` }} title="其他设置"></div>
-                    <div className="h-full bg-wuxia-gold/70 transition-all duration-500" style={{ width: `${getPercent(info.details.api)}%` }} title="API配置"></div>
-                    <div className="h-full bg-wuxia-gold/60 transition-all duration-500" style={{ width: `${getPercent(info.details.imageAssets)}%` }} title="图片资源"></div>
-                    <div className="h-full bg-wuxia-gold/50 transition-all duration-500" style={{ width: `${getPercent(info.details.cache)}%` }} title="系统缓存"></div>
+                    <div className="h-full bg-wuxia-gold transition-all duration-500" style={{ width: `${getQuotaPercent(info.details.saves)}%` }} title="存档"></div>
+                    <div className="h-full bg-wuxia-gold/90 transition-all duration-500" style={{ width: `${getQuotaPercent(info.details.prompts)}%` }} title="提示词"></div>
+                    <div className="h-full bg-wuxia-gold/80 transition-all duration-500" style={{ width: `${getQuotaPercent(info.details.settings)}%` }} title="其他设置"></div>
+                    <div className="h-full bg-wuxia-gold/70 transition-all duration-500" style={{ width: `${getQuotaPercent(info.details.api)}%` }} title="API配置"></div>
+                    <div className="h-full bg-wuxia-gold/60 transition-all duration-500" style={{ width: `${getQuotaPercent(info.details.imageAssets)}%` }} title="图片资源"></div>
+                    <div className="h-full bg-wuxia-gold/50 transition-all duration-500" style={{ width: `${getQuotaPercent(info.details.cache)}%` }} title="系统缓存"></div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">

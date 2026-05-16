@@ -1,5 +1,6 @@
 import { RELEASE_INFO } from '../data/releaseInfo';
 import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
+import { 获取本地图片图床迁移状态, 读取本地图片资源统计 } from './dbService';
 
 const ONLINE_SESSION_ID_KEY = 'moranjianghu.onlineSessionId';
 const HEARTBEAT_PATH = '/api/admin/online';
@@ -20,14 +21,20 @@ const readSessionId = (): string => {
     }
 };
 
-const buildHeartbeatPayload = (sessionId: string) => ({
-    sessionId,
-    path: `${window.location.pathname}${window.location.search}`.slice(0, 240),
-    referrer: document.referrer || '',
-    versionName: RELEASE_INFO.versionName,
-    versionCode: RELEASE_INFO.versionCode,
-    platform: isNativeCapacitorEnvironment() ? 'capacitor-android' : 'web'
-});
+const buildHeartbeatPayload = async (sessionId: string) => {
+    const imageStats = await 读取本地图片资源统计().catch(() => ({
+        migrationStatus: 获取本地图片图床迁移状态()
+    }));
+    return {
+        sessionId,
+        path: `${window.location.pathname}${window.location.search}`.slice(0, 240),
+        referrer: document.referrer || '',
+        versionName: RELEASE_INFO.versionName,
+        versionCode: RELEASE_INFO.versionCode,
+        platform: isNativeCapacitorEnvironment() ? 'capacitor-android' : 'web',
+        imageStats
+    };
+};
 
 const sendHeartbeat = async (sessionId: string): Promise<void> => {
     await fetch(HEARTBEAT_PATH, {
@@ -35,7 +42,7 @@ const sendHeartbeat = async (sessionId: string): Promise<void> => {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(buildHeartbeatPayload(sessionId)),
+        body: JSON.stringify(await buildHeartbeatPayload(sessionId)),
         keepalive: true,
         cache: 'no-store'
     }).catch(() => undefined);

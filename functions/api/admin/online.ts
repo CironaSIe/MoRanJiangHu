@@ -25,11 +25,56 @@ type OnlineSessionRecord = {
     versionName?: string;
     versionCode?: number;
     platform?: string;
+    imageStats?: OnlineImageStats;
     heartbeatCount: number;
 };
 
 type OnlineRegistry = {
     sessions: OnlineSessionRecord[];
+};
+
+type MigrationStatusSummary = {
+    stage?: string;
+    totalAssets?: number;
+    processedAssets?: number;
+    migratedAssets?: number;
+    failedAssets?: number;
+    retryLater?: boolean;
+    updatedAt?: string;
+    completedAt?: string;
+    lastMessage?: string;
+    lastError?: string;
+};
+
+type OnlineImageStats = {
+    totalAssets: number;
+    referencedAssets: number;
+    localImageAssets: number;
+    localImageBytes: number;
+    remoteImageAssets: number;
+    migrationStatus?: MigrationStatusSummary;
+};
+
+type OnlineUserRecord = {
+    id: string;
+    ip: string;
+    online: boolean;
+    sessionCount: number;
+    firstSeenAt: string;
+    lastSeenAt: string;
+    country?: string;
+    region?: string;
+    city?: string;
+    timezone?: string;
+    colo?: string;
+    userAgents: string[];
+    paths: string[];
+    referrers: string[];
+    versionName?: string;
+    versionCode?: number;
+    platform?: string;
+    heartbeatCount: number;
+    imageStats?: OnlineImageStats;
 };
 
 const ONLINE_R2_PREFIX = 'moranjianghu/online';
@@ -56,6 +101,11 @@ const readString = (value: unknown): string => (
 const toPositiveInt = (value: unknown, fallback: number): number => {
     const parsed = Math.floor(Number(value));
     return parsed > 0 ? parsed : fallback;
+};
+
+const toNonNegativeInt = (value: unknown, fallback = 0): number => {
+    const parsed = Math.floor(Number(value));
+    return parsed >= 0 ? parsed : fallback;
 };
 
 const getBucket = (env: any): R2Bucket | null => {
@@ -97,8 +147,38 @@ const isAdminRequest = (request: Request, env: any): boolean => {
 const readRequestJson = async (request: Request): Promise<any> => {
     const text = await request.text();
     if (!text) return {};
-    if (text.length > 8192) throw new Error('请求体过大');
+    if (text.length > 16384) throw new Error('请求体过大');
     return JSON.parse(text);
+};
+
+const sanitizeMigrationStatus = (value: unknown): MigrationStatusSummary | undefined => {
+    if (!value || typeof value !== 'object') return undefined;
+    const source = value as Record<string, unknown>;
+    return {
+        stage: readString(source.stage).slice(0, 40),
+        totalAssets: toNonNegativeInt(source.totalAssets),
+        processedAssets: toNonNegativeInt(source.processedAssets),
+        migratedAssets: toNonNegativeInt(source.migratedAssets),
+        failedAssets: toNonNegativeInt(source.failedAssets),
+        retryLater: Boolean(source.retryLater),
+        updatedAt: readString(source.updatedAt).slice(0, 40),
+        completedAt: readString(source.completedAt).slice(0, 40),
+        lastMessage: readString(source.lastMessage).slice(0, 120),
+        lastError: readString(source.lastError).slice(0, 120)
+    };
+};
+
+const sanitizeImageStats = (value: unknown, fallback?: OnlineImageStats): OnlineImageStats | undefined => {
+    if (!value || typeof value !== 'object') return fallback;
+    const source = value as Record<string, unknown>;
+    return {
+        totalAssets: toNonNegativeInt(source.totalAssets, fallback?.totalAssets || 0),
+        referencedAssets: toNonNegativeInt(source.referencedAssets, fallback?.referencedAssets || 0),
+        localImageAssets: toNonNegativeInt(source.localImageAssets, fallback?.localImageAssets || 0),
+        localImageBytes: toNonNegativeInt(source.localImageBytes, fallback?.localImageBytes || 0),
+        remoteImageAssets: toNonNegativeInt(source.remoteImageAssets, fallback?.remoteImageAssets || 0),
+        migrationStatus: sanitizeMigrationStatus(source.migrationStatus) || fallback?.migrationStatus
+    };
 };
 
 const readRegistry = async (env: any): Promise<OnlineRegistry> => {
@@ -144,6 +224,97 @@ const cleanupSessions = (sessions: OnlineSessionRecord[], nowMs: number): Online
         .slice(0, MAX_SESSIONS)
 );
 
+const chooseLatestMigrationStatus = (left?: MigrationStatusSummary, right?: MigrationStatusSummary): MigrationStatusSummary | undefined => {
+    if (!left) return right;
+    if (!right) return left;
+    const leftTime = Date.parse(left.updatedAt || left.completedAt || '');
+    const rightTime = Date.parse(right.updatedAt || right.completedAt || '');
+    if (!Number.isFinite(leftTime)) return right;
+    if (!Number.isFinite(rightTime)) return left;
+    return rightTime >= leftTime ? right : left;
+};
+
+const mergeImageStats = (current: OnlineImageStats | undefined, next: OnlineImageStats | undefined): OnlineImageStats | undefined => {
+    if (!current) return next;
+    if (!next) return current;
+    return {
+        totalAssets: Math.max(current.totalAssets || 0, next.totalAssets || 0),
+        referencedAssets: Math.max(current.referencedAssets || 0, next.referencedAssets || 0),
+        localImageAssets: Math.max(current.localImageAssets || 0, next.localImageAssets || 0),
+        localImageBytes: Math.max(current.localImageBytes || 0, next.localImageBytes || 0),
+        remoteImageAssets: Math.max(current.remoteImageAssets || 0, next.remoteImageAssets || 0),
+        migrationStatus: chooseLatestMigrationStatus(current.migrationStatus, next.migrationStatus)
+    };
+};
+
+const uniqueLimited = (values: string[], value: string, limit = 4): string[] => {
+    const text = readString(value);
+    if (!text || values.includes(text)) return values;
+    return [...values, text].slice(0, limit);
+};
+
+const aggregateUsersByIp = (sessions: OnlineSessionRecord[], nowMs: number, ttlMs: number): OnlineUserRecord[] => {
+    const users = new Map<string, OnlineUserRecord>();
+    sessions.forEach((session) => {
+        const ip = readString(session.ip) || 'unknown';
+        const id = ip;
+        const lastSeenMs = Date.parse(session.lastSeenAt || '');
+        const firstSeenMs = Date.parse(session.firstSeenAt || session.lastSeenAt || '');
+        const online = Number.isFinite(lastSeenMs) && nowMs - lastSeenMs <= ttlMs;
+        const existing = users.get(id);
+        if (!existing) {
+            users.set(id, {
+                id,
+                ip,
+                online,
+                sessionCount: 1,
+                firstSeenAt: session.firstSeenAt,
+                lastSeenAt: session.lastSeenAt,
+                country: session.country,
+                region: session.region,
+                city: session.city,
+                timezone: session.timezone,
+                colo: session.colo,
+                userAgents: session.userAgent ? [session.userAgent] : [],
+                paths: session.path ? [session.path] : [],
+                referrers: session.referrer ? [session.referrer] : [],
+                versionName: session.versionName,
+                versionCode: session.versionCode,
+                platform: session.platform,
+                heartbeatCount: session.heartbeatCount || 0,
+                imageStats: session.imageStats
+            });
+            return;
+        }
+
+        existing.online = existing.online || online;
+        existing.sessionCount += 1;
+        existing.heartbeatCount += session.heartbeatCount || 0;
+        existing.userAgents = uniqueLimited(existing.userAgents, session.userAgent || '');
+        existing.paths = uniqueLimited(existing.paths, session.path || '');
+        existing.referrers = uniqueLimited(existing.referrers, session.referrer || '');
+        existing.imageStats = mergeImageStats(existing.imageStats, session.imageStats);
+
+        const existingFirstMs = Date.parse(existing.firstSeenAt || '');
+        if (Number.isFinite(firstSeenMs) && (!Number.isFinite(existingFirstMs) || firstSeenMs < existingFirstMs)) {
+            existing.firstSeenAt = session.firstSeenAt;
+        }
+        const existingLastMs = Date.parse(existing.lastSeenAt || '');
+        if (Number.isFinite(lastSeenMs) && (!Number.isFinite(existingLastMs) || lastSeenMs > existingLastMs)) {
+            existing.lastSeenAt = session.lastSeenAt;
+            existing.country = session.country;
+            existing.region = session.region;
+            existing.city = session.city;
+            existing.timezone = session.timezone;
+            existing.colo = session.colo;
+            existing.versionName = session.versionName;
+            existing.versionCode = session.versionCode;
+            existing.platform = session.platform;
+        }
+    });
+    return Array.from(users.values()).sort((left, right) => Date.parse(right.lastSeenAt || '') - Date.parse(left.lastSeenAt || ''));
+};
+
 export function onRequestOptions(): Response {
     return new Response(null, {
         status: 204,
@@ -164,13 +335,17 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
         const lastSeenMs = Date.parse(item.lastSeenAt || '');
         return Number.isFinite(lastSeenMs) && nowMs - lastSeenMs <= ttlMs;
     });
+    const users = aggregateUsersByIp(sessions, nowMs, ttlMs);
+    const onlineUsers = users.filter((item) => item.online);
 
     return buildJsonResponse({
         success: true,
         serverTime: new Date(nowMs).toISOString(),
-        onlineCount: onlineSessions.length,
-        totalRecentCount: sessions.length,
+        onlineCount: onlineUsers.length,
+        totalRecentCount: users.length,
         ttlSeconds: Math.round(ttlMs / 1000),
+        users: onlineUsers,
+        recentUsers: users.slice(0, 100),
         sessions: onlineSessions,
         recentSessions: sessions.slice(0, 100)
     });
@@ -219,6 +394,7 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
             versionName: readString(body?.versionName).slice(0, 40),
             versionCode: toPositiveInt(body?.versionCode, existing?.versionCode || 0) || undefined,
             platform: readString(body?.platform).slice(0, 80),
+            imageStats: sanitizeImageStats(body?.imageStats, existing?.imageStats),
             heartbeatCount: (existing?.heartbeatCount || 0) + 1
         };
 

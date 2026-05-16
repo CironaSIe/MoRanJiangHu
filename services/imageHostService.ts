@@ -45,6 +45,25 @@ const 读取下载链接 = (payload: any): string => {
     return candidates.map(读取文本).find(Boolean) || '';
 };
 
+const 读取文件ID = (payload: any): string => (
+    读取文本(payload?.file?.id)
+    || 读取文本(payload?.id)
+    || 读取文本(payload?.data?.file?.id)
+    || 读取文本(payload?.data?.id)
+);
+
+const 构建稳定下载链接 = (payload: any): string => {
+    const downloadUrl = 读取下载链接(payload);
+    const fileId = 读取文件ID(payload);
+    if (!fileId) return downloadUrl;
+    try {
+        const origin = new URL(downloadUrl).origin;
+        return `${origin}/file/${encodeURIComponent(fileId)}`;
+    } catch {
+        return downloadUrl;
+    }
+};
+
 export const 上传DataUrl到图床 = async (dataUrl: string, options?: { fileName?: string }): Promise<图床上传结果> => {
     const normalized = 读取文本(dataUrl);
     if (!normalized || !是否DataUrl(normalized)) {
@@ -73,13 +92,13 @@ export const 上传DataUrl到图床 = async (dataUrl: string, options?: { fileNa
         throw new Error(`图床上传失败：${message}`);
     }
 
-    const url = 读取下载链接(payload);
+    const url = 构建稳定下载链接(payload);
     if (!url) {
         throw new Error('图床上传失败：响应中没有下载链接');
     }
     return {
         url,
-        id: 读取文本(payload?.file?.id) || 读取文本(payload?.id) || undefined,
+        id: 读取文件ID(payload) || undefined,
         size: typeof payload?.file?.size === 'number' ? payload.file.size : undefined,
         storage: 读取文本(payload?.file?.storage) || undefined
     };
