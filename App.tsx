@@ -18,7 +18,7 @@ import { 地图重生成系统提示词 } from './prompts/runtime/mapRegenerate'
 import { 地图重生成COT提示词 } from './prompts/runtime/mapRegenerateCot';
 import { 获取内置世界书槽位内容 } from './utils/worldbook';
 import { 构建字体注入样式文本, 构建UI文字CSS变量 } from './utils/visualSettings';
-import { 获取图片资源文本地址 } from './utils/imageAssets';
+import { 获取图片资源文本地址, 读取远程图片兜底资源ID } from './utils/imageAssets';
 import { 生成物品图标 } from './services/ai/itemImageGeneration';
 import { 合并物品图片档案, 物品已有可用图标 } from './utils/itemImage';
 import { 生图最大自动重试次数, 执行生图模型调用带重试, 读取生图错误文本 } from './utils/imageGenerationRetry';
@@ -32,7 +32,7 @@ import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
 import { getDiagnosticLogs, subscribeDiagnosticLogs } from './services/diagnosticLog';
-import { 获取本地图片图床迁移状态, 订阅本地图片图床迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
+import { 获取本地图片图床迁移状态, 读取图片资源兜底地址, 订阅本地图片图床迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
 import { startOnlinePresenceHeartbeat } from './services/onlinePresence';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
@@ -462,6 +462,21 @@ const App: React.FC = () => {
 
     React.useEffect(() => subscribeAppUpdateProgress(setAppUpdateProgress), []);
     React.useEffect(() => startOnlinePresenceHeartbeat(), []);
+    React.useEffect(() => {
+        const handleImageError = (event: Event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLImageElement)) return;
+            if (target.dataset.moranjianghuFallbackApplied === '1') return;
+            const fallbackAssetId = 读取远程图片兜底资源ID(target.currentSrc || target.src);
+            if (!fallbackAssetId) return;
+            target.dataset.moranjianghuFallbackApplied = '1';
+            void 读取图片资源兜底地址(fallbackAssetId).then((fallbackSrc) => {
+                if (fallbackSrc) target.src = fallbackSrc;
+            });
+        };
+        window.addEventListener('error', handleImageError, true);
+        return () => window.removeEventListener('error', handleImageError, true);
+    }, []);
     React.useEffect(() => 订阅本地图片图床迁移状态((status) => {
         setLegacyImageMigrationStatus(status);
         if (legacyImageMigrationNoticeStageRef.current !== status.stage) {
