@@ -38,7 +38,7 @@ type 运行时变量工作流依赖 = {
         约定列表: any[];
         记忆系统: any;
     };
-    规范化角色物品容器映射: (value: any) => any;
+    规范化角色物品容器映射: (value: any, options?: { 当前时间?: unknown; 事件文本?: string }) => any;
     规范化环境信息: (value: any) => any;
     规范化社交列表: (value: any[], options?: { 合并同名?: boolean }) => any[];
     规范化世界状态: (value: any) => any;
@@ -163,7 +163,8 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         switch (section) {
             case '角色': {
                 const nextValue = deps.规范化角色物品容器映射(
-                    preserveInventoryOnUnsafeRoleReplace(value || {}, 当前状态.角色)
+                    preserveInventoryOnUnsafeRoleReplace(value || {}, 当前状态.角色),
+                    { 当前时间: 当前状态.环境 }
                 );
                 deps.设置角色(nextValue);
                 void deps.performAutoSave({ char: nextValue, history: 历史记录, force: true });
@@ -295,8 +296,8 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
             safeCommand.value,
             safeCommand.action
         );
-        const nextChar = deps.规范化角色物品容器映射(result.char);
         const nextEnv = deps.规范化环境信息(result.env);
+        const nextChar = deps.规范化角色物品容器映射(result.char, { 当前时间: nextEnv });
         const nextSocial = deps.规范化社交列表(result.social, { 合并同名: false });
         const nextWorld = deps.规范化世界状态(result.world);
         const nextBattle = deps.规范化战斗状态(result.battle);

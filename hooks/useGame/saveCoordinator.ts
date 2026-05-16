@@ -104,7 +104,7 @@ type 存档协调依赖 = {
     规范化游戏设置: (raw?: Partial<游戏设置结构> | null) => 游戏设置结构;
     规范化视觉设置: (raw?: Partial<视觉设置结构> | null) => 视觉设置结构;
     规范化场景图片档案: (raw?: any) => 场景图片档案;
-    规范化角色物品容器映射: (raw?: any) => 角色数据结构;
+    规范化角色物品容器映射: (raw?: any, options?: { 当前时间?: unknown; 事件文本?: string }) => 角色数据结构;
     规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => any[];
     获取当前提示词池: () => 提示词结构[];
     创建开场空白环境: () => 环境信息结构;
@@ -469,8 +469,9 @@ export const 执行读取存档 = async (
     deps.设置最近开局配置(null);
 
     const saveGameConfig = save.游戏设置 ? deps.规范化游戏设置(save.游戏设置) : undefined;
-    deps.设置角色(deps.规范化角色物品容器映射(save.角色数据));
-    deps.设置环境(deps.规范化环境信息(save.环境信息 || deps.创建开场空白环境()));
+    const normalizedEnv = deps.规范化环境信息(save.环境信息 || deps.创建开场空白环境());
+    deps.设置角色(deps.规范化角色物品容器映射(save.角色数据, { 当前时间: normalizedEnv }));
+    deps.设置环境(normalizedEnv);
     deps.设置社交(deps.规范化社交列表(save.社交 || []));
     const rawWorld = save.世界 || deps.创建开场空白世界();
     // 删除旧地图坐标字段

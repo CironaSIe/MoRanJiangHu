@@ -112,6 +112,20 @@ const 物品是否柔性服装 = (item: any): boolean => {
         || (/内衬|腿部|足部|胸部/.test(equipSlot) && 物品名称是否柔性服装(`${name}${equipSlot}`));
 };
 
+const 物品是否可穿戴护甲 = (item: any): boolean => {
+    const text = [
+        item?.名称,
+        item?.类型,
+        item?.装备位置,
+        item?.当前装备部位,
+        item?.描述,
+        item?.视觉描述,
+        Array.isArray(item?.视觉标签) ? item.视觉标签.join(' ') : ''
+    ].map((value) => 读取文本(value)).join(' ');
+    return /软甲|内甲|宝甲|甲衣|护身甲|护心甲|胸甲|背甲|护甲|铠甲|甲胄|皮甲|锁子甲|链甲|鳞甲/.test(text)
+        || (/防具/.test(text) && /甲片|护身|护胸|贴身|内穿|穿戴|甲衣|胸腹|躯干/.test(text));
+};
+
 const 物品是否布鞋 = (item: any): boolean => {
     const text = [
         item?.名称,
@@ -164,6 +178,13 @@ const 物品品质转英文 = (quality: string): string => {
 const 物品名称转英文描述 = (name: string): string => {
     // 常见武侠物品名称到英文视觉描述的映射
     const map: Record<string, string> = {
+        '乌金软甲': 'wearable blackened gold soft armor vest, flexible torso protection, fine overlapping dark metal scales sewn onto black cloth, sleeveless martial arts body armor',
+        '软甲': 'wearable soft armor vest, flexible torso protection, overlapping small armor scales sewn onto cloth, sleeveless martial arts body armor',
+        '内甲': 'wearable inner armor vest, thin flexible torso protection worn under robes, cloth-backed armor panels',
+        '宝甲': 'wearable ornate armor vest, protective torso garment with fitted chest and waist panels',
+        '甲衣': 'wearable armored garment, torso-shaped protective clothing with arm openings and waist hem',
+        '护身甲': 'wearable protective armor vest for the torso, fitted chest and back panels',
+        '护心甲': 'wearable heart-protecting breast armor, compact torso armor plate on a cloth backing',
         '练功服': 'cloth kung fu training uniform, soft fabric robe and trousers, folded garment',
         '武服': 'cloth martial arts uniform, soft fabric outfit, folded garment',
         '劲装': 'fitted cloth martial arts outfit, soft fabric clothing',
@@ -219,6 +240,7 @@ const 物品名称转英文描述 = (name: string): string => {
     if (/书|卷|册|经/.test(name)) return 'ancient book or scroll';
     if (/袋|囊|包/.test(name)) return 'cloth pouch or bag';
     if (/丹|药|散|丸|膏/.test(name)) return 'ancient medicinal item, herbal powder or pills stored in a folded paper packet, cloth sachet, or small ceramic medicine vial';
+    if (/软甲|内甲|宝甲|甲衣|护身甲|护心甲|胸甲|背甲|护甲|铠甲|甲胄|皮甲|锁子甲|链甲|鳞甲/.test(name)) return 'wearable torso armor vest, protective garment shape, arm openings, shoulder straps, chest and back panels, waist hem';
     if (物品名称是否柔性服装(name)) return 'soft cloth martial arts garment, folded fabric clothing';
     return '';
 };
@@ -227,8 +249,9 @@ const 构建物品视觉主体描述 = (item: any): string => {
     const name = 读取文本(item?.名称);
     const isLivingMount = 物品是否坐骑生物(item);
     const isSoftGarment = 物品是否柔性服装(item);
+    const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isAncientMedicine = 物品是否古代药物(item);
-    const typeEn = isLivingMount ? 'living mount animal' : isSoftGarment ? 'cloth garment' : isAncientMedicine ? 'ancient medicinal powder or pills' : 物品类型转英文(读取文本(item?.类型, '物品'));
+    const typeEn = isLivingMount ? 'living mount animal' : isSoftGarment ? 'cloth garment' : isWearableArmor ? 'wearable torso armor vest' : isAncientMedicine ? 'ancient medicinal powder or pills' : 物品类型转英文(读取文本(item?.类型, '物品'));
     const qualityEn = 物品品质转英文(读取文本(item?.品质, '普通'));
     const nameEn = 物品名称转英文描述(name);
     const description = 读取文本(item?.视觉描述 || item?.描述);
@@ -241,6 +264,7 @@ const 构建物品视觉主体描述 = (item: any): string => {
             : (nameEn ? `a single ${qualityEn} ${nameEn}` : `a single ${qualityEn} ${typeEn} prop`),
         isLivingMount ? 'alive organic animal anatomy, natural fur coat, visible eyes, nostrils, mane or tail, standing on real ground, full body animal portrait' : '',
         isSoftGarment ? 'soft textile clothing item, fabric seams, cloth folds, woven texture, flexible silhouette' : '',
+        isWearableArmor ? 'strict wearable armor garment: torso vest shape, chest panel, back panel, shoulder straps, arm openings, waist hem, fitted to human upper body silhouette, displayed flat or on a simple invisible dress form' : '',
         isAncientMedicine ? 'ancient Chinese medicine presentation, herbal powder or pills, folded paper packet, cloth sachet, small ceramic medicine vial, apothecary prop, pre-modern wuxia era' : '',
         description ? `form and materials: ${description}` : '',
         tags ? `material cues: ${tags}` : ''
@@ -249,6 +273,7 @@ const 构建物品视觉主体描述 = (item: any): string => {
 
 export const 构建物品负面提示词 = (item: any): string => {
     const isSoftGarment = 物品是否柔性服装(item);
+    const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isClothShoe = 物品是否布鞋(item);
     const isLivingMount = 物品是否坐骑生物(item);
     const isAncientMedicine = 物品是否古代药物(item);
@@ -258,6 +283,7 @@ export const 构建物品负面提示词 = (item: any): string => {
         isLivingMount ? '' : 'toy, plastic figurine, resin model, statue, sculpture, mannequin',
         'text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, logo, watermark, signature, title, poster text',
         'modern weapon, firearm, gun, rifle, pistol, shotgun, assault rifle, sniper rifle, machine gun, firearm stock, trigger guard, gun barrel, magazine, bullet, ammunition, grenade, rocket launcher, cannon, sci-fi weapon, futuristic weapon, tactical gear, modern military, plastic gun, mechanical firearm',
+        isWearableArmor ? 'sword, saber, knife, dagger, blade, spear, staff, scabbard, sheath, hilt, handle, pommel, long narrow weapon, umbrella, baton, column, tower, statue, helmet only, shield only' : '',
         'item card, game card, trading card, UI overlay, interface, badge, quality badge, rarity badge, speech bubble, dialogue box, border frame, decorative frame',
         'white background, cluttered background, ink wash, guofeng illustration, Chinese painting, brush strokes, anime, cartoon, flat illustration',
         isSoftGarment ? 'armor, cuirass, breastplate, metal armor, metal plates, gauntlet, shield, helmet, hard shell, leather jacket, shiny leather garment' : '',
@@ -274,6 +300,7 @@ export const 构建物品图提示词 = (
     const renderStyle = options?.渲染风格 || '写实道具';
     const isLivingMount = 物品是否坐骑生物(item);
     const isSoftGarment = 物品是否柔性服装(item);
+    const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isAncientMedicine = 物品是否古代药物(item);
     const softGarmentGuard = isSoftGarment
         ? 'for clothing items: soft fabric garment laid flat or neatly folded, visible cloth weave, seams, wrinkles, flexible drape'
@@ -295,6 +322,7 @@ export const 构建物品图提示词 = (
         获取渲染风格要求(renderStyle),
         style === '写实' ? 'photorealistic' : style,
         isAncientMedicine ? 'strict ancient wuxia medicine prop only: folded paper medicine packet, small cloth sachet, ceramic medicine vial, herbal powder or pills; absolutely pre-modern, no modern technology' : '',
+        isWearableArmor ? 'strict wearable armor item: upper-body vest or cuirass garment shape, sleeveless torso armor with arm holes, shoulder straps, chest and back panels, waist hem; product photo of clothing-shaped protective gear' : '',
         构建物品视觉主体描述(item),
         softGarmentGuard,
         'plain neutral background, centered object, clear silhouette, product catalog lighting'
