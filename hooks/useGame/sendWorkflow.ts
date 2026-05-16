@@ -62,6 +62,76 @@ type 世界演变进度 = {
 const 格式化命令展示路径 = (key: string): string => key.replace(/^gameState\./, '');
 const 队列命令展示数量上限 = 120;
 const 队列命令展示单行上限 = 1800;
+const 主剧情流式空闲超时毫秒 = 10_000;
+
+const 创建主剧情流式超时错误 = (stage: string): Error => {
+    const error = new Error(`主剧情乾坤推演${stage}（${Math.max(1, Math.ceil(主剧情流式空闲超时毫秒 / 1000))} 秒无流式输出）`);
+    error.name = 'TimeoutError';
+    return error;
+};
+
+const 执行主剧情流式请求带空闲超时 = async <T,>(
+    parentSignal: AbortSignal,
+    task: (signal: AbortSignal, markStreamActivity: () => void) => Promise<T>
+): Promise<T> => {
+    if (parentSignal.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
+    }
+
+    const requestController = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let rejectTimeout: ((reason?: any) => void) | null = null;
+    let hasStreamActivity = false;
+
+    const clearTimer = () => {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    };
+    const abortByParent = () => {
+        requestController.abort(parentSignal.reason || new DOMException('Aborted', 'AbortError'));
+    };
+    const startTimer = () => {
+        clearTimer();
+        timer = setTimeout(() => {
+            const timeoutError = 创建主剧情流式超时错误(hasStreamActivity ? '流式输出空闲超时' : '等待首次响应超时');
+            console.warn('[主剧情流式超时] 乾坤推演无流式输出，准备中止本次请求并交给自动重试', {
+                timeoutMs: 主剧情流式空闲超时毫秒,
+                hasStreamActivity,
+                reason: timeoutError.message
+            });
+            try {
+                requestController.abort(timeoutError);
+            } catch {
+                requestController.abort();
+            }
+            rejectTimeout?.(timeoutError);
+        }, 主剧情流式空闲超时毫秒);
+    };
+    const markStreamActivity = () => {
+        hasStreamActivity = true;
+        startTimer();
+    };
+
+    parentSignal.addEventListener('abort', abortByParent, { once: true });
+    startTimer();
+    try {
+        return await Promise.race([
+            task(requestController.signal, markStreamActivity),
+            new Promise<T>((_, reject) => { rejectTimeout = reject; })
+        ]);
+    } catch (error) {
+        const signalReason = requestController.signal.reason as any;
+        if (requestController.signal.aborted && signalReason?.name === 'TimeoutError') {
+            throw signalReason;
+        }
+        throw error;
+    } finally {
+        clearTimer();
+        parentSignal.removeEventListener('abort', abortByParent);
+    }
+};
 
 const 获取队列调试时间 = (): number => (
     typeof performance !== 'undefined' && typeof performance.now === 'function'
@@ -730,44 +800,57 @@ export const 执行主剧情发送工作流 = async (
                 }
             },
             action: async () => {
-                return textAIService.generateStoryResponse(
-                    '',
-                    '',
-                    '',
-                    activeApi,
-                    controller.signal,
-                    isStreaming
-                        ? {
-                            stream: true,
-                            onDelta: (_delta, accumulated) => {
-                                deps.设置历史记录(prev => prev.map(item => {
-                                    if (
-                                        item.timestamp === streamMarker
-                                        && item.role === 'assistant'
-                                        && !item.structuredResponse
-                                    ) {
-                                        return { ...item, content: accumulated };
-                                    }
-                                    return item;
-                                }));
+                const requestStory = (
+                    signal: AbortSignal,
+                    markStreamActivity?: () => void
+                ) => textAIService.generateStoryResponse(
+                        '',
+                        '',
+                        '',
+                        activeApi,
+                        signal,
+                        isStreaming
+                            ? {
+                                stream: true,
+                                onDelta: (_delta, accumulated) => {
+                                    markStreamActivity?.();
+                                    deps.设置历史记录(prev => prev.map(item => {
+                                        if (
+                                            item.timestamp === streamMarker
+                                            && item.role === 'assistant'
+                                            && !item.structuredResponse
+                                        ) {
+                                            return { ...item, content: accumulated };
+                                        }
+                                        return item;
+                                    }));
+                                }
                             }
+                            : undefined,
+                        extraPromptForService,
+                        {
+                            orderedMessages,
+                            enableCotInjection: runtimeCotPseudoEnabled,
+                            leadingSystemPrompt: builtContext.contextPieces.AI角色声明,
+                            styleAssistantPrompt: [styleAssistantPrompt, realWorldModePrompt].filter(Boolean).join('\n\n'),
+                            outputProtocolPrompt,
+                            cotPseudoHistoryPrompt: cotPseudoPrompt,
+                            lengthRequirementPrompt,
+                            disclaimerRequirementPrompt,
+                            validateTagCompleteness: runtimeGameConfig.启用标签检测完整性 === true,
+                            enableTagRepair: runtimeGameConfig.启用标签修复 !== false,
+                            requireActionOptionsTag: runtimeGameConfig.启用行动选项 !== false,
+                            errorDetailLimit: Number.POSITIVE_INFINITY
                         }
-                        : undefined,
-                    extraPromptForService,
-                    {
-                        orderedMessages,
-                        enableCotInjection: runtimeCotPseudoEnabled,
-                        leadingSystemPrompt: builtContext.contextPieces.AI角色声明,
-                        styleAssistantPrompt: [styleAssistantPrompt, realWorldModePrompt].filter(Boolean).join('\n\n'),
-                        outputProtocolPrompt,
-                        cotPseudoHistoryPrompt: cotPseudoPrompt,
-                        lengthRequirementPrompt,
-                        disclaimerRequirementPrompt,
-                        validateTagCompleteness: runtimeGameConfig.启用标签检测完整性 === true,
-                        enableTagRepair: runtimeGameConfig.启用标签修复 !== false,
-                        requireActionOptionsTag: runtimeGameConfig.启用行动选项 !== false,
-                        errorDetailLimit: Number.POSITIVE_INFINITY
-                    }
+                    );
+
+                if (!isStreaming) {
+                    return requestStory(controller.signal);
+                }
+
+                return 执行主剧情流式请求带空闲超时(
+                    controller.signal,
+                    (signal, markStreamActivity) => requestStory(signal, markStreamActivity)
                 );
             }
         });
