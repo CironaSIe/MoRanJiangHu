@@ -56,7 +56,7 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
         responseHeaders.delete('content-length');
         Object.entries(CORS_HEADERS).forEach(([key, value]) => responseHeaders.set(key, value));
 
-        return new Response(await upstreamResponse.arrayBuffer(), {
+        return new Response(upstreamResponse.body, {
             status: upstreamResponse.status,
             headers: responseHeaders
         });

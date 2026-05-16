@@ -4,6 +4,7 @@
 
 - Whenever `AGENTS.md` is updated, also provide the user with a Chinese version or Chinese summary in the same reply.
 - Do not only report that the file changed; show the Chinese-readable content as well.
+- Keep `AGENTS.zh-CN.md` synchronized with `AGENTS.md`. Whenever either file is updated, update the other file in the same task so the Chinese version stays current.
 
 ## Customer Changelog Rule
 

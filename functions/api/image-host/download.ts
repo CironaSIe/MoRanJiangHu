@@ -47,6 +47,15 @@ const buildAuthenticatedApiUrl = (targetUrl: string, env: any): string => {
     return `${readImageHostBase(env)}/api/v1/file/${encodeURIComponent(fileId)}`;
 };
 
+const buildPublicFileUrl = (targetUrl: string, env: any): string => {
+    const url = new URL(targetUrl);
+    const fileMatch = url.pathname.match(/^\/api\/v1\/file\/([^/?#]+)/i);
+    if (!fileMatch) return targetUrl;
+    const fileId = decodeURIComponent(fileMatch[1] || '').trim();
+    if (!fileId) return targetUrl;
+    return `${readImageHostBase(env)}/file/${encodeURIComponent(fileId)}`;
+};
+
 const sniffImageContentType = (bytes: Uint8Array): string => {
     if (bytes.length >= 8
         && bytes[0] === 0x89
@@ -85,24 +94,40 @@ const sniffImageContentType = (bytes: Uint8Array): string => {
 
 const fetchImageHostFile = async (targetUrl: string, env: any): Promise<Response> => {
     const token = readImageHostToken(env);
-    const headers: Record<string, string> = {
+    const authenticatedHeaders: Record<string, string> = {
         Accept: 'image/*,application/octet-stream,*/*;q=0.8'
     };
-    if (token) headers.Authorization = `Bearer ${token}`;
+    if (token) authenticatedHeaders.Authorization = `Bearer ${token}`;
+    const publicHeaders = {
+        Accept: 'image/*,application/octet-stream,*/*;q=0.8'
+    };
 
+    const candidates: Array<{ url: string; headers: Record<string, string> }> = [];
     const authenticatedUrl = buildAuthenticatedApiUrl(targetUrl, env);
-    const response = await fetch(authenticatedUrl, {
-        method: 'GET',
-        headers
-    });
-    if (response.ok || authenticatedUrl === targetUrl) return response;
+    if (token) candidates.push({ url: authenticatedUrl, headers: authenticatedHeaders });
 
-    return fetch(targetUrl, {
-        method: 'GET',
-        headers: {
-            Accept: 'image/*,application/octet-stream,*/*;q=0.8'
-        }
-    });
+    const publicFileUrl = buildPublicFileUrl(targetUrl, env);
+    if (publicFileUrl !== targetUrl) {
+        candidates.push({ url: publicFileUrl, headers: publicHeaders });
+    } else if (authenticatedUrl !== targetUrl) {
+        candidates.push({ url: targetUrl, headers: publicHeaders });
+    } else {
+        candidates.push({ url: targetUrl, headers: token ? authenticatedHeaders : publicHeaders });
+    }
+
+    const seen = new Set<string>();
+    let lastResponse: Response | null = null;
+    for (const candidate of candidates) {
+        if (seen.has(candidate.url)) continue;
+        seen.add(candidate.url);
+        const response = await fetch(candidate.url, {
+            method: 'GET',
+            headers: candidate.headers
+        });
+        if (response.ok) return response;
+        lastResponse = response;
+    }
+    return lastResponse || new Response('Image download failed', { status: 502 });
 };
 
 export function onRequestOptions(): Response {
