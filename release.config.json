@@ -1,14 +1,25 @@
 {
-  "versionCode": 197,
-  "versionName": "1.0.196",
+  "versionCode": 198,
+  "versionName": "1.0.197",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "v1.0.196 正式发布：修复手机端图床迁移上传和下载失败。",
-    "APK 内的图床上传/下载代理现在会固定走线上同步接口，避免 capacitor://localhost 把 /api 请求误送到本地页面导致返回 text/html。",
-    "图床上传响应只有文件 ID 时，会生成可认证读取的 API 文件地址，不再误报“响应中没有下载链接”。",
-    "网页端、APK 包和更新清单同步提升到 v1.0.196 / CODE 197。"
+    "v1.0.197 正式发布：修复 Claude/MAX 克隆接口报 400 的兼容问题。",
+    "当模型要求“对话必须以用户消息结束”时，系统会自动在后台任务末尾补一条用户启动指令，避免 COT 伪装历史消息停在 assistant 角色导致请求被拒。",
+    "该兼容层覆盖 Claude、Opus、Sonnet、Haiku、MAX 等常见克隆模型名称，不需要玩家手动关闭世界演变、变量校准、规划分析或剧情回忆。",
+    "网页端、APK 包和更新清单同步提升到 v1.0.197 / CODE 198。"
   ],
   "releaseHistory": [
+    {
+      "versionCode": 198,
+      "versionName": "1.0.197",
+      "changes": [
+        "v1.0.197 正式发布：修复 Claude/MAX 克隆接口报 400 的兼容问题。",
+        "当模型要求“对话必须以用户消息结束”时，系统会自动在后台任务末尾补一条用户启动指令，避免 COT 伪装历史消息停在 assistant 角色导致请求被拒。",
+        "该兼容层覆盖 Claude、Opus、Sonnet、Haiku、MAX 等常见克隆模型名称，不需要玩家手动关闭世界演变、变量校准、规划分析或剧情回忆。",
+        "网页端、APK 包和更新清单同步提升到 v1.0.197 / CODE 198。"
+      ],
+      "publishedAt": "2026-05-17T00:23:46+08:00"
+    },
     {
       "versionCode": 197,
       "versionName": "1.0.196",
@@ -2115,5 +2126,5 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-17T00:08:29+08:00"
+  "releasePublishedAt": "2026-05-17T00:23:46+08:00"
 }

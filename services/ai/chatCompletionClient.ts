@@ -192,6 +192,37 @@ const 是否Claude模型 = (modelRaw: string): boolean => {
     return (modelRaw || '').toLowerCase().includes('claude');
 };
 
+const 是否Claude兼容末尾User模型 = (apiConfig: 当前可用接口结构): boolean => {
+    const model = (apiConfig.model || '').toLowerCase();
+    const baseUrl = (apiConfig.baseUrl || '').toLowerCase();
+    const supplier = (apiConfig.供应商 || '').toLowerCase();
+    return supplier.includes('claude')
+        || supplier.includes('anthropic')
+        || baseUrl.includes('anthropic')
+        || baseUrl.includes('claude')
+        || model.includes('claude')
+        || model.includes('opus')
+        || model.includes('sonnet')
+        || model.includes('haiku')
+        || model.includes('max');
+};
+
+export const 应用Claude兼容末尾User修正 = (
+    messages: 通用消息[],
+    apiConfig: 当前可用接口结构
+): 通用消息[] => {
+    if (!是否Claude兼容末尾User模型(apiConfig)) return messages;
+    const last = messages[messages.length - 1];
+    if (!last || last.role === 'user') return messages;
+    return [
+        ...messages,
+        {
+            role: 'user',
+            content: '请根据以上全部上下文和任务要求继续执行，并直接输出本次任务的最终结果。'
+        }
+    ];
+};
+
 const 应用强制JSON消息修正 = (
     messages: 通用消息[],
     responseFormat?: 响应格式类型
@@ -1031,9 +1062,12 @@ export const 请求模型文本 = async (
     const effectiveResponseFormat = (requestedResponseFormat && !shouldSkipResponseFormat)
         ? requestedResponseFormat
         : undefined;
-    const normalizedMessages = 应用DeepSeek消息兼容修正(
-        应用强制JSON消息修正(messages, effectiveResponseFormat),
-        protocol
+    const normalizedMessages = 应用Claude兼容末尾User修正(
+        应用DeepSeek消息兼容修正(
+            应用强制JSON消息修正(messages, effectiveResponseFormat),
+            protocol
+        ),
+        apiConfig
     );
 
     return 带重试执行(`请求模型文本(${protocol})`, async () => {
