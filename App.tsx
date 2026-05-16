@@ -31,11 +31,12 @@ import { checkForAppUpdate, subscribeAppUpdateProgress, type AppUpdateProgressSt
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
-import { getDiagnosticLogs, subscribeDiagnosticLogs } from './services/diagnosticLog';
+import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
 import { 获取本地图片图床迁移状态, 读取图片资源兜底地址, 确保远程图片本地兜底, 订阅本地图片图床迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
 import { startOnlinePresenceHeartbeat } from './services/onlinePresence';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
+import type { 游戏物品 } from './models/item';
 
 const RELEASE_NOTES_SUPPRESS_DATE_KEY = 'moranjianghu.releaseNotesSuppressDate';
 const DESKTOP_DETAIL_WIDTHS_STORAGE_KEY = 'moranjianghu.desktopRightDetailWidths.v3';
@@ -44,6 +45,7 @@ const DESKTOP_DETAIL_MAX_WIDTH = 1160;
 const DESKTOP_DETAIL_RIGHT_GAP = 12;
 const ITEM_AUTO_IMAGE_RETRY_INTERVAL = 10 * 60 * 1000;
 const ITEM_AUTO_IMAGE_AFTER_CHARACTER_SCENE_IDLE_DELAY = 2500;
+const ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL = 10 * 60 * 1000;
 const IMAGE_TASK_BUSY_STATES = new Set(['queued', 'running']);
 
 const getDesktopDetailDefaultWidth = (_panelId: string | null): number => {
@@ -55,6 +57,12 @@ const 获取物品自动生图Key = (scope: 'bag' | 'auction', item: any, ownerI
     ownerId || '',
     item?.ID || item?.名称 || 'unknown'
 ].join(':');
+
+type 物品自动生图近期结果 = {
+    completedAt: number;
+    recordId: string;
+    nextItem: 游戏物品;
+};
 
 type 本回合变化区域 = '角色' | '背包' | '装备' | '战斗' | '队伍' | '社交' | '功法' | '地图' | '玩家门派' | '任务列表' | '约定列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
 
@@ -437,6 +445,8 @@ const App: React.FC = () => {
     const lastUpdateCheckAtRef = React.useRef(0);
     const releaseNotesAutoOpenedRef = React.useRef(false);
     const autoItemImageRunningRef = React.useRef<Set<string>>(new Set());
+    const autoItemImageScheduledRef = React.useRef<Set<string>>(new Set());
+    const autoItemImageRecentSuccessRef = React.useRef<Map<string, 物品自动生图近期结果>>(new Map());
     const autoItemImageFailedAtRef = React.useRef<Map<string, number>>(new Map());
     const auctionSettlementHandledRef = React.useRef<Set<string>>(new Set());
     const 最近运行报错提示IDRef = React.useRef('');
@@ -1126,22 +1136,24 @@ const App: React.FC = () => {
         // 限制物品生图并发数量，避免一次性提交所有任务
         const MAX_CONCURRENT_ITEM_IMAGE_TASKS = 1;
         if (autoItemImageRunningRef.current.size >= MAX_CONCURRENT_ITEM_IMAGE_TASKS) return;
-        
-        let cancelled = false;
-        const idleTimer = window.setTimeout(() => {
-            if (cancelled) return;
 
         const now = Date.now();
+        autoItemImageRecentSuccessRef.current.forEach((value, key) => {
+            if (now - value.completedAt > ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL) {
+                autoItemImageRecentSuccessRef.current.delete(key);
+            }
+        });
+
         const bagItems = Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : [];
         const auctionItems = Array.isArray(auctionHouseState?.拍卖品列表) ? auctionHouseState.拍卖品列表 : [];
         const candidates: Array<{
             key: string;
-            item: any;
+            item: 游戏物品;
             sourceLocation: '背包' | '拍卖行';
             auctionId?: string;
         }> = [];
 
-        bagItems.forEach((item: any) => {
+        bagItems.forEach((item: 游戏物品) => {
             if (!item || 物品已有可用图标(item)) return;
             candidates.push({
                 key: 获取物品自动生图Key('bag', item),
@@ -1160,21 +1172,19 @@ const App: React.FC = () => {
         });
 
         const candidate = candidates.find((entry) => {
+            if (autoItemImageScheduledRef.current.has(entry.key)) return false;
             if (autoItemImageRunningRef.current.has(entry.key)) return false;
             const failedAt = autoItemImageFailedAtRef.current.get(entry.key) || 0;
             return now - failedAt > ITEM_AUTO_IMAGE_RETRY_INTERVAL;
         });
         if (!candidate) return;
 
-        const recordId = `item_img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        const modelName = imageApi.model || imageApi.图片后端类型 || 'image-model';
-        const 画风 = (feature?.自动物品生图画风 || '写实') as 物品生图结果['画风'];
-        const 渲染风格 = (feature?.自动物品生图渲染风格 || '写实道具') as 物品生图结果['渲染风格'];
-        const 尺寸 = (typeof feature?.自动物品生图分辨率 === 'string' && feature.自动物品生图分辨率.trim()) || '1024x1024';
-        const 写回候选物品 = (nextItem: any, shouldSave: boolean) => {
+        autoItemImageScheduledRef.current.add(candidate.key);
+        let cancelled = false;
+        const 写回候选物品 = (nextItem: 游戏物品, shouldSave: boolean) => {
             if (candidate.sourceLocation === '背包') {
-                const nextItems = bagItems.map((item: any) => 是同一个物品(item, candidate.item) ? nextItem : item);
-                const changed = nextItems.some((item: any, index: number) => item !== bagItems[index]);
+                const nextItems = bagItems.map((item: 游戏物品) => 是同一个物品(item, candidate.item) ? nextItem : item);
+                const changed = nextItems.some((item: 游戏物品, index: number) => item !== bagItems[index]);
                 if (changed) {
                     const nextCharacter = { ...state.角色, 物品列表: nextItems };
                     setters.setCharacter(nextCharacter);
@@ -1196,6 +1206,31 @@ const App: React.FC = () => {
                 });
             }
         };
+
+        const idleTimer = window.setTimeout(() => {
+            if (cancelled) return;
+            const startedAt = Date.now();
+            autoItemImageScheduledRef.current.delete(candidate.key);
+            if (autoItemImageRunningRef.current.size >= MAX_CONCURRENT_ITEM_IMAGE_TASKS) return;
+            if (autoItemImageRunningRef.current.has(candidate.key)) return;
+            const recentSuccess = autoItemImageRecentSuccessRef.current.get(candidate.key);
+            if (recentSuccess && startedAt - recentSuccess.completedAt <= ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL) {
+                recordDiagnosticLog('info', '[物品自动生图] 复用近期生成结果，跳过重复提交', {
+                    key: candidate.key,
+                    recordId: recentSuccess.recordId,
+                    sourceLocation: candidate.sourceLocation,
+                    itemName: candidate.item?.名称 || '无名物品',
+                    ageMs: startedAt - recentSuccess.completedAt
+                });
+                写回候选物品(recentSuccess.nextItem, true);
+                return;
+            }
+
+        const recordId = `item_img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const modelName = imageApi.model || imageApi.图片后端类型 || 'image-model';
+        const 画风 = (feature?.自动物品生图画风 || '写实') as 物品生图结果['画风'];
+        const 渲染风格 = (feature?.自动物品生图渲染风格 || '写实道具') as 物品生图结果['渲染风格'];
+        const 尺寸 = (typeof feature?.自动物品生图分辨率 === 'string' && feature.自动物品生图分辨率.trim()) || '1024x1024';
         const 写回物品生图记录 = (status: 物品生图结果['状态'], errorMessage?: string) => {
             const record: 物品生图结果 = {
                 id: recordId,
@@ -1220,6 +1255,14 @@ const App: React.FC = () => {
         };
 
         autoItemImageRunningRef.current.add(candidate.key);
+        recordDiagnosticLog('info', '[物品自动生图] 开始生成', {
+            key: candidate.key,
+            recordId,
+            sourceLocation: candidate.sourceLocation,
+            itemName: candidate.item?.名称 || '无名物品',
+            candidateCount: candidates.length,
+            runningCount: autoItemImageRunningRef.current.size
+        });
         写回物品生图记录('pending');
         actions.pushNotification({
             title: '物品自动生图',
@@ -1247,6 +1290,11 @@ const App: React.FC = () => {
                     }
                 );
                 写回候选物品(result.nextItem, true);
+                autoItemImageRecentSuccessRef.current.set(candidate.key, {
+                    completedAt: Date.now(),
+                    recordId,
+                    nextItem: result.nextItem
+                });
                 autoItemImageFailedAtRef.current.delete(candidate.key);
                 actions.pushNotification({
                     title: '物品图标已生成',
@@ -1271,6 +1319,7 @@ const App: React.FC = () => {
         }, ITEM_AUTO_IMAGE_AFTER_CHARACTER_SCENE_IDLE_DELAY);
         return () => {
             cancelled = true;
+            autoItemImageScheduledRef.current.delete(candidate.key);
             window.clearTimeout(idleTimer);
         };
     }, [state.view, state.apiConfig, state.角色, auctionHouseState, auctionHouseScope, setters, actions, meta.imageGenerationQueue, meta.sceneImageQueue]);
