@@ -50,6 +50,13 @@ type VariableGenerationProgress = {
     commandTexts?: string[];
 };
 
+type MapUpdateProgress = {
+    phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
+    text?: string;
+    rawText?: string;
+    commandTexts?: string[];
+};
+
 type QueueProgressPayload = {
     phase?: string;
     text?: string;
@@ -106,7 +113,7 @@ const 合并队列命令展示 = (commandTexts: string[]): string => (
         : ''
 );
 
-type IndependentStageId = 'polish' | 'world' | 'planning' | 'variable';
+type IndependentStageId = 'polish' | 'world' | 'planning' | 'variable' | 'map';
 type IndependentStageFailureDecision = 'retry' | 'skip';
 type IndependentStageFailureParams = {
     stageId: IndependentStageId;
@@ -125,6 +132,7 @@ interface Props {
             onWorldEvolutionProgress?: (progress: WorldEvolutionProgress) => void;
             onPlanningProgress?: (progress: PlanningProgress) => void;
             onVariableGenerationProgress?: (progress: VariableGenerationProgress) => void;
+            onMapUpdateProgress?: (progress: MapUpdateProgress) => void;
             onStageFailureDecision?: (params: IndependentStageFailureParams) => Promise<IndependentStageFailureDecision> | IndependentStageFailureDecision;
         }
     ) => Promise<SendResult> | SendResult;
@@ -179,6 +187,7 @@ const InputArea: React.FC<Props> = ({
     const [worldEvolutionProgress, setWorldEvolutionProgress] = useState<WorldEvolutionProgress | null>(null);
     const [planningProgress, setPlanningProgress] = useState<PlanningProgress | null>(null);
     const [variableGenerationProgress, setVariableGenerationProgress] = useState<VariableGenerationProgress | null>(null);
+    const [mapUpdateProgress, setMapUpdateProgress] = useState<MapUpdateProgress | null>(null);
     const [expandedRawStageId, setExpandedRawStageId] = useState<string | null>(null);
     const [expandedCommandStageId, setExpandedCommandStageId] = useState<string | null>(null);
     const [queueCollapsed, setQueueCollapsed] = useState(true);
@@ -286,6 +295,7 @@ const InputArea: React.FC<Props> = ({
         setWorldEvolutionProgress(null);
         setPlanningProgress(null);
         setVariableGenerationProgress(null);
+        setMapUpdateProgress(null);
         setExpandedRawStageId(null);
         setExpandedCommandStageId(null);
         setQueueCollapsed(true);
@@ -300,6 +310,7 @@ const InputArea: React.FC<Props> = ({
                 onWorldEvolutionProgress: (progress) => 记录并设置队列进度('world', progress, setWorldEvolutionProgress),
                 onPlanningProgress: (progress) => 记录并设置队列进度('planning', progress, setPlanningProgress),
                 onVariableGenerationProgress: (progress) => 记录并设置队列进度('variable', progress, setVariableGenerationProgress),
+                onMapUpdateProgress: (progress) => 记录并设置队列进度('map', progress, setMapUpdateProgress),
                 onStageFailureDecision: async (params) => {
                     if (params.stageId === 'planning' && (params.manualAttempt || 1) <= 1) {
                         return 'skip';
@@ -329,6 +340,7 @@ const InputArea: React.FC<Props> = ({
                     onWorldEvolutionProgress: (progress) => 记录并设置队列进度('world.retry', progress, setWorldEvolutionProgress),
                     onPlanningProgress: (progress) => 记录并设置队列进度('planning.retry', progress, setPlanningProgress),
                     onVariableGenerationProgress: (progress) => 记录并设置队列进度('variable.retry', progress, setVariableGenerationProgress),
+                    onMapUpdateProgress: (progress) => 记录并设置队列进度('map.retry', progress, setMapUpdateProgress),
                     onStageFailureDecision: async (params) => {
                         if (params.stageId === 'planning' && (params.manualAttempt || 1) <= 1) {
                             return 'skip';
@@ -564,7 +576,8 @@ const InputArea: React.FC<Props> = ({
         { id: 'polish', label: '文章优化', progress: polishProgress },
         { id: 'variable', label: '变量生成', progress: effectiveVariableGenerationProgress },
         { id: 'world', label: '动态世界', progress: effectiveWorldEvolutionProgress },
-        { id: 'planning', label: '规划分析', progress: effectivePlanningProgress }
+        { id: 'planning', label: '规划分析', progress: effectivePlanningProgress },
+        { id: 'map', label: '地图更新', progress: mapUpdateProgress }
     ];
     const queueVisible = pipelineStages.some((stage) => Boolean(stage.progress));
     const historyStages = pipelineStages.filter((stage) => {
@@ -599,13 +612,15 @@ const InputArea: React.FC<Props> = ({
             polishProgress,
             effectiveVariableGenerationProgress,
             effectiveWorldEvolutionProgress,
-            effectivePlanningProgress
+            effectivePlanningProgress,
+            mapUpdateProgress
         ].some((item) => item?.phase === 'start' || item?.phase === 'done' || item?.phase === 'error' || item?.phase === 'skipped' || item?.phase === 'cancelled');
         const hasRunningQueueStage = [
             polishProgress,
             effectiveVariableGenerationProgress,
             effectiveWorldEvolutionProgress,
-            effectivePlanningProgress
+            effectivePlanningProgress,
+            mapUpdateProgress
         ].some((item) => item?.phase === 'start');
         if (hasQueueProgress && (hasRunningQueueStage || postStoryQueueRunning)) {
             // 不再自动展开面板，保持收缩状态让用户手动点开
@@ -615,7 +630,8 @@ const InputArea: React.FC<Props> = ({
         polishProgress?.phase,
         effectiveVariableGenerationProgress?.phase,
         effectiveWorldEvolutionProgress?.phase,
-        effectivePlanningProgress?.phase
+        effectivePlanningProgress?.phase,
+        mapUpdateProgress?.phase
     ]);
 
     useEffect(() => {
@@ -623,7 +639,8 @@ const InputArea: React.FC<Props> = ({
             polishProgress,
             effectiveVariableGenerationProgress,
             effectiveWorldEvolutionProgress,
-            effectivePlanningProgress
+            effectivePlanningProgress,
+            mapUpdateProgress
         ]
             .some((item) => item?.phase === 'error');
         if (hasMainQueueError) {
@@ -633,7 +650,8 @@ const InputArea: React.FC<Props> = ({
         polishProgress?.phase,
         effectiveVariableGenerationProgress?.phase,
         effectiveWorldEvolutionProgress?.phase,
-        effectivePlanningProgress?.phase
+        effectivePlanningProgress?.phase,
+        mapUpdateProgress?.phase
     ]);
 
     useEffect(() => {
@@ -652,7 +670,8 @@ const InputArea: React.FC<Props> = ({
         polishProgress?.phase,
         effectiveVariableGenerationProgress?.phase,
         effectiveWorldEvolutionProgress?.phase,
-        effectivePlanningProgress?.phase
+        effectivePlanningProgress?.phase,
+        mapUpdateProgress?.phase
     ]);
 
     return (

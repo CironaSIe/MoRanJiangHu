@@ -1,5 +1,5 @@
 import type { TavernCommand } from '../types';
-import { normalizeStateCommandKey } from './stateHelpers';
+import { normalizeStateCommandKey, 是否废弃世界地图字段路径 } from './stateHelpers';
 
 type 路径片段 = string | number;
 
@@ -152,6 +152,9 @@ export const 校验变量命令是否登记 = (
     stateLike: Record<string, any>
 ): 变量命令校验结果 => {
     const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '');
+    if (cmd?.action !== 'delete' && 是否废弃世界地图字段路径(normalizedKey)) {
+        return { allowed: false, normalizedKey, reason: '旧地图坐标字段已废弃' };
+    }
     const parsed = 提取根路径(normalizedKey);
     if (!parsed) {
         return { allowed: false, normalizedKey, reason: '根路径未登记' };

@@ -248,7 +248,7 @@ type 变量生成进度 = {
     commandTexts?: string[];
 };
 
-type 独立阶段标识 = 'polish' | 'world' | 'planning' | 'variable';
+type 独立阶段标识 = 'polish' | 'world' | 'planning' | 'variable' | 'map';
 type 独立阶段失败决策 = 'retry' | 'skip';
 type 独立阶段失败决策参数 = {
     stageId: 独立阶段标识;
@@ -271,6 +271,13 @@ type 世界演变进度 = {
     commandTexts?: string[];
 };
 
+type 地图更新进度 = {
+    phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
+    text?: string;
+    rawText?: string;
+    commandTexts?: string[];
+};
+
 type 变量生成上下文缓存项 = {
     回合: number;
     玩家输入: string;
@@ -286,6 +293,7 @@ type 发送选项 = {
     onWorldEvolutionProgress?: (progress: 世界演变进度) => void;
     onPlanningProgress?: (progress: 规划分析进度) => void;
     onVariableGenerationProgress?: (progress: 变量生成进度) => void;
+    onMapUpdateProgress?: (progress: 地图更新进度) => void;
     onStageFailureDecision?: (params: 独立阶段失败决策参数) => Promise<独立阶段失败决策> | 独立阶段失败决策;
 };
 

@@ -24,12 +24,46 @@ const 正交线段穿过矩形 = (
 };
 
 describe('地图空间道路规划', () => {
+    it('会把大洲层道路路径点收回地图框内安全边距', () => {
+        const world = 补齐世界地图空间字段({
+            地图层级: [{
+                ID: 'continent_layer',
+                名称: '云梦大洲',
+                层级: '中地点',
+                网格宽度: 36,
+                网格高度: 36,
+                锚点坐标: { x: 0, y: 0 },
+            }],
+            地图建筑: [],
+            地图道路: [{
+                ID: 'continent_road',
+                名称: '洲际驿道',
+                所在层级ID: 'continent_layer',
+                路径点: [
+                    { x: -12, y: -3 },
+                    { x: 48, y: 42 },
+                ],
+            }],
+            地图人物: [],
+        } as any);
+
+        const road = world.地图道路.find((item: any) => item.ID === 'continent_road')!;
+        expect(road).toBeTruthy();
+        expect(road.路径点.length).toBeGreaterThanOrEqual(2);
+        road.路径点.forEach((point: any) => {
+            expect(point.x).toBeGreaterThanOrEqual(0.7);
+            expect(point.x).toBeLessThanOrEqual(35.3);
+            expect(point.y).toBeGreaterThanOrEqual(0.7);
+            expect(point.y).toBeLessThanOrEqual(35.3);
+        });
+    });
+
     it('会把模型给出的斜线道路改成避让建筑的正交路径', () => {
         const world = 补齐世界地图空间字段({
             地图层级: [{
                 ID: 'layer_test',
                 名称: '青松门',
-                层级: '具体地点',
+                层级: '小地点',
                 网格宽度: 24,
                 网格高度: 18,
                 锚点坐标: { x: 0, y: 0 }
@@ -85,6 +119,7 @@ describe('地图空间道路规划', () => {
 
         const specificLayer = world.地图层级.find((item: any) => item.名称 === '主角寝居');
         expect(specificLayer).toBeTruthy();
+        expect(specificLayer?.层级).toBe('区地点');
         const buildings = world.地图建筑.filter((item: any) => item.所在层级ID === specificLayer?.ID);
         const categories = new Set(buildings.map((item: any) => item.分类));
         expect(buildings.length).toBeGreaterThanOrEqual(4);
@@ -99,7 +134,7 @@ describe('地图空间道路规划', () => {
             地图层级: [{
                 ID: 'layer_town',
                 名称: '杨府',
-                层级: '具体地点',
+                层级: '小地点',
                 网格宽度: 40,
                 网格高度: 30,
                 锚点坐标: { x: 0, y: 0 }
@@ -183,7 +218,7 @@ describe('地图空间道路规划', () => {
             }, {
                 ID: 'room_main',
                 名称: '青云门大殿内室',
-                层级: '具体地点',
+                层级: '子地点',
                 归属: { 大地点: '青州', 中地点: '云梦城', 小地点: '青云门' },
                 锚点坐标: { x: 12, y: 12 }
             }],
@@ -284,7 +319,7 @@ describe('地图空间道路规划', () => {
         expect(sect?.层级).toBe('中地点');
         expect(yard?.层级).toBe('小地点');
         expect(building?.层级).toBe('小地点');
-        expect(room?.层级).toBe('具体地点');
+        expect(room?.层级).toBe('子地点');
         expect(room?.父级ID).toBe('building_disciple');
 
         const roomEntries = world.地图建筑.filter((item: any) => item.所在层级ID === 'room_player');
@@ -314,7 +349,7 @@ describe('本批 bugfix 回归 - 地图 NPC 社交一致、建筑内部无道路
             地图层级: [{
                 ID: 'layer_shrine',
                 名称: '荒庙内部',
-                层级: '具体地点',
+                层级: '子地点',
                 网格宽度: 20,
                 网格高度: 16,
                 锚点坐标: { x: 0, y: 0 }

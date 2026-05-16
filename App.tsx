@@ -2003,8 +2003,9 @@ const App: React.FC = () => {
             setMapRegenerateRawText(refinedText);
             let jsonStr = refinedText.trim();
             // 去掉思考标签，只留JSON部分
-            const thinkEnd = jsonStr.lastIndexOf('</思考>');
-            if (thinkEnd >= 0) jsonStr = jsonStr.slice(thinkEnd + 6).trim();
+            const thinkCloseTag = '</思考>';
+            const thinkEnd = jsonStr.lastIndexOf(thinkCloseTag);
+            if (thinkEnd >= 0) jsonStr = jsonStr.slice(thinkEnd + thinkCloseTag.length).trim();
             const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
             if (codeBlockMatch) jsonStr = codeBlockMatch[1].trim();
             const parsed = JSON.parse(jsonStr);

@@ -222,7 +222,7 @@ const VariableManager: React.FC<Props> = ({ runtimeState, onReplaceSection, onAp
         try {
             const parsed = JSON.parse(jsonDraft);
             if (activeSection === '地图系统') {
-                const currentMapData = activeValue;
+                const currentMapData = parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : {};
                 const worldData = 深拷贝(runtimeState['世界'] || {});
                 ['地图', '建筑', '地图建筑', '地图道路', '地图人物'].forEach(k => { (worldData as any)[k] = []; });
                 Object.keys(currentMapData).forEach(key => {

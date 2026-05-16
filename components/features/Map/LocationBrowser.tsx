@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { 世界数据结构, 环境信息结构 } from '../../../types';
 import { 构建地点树, type 地点树节点 } from '../../../utils/locationTree';
+import { NPC属于地图视图, NPC位置命中名称 } from '../../../utils/mapNpcLocation';
 import RegionMap from './RegionMap';
 
 interface Props {
@@ -116,14 +117,17 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
     // 选中节点的在场NPC
     const selectedNodeNpcs = useMemo(() => {
         if (!selectedNode || socialList.length === 0) return [];
-        const nodeName = (selectedNode.名称 || '').trim().replace(/\s+/g, '').toLowerCase();
-        if (!nodeName) return [];
+        const viewPathNames = breadcrumb.map((node) => node.名称);
         return socialList.filter((npc: any) => {
-            const pos = (npc?.当前位置 || npc?.具体地点 || '').trim().replace(/\s+/g, '').toLowerCase();
-            const path = (npc?.位置路径 || '').trim().replace(/\s+/g, '').toLowerCase();
-            return pos === nodeName || path.includes(`>${nodeName}>`) || path.includes(`>${nodeName}`) || path.startsWith(nodeName);
+            if (NPC位置命中名称(npc, selectedNode.名称)) return true;
+            return NPC属于地图视图(npc, selectedNode.子节点, {
+                env,
+                currentLocationName: tree.当前节点?.名称 || '',
+                viewNodeName: selectedNode.名称,
+                viewPathNames,
+            });
         });
-    }, [selectedNode, socialList]);
+    }, [selectedNode, socialList, breadcrumb, env, tree.当前节点]);
 
     const rightPanelWidth = compact ? 'min-h-[200px]' : 'w-[320px]';
 
@@ -191,6 +195,8 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                         level={currentViewNode?.层级 || '大地点'}
                         socialList={socialList}
                         env={env}
+                        viewLocationName={currentViewNode?.名称 || ''}
+                        viewPathNames={breadcrumb.map((node) => node.名称)}
                     />
                 </div>
             </div>

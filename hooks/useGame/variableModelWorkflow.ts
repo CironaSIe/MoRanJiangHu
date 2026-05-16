@@ -76,12 +76,7 @@ const 大型数组限制映射: Record<string, number> = {
     进行中事件: 30,
     已结算事件: 20,
     江湖史册: 20,
-    地图: 20,
-    建筑: 30,
     地图层级: 30,
-    地图建筑: 80,
-    地图道路: 80,
-    地图人物: 80,
     任务列表: 30,
     约定列表: 30
 };
@@ -288,6 +283,7 @@ const 是否允许变量生成命令 = (cmd: TavernCommand): boolean => {
     if (typeof cmd?.key !== 'string' || 包含非法伪索引(cmd.key)) return false;
     const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '');
     if (!normalizedKey) return false;
+    if (/^gameState\.世界\.(地图|建筑|地图建筑|地图道路|地图人物)(?:\.|\[|$)/u.test(normalizedKey)) return false;
 
     const allowed = 允许根路径.find((root) => normalizedKey === root || normalizedKey.startsWith(`${root}.`) || normalizedKey.startsWith(`${root}[`));
     if (!allowed) return false;
