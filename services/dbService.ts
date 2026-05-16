@@ -643,6 +643,22 @@ export const 读取图片资源兜底地址 = async (assetIdOrRef: string): Prom
     return 是DataUrl图片(dataUrl) ? dataUrl : '';
 };
 
+export const 确保远程图片本地兜底 = async (remoteUrl: string): Promise<string> => {
+    const normalized = typeof remoteUrl === 'string' ? remoteUrl.trim() : '';
+    if (!是图床图片地址(normalized)) return '';
+    const fallbackMap = 读取远程图片兜底映射();
+    const existingId = fallbackMap[normalized] || '';
+    if (existingId) {
+        const existingDataUrl = await 读取图片资源(existingId);
+        if (是DataUrl图片(existingDataUrl)) return existingDataUrl;
+    }
+    const dataUrl = await 下载远程图片为DataUrl(normalized);
+    const backupId = existingId || 生成远程图片备份ID(normalized);
+    await 写入图片资源记录(backupId, dataUrl);
+    注册远程图片兜底引用(normalized, backupId);
+    return dataUrl;
+};
+
 export const 读取本地图片资源统计 = async (): Promise<本地图片资源统计> => {
     try {
         const [referenceSnapshot, assetEntries] = await Promise.all([

@@ -32,7 +32,7 @@ import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
 import { getDiagnosticLogs, subscribeDiagnosticLogs } from './services/diagnosticLog';
-import { 获取本地图片图床迁移状态, 读取图片资源兜底地址, 订阅本地图片图床迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
+import { 获取本地图片图床迁移状态, 读取图片资源兜底地址, 确保远程图片本地兜底, 订阅本地图片图床迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
 import { startOnlinePresenceHeartbeat } from './services/onlinePresence';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
@@ -463,19 +463,42 @@ const App: React.FC = () => {
     React.useEffect(() => subscribeAppUpdateProgress(setAppUpdateProgress), []);
     React.useEffect(() => startOnlinePresenceHeartbeat(), []);
     React.useEffect(() => {
+        const 正在回源的图床地址 = new Set<string>();
         const handleImageError = (event: Event) => {
             const target = event.target;
             if (!(target instanceof HTMLImageElement)) return;
             if (target.dataset.moranjianghuFallbackApplied === '1') return;
-            const fallbackAssetId = 读取远程图片兜底资源ID(target.currentSrc || target.src);
+            const sourceUrl = target.currentSrc || target.src;
+            const fallbackAssetId = 读取远程图片兜底资源ID(sourceUrl);
             if (!fallbackAssetId) return;
             target.dataset.moranjianghuFallbackApplied = '1';
             void 读取图片资源兜底地址(fallbackAssetId).then((fallbackSrc) => {
                 if (fallbackSrc) target.src = fallbackSrc;
             });
         };
+        const handleImageLoad = (event: Event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLImageElement)) return;
+            const sourceUrl = target.currentSrc || target.src;
+            if (!/^https?:\/\//i.test(sourceUrl)) return;
+            if (正在回源的图床地址.has(sourceUrl)) return;
+            正在回源的图床地址.add(sourceUrl);
+            void 确保远程图片本地兜底(sourceUrl)
+                .catch((error) => {
+                    console.warn('图床图片本地兜底下载失败:', error);
+                })
+                .finally(() => {
+                    正在回源的图床地址.delete(sourceUrl);
+                });
+        };
         window.addEventListener('error', handleImageError, true);
-        return () => window.removeEventListener('error', handleImageError, true);
+        window.addEventListener('load', handleImageLoad, true);
+        document.addEventListener('load', handleImageLoad, true);
+        return () => {
+            window.removeEventListener('error', handleImageError, true);
+            window.removeEventListener('load', handleImageLoad, true);
+            document.removeEventListener('load', handleImageLoad, true);
+        };
     }, []);
     React.useEffect(() => 订阅本地图片图床迁移状态((status) => {
         setLegacyImageMigrationStatus(status);

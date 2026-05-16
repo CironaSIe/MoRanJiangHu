@@ -96,6 +96,12 @@ export const 读取远程图片兜底资源ID = (remoteUrl: unknown): string => 
     return 读取文本(读取远程图片兜底缓存()[remote]);
 };
 
+export const 读取远程图片本地兜底地址 = (remoteUrl: unknown): string => {
+    const assetId = 读取远程图片兜底资源ID(remoteUrl);
+    if (!assetId) return '';
+    return 读取图片资源缓存(创建图片资源引用(assetId));
+};
+
 export const 读取远程图片兜底资源ID集合 = (): Set<string> => (
     new Set(Object.values(读取远程图片兜底缓存()).map(读取文本).filter(Boolean))
 );
@@ -114,6 +120,10 @@ export const 获取图片展示地址 = (asset?: 图片资源结构 | null): str
 export const 获取图片资源文本地址 = (value: unknown): string => {
     const text = 读取文本(value);
     if (!text) return '';
+    if (/^https?:\/\//i.test(text)) {
+        const localFallback = 读取远程图片本地兜底地址(text);
+        if (localFallback) return localFallback;
+    }
     return 是否图片资源引用(text) ? 读取图片资源缓存(text) : text;
 };
 
