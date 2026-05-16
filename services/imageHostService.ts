@@ -1,4 +1,5 @@
 const IMAGE_HOST_UPLOAD_PROXY_PATH = '/api/image-host/upload';
+const DEFAULT_IMAGE_HOST_BASE = 'https://image.bacon159.pp.ua';
 
 export interface 图床上传结果 {
     url: string;
@@ -39,6 +40,18 @@ const 读取下载链接 = (payload: any): string => {
     const candidates = [
         payload?.links?.download,
         payload?.data?.links?.download,
+        payload?.download,
+        payload?.download_url,
+        payload?.downloadUrl,
+        payload?.data?.download,
+        payload?.data?.download_url,
+        payload?.data?.downloadUrl,
+        payload?.data?.url,
+        payload?.data?.file?.url,
+        payload?.file?.links?.download,
+        payload?.file?.download,
+        payload?.file?.download_url,
+        payload?.file?.downloadUrl,
         payload?.file?.url,
         payload?.url
     ];
@@ -60,7 +73,7 @@ const 构建稳定下载链接 = (payload: any): string => {
         const origin = new URL(downloadUrl).origin;
         return `${origin}/file/${encodeURIComponent(fileId)}`;
     } catch {
-        return downloadUrl;
+        return `${DEFAULT_IMAGE_HOST_BASE}/file/${encodeURIComponent(fileId)}`;
     }
 };
 

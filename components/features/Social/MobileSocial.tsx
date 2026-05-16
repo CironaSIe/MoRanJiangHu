@@ -25,17 +25,17 @@ const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)
 const 死亡状态正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|已故)/;
 const NPC是否死亡 = (npc?: NPC结构 | null): boolean => {
     if (!npc) return false;
-    const 当前血量 = Number((npc as any).当前血量);
-    const 最大血量 = Number((npc as any).最大血量);
-    if (Number.isFinite(当前血量) && 当前血量 <= 0 && Number.isFinite(最大血量) && 最大血量 > 0) return true;
     const statusText = [
-        (npc as any).状态,
-        (npc as any).生死状态,
-        (npc as any).生命状态,
         (npc as any).死亡描述,
         ...(Array.isArray((npc as any).DEBUFF) ? (npc as any).DEBUFF.flatMap((item: any) => [item?.名称, item?.描述, item?.效果]) : [])
     ].filter(Boolean).join(' ');
     return 死亡状态正则.test(statusText);
+};
+
+const 计算社交排序权重 = (npc: NPC结构): number => {
+    if ((npc as any)?.是否主要角色 === true) return 0;
+    if ((npc as any)?.是否在场 === true) return 1;
+    return 2;
 };
 
 const MobileSocial: React.FC<Props> = ({
@@ -51,8 +51,15 @@ const MobileSocial: React.FC<Props> = ({
     onDeleteNpc,
     onLearnSkill
 }) => {
+    const sortedSocialList = React.useMemo(() => (
+        [...socialList].sort((a, b) => {
+            const weightDiff = 计算社交排序权重(a) - 计算社交排序权重(b);
+            if (weightDiff !== 0) return weightDiff;
+            return socialList.indexOf(a) - socialList.indexOf(b);
+        })
+    ), [socialList]);
     const [selectedId, setSelectedId] = useState<string | null>(
-        socialList.length > 0 ? socialList[0].id : null
+        sortedSocialList.length > 0 ? sortedSocialList[0].id : null
     );
     const 显示境界 = cultivationSystemEnabled !== false;
     const [香闺展示模式, set香闺展示模式] = useState<Record<string, 'text' | 'image'>>({});
@@ -61,20 +68,20 @@ const MobileSocial: React.FC<Props> = ({
     const [imageViewerZoom, setImageViewerZoom] = useState(1);
 
     useEffect(() => {
-        if (socialList.length === 0) {
+        if (sortedSocialList.length === 0) {
             setSelectedId(null);
             return;
         }
-        if (!selectedId || !socialList.some(item => item.id === selectedId)) {
-            setSelectedId(socialList[0].id);
+        if (!selectedId || !sortedSocialList.some(item => item.id === selectedId)) {
+            setSelectedId(sortedSocialList[0].id);
         }
-    }, [selectedId, socialList]);
+    }, [selectedId, sortedSocialList]);
 
     useEffect(() => {
         if (!selectedNpcId) return;
-        if (!socialList.some(item => item.id === selectedNpcId)) return;
+        if (!sortedSocialList.some(item => item.id === selectedNpcId)) return;
         setSelectedId(selectedNpcId);
-    }, [selectedNpcId, socialList]);
+    }, [selectedNpcId, sortedSocialList]);
 
     useEffect(() => {
         // 关闭或切换角色时折叠背景
@@ -83,13 +90,13 @@ const MobileSocial: React.FC<Props> = ({
         setImageViewerZoom(1);
     }, [selectedId]);
 
-    const currentNPC = socialList.find(n => n.id === selectedId);
+    const currentNPC = sortedSocialList.find(n => n.id === selectedId);
     const adjacentNPCs = React.useMemo(() => {
         if (!currentNPC) return [] as NPC结构[];
-        const currentIndex = socialList.findIndex((npc) => npc.id === currentNPC.id);
+        const currentIndex = sortedSocialList.findIndex((npc) => npc.id === currentNPC.id);
         if (currentIndex < 0) return [currentNPC];
-        return socialList.filter((_, index) => Math.abs(index - currentIndex) <= 1);
-    }, [currentNPC, socialList]);
+        return sortedSocialList.filter((_, index) => Math.abs(index - currentIndex) <= 1);
+    }, [currentNPC, sortedSocialList]);
     use图片资源回源预取(currentNPC, adjacentNPCs);
     const 当前记忆展示 = React.useMemo(
         () => currentNPC ? 构建NPC记忆展示结果(currentNPC.总结记忆, currentNPC.记忆) : { 总结记忆: [], 记忆: [], 原始总数: 0 },
@@ -340,10 +347,10 @@ const MobileSocial: React.FC<Props> = ({
                                 <span className="w-1.5 h-1.5 rounded bg-wuxia-gold/30 rotate-45"></span>
                                 Roster
                             </div>
-                            <span className="text-[9px] text-wuxia-cyan/80 bg-wuxia-cyan/10 px-1.5 py-0.5 rounded border border-wuxia-cyan/30">{socialList.length} 人</span>
+                            <span className="text-[9px] text-wuxia-cyan/80 bg-wuxia-cyan/10 px-1.5 py-0.5 rounded border border-wuxia-cyan/30">{sortedSocialList.length} 人</span>
                         </div>
                         <div className="flex gap-2 overflow-x-auto no-scrollbar px-3 pb-2 h-full items-center">
-                            {socialList.map(npc => {
+                            {sortedSocialList.map(npc => {
                                 const npcDead = NPC是否死亡(npc);
                                 return (
                                 <button
@@ -412,7 +419,7 @@ const MobileSocial: React.FC<Props> = ({
                                     )}
                                 </button>
                             );})}
-                            {socialList.length === 0 && (
+                            {sortedSocialList.length === 0 && (
                                  <div className="text-center text-gray-600 text-xs w-full py-4 font-serif flex flex-col items-center gap-1">
                                     <IconBeads size={20} className="opacity-50" />
                                     暂无结识之人

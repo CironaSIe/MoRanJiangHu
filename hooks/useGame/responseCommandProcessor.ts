@@ -184,13 +184,7 @@ const 敌对或阻拦事实正则 = /(敌方|敌人|敌军|敌阵|敌手|对手|
 const 随行者占位名正则 = /^随行者([1-9]\d*)$/;
 
 const NPC已死亡 = (npc: any): boolean => {
-    const 当前血量 = Number(npc?.当前血量);
-    const 最大血量 = Number(npc?.最大血量);
-    if (Number.isFinite(当前血量) && 当前血量 <= 0 && Number.isFinite(最大血量) && 最大血量 > 0) return true;
     const statusText = [
-        npc?.状态,
-        npc?.生死状态,
-        npc?.生命状态,
         npc?.死亡描述,
         ...(Array.isArray(npc?.DEBUFF) ? npc.DEBUFF.flatMap((item: any) => [item?.名称, item?.描述, item?.效果]) : [])
     ].filter(Boolean).join(' ');
@@ -710,6 +704,44 @@ const 提取死亡事实相关NPC索引 = (deathSentence: string, socialList: an
     return null;
 };
 
+const NPC死亡字段含无依据死亡状态 = (npc: any): boolean => {
+    const statusText = [npc?.状态, npc?.生死状态, npc?.生命状态].filter(Boolean).join(' ');
+    return 死亡状态正则.test(statusText);
+};
+
+const NPC已有死亡依据 = (npc: any): boolean => {
+    const evidenceText = [
+        npc?.死亡描述,
+        ...(Array.isArray(npc?.DEBUFF) ? npc.DEBUFF.flatMap((item: any) => [item?.名称, item?.描述, item?.效果]) : [])
+    ].filter(Boolean).join(' ');
+    return 死亡状态正则.test(evidenceText);
+};
+
+const 清理无依据死亡状态 = (socialList: any[]): any[] => {
+    if (!Array.isArray(socialList) || socialList.length <= 0) return socialList;
+    let changed = false;
+    const nextList = socialList.map((npc: any) => {
+        if (!npc || typeof npc !== 'object') return npc;
+        if (!NPC死亡字段含无依据死亡状态(npc) || NPC已有死亡依据(npc)) return npc;
+        changed = true;
+        const next = { ...npc };
+        if (死亡状态正则.test(String(next.状态 || ''))) {
+            const hp = Number(next.当前血量);
+            const maxHp = Number(next.最大血量);
+            if (Number.isFinite(hp) && hp <= 0 && Number.isFinite(maxHp) && maxHp > 0) {
+                next.状态 = '重伤';
+            } else {
+                delete next.状态;
+            }
+        }
+        if (死亡状态正则.test(String(next.生死状态 || ''))) delete next.生死状态;
+        if (死亡状态正则.test(String(next.生命状态 || ''))) delete next.生命状态;
+        if (死亡状态正则.test(String(next.死亡描述 || ''))) delete next.死亡描述;
+        return next;
+    });
+    return changed ? nextList : socialList;
+};
+
 const 生成死亡事实日期 = (envLike: any): string => (
     typeof envLike?.时间 === 'string' && envLike.时间.trim()
         ? envLike.时间.trim()
@@ -724,7 +756,7 @@ const 应用死亡事实到NPC = (
     const responseFactText = 提取响应事实文本(response);
     const deathSentence = 提取死亡事实句(responseFactText);
     const targetIndex = 提取死亡事实相关NPC索引(deathSentence, socialList);
-    if (targetIndex === null) return socialList;
+    if (targetIndex === null) return 清理无依据死亡状态(socialList);
 
     const eventDate = 生成死亡事实日期(envLike);
     return socialList.map((npc: any, index: number) => {

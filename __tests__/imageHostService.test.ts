@@ -1,0 +1,31 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { 上传DataUrl到图床 } from '../services/imageHostService';
+
+describe('imageHostService', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('builds a stable file url when upload response only returns a file id', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+            success: true,
+            file: {
+                id: 'abc 123',
+                size: 12,
+                storage: 'telegram'
+            }
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        })));
+
+        const result = await 上传DataUrl到图床('data:image/png;base64,aGVsbG8=');
+
+        expect(result).toMatchObject({
+            url: 'https://image.bacon159.pp.ua/file/abc%20123',
+            id: 'abc 123',
+            size: 12,
+            storage: 'telegram'
+        });
+    });
+});

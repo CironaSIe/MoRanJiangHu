@@ -27,17 +27,17 @@ const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)
 const 死亡状态正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|已故)/;
 const NPC是否死亡 = (npc?: NPC结构 | null): boolean => {
     if (!npc) return false;
-    const 当前血量 = Number((npc as any).当前血量);
-    const 最大血量 = Number((npc as any).最大血量);
-    if (Number.isFinite(当前血量) && 当前血量 <= 0 && Number.isFinite(最大血量) && 最大血量 > 0) return true;
     const statusText = [
-        (npc as any).状态,
-        (npc as any).生死状态,
-        (npc as any).生命状态,
         (npc as any).死亡描述,
         ...(Array.isArray((npc as any).DEBUFF) ? (npc as any).DEBUFF.flatMap((item: any) => [item?.名称, item?.描述, item?.效果]) : [])
     ].filter(Boolean).join(' ');
     return 死亡状态正则.test(statusText);
+};
+
+const 计算社交排序权重 = (npc: NPC结构): number => {
+    if ((npc as any)?.是否主要角色 === true) return 0;
+    if ((npc as any)?.是否在场 === true) return 1;
+    return 2;
 };
 
 const SocialModal: React.FC<Props> = ({
@@ -53,13 +53,20 @@ const SocialModal: React.FC<Props> = ({
     onDeleteNpc,
     onLearnSkill
 }) => {
-    use图片资源回源预取(socialList);
+    const sortedSocialList = React.useMemo(() => (
+        [...socialList].sort((a, b) => {
+            const weightDiff = 计算社交排序权重(a) - 计算社交排序权重(b);
+            if (weightDiff !== 0) return weightDiff;
+            return socialList.indexOf(a) - socialList.indexOf(b);
+        })
+    ), [socialList]);
+    use图片资源回源预取(sortedSocialList);
     const 显示境界 = cultivationSystemEnabled !== false;
     const 获取NPC稳定ID = React.useCallback((npc: any, index = 0): string => (
         String(npc?.id || npc?.ID || npc?.姓名 || `npc-${index}`).trim()
     ), []);
     const [selectedId, setSelectedId] = useState<string | null>(
-        socialList.length > 0 ? 获取NPC稳定ID(socialList[0], 0) : null
+        sortedSocialList.length > 0 ? 获取NPC稳定ID(sortedSocialList[0], 0) : null
     );
     const [香闺展示模式, set香闺展示模式] = useState<Record<string, 'text' | 'image'>>({});
     const [showFullBackground, setShowFullBackground] = useState(false);
@@ -67,22 +74,22 @@ const SocialModal: React.FC<Props> = ({
     const [imageViewerZoom, setImageViewerZoom] = useState(1);
 
     useEffect(() => {
-        if (socialList.length === 0) {
+        if (sortedSocialList.length === 0) {
             setSelectedId(null);
             return;
         }
-        if (!selectedId || !socialList.some((item, index) => 获取NPC稳定ID(item, index) === selectedId)) {
-            setSelectedId(获取NPC稳定ID(socialList[0], 0));
+        if (!selectedId || !sortedSocialList.some((item, index) => 获取NPC稳定ID(item, index) === selectedId)) {
+            setSelectedId(获取NPC稳定ID(sortedSocialList[0], 0));
         }
-    }, [selectedId, socialList, 获取NPC稳定ID]);
+    }, [selectedId, sortedSocialList, 获取NPC稳定ID]);
 
     useEffect(() => {
         if (!selectedNpcId) return;
-        const matched = socialList.find((item, index) => 获取NPC稳定ID(item, index) === selectedNpcId || item?.姓名 === selectedNpcId);
+        const matched = sortedSocialList.find((item, index) => 获取NPC稳定ID(item, index) === selectedNpcId || item?.姓名 === selectedNpcId);
         if (!matched) return;
-        const matchedIndex = socialList.indexOf(matched);
+        const matchedIndex = sortedSocialList.indexOf(matched);
         setSelectedId(获取NPC稳定ID(matched, matchedIndex));
-    }, [selectedNpcId, socialList, 获取NPC稳定ID]);
+    }, [selectedNpcId, sortedSocialList, 获取NPC稳定ID]);
 
     useEffect(() => {
         setShowFullBackground(false);
@@ -90,7 +97,7 @@ const SocialModal: React.FC<Props> = ({
         setImageViewerZoom(1);
     }, [selectedId]);
 
-    const currentNPC = socialList.find((n, index) => 获取NPC稳定ID(n, index) === selectedId) || socialList[0];
+    const currentNPC = sortedSocialList.find((n, index) => 获取NPC稳定ID(n, index) === selectedId) || sortedSocialList[0];
     const 当前记忆展示 = React.useMemo(
         () => currentNPC ? 构建NPC记忆展示结果(currentNPC.总结记忆, currentNPC.记忆) : { 总结记忆: [], 记忆: [], 原始总数: 0 },
         [currentNPC]
@@ -358,7 +365,7 @@ const SocialModal: React.FC<Props> = ({
                             Character Roster
                         </div>
                         <div className="flex gap-3 overflow-x-auto overflow-y-hidden custom-scrollbar px-5 pb-4 snap-x snap-mandatory">
-                        {socialList.map((npc, index) => {
+                        {sortedSocialList.map((npc, index) => {
                             const npcStableId = 获取NPC稳定ID(npc, index);
                             const isSelected = selectedId === npcStableId;
                             const npcIsFemale = 是女性角色(npc);
@@ -434,7 +441,7 @@ const SocialModal: React.FC<Props> = ({
                                 </div>
                             </button>
                         );})}
-                        {socialList.length === 0 && (
+                        {sortedSocialList.length === 0 && (
                             <div className="w-full text-center text-gray-600 text-xs py-6 font-serif flex flex-col items-center gap-2">
                                 <IconBeads size={24} className="opacity-50" />
                                 暂无结识之人

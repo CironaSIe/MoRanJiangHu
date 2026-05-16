@@ -268,6 +268,71 @@ describe('responseCommandProcessor female relationship target major role fallbac
     });
 });
 
+describe('responseCommandProcessor NPC death guard', () => {
+    it('does not treat zero HP as death without explicit death evidence', () => {
+        const state = 构建基础状态();
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_han_xiaoshuang',
+                姓名: '韩小霜',
+                性别: '女',
+                身份: '折柳山庄外门弟子',
+                是否在场: true,
+                当前血量: 0,
+                最大血量: 174,
+                状态: '已故',
+                生死状态: '死亡',
+                生命状态: '死亡'
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '韩小霜倒在晨课队伍边缘，气血耗尽，只是重伤昏迷，并没有死亡。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        const npc = result.社交[0] as any;
+        expect(npc.当前血量).toBe(0);
+        expect(npc.状态).toBe('重伤');
+        expect(npc.生死状态).toBeUndefined();
+        expect(npc.生命状态).toBeUndefined();
+        expect(npc.死亡描述).toBeUndefined();
+    });
+
+    it('only marks a named NPC dead when the response contains a clear death sentence', () => {
+        const state = 构建基础状态();
+        state.环境 = { 时间: '五月初三 午时' } as any;
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_han_xiaoshuang',
+                姓名: '韩小霜',
+                性别: '女',
+                身份: '折柳山庄外门弟子',
+                是否在场: true,
+                当前血量: 31,
+                最大血量: 174
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '韩小霜被刺客一剑贯穿心口，当场身亡，众人只来得及收殓遗体。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        const npc = result.社交[0] as any;
+        expect(npc.状态).toBe('死亡');
+        expect(npc.生死状态).toBe('死亡');
+        expect(npc.生命状态).toBe('死亡');
+        expect(npc.死亡时间).toBe('五月初三 午时');
+        expect(npc.死亡描述).toContain('韩小霜');
+        expect(npc.DEBUFF.some((item: any) => item.名称 === '死亡')).toBe(true);
+    });
+});
+
 describe('responseCommandProcessor equipment guard', () => {
     it('blocks silent equipment clearing without an explicit removal trigger', () => {
         const state = 构建基础状态();
