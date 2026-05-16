@@ -68,6 +68,35 @@
       line-height: 1.8;
     }
 
+    a {
+      color: #9ff4e9;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .app-link {
+      color: #ffe08a;
+      font-weight: 800;
+    }
+
+    .notice {
+      margin-top: 20px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid rgba(244, 114, 114, 0.34);
+      background: linear-gradient(180deg, rgba(127, 29, 29, 0.42), rgba(127, 29, 29, 0.2));
+      color: #fff2dc;
+      line-height: 1.8;
+      font-size: 16px;
+    }
+
+    .notice strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #ffd36d;
+      font-size: 18px;
+    }
+
     .steps {
       display: grid;
       gap: 14px;
@@ -191,7 +220,11 @@
     <section class="panel">
       <div class="badge">CNB COMFYUI GUIDE</div>
       <h1>如何构建属于自己的 CNB ComfyUI 后端</h1>
-      <p class="lead">客户侧操作其实很简单。注册并登录 CNB 后，Fork 指定仓库，进入工作区执行真实启动命令，再在墨色江湖填自己的 CNB 用户名称，即可自动连接自己的 ComfyUI。</p>
+      <p class="lead">客户侧操作其实很简单。注册并登录 CNB 后，Fork 指定仓库，进入工作区等待自动启动，再在 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 填自己的 CNB 用户名称，即可自动连接自己的 ComfyUI。</p>
+      <div class="notice">
+        <strong>重要提示：本教程只适用于 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a>。</strong>
+        其它版本的 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 自动发现地址、CNB 用户名称匹配方式、默认工作流和服务端同步脚本可能不同，请不要混用。主入口：<a href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">https://msjh.bacon159.pp.ua/</a>；备用入口：<a href="https://msjh.bacon.de5.net/" target="_blank" rel="noopener noreferrer">https://msjh.bacon.de5.net/</a>。
+      </div>
 
       <ol class="steps">
         <li class="step">
@@ -213,15 +246,16 @@
           <div class="num">3</div>
           <div>
             <h2>找到自己的 CNB 用户名称</h2>
-            <p>打开 CNB 个人主页，看左侧头像下方的中文用户名称。这个名称就是墨色江湖里的“CNB 用户名称”，也是后端默认上报的自动连接标识。示例图里应填写的是 <code>培根冲冲冲</code>。</p>
+            <p>打开 CNB 个人主页，看左侧头像下方的中文用户名称。这个名称就是 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 里的“CNB 用户名称”，也是后端默认上报的自动连接标识。示例图里应填写的是 <code>培根冲冲冲</code>。</p>
             <img class="guide-image" src="/assets/tutorial/cnb-user-name-guide.png" alt="CNB 个人主页用户名称位置示意图" />
           </div>
         </li>
         <li class="step">
           <div class="num">4</div>
           <div>
-            <h2>进入工作区执行启动命令</h2>
-            <p>进入自己 Fork 后的仓库页面，打开 CNB 工作区终端。不要执行 <code>init2</code>，也不要依赖模板里的 <code>qd</code> 兜底命令，直接运行下面这条真实命令：</p>
+            <h2>进入工作区等待自动启动</h2>
+            <p>进入自己 Fork 后的仓库页面，打开 CNB 工作区。正常情况下不需要手动执行命令，只要等待系统自动执行启动流程即可。终端里看到 <code>[Startup] 正在启动 ComfyUI: ...</code>，说明启动脚本已经跑到最后一步；随后如果看到 <code>ComfyUI 8188 ready</code>、<code>Detected ComfyUI URL: ...</code>、<code>initial sync ok</code>，就表示 ComfyUI 已经启动并把地址上报给 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a>。没有报错时，CNB 通常也会自动弹出打开 ComfyUI 的提示。</p>
+            <p>如果终端明确报错，才尝试手动执行下面这条命令。仍然不行时，可以问问左侧侧边栏里的 <code>CodeBuddy</code>，让它根据报错帮你排查。</p>
             <pre><code>cd /workspace && \
 npm install && \
 npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-header '*'"</code></pre>
@@ -233,14 +267,14 @@ npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-
             <h2>保持 CNB 工作区页面打开</h2>
             <p>启动后会进入一个 CNB 的 VS Code / workspace 页面，请不要关闭这个页面，它需要一直开着用于保活。页面地址通常类似：</p>
             <p><code>https://cnb-5n8-1jo108n4p-001.cnb.space/?folder=/workspace</code></p>
-            <p>如果这个页面被关闭、浏览器休眠或工作区断开，ComfyUI 后端可能会停掉，墨色江湖生图时就会连接失败。</p>
+            <p>如果这个页面被关闭、浏览器休眠或工作区断开，ComfyUI 后端可能会停掉，<a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 生图时就会连接失败。</p>
           </div>
         </li>
         <li class="step">
           <div class="num">6</div>
           <div>
-            <h2>回到墨色江湖自动发现后端</h2>
-            <p>等 CNB 环境启动完成后，回到墨色江湖的“自动发现 ComfyUI 后端”，填入自己的 CNB 用户名称并点击刷新列表。用户名称匹配后会显示当前 ComfyUI 域名，并自动回填 API 地址。</p>
+            <h2>回到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 自动发现后端</h2>
+            <p>等 CNB 环境启动完成后，回到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 的“自动发现 ComfyUI 后端”，填入自己的 CNB 用户名称并点击刷新列表。用户名称匹配后会显示当前 ComfyUI 域名，并自动回填 API 地址。</p>
           </div>
         </li>
         <li class="step">
@@ -253,19 +287,20 @@ npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-
         <li class="step">
           <div class="num">8</div>
           <div>
-            <h2>上传到墨色江湖</h2>
-            <p>回到墨色江湖的文生图设置，在 ComfyUI Workflow JSON 上方点击 <code>上传 API 文件</code>。系统会自动把常见提示词、负面提示词、尺寸和采样参数替换为占位符并填入配置。</p>
+            <h2>上传到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a></h2>
+            <p>回到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 的文生图设置，在 ComfyUI Workflow JSON 上方点击 <code>上传 API 文件</code>。系统会自动把常见提示词、负面提示词、尺寸和采样参数替换为占位符并填入配置。</p>
           </div>
         </li>
       </ol>
 
       <div class="links">
+        <a class="btn btn-primary" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">打开墨色江湖 bacon159 二创版</a>
         <a class="btn btn-primary" href="https://cnb.cool/bacon159-2026/comfyui-ql" target="_blank" rel="noopener noreferrer">打开仓库并 Fork</a>
         <a class="btn btn-secondary" href="https://cnb.cool/" target="_blank" rel="noopener noreferrer">打开 CNB 官网</a>
       </div>
 
       <div class="tip">
-        如果后端已经启动，但墨色江湖里还没出现在线地址，先确认客户端填写的是 CNB 个人主页头像下方的用户名称，再点一次“刷新列表”。正常情况下，启动成功后系统会自动发现并展示匹配用户名称的 <code>8188</code> ComfyUI 域名。使用期间请保持 CNB 的 VS Code / workspace 页面打开；如果页面关闭或休眠，生图可能提示连接不到服务器或跨域失败。
+        如果后端已经启动，但 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 里还没出现在线地址，先确认客户端填写的是 CNB 个人主页头像下方的用户名称，再点一次“刷新列表”。正常情况下，启动成功后系统会自动发现并展示匹配用户名称的 <code>8188</code> ComfyUI 域名。使用期间请保持 CNB 的 VS Code / workspace 页面打开；如果页面关闭或休眠，生图可能提示连接不到服务器或跨域失败。
       </div>
     </section>
   </main>

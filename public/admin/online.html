@@ -25,7 +25,7 @@
       color: var(--text);
     }
     main {
-      width: min(1180px, calc(100vw - 28px));
+      width: min(1500px, calc(100vw - 28px));
       margin: 0 auto;
       padding: 28px 0 40px;
     }
@@ -99,6 +99,32 @@
       padding: 14px 16px;
       margin-bottom: 14px;
     }
+    .toolbarActions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 38px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #dbeafe;
+      background: rgba(255,255,255,0.035);
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent);
+    }
     .stats {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -123,7 +149,8 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 1180px;
+      min-width: 1420px;
+      table-layout: fixed;
     }
     th, td {
       padding: 12px 14px;
@@ -143,6 +170,14 @@
     .mono {
       font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
       word-break: break-all;
+    }
+    .nowrap { white-space: nowrap; }
+    .statusCell { font-weight: 800; }
+    .locationCell { line-height: 1.45; }
+    .imageCell strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 4px;
     }
     .muted { color: var(--muted); }
     .good { color: var(--good); }
@@ -188,11 +223,15 @@
 
     <section id="dashboardView" class="hidden">
       <header>
-        <div>
+        <div class="toolbarActions">
           <h1>在线用户监控</h1>
           <div class="sub">在线判定窗口默认 2 分钟；页面每 15 秒自动刷新一次。</div>
         </div>
         <div>
+          <label class="toggle" for="onlineOnly">
+            <input id="onlineOnly" type="checkbox" />
+            只看在线
+          </label>
           <button id="refreshButton" type="button">刷新</button>
           <button id="logoutButton" type="button">退出</button>
         </div>
@@ -207,11 +246,24 @@
 
       <div class="panel toolbar">
         <div id="statusText" class="muted">等待刷新</div>
-        <div class="muted">路径：<span class="mono">/admin/online.html</span></div>
+        <div class="muted">同一 IP 自动合并为同一个用户</div>
       </div>
 
       <div class="panel tableWrap">
         <table>
+          <colgroup>
+            <col style="width: 64px" />
+            <col style="width: 130px" />
+            <col style="width: 190px" />
+            <col style="width: 150px" />
+            <col style="width: 150px" />
+            <col style="width: 92px" />
+            <col style="width: 126px" />
+            <col style="width: 118px" />
+            <col style="width: 118px" />
+            <col style="width: 200px" />
+            <col style="width: 282px" />
+          </colgroup>
           <thead>
             <tr>
               <th>状态</th>
@@ -222,8 +274,8 @@
               <th>会话</th>
               <th>版本/平台</th>
               <th>本地图片</th>
+              <th>远程图片</th>
               <th>迁移进度</th>
-              <th>路径</th>
               <th>User Agent</th>
             </tr>
           </thead>
@@ -241,6 +293,7 @@
     const loginButton = document.getElementById('loginButton');
     const refreshButton = document.getElementById('refreshButton');
     const logoutButton = document.getElementById('logoutButton');
+    const onlineOnly = document.getElementById('onlineOnly');
     const loginMessage = document.getElementById('loginMessage');
     const statusText = document.getElementById('statusText');
     const sessionRows = document.getElementById('sessionRows');
@@ -269,6 +322,65 @@
       const minutes = Math.floor(seconds / 60);
       if (minutes < 60) return `${minutes}m 前`;
       return `${Math.floor(minutes / 60)}h 前`;
+    };
+
+    const countryNames = typeof Intl !== 'undefined' && Intl.DisplayNames
+      ? new Intl.DisplayNames(['zh-CN'], { type: 'region' })
+      : null;
+
+    const regionNameMap = {
+      Zhejiang: '浙江',
+      Guangdong: '广东',
+      Shandong: '山东',
+      California: '加利福尼亚',
+      Tokyo: '东京',
+      'Hong Kong': '香港',
+      Singapore: '新加坡'
+    };
+
+    const cityNameMap = {
+      Hangzhou: '杭州',
+      Qingdao: '青岛',
+      Shenzhen: '深圳',
+      'Los Angeles': '洛杉矶',
+      Tokyo: '东京',
+      'Hong Kong': '香港',
+      Singapore: '新加坡'
+    };
+
+    const translateCountry = (country) => {
+      const code = String(country || '').trim();
+      if (!code) return '';
+      const direct = {
+        CN: '中国',
+        US: '美国',
+        JP: '日本',
+        HK: '中国香港',
+        SG: '新加坡',
+        TW: '中国台湾',
+        MO: '中国澳门'
+      }[code.toUpperCase()];
+      if (direct) return direct;
+      try {
+        return countryNames?.of(code.toUpperCase()) || code;
+      } catch {
+        return code;
+      }
+    };
+
+    const translatePlace = (value, map) => {
+      const text = String(value || '').trim();
+      return text ? (map[text] || text) : '';
+    };
+
+    const formatLocation = (item) => {
+      const country = translateCountry(item.country);
+      const region = translatePlace(item.region, regionNameMap);
+      const city = translatePlace(item.city, cityNameMap);
+      const main = [country, region, city].filter(Boolean).join(' · ');
+      const details = [item.timezone ? `时区：${item.timezone}` : '', item.colo ? `节点：${item.colo}` : ''].filter(Boolean).join('；');
+      if (!main && !details) return '-';
+      return `${escapeHtml(main || '-')}${details ? `<br><span class="muted">${escapeHtml(details)}</span>` : ''}`;
     };
 
     const formatBytes = (value) => {
@@ -343,23 +455,22 @@
       document.getElementById('serverTime').textContent = formatTime(data.serverTime);
       statusText.textContent = `已刷新：${new Date().toLocaleTimeString()}`;
       const onlineIds = new Set((data.users || data.sessions || []).map((item) => item.id));
-      const rows = (data.recentUsers || data.recentSessions || []).map((item) => {
-        const location = [item.country, item.region, item.city, item.colo ? `(${item.colo})` : ''].filter(Boolean).join(' ');
+      const sourceRows = onlineOnly.checked ? (data.users || data.sessions || []) : (data.recentUsers || data.recentSessions || []);
+      const rows = sourceRows.map((item) => {
         const online = Boolean(item.online) || onlineIds.has(item.id);
         const imageStats = item.imageStats || {};
         const userAgents = Array.isArray(item.userAgents) ? item.userAgents : [item.userAgent].filter(Boolean);
-        const paths = Array.isArray(item.paths) ? item.paths : [item.path].filter(Boolean);
         return `<tr>
-          <td class="${online ? 'good' : 'muted'}">${online ? '在线' : '离线'}</td>
+          <td class="statusCell ${online ? 'good' : 'muted'}">${online ? '在线' : '离线'}</td>
           <td class="mono">${escapeHtml(item.ip || '-')}</td>
-          <td>${escapeHtml(location || '-')}</td>
+          <td class="locationCell">${formatLocation(item)}</td>
           <td>${escapeHtml(formatAgo(item.lastSeenAt, data.serverTime))}<br><span class="muted">${escapeHtml(formatTime(item.lastSeenAt))}</span></td>
           <td>${escapeHtml(formatTime(item.firstSeenAt))}</td>
-          <td>${escapeHtml(item.sessionCount || 1)} 个<br><span class="muted">${escapeHtml(item.heartbeatCount || 0)} 次心跳</span></td>
+          <td class="nowrap">${escapeHtml(item.sessionCount || 1)} 个<br><span class="muted">${escapeHtml(item.heartbeatCount || 0)} 次</span></td>
           <td>${escapeHtml(item.versionName || '-')}${item.versionCode ? ` / ${escapeHtml(item.versionCode)}` : ''}<br><span class="muted">${escapeHtml(item.platform || '-')}</span></td>
-          <td>${escapeHtml(imageStats.localImageAssets || 0)} 张<br><span class="muted">${escapeHtml(formatBytes(imageStats.localImageBytes || 0))} / 远程 ${escapeHtml(imageStats.remoteImageAssets || 0)} 张</span></td>
+          <td class="imageCell"><strong>${escapeHtml(imageStats.localImageAssets || 0)} 张</strong><span class="muted">${escapeHtml(formatBytes(imageStats.localImageBytes || 0))}</span></td>
+          <td class="imageCell"><strong>${escapeHtml(imageStats.remoteImageAssets || 0)} 张</strong><span class="muted">图床链接</span></td>
           <td>${renderMigration(imageStats.migrationStatus)}</td>
-          <td class="mono">${escapeHtml(paths.join('\n') || '-')}</td>
           <td class="mono">${escapeHtml(userAgents.join('\n') || '-')}</td>
         </tr>`;
       }).join('');
@@ -385,6 +496,7 @@
       if (event.key === 'Enter') login();
     });
     refreshButton.addEventListener('click', loadData);
+    onlineOnly.addEventListener('change', loadData);
     logoutButton.addEventListener('click', () => {
       clearToken();
       setView(false);
