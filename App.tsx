@@ -32,6 +32,8 @@ import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
 import { getDiagnosticLogs, subscribeDiagnosticLogs } from './services/diagnosticLog';
+import { 获取本地图片图床迁移状态, 订阅本地图片图床迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
+import { startOnlinePresenceHeartbeat } from './services/onlinePresence';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 
@@ -55,6 +57,78 @@ const 获取物品自动生图Key = (scope: 'bag' | 'auction', item: any, ownerI
 ].join(':');
 
 type 本回合变化区域 = '角色' | '背包' | '装备' | '战斗' | '队伍' | '社交' | '功法' | '地图' | '玩家门派' | '任务列表' | '约定列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
+
+const 旧图迁移阶段文案: Record<本地图片图床迁移状态['stage'], string> = {
+    idle: '等待扫描',
+    scanning: '正在扫描',
+    running: '正在迁移',
+    completed: '迁移完成',
+    partial_failed: '部分完成',
+    failed: '迁移失败'
+};
+
+const 旧图迁移提示条: React.FC<{
+    status: 本地图片图床迁移状态;
+    onClose: () => void;
+}> = ({ status, onClose }) => {
+    const total = Math.max(0, Number(status.totalAssets) || 0);
+    const processed = Math.min(total, Math.max(0, Number(status.processedAssets) || 0));
+    const percent = total > 0 ? Math.round((processed / total) * 100) : (status.stage === 'completed' ? 100 : 0);
+    const isActive = status.stage === 'scanning' || status.stage === 'running';
+    const isFailed = status.stage === 'failed' || status.stage === 'partial_failed';
+    const title = isActive ? '旧存档图片正在自动迁移' : isFailed ? '旧存档图片迁移需要重试' : '旧存档图片迁移完成';
+    const message = isActive
+        ? '系统正在后台把旧存档本地图片上传到图床。可以关闭此提示并继续使用；如果关闭网页，未完成部分会在下次打开时继续扫描和重试。'
+        : isFailed
+            ? '部分图片暂时未迁移成功，原图会保留，后续会自动重试。已迁移成功的内容重新加载存档后会切换为图床链接。'
+            : '图片来源已写回本地存档。请重新加载当前存档，游戏内图片才会完整切换为图床链接。';
+
+    return (
+        <div className="fixed left-1/2 top-4 z-[10020] w-[calc(100vw-24px)] max-w-xl -translate-x-1/2 pointer-events-auto">
+            <div className={`rounded-xl border px-4 py-3 shadow-[0_18px_45px_rgba(0,0,0,0.55)] backdrop-blur-md ${
+                isFailed
+                    ? 'border-amber-500/50 bg-amber-950/90 text-amber-50'
+                    : isActive
+                        ? 'border-sky-500/50 bg-sky-950/90 text-sky-50'
+                        : 'border-emerald-500/50 bg-emerald-950/90 text-emerald-50'
+            }`}>
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                            <div className="font-semibold" style={{ fontSize: 'var(--ui-compact-font-size, 14px)' }}>{title}</div>
+                            <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] opacity-90">{旧图迁移阶段文案[status.stage]}</span>
+                        </div>
+                        <div className="mt-1 opacity-90" style={{ fontSize: 'var(--ui-compact-font-size, 14px)', lineHeight: '1.55' }}>{message}</div>
+                        <div className="mt-3 space-y-1.5">
+                            <div className="flex items-center justify-between text-[11px] opacity-85">
+                                <span>{status.lastMessage || '正在等待迁移进度更新'}</span>
+                                <span>{total > 0 ? `${processed}/${total}` : `${percent}%`}</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-black/45 border border-white/10 overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-500 ${isFailed ? 'bg-amber-300' : isActive ? 'bg-sky-300' : 'bg-emerald-300'} ${isActive ? 'animate-pulse' : ''}`}
+                                    style={{ width: `${percent}%` }}
+                                />
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] opacity-80">
+                                <span>已迁移 {status.migratedAssets} 张</span>
+                                <span>更新存档 {status.updatedSaves} 个</span>
+                                {status.failedAssets > 0 && <span>失败 {status.failedAssets} 张</span>}
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="shrink-0 rounded border border-white/20 px-2 py-1 text-xs opacity-75 hover:opacity-100 hover:bg-white/10"
+                    >
+                        关闭
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const 提取本回合变化区域 = (commands: any[]): 本回合变化区域[] => {
     const areas = new Set<本回合变化区域>();
@@ -339,6 +413,8 @@ const App: React.FC = () => {
     const [showReleaseNotes, setShowReleaseNotes] = React.useState(false);
     const [suppressReleaseNotesForToday, setSuppressReleaseNotesForToday] = React.useState(false);
     const [appUpdateProgress, setAppUpdateProgress] = React.useState<AppUpdateProgressState | null>(null);
+    const [legacyImageMigrationStatus, setLegacyImageMigrationStatus] = React.useState(() => 获取本地图片图床迁移状态());
+    const [legacyImageMigrationNoticeClosed, setLegacyImageMigrationNoticeClosed] = React.useState(false);
     const [selectedSocialNpcId, setSelectedSocialNpcId] = React.useState<string | null>(null);
     const [desktopDetailFullscreen, setDesktopDetailFullscreen] = React.useState(false);
     const [desktopDetailWidths, setDesktopDetailWidths] = React.useState<Record<string, number>>(() => readDesktopDetailWidths());
@@ -364,6 +440,7 @@ const App: React.FC = () => {
     const autoItemImageFailedAtRef = React.useRef<Map<string, number>>(new Map());
     const auctionSettlementHandledRef = React.useRef<Set<string>>(new Set());
     const 最近运行报错提示IDRef = React.useRef('');
+    const legacyImageMigrationNoticeStageRef = React.useRef(legacyImageMigrationStatus.stage);
     const auctionHouseScope = React.useMemo(() => 构建拍卖行存储作用域({
         游戏初始时间: state.游戏初始时间,
         角色数据: state.角色,
@@ -384,6 +461,14 @@ const App: React.FC = () => {
     }, []);
 
     React.useEffect(() => subscribeAppUpdateProgress(setAppUpdateProgress), []);
+    React.useEffect(() => startOnlinePresenceHeartbeat(), []);
+    React.useEffect(() => 订阅本地图片图床迁移状态((status) => {
+        setLegacyImageMigrationStatus(status);
+        if (legacyImageMigrationNoticeStageRef.current !== status.stage) {
+            legacyImageMigrationNoticeStageRef.current = status.stage;
+            setLegacyImageMigrationNoticeClosed(false);
+        }
+    }), []);
     React.useEffect(() => {
         const subscribedAt = Date.now();
         const unsubscribe = subscribeDiagnosticLogs(() => {
@@ -2341,11 +2426,25 @@ const App: React.FC = () => {
                 return '处理中';
         }
     }, [appUpdateProgress]);
+    const legacyImageMigrationNoticeVisible = !legacyImageMigrationNoticeClosed && (
+        legacyImageMigrationStatus.stage === 'scanning'
+        || legacyImageMigrationStatus.stage === 'running'
+        || (
+            (legacyImageMigrationStatus.stage === 'completed' || legacyImageMigrationStatus.stage === 'partial_failed' || legacyImageMigrationStatus.stage === 'failed')
+            && (legacyImageMigrationStatus.totalAssets > 0 || legacyImageMigrationStatus.migratedAssets > 0 || legacyImageMigrationStatus.failedAssets > 0)
+        )
+    );
 
     return (
         <MusicProvider visualConfig={effectiveVisualConfig} onSaveVisual={actions.saveVisualSettings}>
             <div className={`h-screen w-screen overflow-hidden bg-ink-black relative flex flex-col transition-colors duration-500 ${isMobile ? 'p-0' : 'p-3'}`} style={appRootStyleVars}>
                 {fontFaceStyleText && <style>{fontFaceStyleText}</style>}
+                {legacyImageMigrationNoticeVisible && (
+                    <旧图迁移提示条
+                        status={legacyImageMigrationStatus}
+                        onClose={() => setLegacyImageMigrationNoticeClosed(true)}
+                    />
+                )}
             
             {/* View Switching */}
             {state.view === 'home' && (

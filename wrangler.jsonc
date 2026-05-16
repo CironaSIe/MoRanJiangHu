@@ -19,7 +19,8 @@
     }
   ],
   "vars": {
-    "CNB_SYNC_R2_KEY": "moranjianghu/cnb-sync-registry.json"
+    "CNB_SYNC_R2_KEY": "moranjianghu/cnb-sync-registry.json",
+    "ONLINE_SESSIONS_R2_PREFIX": "moranjianghu/online"
   },
   "r2_buckets": [
     {

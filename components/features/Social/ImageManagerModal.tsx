@@ -23,6 +23,8 @@ import ToggleSwitch from '../../ui/ToggleSwitch';
 import { 获取命中模型词组转化器预设, 规范化接口设置 } from '../../../utils/apiConfig';
 import { 自动场景横屏尺寸选项, 自动场景竖屏尺寸选项 } from '../../../utils/imageSizeOptions';
 import { IconScroll } from '../../ui/Icons';
+import { 获取本地图片图床迁移状态, 订阅本地图片图床迁移状态 } from '../../../services/dbService';
+import ImageMigrationStatusPanel from './ImageMigrationStatusPanel';
 
 interface Props {
     socialList: NPC结构[];
@@ -89,7 +91,7 @@ interface Props {
 }
 
 type 手动流程阶段 = 'idle' | 'confirm' | 'submitting';
-type 页面标签类型 = 'manual' | 'library' | 'scene' | 'queue' | 'history' | 'presets' | 'rules';
+type 页面标签类型 = 'manual' | 'library' | 'scene' | 'queue' | 'history' | 'presets' | 'rules' | 'migration';
 
 type NPC图库分组 = {
     npc: NPC结构;
@@ -366,6 +368,7 @@ const ImageManagerModal: React.FC<Props> = ({
         状态: '全部'
     });
     const [activeTab, setActiveTab] = React.useState<页面标签类型>('manual');
+    const [legacyImageMigrationStatus, setLegacyImageMigrationStatus] = React.useState(() => 获取本地图片图床迁移状态());
     const [modelRulePanelOpen, setModelRulePanelOpen] = React.useState(false);
     const [activeRuleSection, setActiveRuleSection] = React.useState<'npc' | 'scene' | 'scene_judge'>('npc');
     const [selectedNpcId, setSelectedNpcId] = React.useState<string>('');
@@ -424,6 +427,10 @@ const ImageManagerModal: React.FC<Props> = ({
         if (secretSizePreset === 'custom' || secretSizePreset === 'none') return null;
         return 获取手动尺寸预设(secretSizePreset, secretSizeScale);
     }, [获取手动尺寸预设, secretSizePreset, secretSizeScale]);
+
+    React.useEffect(() => 订阅本地图片图床迁移状态((status) => {
+        setLegacyImageMigrationStatus(status);
+    }), []);
 
     React.useEffect(() => {
         if (manualSizePreset === 'custom' || manualSizePreset === 'none') return;
@@ -4720,6 +4727,10 @@ const ImageManagerModal: React.FC<Props> = ({
         );
     };
 
+    const renderMigrationTab = () => (
+        <ImageMigrationStatusPanel status={legacyImageMigrationStatus} />
+    );
+
     return (
         <div className="fixed inset-0 z-[230] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 animate-fadeIn overflow-hidden">
             <div
@@ -4771,6 +4782,10 @@ const ImageManagerModal: React.FC<Props> = ({
                             <span className="md:hidden text-lg w-full text-center">规</span>
                             <span className="hidden md:inline">规则中心</span>
                         </button>
+                        <button type="button" onClick={() => setActiveTab('migration')} className={标签按钮样式(activeTab === 'migration')}>
+                            <span className="md:hidden text-lg w-full text-center">迁</span>
+                            <span className="hidden md:inline">迁移状态</span>
+                        </button>
                     </div>
                 </div>
 
@@ -4788,7 +4803,7 @@ const ImageManagerModal: React.FC<Props> = ({
                     </button>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-                        {activeTab !== 'manual' && activeTab !== 'scene' && activeTab !== 'presets' && activeTab !== 'rules' && (
+                        {activeTab !== 'manual' && activeTab !== 'scene' && activeTab !== 'presets' && activeTab !== 'rules' && activeTab !== 'migration' && (
                             <div className="shrink-0 px-6 py-6 border-b border-wuxia-gold/10 bg-black/30 space-y-5">
                                 <div className="pr-12">
                                     <div className="text-wuxia-gold/90 font-serif text-lg tracking-wider">图片筛选</div>
@@ -4857,6 +4872,7 @@ const ImageManagerModal: React.FC<Props> = ({
                             {activeTab === 'history' && renderHistoryTab()}
                             {activeTab === 'presets' && renderPresetsTab()}
                             {activeTab === 'rules' && renderRulesTab()}
+                            {activeTab === 'migration' && renderMigrationTab()}
                         </div>
                     </div>
                 </div>
