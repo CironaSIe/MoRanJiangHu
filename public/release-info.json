@@ -1,15 +1,15 @@
 {
-  "versionCode": 169,
-  "versionName": "1.0.168",
+  "versionCode": 170,
+  "versionName": "1.0.169",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "v1.0.168 正式发布：修复网页端 WebDAV 跨域同步，并补齐全设置同步入口。",
-    "首页“云端同步”改为左右双栏：左侧 GitHub，右侧 WebDAV，两种云同步方式互不覆盖。",
-    "WebDAV 现在支持上传和恢复全部游戏设置，并保留设置引用的素材资源。",
-    "WebDAV 存档继续支持多存档、下拉选择读取、设备来源、同步时间、存档版本和增量同步。",
-    "网页端 WebDAV 请求改走站点安全代理，解决第三方 WebDAV 服务未开放 CORS 时浏览器拦截 MKCOL/PUT/GET 的问题。",
-    "存档读写弹窗移除旧 WebDAV 区块，统一从首页“云端同步”管理云端配置、存档和设置。",
-    "网页端、APK 包和更新清单同步提升到 v1.0.168 / CODE 169。"
+    "v1.0.169 正式发布：修复 WebDAV 云同步在 pp.ua 主域名下的代理入口。",
+    "主域名更新为 https://msjh.bacon159.pp.ua，备用域名为 https://msjh.bacon.de5.net。",
+    "Cloudflare Worker 同时绑定主域名和备用域名，确保 /api/webdav-proxy 在两个域名下都可用。",
+    "WebDAV 云同步在备用域名访问时会自动回到主域名代理，避免静态备用站点返回 404/405。",
+    "WebDAV 上传遇到上游短暂 Network connection lost 时会自动短重试，减少偶发断连导致同步失败。",
+    "发布流程记忆已更新为 pp.ua 主站、de5.net 备用站，后续发布会按新主备域名检查。",
+    "网页端、APK 包和更新清单同步提升到 v1.0.169 / CODE 170。"
   ],
   "releaseHistory": [
     {
@@ -1798,13 +1798,14 @@
       ]
     }
   ],
-  "websiteUrl": "https://msjh.bacon.de5.net",
+  "websiteUrl": "https://msjh.bacon159.pp.ua",
   "githubRepoUrl": "https://github.com/ypq123456789/MoRanJiangHu",
-  "cnbGuideUrl": "https://msjh.bacon.de5.net/cnb-comfyui-guide.html",
+  "cnbGuideUrl": "https://msjh.bacon159.pp.ua/cnb-comfyui-guide.html",
   "releaseNotesUrl": "https://msjh.bacon159.pp.ua/changelog.html",
   "apkDownloadUrl": "https://download.bacon.de5.net/moranjianghu/latest.apk",
   "updateManifestUrl": "https://download.bacon.de5.net/moranjianghu/latest.json",
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
-  "releasePublishedAt": "2026-05-16T11:08:43+08:00"
+  "releasePublishedAt": "2026-05-16T11:24:41+08:00",
+  "backupWebsiteUrl": "https://msjh.bacon.de5.net"
 }

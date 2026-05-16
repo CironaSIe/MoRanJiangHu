@@ -14,6 +14,8 @@ const WEBDAV_PACKAGE_FORMAT = 'moranjianghu-webdav-save-package';
 const WEBDAV_SETTINGS_PACKAGE_FORMAT = 'moranjianghu-webdav-settings-package';
 const WEBDAV_MANIFEST_VERSION = 1;
 const WEBDAV_SETTINGS_FILE = 'settings.json';
+const WEBDAV_PROXY_PATH = '/api/webdav-proxy';
+const PRIMARY_SYNC_API_BASE = 'https://msjh.bacon159.pp.ua';
 
 export interface WebDAV同步配置 {
     url: string;
@@ -128,23 +130,60 @@ const 读取错误详情 = async (response: Response): Promise<string> => {
     return text ? ` - ${text.replace(/\s+/g, ' ').slice(0, 180)}` : '';
 };
 
+const 构建WebDAV代理地址 = (): string => {
+    const configured = 构建同步API地址(WEBDAV_PROXY_PATH);
+    if (/^https?:\/\//i.test(configured)) return configured;
+    if (typeof window === 'undefined') return configured;
+
+    const hostname = window.location.hostname.toLowerCase();
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    if (hostname && hostname !== 'msjh.bacon159.pp.ua' && !isLocalhost) {
+        return `${PRIMARY_SYNC_API_BASE}${WEBDAV_PROXY_PATH}`;
+    }
+    return configured;
+};
+
+const 等待 = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const 是否可重试代理错误 = (status: number, detail: string): boolean => (
+    status === 502 && /network connection lost|fetch failed|networkerror|connection reset|econnreset|timeout/i.test(detail)
+);
+
+const 克隆响应 = async (response: Response): Promise<Response> => (
+    new Response(await response.text().catch(() => ''), {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers
+    })
+);
+
 const webdavFetch = async (
     config: WebDAV同步配置,
     method: string,
     segments: string[] = [],
     init?: { headers?: Record<string, string>; body?: BodyInit | null }
 ): Promise<Response> => {
-    const response = await fetch(构建同步API地址('/api/webdav-proxy'), {
-        method: 'POST',
-        headers: {
-            'X-WebDAV-Method': method,
-            'X-WebDAV-Target-Url': 构建WebDAV地址(config, segments),
-            Authorization: 基础认证头(config),
-            ...init?.headers
-        },
-        body: init?.body ?? null
-    });
-    return response;
+    let lastTransientFailure: Response | null = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        const response = await fetch(构建WebDAV代理地址(), {
+            method: 'POST',
+            headers: {
+                'X-WebDAV-Method': method,
+                'X-WebDAV-Target-Url': 构建WebDAV地址(config, segments),
+                Authorization: 基础认证头(config),
+                ...init?.headers
+            },
+            body: init?.body ?? null
+        });
+        if (response.status !== 502) return response;
+
+        const cloned = await 克隆响应(response);
+        const detail = await cloned.clone().text().catch(() => '');
+        if (!是否可重试代理错误(response.status, detail)) return cloned;
+        lastTransientFailure = cloned;
+        await 等待(450 * (attempt + 1));
+    }
+    return lastTransientFailure || new Response('WebDAV proxy request failed', { status: 502 });
 };
 
 const 确保集合 = async (config: WebDAV同步配置, segments: string[]): Promise<void> => {
