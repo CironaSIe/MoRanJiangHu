@@ -187,6 +187,25 @@ describe('responseCommandProcessor team companion fallback', () => {
         expect(companions.some((npc: any) => npc.姓名 === '随行者1')).toBe(false);
         expect(companions.some((npc: any) => npc.姓名 === '随行者2')).toBe(true);
     });
+
+    it('does not rename follower placeholders with hostile dialogue senders', () => {
+        const state = 构建基础状态();
+        state.社交 = 规范化社交列表([
+            { id: 'npc_companion_old_1', 姓名: '随行者1', 性别: '未知', 身份: '随行者', 是否在场: true, 是否队友: true },
+            { id: 'npc_enemy_guard', 姓名: '慕容氏守卫', 性别: '男', 身份: '守卫', 是否在场: true, 是否队友: false }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '慕容氏守卫', text: '站住，休想过去！' },
+                { sender: '旁白', text: '慕容氏守卫拔刀拦住去路，敌方阵列围住杨培强。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交.find((npc: any) => npc.姓名 === '慕容氏守卫')?.是否队友).toBe(false);
+        expect(result.社交.find((npc: any) => npc.姓名 === '随行者1')?.是否队友).toBe(true);
+    });
 });
 
 describe('responseCommandProcessor female relationship target major role fallback', () => {

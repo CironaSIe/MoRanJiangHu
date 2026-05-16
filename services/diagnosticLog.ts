@@ -105,8 +105,11 @@ const scheduleAutomaticErrorReport = (entry: DiagnosticLogEntry) => {
     }, 1500);
 };
 
-export const recordDiagnosticLog = (level: DiagnosticLogLevel, values: unknown[]) => {
+export const recordDiagnosticLog = (level: DiagnosticLogLevel, valuesOrFirst: unknown[] | unknown, ...restValues: unknown[]) => {
     restorePersistedLogs();
+    const values = Array.isArray(valuesOrFirst) && restValues.length === 0
+        ? valuesOrFirst
+        : [valuesOrFirst, ...restValues];
     const rendered = values.map(stringifyValue).filter(Boolean);
     const message = rendered[0] || '(empty log)';
     const detail = rendered.length > 1 ? rendered.slice(1).join('\n') : undefined;

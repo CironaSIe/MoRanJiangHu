@@ -576,7 +576,7 @@ export const 创建图片预设工作流 = (deps: 图片预设工作流依赖) =
         if (!npcId) return null;
         const targetNpc = (Array.isArray(deps.获取社交列表()) ? deps.获取社交列表() : []).find((npc: any) => npc && npc.id === npcId);
         if (!targetNpc) {
-            throw new Error('未找到目标 NPC，无法提取角色锚点。');
+            return null;
         }
         const apiConfig = deps.获取接口配置();
         const anchorApi = 获取生图词组转化器接口配置(apiConfig) || 获取主剧情接口配置(apiConfig);
