@@ -180,6 +180,7 @@ const 现场确认事实正则 = /(在场|在此|现场|身侧|身旁|旁边|面
 const 同行确认事实正则 = /(同行|随行|随队|随我|随主角|跟随|跟着|一同|一起|同去|同往|同来|带着|领着|率领|听令|听命|出列|列队|编队|队伍|队友|同伴|伴随|护送|压阵|随身|并肩|并行)/;
 const 同行离队事实正则 = /(离队|退队|不再同行|不再随行|分道扬镳|各自行动|分头行动|留守|待命|退下|退走|离开|散去|走远|留在|驻守)/;
 const 同行群体事实正则 = /((?:约|近|将近|足有|共有|共)?[一二三四五六七八九十百千万两\d]{1,5}(?:余|多|来)?(?:个|名|位|队|群|拨|批)?[^。！？\n\r]{0,16}(?:同门|师弟|师兄|师妹|弟子|门人|护卫|随从|部众|精锐|人手|队员|帮众|兵卒|亲卫|随员|船工|水手|镖师))/;
+const 随行者占位名正则 = /^随行者([1-9]\d*)$/;
 
 const NPC已死亡 = (npc: any): boolean => {
     const 当前血量 = Number(npc?.当前血量);
@@ -228,9 +229,43 @@ const 同步当前视角在场状态 = (
     });
 };
 
-const 构建同行群体ID = (label: string): string => `npc_companion_group_${稳定哈希文本(label)}`;
+const 中文数字值: Record<string, number> = {
+    零: 0,
+    一: 1,
+    二: 2,
+    两: 2,
+    三: 3,
+    四: 4,
+    五: 5,
+    六: 6,
+    七: 7,
+    八: 8,
+    九: 9
+};
 
-const 提取同行群体名称 = (responseFactText: string): string => {
+const 解析中文整数 = (value: string): number => {
+    const text = (value || '').trim();
+    if (!text) return NaN;
+    const digit = Number(text);
+    if (Number.isFinite(digit)) return digit;
+    if (!text.includes('十')) return 中文数字值[text] ?? NaN;
+    const [left, right] = text.split('十');
+    const tens = left ? (中文数字值[left] ?? NaN) : 1;
+    const ones = right ? (中文数字值[right] ?? NaN) : 0;
+    if (!Number.isFinite(tens) || !Number.isFinite(ones)) return NaN;
+    return tens * 10 + ones;
+};
+
+const 提取人数 = (text: string): number => {
+    const match = (text || '').match(/(?:约|近|将近|足有|共有|共)?([一二三四五六七八九十两\d]{1,5})(?:余|多|来)?(?:个|名|位|人|队员|同门|弟子|护卫|随从|精锐|水手|镖师|兵卒|亲卫|随员)?/);
+    const value = match ? 解析中文整数(match[1]) : NaN;
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(0, Math.min(80, Math.floor(value)));
+};
+
+const 构建随行者ID = (groupLabel: string, index: number): string => `npc_companion_${稳定哈希文本(groupLabel)}_${index}`;
+
+const 提取同行群体信息 = (responseFactText: string): { 名称: string; 人数: number } | null => {
     const sentences = 拆分事实句(responseFactText);
     const matchedSentence = sentences.find((sentence) => (
         同行确认事实正则.test(sentence)
@@ -238,8 +273,114 @@ const 提取同行群体名称 = (responseFactText: string): string => {
         && 同行群体事实正则.test(sentence)
     ));
     const raw = matchedSentence?.match(同行群体事实正则)?.[1]?.trim() || '';
-    if (!raw) return '';
-    return raw.replace(/^(?:约|近|将近|足有|共有|共)/, '').replace(/\s+/g, '');
+    if (!raw) return null;
+    const 名称 = raw.replace(/^(?:约|近|将近|足有|共有|共)/, '').replace(/\s+/g, '');
+    const 人数 = 提取人数(raw);
+    return 人数 > 0 ? { 名称, 人数 } : null;
+};
+
+const 是否随行群体条目 = (npc: any): boolean => {
+    const name = 读取NPC名称(npc);
+    const identity = typeof npc?.身份 === 'string' ? npc.身份.trim() : '';
+    return identity === '随行队伍' || (npc?.是否队友 === true && 提取人数(name) > 1 && /同门|弟子|护卫|随从|精锐|队伍|队员|水手|镖师|兵卒|亲卫|随员|难度/.test(name));
+};
+
+const 创建随行者条目 = (groupLabel: string, index: number, template?: any): any => ({
+    ...(template && typeof template === 'object' ? template : {}),
+    id: 构建随行者ID(groupLabel, index),
+    姓名: `随行者${index}`,
+    性别: template?.性别 || '未知',
+    年龄: template?.年龄,
+    境界: template?.境界 || '未知境界',
+    身份: template?.身份 && template.身份 !== '随行队伍' ? template.身份 : '随行者',
+    是否在场: true,
+    是否队友: true,
+    是否主要角色: false,
+    好感度: Number.isFinite(Number(template?.好感度)) ? Number(template.好感度) : 0,
+    关系状态: '同行',
+    简介: `本回合剧情明确随主角行动的第 ${index} 名成员，来源：${groupLabel}。`,
+    记忆: Array.isArray(template?.记忆) ? template.记忆 : []
+});
+
+const 拆分随行群体条目 = (list: any[]): any[] => {
+    const result: any[] = [];
+    const existingNames = new Set(
+        (Array.isArray(list) ? list : [])
+            .map((npc: any) => 读取NPC名称(npc))
+            .filter((name: string) => name && !随行者占位名正则.test(name))
+    );
+    (Array.isArray(list) ? list : []).forEach((npc: any) => {
+        if (!npc || typeof npc !== 'object' || !是否随行群体条目(npc)) {
+            result.push(npc);
+            return;
+        }
+        const groupLabel = 读取NPC名称(npc) || npc?.简介 || '随行队伍';
+        const count = 提取人数(groupLabel);
+        if (count <= 1) {
+            result.push(npc);
+            return;
+        }
+        for (let i = 1; i <= count; i += 1) {
+            const placeholderName = `随行者${i}`;
+            if (existingNames.has(placeholderName)) continue;
+            result.push(创建随行者条目(groupLabel, i, npc));
+        }
+    });
+    return result;
+};
+
+const 提取响应实名 = (response: GameResponse, playerName?: string): string[] => {
+    const names: string[] = [];
+    const seen = new Set<string>();
+    const push = (value: unknown) => {
+        const name = typeof value === 'string' ? value.trim() : '';
+        if (!是否对白NPC发送者(name, playerName)) return;
+        const key = 归一化文本键(name);
+        if (!key || seen.has(key) || 随行者占位名正则.test(name)) return;
+        seen.add(key);
+        names.push(name);
+    };
+    (Array.isArray(response?.logs) ? response.logs : []).forEach((log: any) => push(log?.sender));
+    return names;
+};
+
+const 用实名替换随行占位 = (response: GameResponse, list: any[], playerName?: string): any[] => {
+    const names = 提取响应实名(response, playerName);
+    if (names.length <= 0 || !Array.isArray(list) || list.length <= 0) return list;
+    let next = [...list];
+    let changed = false;
+    names.forEach((name) => {
+        const nameKey = 归一化文本键(name);
+        const existingIndex = next.findIndex((npc: any) => 归一化文本键(读取NPC名称(npc)) === nameKey);
+        const placeholderIndex = next.findIndex((npc: any) => npc?.是否队友 === true && 随行者占位名正则.test(读取NPC名称(npc)));
+        if (placeholderIndex < 0) {
+            if (existingIndex >= 0) {
+                const npc = next[existingIndex];
+                if (npc?.是否队友 !== true || npc?.是否在场 !== true) {
+                    next[existingIndex] = { ...npc, 是否队友: true, 是否在场: true };
+                    changed = true;
+                }
+            }
+            return;
+        }
+        const existing = existingIndex >= 0 ? next[existingIndex] : null;
+        const placeholder = next[placeholderIndex];
+        next[placeholderIndex] = {
+            ...placeholder,
+            ...(existing && typeof existing === 'object' ? existing : {}),
+            id: existing?.id || `npc_companion_named_${稳定哈希文本(name)}`,
+            姓名: name,
+            是否在场: true,
+            是否队友: true,
+            关系状态: existing?.关系状态 && existing.关系状态 !== '未知' ? existing.关系状态 : '同行',
+            简介: existing?.简介 || `原随行占位成员已在正文中点名为：${name}。`
+        };
+        if (existingIndex >= 0 && existingIndex !== placeholderIndex) {
+            next = next.filter((_, index) => index !== existingIndex);
+        }
+        changed = true;
+    });
+    return changed ? next : list;
 };
 
 const 应用同行事实到队伍 = (
@@ -276,28 +417,20 @@ const 应用同行事实到队伍 = (
         };
     });
 
-    const groupName = 提取同行群体名称(responseFactText);
-    if (!groupName) return changed ? nextList : socialList;
-    const groupId = 构建同行群体ID(groupName);
-    if (nextList.some((npc: any) => npc?.id === groupId || npc?.姓名 === groupName)) return changed ? nextList : socialList;
-    return [
-        ...nextList,
-        {
-            id: groupId,
-            姓名: groupName,
-            性别: '未知',
-            年龄: undefined,
-            境界: '未知境界',
-            身份: '随行队伍',
-            是否在场: true,
-            是否队友: true,
-            是否主要角色: false,
-            好感度: 0,
-            关系状态: '同行',
-            简介: `本回合剧情明确随主角行动的群体：${groupName}。`,
-            记忆: []
+    const expandedExisting = 拆分随行群体条目(nextList);
+    const groupInfo = 提取同行群体信息(responseFactText);
+    const withGroup = (() => {
+        if (!groupInfo) return expandedExisting;
+        const existingCompanionCount = expandedExisting.filter((npc: any) => npc?.是否队友 === true).length;
+        if (existingCompanionCount >= groupInfo.人数) return expandedExisting;
+        const additions: any[] = [];
+        for (let i = existingCompanionCount + 1; i <= groupInfo.人数; i += 1) {
+            additions.push(创建随行者条目(groupInfo.名称, i));
         }
-    ];
+        return [...expandedExisting, ...additions];
+    })();
+    const renamed = 用实名替换随行占位(response, withGroup, playerName);
+    return changed || renamed !== socialList ? renamed : socialList;
 };
 
 const 装备槽位列表 = ['头部', '胸部', '盔甲', '内衬', '腿部', '手部', '足部', '主武器', '副武器', '暗器', '背部', '腰部', '坐骑'] as const;

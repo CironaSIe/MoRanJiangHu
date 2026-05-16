@@ -148,20 +148,44 @@ describe('responseCommandProcessor team companion fallback', () => {
         expect(result.社交.find((npc: any) => npc.姓名 === '李四')?.是否在场).toBe(true);
     });
 
-    it('creates a teammate group entry for explicitly accompanying unnamed disciples', () => {
+    it('expands explicitly accompanying unnamed disciples into individual teammates', () => {
         const state = 构建基础状态();
 
         const result = 执行响应命令处理({
             logs: [
-                { sender: '旁白', text: '杨培强率领二十名满身泥污的精锐弟子一同行动，众人随队听令。' }
+                { sender: '旁白', text: '杨培强率领十一名满身泥污的精锐弟子一同行动，众人随队听令。' }
             ],
             tavern_commands: []
         } as any, state, deps, undefined, { applyState: false });
 
-        const group = result.社交.find((npc: any) => npc.身份 === '随行队伍');
-        expect(group?.姓名).toContain('二十名满身泥污的精锐弟子');
-        expect(group?.是否队友).toBe(true);
-        expect(group?.是否在场).toBe(true);
+        const companions = result.社交.filter((npc: any) => npc.是否队友 === true);
+        expect(companions).toHaveLength(11);
+        expect(companions.map((npc: any) => npc.姓名)).toEqual(
+            Array.from({ length: 11 }, (_, index) => `随行者${index + 1}`)
+        );
+        expect(result.社交.some((npc: any) => npc.身份 === '随行队伍')).toBe(false);
+    });
+
+    it('renames an unnamed follower placeholder when the story later reveals their name', () => {
+        const state = 构建基础状态();
+        state.社交 = 规范化社交列表([
+            { id: 'npc_companion_old_1', 姓名: '随行者1', 性别: '未知', 身份: '随行者', 是否在场: true, 是否队友: true },
+            { id: 'npc_companion_old_2', 姓名: '随行者2', 性别: '未知', 身份: '随行者', 是否在场: true, 是否队友: true }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '顾清河', text: '我来开路。' },
+                { sender: '旁白', text: '顾清河仍随队听令，与另一名同门一同行动。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        const companions = result.社交.filter((npc: any) => npc.是否队友 === true);
+        expect(companions).toHaveLength(2);
+        expect(companions.some((npc: any) => npc.姓名 === '顾清河')).toBe(true);
+        expect(companions.some((npc: any) => npc.姓名 === '随行者1')).toBe(false);
+        expect(companions.some((npc: any) => npc.姓名 === '随行者2')).toBe(true);
     });
 });
 
