@@ -568,26 +568,24 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
 
     const handleApplyDiscoveredBackend = (target: 'main' | 'scene' | 'nsfw', backendId: string) => {
         const matched = discoveredBackends.find((item) => item.id === backendId) || null;
-        if (target === 'main') {
-            updatePlaceholder('当前图片后端发现ID', backendId);
-            if (matched) {
-                updatePlaceholder('文生图模型API地址', normalizeDiscoveredBackendUrl(matched.url));
-            }
-            return;
-        }
-
-        if (target === 'scene') {
-            updatePlaceholder('当前场景图片后端发现ID', backendId);
-            if (matched) {
-                updatePlaceholder('场景生图模型API地址', normalizeDiscoveredBackendUrl(matched.url));
-            }
-            return;
-        }
-
-        updatePlaceholder('当前NSFW图片后端发现ID', backendId);
-        if (matched) {
-            updatePlaceholder('NSFW生图模型API地址', normalizeDiscoveredBackendUrl(matched.url));
-        }
+        const idKey = target === 'scene'
+            ? '当前场景图片后端发现ID'
+            : target === 'nsfw'
+                ? '当前NSFW图片后端发现ID'
+                : '当前图片后端发现ID';
+        const urlKey = target === 'scene'
+            ? '场景生图模型API地址'
+            : target === 'nsfw'
+                ? 'NSFW生图模型API地址'
+                : '文生图模型API地址';
+        setForm((prev) => ({
+            ...prev,
+            功能模型占位: {
+                ...prev.功能模型占位,
+                [idKey]: backendId,
+                ...(matched ? { [urlKey]: normalizeDiscoveredBackendUrl(matched.url) } : {})
+            } as 功能模型占位配置结构
+        }));
     };
 
     const 更新当前画师串预设ID = (scope: 画师串适用页签, presetId: string) => {

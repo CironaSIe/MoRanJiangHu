@@ -177,6 +177,9 @@ const 提取对白发送者集合 = (response: GameResponse, playerName?: string
 
 const 现场缺席事实正则 = /(不在(?:场|此处|现场|身边)|未在(?:场|此处|现场|身边)|离场|离开|退下|退走|散去|走远|远在|留守|待命|守在|守于|驻守|回到|返回|躲在|藏在|被押走|被带走|被拖走|逃走|逃离|不见踪影)/;
 const 现场确认事实正则 = /(在场|在此|现场|身侧|身旁|旁边|面前|眼前|跟前|近前|席间|堂中|厅中|屋内|房内|院中|站在|立在|坐在|跪在|伏在|靠在|走进|进入|赶来|来到|现身|出声|开口|说道|问道|答道|回应|看着|望向|盯着|拔刀|出手|跪下|行礼|沉默|皱眉|冷笑|微笑)/;
+const 同行确认事实正则 = /(同行|随行|随队|随我|随主角|跟随|跟着|一同|一起|同去|同往|同来|带着|领着|率领|听令|听命|出列|列队|编队|队伍|队友|同伴|伴随|护送|压阵|随身|并肩|并行)/;
+const 同行离队事实正则 = /(离队|退队|不再同行|不再随行|分道扬镳|各自行动|分头行动|留守|待命|退下|退走|离开|散去|走远|留在|驻守)/;
+const 同行群体事实正则 = /((?:约|近|将近|足有|共有|共)?[一二三四五六七八九十百千万两\d]{1,5}(?:余|多|来)?(?:个|名|位|队|群|拨|批)?[^。！？\n\r]{0,16}(?:同门|师弟|师兄|师妹|弟子|门人|护卫|随从|部众|精锐|人手|队员|帮众|兵卒|亲卫|随员|船工|水手|镖师))/;
 
 const NPC已死亡 = (npc: any): boolean => {
     const 当前血量 = Number(npc?.当前血量);
@@ -223,6 +226,78 @@ const 同步当前视角在场状态 = (
         const nextPresent = 判断NPC本回合是否在场(npc, responseFactText, dialogueSenderKeys);
         return npc.是否在场 === nextPresent ? npc : { ...npc, 是否在场: nextPresent };
     });
+};
+
+const 构建同行群体ID = (label: string): string => `npc_companion_group_${稳定哈希文本(label)}`;
+
+const 提取同行群体名称 = (responseFactText: string): string => {
+    const sentences = 拆分事实句(responseFactText);
+    const matchedSentence = sentences.find((sentence) => (
+        同行确认事实正则.test(sentence)
+        && !同行离队事实正则.test(sentence)
+        && 同行群体事实正则.test(sentence)
+    ));
+    const raw = matchedSentence?.match(同行群体事实正则)?.[1]?.trim() || '';
+    if (!raw) return '';
+    return raw.replace(/^(?:约|近|将近|足有|共有|共)/, '').replace(/\s+/g, '');
+};
+
+const 应用同行事实到队伍 = (
+    response: GameResponse,
+    socialList: any[],
+    playerName?: string
+): any[] => {
+    if (!Array.isArray(socialList)) return socialList;
+    const responseFactText = 提取响应事实文本(response);
+    if (!responseFactText.trim()) return socialList;
+    const sentences = 拆分事实句(responseFactText);
+    let changed = false;
+    const nextList = socialList.map((npc: any) => {
+        if (!npc || typeof npc !== 'object') return npc;
+        const name = 读取NPC名称(npc);
+        if (!name || 归一化文本键(name) === 归一化文本键(playerName)) return npc;
+        const relatedSentences = sentences.filter((sentence) => sentence.includes(name));
+        if (relatedSentences.length <= 0) return npc;
+        if (relatedSentences.some((sentence) => 同行离队事实正则.test(sentence))) {
+            if (npc.是否队友 !== true) return npc;
+            changed = true;
+            return { ...npc, 是否队友: false };
+        }
+        if (!relatedSentences.some((sentence) => 同行确认事实正则.test(sentence))) return npc;
+        if (npc.是否队友 === true && npc.是否在场 === true) return npc;
+        changed = true;
+        return {
+            ...npc,
+            是否队友: true,
+            是否在场: true,
+            关系状态: typeof npc.关系状态 === 'string' && npc.关系状态.trim() && npc.关系状态 !== '未知'
+                ? npc.关系状态
+                : '同行'
+        };
+    });
+
+    const groupName = 提取同行群体名称(responseFactText);
+    if (!groupName) return changed ? nextList : socialList;
+    const groupId = 构建同行群体ID(groupName);
+    if (nextList.some((npc: any) => npc?.id === groupId || npc?.姓名 === groupName)) return changed ? nextList : socialList;
+    return [
+        ...nextList,
+        {
+            id: groupId,
+            姓名: groupName,
+            性别: '未知',
+            年龄: undefined,
+            境界: '未知境界',
+            身份: '随行队伍',
+            是否在场: true,
+            是否队友: true,
+            是否主要角色: false,
+            好感度: 0,
+            关系状态: '同行',
+            简介: `本回合剧情明确随主角行动的群体：${groupName}。`,
+            记忆: []
+        }
+    ];
 };
 
 const 装备槽位列表 = ['头部', '胸部', '盔甲', '内衬', '腿部', '手部', '足部', '主武器', '副武器', '暗器', '背部', '腰部', '坐骑'] as const;
@@ -690,6 +765,10 @@ export const 执行响应命令处理 = (
             同步当前视角在场状态(response, socialBuffer, charBuffer?.姓名),
             { 合并同名: false }
         );
+        socialBuffer = deps.规范化社交列表(
+            应用同行事实到队伍(response, socialBuffer, charBuffer?.姓名),
+            { 合并同名: false }
+        );
         storyBuffer = deps.规范化剧情状态(storyBuffer);
 
         let finalState: 响应命令处理状态 = {
@@ -735,20 +814,24 @@ export const 执行响应命令处理 = (
         角色: charBuffer,
         环境: deps.规范化环境信息(envBuffer),
         社交: deps.规范化社交列表(
-            同步当前视角在场状态(
+            应用同行事实到队伍(
                 response,
-                应用死亡事实到NPC(
+                同步当前视角在场状态(
                     response,
-                    应用女性关系目标主要角色兜底(
+                    应用死亡事实到NPC(
                         response,
-                        应用生理事实到女性NPC(
+                        应用女性关系目标主要角色兜底(
                             response,
-                            补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
-                            envBuffer,
-                            charBuffer?.姓名
-                        )
+                            应用生理事实到女性NPC(
+                                response,
+                                补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
+                                envBuffer,
+                                charBuffer?.姓名
+                            )
+                        ),
+                        envBuffer
                     ),
-                    envBuffer
+                    charBuffer?.姓名
                 ),
                 charBuffer?.姓名
             ),

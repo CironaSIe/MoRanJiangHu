@@ -138,13 +138,19 @@ export const pickPreferredDiscoveredImageBackend = (
 
     const currentId = (current?.id || '').trim();
     const currentUrl = normalizeDiscoveredBackendUrl(current?.url);
-    const currentItem = sorted.find((item) => (
-        (currentId && item.id === currentId)
-        || (currentUrl && normalizeDiscoveredBackendUrl(item.url) === currentUrl)
-    )) || null;
+    const currentItemById = currentId
+        ? sorted.find((item) => item.id === currentId) || null
+        : null;
+    const currentItemByUrl = currentUrl
+        ? sorted.find((item) => normalizeDiscoveredBackendUrl(item.url) === currentUrl) || null
+        : null;
+    const currentItem = currentItemById || currentItemByUrl;
     const best = sorted[0];
 
     if (!currentItem) return best;
+    if (currentItemById && normalizeDiscoveredBackendUrl(currentItemById.url) !== currentUrl) {
+        return currentItemById;
+    }
     if (!currentUrl) return currentItem;
 
     const currentStats = pickBestStatsEntry(stats, target, currentItem);

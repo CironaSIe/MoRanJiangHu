@@ -127,6 +127,44 @@ describe('responseCommandProcessor current scene presence sync', () => {
     });
 });
 
+describe('responseCommandProcessor team companion fallback', () => {
+    it('marks named present companions as teammates when the story has them follow orders', () => {
+        const state = 构建基础状态();
+        state.社交 = 规范化社交列表([
+            { id: 'npc_chen_san', 姓名: '陈三', 性别: '男', 身份: '同门弟子', 是否在场: false, 是否队友: false },
+            { id: 'npc_li_si', 姓名: '李四', 性别: '男', 身份: '同门弟子', 是否在场: false, 是否队友: false }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '杨培强带着陈三、李四随队潜入水中，沉声命他们出列听令。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交.find((npc: any) => npc.姓名 === '陈三')?.是否队友).toBe(true);
+        expect(result.社交.find((npc: any) => npc.姓名 === '陈三')?.是否在场).toBe(true);
+        expect(result.社交.find((npc: any) => npc.姓名 === '李四')?.是否队友).toBe(true);
+        expect(result.社交.find((npc: any) => npc.姓名 === '李四')?.是否在场).toBe(true);
+    });
+
+    it('creates a teammate group entry for explicitly accompanying unnamed disciples', () => {
+        const state = 构建基础状态();
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '杨培强率领二十名满身泥污的精锐弟子一同行动，众人随队听令。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        const group = result.社交.find((npc: any) => npc.身份 === '随行队伍');
+        expect(group?.姓名).toContain('二十名满身泥污的精锐弟子');
+        expect(group?.是否队友).toBe(true);
+        expect(group?.是否在场).toBe(true);
+    });
+});
+
 describe('responseCommandProcessor female relationship target major role fallback', () => {
     it('marks newly generated female攻略对象 as a major role in the same turn', () => {
         const state = 构建基础状态();
