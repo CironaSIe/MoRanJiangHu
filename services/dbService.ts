@@ -5,7 +5,7 @@ import { 获取设置项定义, 设置分类定义表, 设置键, type 设置分
 import { 默认功能模型占位, 规范化接口设置 } from '../utils/apiConfig';
 
 import { recordDiagnosticLog } from './diagnosticLog';
-import { 上传DataUrl到图床 } from './imageHostService';
+import { buildImageHostProxyUrl, 上传DataUrl到图床 } from './imageHostService';
 
 const DB_NAME = 'WuxiaGameDB';
 const STORE_NAME = 'saves';
@@ -275,7 +275,7 @@ const blob转DataUrl = (blob: Blob): Promise<string> => new Promise((resolve, re
 });
 
 const 下载远程图片为DataUrl = async (remoteUrl: string): Promise<string> => {
-    const response = await fetch(`${图床备份下载代理路径}?url=${encodeURIComponent(remoteUrl)}`, {
+    const response = await fetch(`${buildImageHostProxyUrl(图床备份下载代理路径)}?url=${encodeURIComponent(remoteUrl)}`, {
         method: 'GET',
         cache: 'no-store'
     });
