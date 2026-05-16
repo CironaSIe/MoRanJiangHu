@@ -157,6 +157,8 @@ const 克隆响应 = async (response: Response): Promise<Response> => (
     })
 );
 
+const 是否WebDAV锁定响应 = (response: Response): boolean => response.status === 423;
+
 const webdavFetch = async (
     config: WebDAV同步配置,
     method: string,
@@ -187,9 +189,23 @@ const webdavFetch = async (
 };
 
 const 确保集合 = async (config: WebDAV同步配置, segments: string[]): Promise<void> => {
-    const response = await webdavFetch(config, 'MKCOL', segments);
-    if ([200, 201, 204, 405].includes(response.status)) return;
+    let lastLockedResponse: Response | null = null;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+        const response = await webdavFetch(config, 'MKCOL', segments);
+        if ([200, 201, 204, 405].includes(response.status)) return;
+        if (!是否WebDAV锁定响应(response)) {
+            throw new Error(`创建 WebDAV 目录失败：${response.status}${await 读取错误详情(response)}`);
+        }
+        lastLockedResponse = await 克隆响应(response);
+        await 等待(500 * (attempt + 1));
+    }
+    const response = lastLockedResponse || new Response('WebDAV directory is locked', { status: 423 });
     throw new Error(`创建 WebDAV 目录失败：${response.status}${await 读取错误详情(response)}`);
+};
+
+const 确保WebDAV目录结构 = async (config: WebDAV同步配置): Promise<void> => {
+    await 确保集合(config, [WEBDAV_ROOT_DIR]);
+    await 确保集合(config, [WEBDAV_ROOT_DIR, WEBDAV_SAVES_DIR]);
 };
 
 const 读取远端清单 = async (config: WebDAV同步配置): Promise<WebDAV清单结构> => {
@@ -333,16 +349,14 @@ const 构建云存档元数据 = async (save: 存档结构, archiveBytes: Uint8A
 export const 测试WebDAV连接 = async (config: WebDAV同步配置): Promise<void> => {
     const normalized = 规范化配置(config);
     if (!normalized) throw new Error('请填写 WebDAV 地址、用户名和密码');
-    await 确保集合(normalized, [WEBDAV_ROOT_DIR]);
-    await 确保集合(normalized, [WEBDAV_ROOT_DIR, WEBDAV_SAVES_DIR]);
+    await 确保WebDAV目录结构(normalized);
     await 读取远端清单(normalized);
 };
 
 export const 读取WebDAV同步摘要 = async (config: WebDAV同步配置): Promise<WebDAV同步摘要> => {
     const normalized = 规范化配置(config);
     if (!normalized) throw new Error('请填写 WebDAV 地址、用户名和密码');
-    await 确保集合(normalized, [WEBDAV_ROOT_DIR]);
-    await 确保集合(normalized, [WEBDAV_ROOT_DIR, WEBDAV_SAVES_DIR]);
+    await 确保WebDAV目录结构(normalized);
     const manifest = await 读取远端清单(normalized);
     return {
         saveCount: manifest.saves.length,
@@ -354,8 +368,7 @@ export const 读取WebDAV同步摘要 = async (config: WebDAV同步配置): Prom
 export const 列出WebDAV云存档 = async (config: WebDAV同步配置): Promise<WebDAV云存档元数据[]> => {
     const normalized = 规范化配置(config);
     if (!normalized) throw new Error('请填写 WebDAV 地址、用户名和密码');
-    await 确保集合(normalized, [WEBDAV_ROOT_DIR]);
-    await 确保集合(normalized, [WEBDAV_ROOT_DIR, WEBDAV_SAVES_DIR]);
+    await 确保WebDAV目录结构(normalized);
     const manifest = await 读取远端清单(normalized);
     return [...manifest.saves].sort((a, b) => Number(b.saveTimestamp || 0) - Number(a.saveTimestamp || 0));
 };
@@ -374,8 +387,7 @@ const 构建设置元数据 = async (bytes: Uint8Array): Promise<WebDAV设置同
 export const 上传设置到WebDAV = async (config: WebDAV同步配置): Promise<WebDAV设置同步元数据> => {
     const normalized = 规范化配置(config);
     if (!normalized) throw new Error('请填写 WebDAV 地址、用户名和密码');
-    await 确保集合(normalized, [WEBDAV_ROOT_DIR]);
-    await 确保集合(normalized, [WEBDAV_ROOT_DIR, WEBDAV_SAVES_DIR]);
+    await 确保WebDAV目录结构(normalized);
     const manifest = await 读取远端清单(normalized);
     const bytes = await extractSettingsSyncData();
     const metadata = await 构建设置元数据(bytes);
@@ -416,8 +428,7 @@ export const 下载设置自WebDAV = async (config: WebDAV同步配置): Promise
 export const 增量同步到WebDAV = async (config: WebDAV同步配置, saves?: 存档结构[]): Promise<WebDAV增量同步结果> => {
     const normalized = 规范化配置(config);
     if (!normalized) throw new Error('请填写 WebDAV 地址、用户名和密码');
-    await 确保集合(normalized, [WEBDAV_ROOT_DIR]);
-    await 确保集合(normalized, [WEBDAV_ROOT_DIR, WEBDAV_SAVES_DIR]);
+    await 确保WebDAV目录结构(normalized);
     const manifest = await 读取远端清单(normalized);
     const localSaves = Array.isArray(saves) ? saves : await dbService.读取存档列表();
     const knownHashes = new Set(manifest.saves.map((item) => item.hash).filter(Boolean));
