@@ -8,6 +8,12 @@ const 当前时间 = (): number => {
 };
 
 const 格式化耗时 = (value: number): number => Math.round(value * 10) / 10;
+const 漂移疑似计时器节流阈值 = 15000;
+
+const 读取页面可见状态 = (): string => {
+    const doc = (globalThis as any).document;
+    return typeof doc?.visibilityState === 'string' ? doc.visibilityState : 'unknown';
+};
 
 const 清理诊断值 = (value: unknown): unknown => {
     if (typeof value === 'string') {
@@ -37,11 +43,37 @@ export const 创建工作流性能诊断 = (scope: string, meta?: 诊断元数�
     let ended = false;
     let expectedTickAt = startedAt + 1000;
     let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+    let longTaskObserver: PerformanceObserver | null = null;
 
     console.info(`[性能诊断][${scope}] 开始`, {
         ...清理诊断元数据(meta),
         wallTime: new Date().toISOString()
     });
+
+    const PerformanceObserverCtor = (globalThis as any).PerformanceObserver;
+    const longTaskSupported = Boolean(
+        PerformanceObserverCtor
+        && Array.isArray(PerformanceObserverCtor.supportedEntryTypes)
+        && PerformanceObserverCtor.supportedEntryTypes.includes('longtask')
+    );
+    if (longTaskSupported) {
+        try {
+            longTaskObserver = new PerformanceObserverCtor((list: PerformanceObserverEntryList) => {
+                list.getEntries().forEach((entry) => {
+                    if (entry.duration < 200) return;
+                    console.warn(`[性能诊断][${scope}] 主线程长任务`, {
+                        blockedMs: 格式化耗时(entry.duration),
+                        elapsedMs: 格式化耗时(当前时间() - startedAt),
+                        currentStage,
+                        source: 'PerformanceObserver.longtask'
+                    });
+                });
+            });
+            longTaskObserver.observe({ entryTypes: ['longtask'] });
+        } catch (_) {
+            longTaskObserver = null;
+        }
+    }
 
     if (typeof globalThis.setInterval === 'function' && typeof globalThis.clearInterval === 'function') {
         heartbeatTimer = globalThis.setInterval(() => {
@@ -49,10 +81,21 @@ export const 创建工作流性能诊断 = (scope: string, meta?: 诊断元数�
             const drift = now - expectedTickAt;
             expectedTickAt = now + 1000;
             if (drift >= 2000) {
+                const visibilityState = 读取页面可见状态();
+                if (visibilityState === 'hidden' || drift >= 漂移疑似计时器节流阈值) {
+                    console.info(`[性能诊断][${scope}] 计时器延迟，疑似浏览器节流或系统休眠`, {
+                        delayedMs: 格式化耗时(drift),
+                        elapsedMs: 格式化耗时(now - startedAt),
+                        currentStage,
+                        visibilityState
+                    });
+                    return;
+                }
                 console.warn(`[性能诊断][${scope}] 主线程疑似阻塞`, {
                     blockedMs: 格式化耗时(drift),
                     elapsedMs: 格式化耗时(now - startedAt),
-                    currentStage
+                    currentStage,
+                    source: longTaskObserver ? 'heartbeat.fallback' : 'heartbeat'
                 });
             }
         }, 1000);
@@ -100,6 +143,7 @@ export const 创建工作流性能诊断 = (scope: string, meta?: 诊断元数�
         if (heartbeatTimer) {
             globalThis.clearInterval(heartbeatTimer);
         }
+        longTaskObserver?.disconnect();
         console.info(`[性能诊断][${scope}] 结束`, {
             status,
             totalMs: 格式化耗时(当前时间() - startedAt),

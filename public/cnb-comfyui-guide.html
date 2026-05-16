@@ -280,15 +280,18 @@ npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-
         <li class="step">
           <div class="num">7</div>
           <div>
-            <h2>导出 ComfyUI API 工作流</h2>
-            <p>在已经启动的 ComfyUI 中打开你要使用的工作流，点击左上角菜单，选择 <code>导出（API）</code>，保存得到的 <code>.json</code> 文件。注意要选 API 导出，不是普通导出。</p>
+            <h2>开启默认工作流</h2>
+            <p>回到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 的文生图设置，确认 ComfyUI 后端类型已经选中，并打开 <code>使用默认工作流</code>。普通玩家建议优先使用默认工作流，不需要导出或上传任何 workflow JSON。</p>
+            <p>默认工作流会跟随 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 更新，减少因为旧工作流、缺节点或模型名称变化导致的生图失败。</p>
           </div>
         </li>
         <li class="step">
           <div class="num">8</div>
           <div>
-            <h2>上传到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a></h2>
-            <p>回到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 的文生图设置，在 ComfyUI Workflow JSON 上方点击 <code>上传 API 文件</code>。系统会自动把常见提示词、负面提示词、尺寸和采样参数替换为占位符并填入配置。</p>
+            <h2>可选：自定义 ComfyUI 工作流</h2>
+            <p>只有在你明确想使用自己的 ComfyUI 节点链路时，才需要关闭 <code>使用默认工作流</code>，然后走自定义 workflow 流程。</p>
+            <p>在已经启动的 ComfyUI 中打开你要使用的工作流，点击左上角菜单，选择 <code>导出（API）</code>，保存得到的 <code>.json</code> 文件。注意要选 API 导出，不是普通导出。</p>
+            <p>再回到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 的文生图设置，在 ComfyUI Workflow JSON 上方点击 <code>上传 API 文件</code>。系统会自动把常见提示词、负面提示词、尺寸和采样参数替换为占位符并填入配置。</p>
           </div>
         </li>
       </ol>

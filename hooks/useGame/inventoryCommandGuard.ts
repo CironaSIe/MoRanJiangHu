@@ -1,6 +1,7 @@
 import { normalizeStateCommandKey } from '../../utils/stateHelpers';
 
 const inventoryRemovalTriggerRegex = /(清空背包|全部丢弃|全都丢弃|尽数丢弃|丢弃|扔掉|遗弃|卖出|售卖|出售|卖给|卖了|卖掉|上架|典当|赠予|交给|交出|消耗|耗尽|用掉|用完|服用|吃下|喝下|炼化|损坏|毁坏|破碎|烧毁|遗失|失落|掉落|被夺|夺走|抢走|没收|搜走|放下|移除背包|从背包移除)/;
+const negatedInventoryRemovalRegex = /(并未|未曾|未|没有|并没有|不曾|无意|并无|未进行|没有进行|没有发生|并未发生)[^。！？\n]{0,12}(清空背包|全部丢弃|全都丢弃|尽数丢弃|丢弃|扔掉|遗弃|卖出|售卖|出售|卖给|卖了|卖掉|上架|典当|赠予|交给|交出|消耗|耗尽|用掉|用完|服用|吃下|喝下|炼化|损坏|毁坏|破碎|烧毁|遗失|失落|掉落|被夺|夺走|抢走|没收|搜走|放下|移除背包|从背包移除)/;
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -12,6 +13,10 @@ const readItems = (character: any): any[] => (
     Array.isArray(character?.物品列表) ? character.物品列表 : []
 );
 
+const isUsableInventoryList = (value: unknown): value is any[] => (
+    Array.isArray(value) && value.length > 0
+);
+
 export const hasInventoryRemovalTrigger = (command: any, factText = ''): boolean => {
     const commandText = [
         command?.key,
@@ -21,13 +26,13 @@ export const hasInventoryRemovalTrigger = (command: any, factText = ''): boolean
         typeof command?.说明 === 'string' ? command.说明 : '',
         factText
     ].filter(Boolean).join('\n');
-    return inventoryRemovalTriggerRegex.test(commandText);
+    return inventoryRemovalTriggerRegex.test(commandText) && !negatedInventoryRemovalRegex.test(commandText);
 };
 
 export const preserveInventoryOnUnsafeRoleReplace = (nextCharacter: any, currentCharacter: any): any => {
     const currentItems = readItems(currentCharacter);
     if (currentItems.length === 0 || !isObject(nextCharacter)) return nextCharacter;
-    if (!Array.isArray(nextCharacter.物品列表) || nextCharacter.物品列表.length === 0) {
+    if (!isUsableInventoryList(nextCharacter.物品列表)) {
         return { ...nextCharacter, 物品列表: clone(currentItems) };
     }
     return nextCharacter;
@@ -49,7 +54,7 @@ export const sanitizeInventoryCommand = (
         if (action === 'delete') return null;
         if (isObject(command?.value)) {
             const valueHasInventory = Object.prototype.hasOwnProperty.call(command.value, '物品列表');
-            if (!valueHasInventory || (Array.isArray(command.value.物品列表) && command.value.物品列表.length === 0)) {
+            if (!valueHasInventory || !isUsableInventoryList(command.value.物品列表)) {
                 return { ...command, value: { ...command.value, 物品列表: clone(currentItems) } };
             }
         }
@@ -59,7 +64,7 @@ export const sanitizeInventoryCommand = (
     const inventoryPrefix = 'gameState.角色.物品列表';
     if (normalizedKey === inventoryPrefix || normalizedKey.startsWith(`${inventoryPrefix}.`) || normalizedKey.startsWith(`${inventoryPrefix}[`)) {
         if (action === 'delete') return null;
-        if (action === 'set' && Array.isArray(command?.value) && command.value.length === 0) return null;
+        if (action === 'set' && !isUsableInventoryList(command?.value)) return null;
     }
 
     return command;

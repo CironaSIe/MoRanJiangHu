@@ -273,6 +273,26 @@ describe('responseCommandProcessor inventory guard', () => {
         expect((result.角色 as any).物品列表.map((item: any) => item.名称)).toEqual(['门派令牌']);
     });
 
+    it('blocks non-array inventory values that would normalize into an empty list', () => {
+        const state = 构建基础状态();
+        state.角色 = {
+            姓名: '杨培强',
+            物品列表: [
+                { ID: 'item_map', 名称: '江南水路图', 数量: 1 }
+            ]
+        } as any;
+
+        const result = 执行响应命令处理({
+            logs: [{ sender: '旁白', text: '他观察水路，并未丢弃随身物件。' }],
+            tavern_commands: [
+                { action: 'set', key: '角色.物品列表', value: '无' },
+                { action: 'set', key: '角色', value: { 姓名: '杨培强', 物品列表: null } }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect((result.角色 as any).物品列表.map((item: any) => item.名称)).toEqual(['江南水路图']);
+    });
+
     it('allows inventory clearing when the story explicitly says the items were discarded', () => {
         const state = 构建基础状态();
         state.角色 = {
