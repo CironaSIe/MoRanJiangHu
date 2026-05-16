@@ -19,6 +19,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
     const [saveProtectionEnabled, setSaveProtectionEnabled] = useState(false);
+    const [transferMessage, setTransferMessage] = useState('');
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
@@ -121,6 +122,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const handleSave = async () => {
         if (!onSaveGame || syncing) return;
         setSyncing(true);
+        setTransferMessage('');
         try {
             await Promise.resolve(onSaveGame());
             setActiveTab('manual');
@@ -133,37 +135,70 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         }
     };
 
+    const blobToBase64 = async (blob: Blob): Promise<string> => (
+        new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const result = typeof reader.result === 'string' ? reader.result : '';
+                const commaIndex = result.indexOf(',');
+                resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+            };
+            reader.onerror = () => reject(reader.error || new Error('读取导出文件失败'));
+            reader.readAsDataURL(blob);
+        })
+    );
+
+    const saveArchiveToDevice = async (blob: Blob, fileName: string): Promise<boolean> => {
+        const runtime = typeof window !== 'undefined' ? (window as any) : undefined;
+        const filesystem = runtime?.Capacitor?.Plugins?.Filesystem;
+        if (!filesystem?.writeFile) return false;
+
+        await filesystem.writeFile({
+            path: fileName,
+            data: await blobToBase64(blob),
+            directory: 'DOCUMENTS',
+            recursive: false
+        });
+        return true;
+    };
+
     const handleExport = async () => {
         if (syncing) return;
         setSyncing(true);
+        setTransferMessage('正在整理存档包...');
         try {
             const blob = await 导出ZIP存档文件();
+            const stamp = new Date().toISOString().replace(/[:]/g, '-');
+            const fileName = `wuxia-saves-${stamp}.zip`;
+
+            if (await saveArchiveToDevice(blob, fileName)) {
+                setTransferMessage(`已导出到设备文档目录：${fileName}`);
+                alert(`导出完成：${fileName}\n已保存到设备文档目录。`);
+                return;
+            }
+
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            const stamp = new Date().toISOString().replace(/[:]/g, '-');
             link.href = url;
-            link.download = `wuxia-saves-${stamp}.zip`;
+            link.download = fileName;
+            link.rel = 'noopener';
             document.body.appendChild(link);
             link.click();
             link.remove();
-            URL.revokeObjectURL(url);
+            window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+            setTransferMessage(`已开始下载：${fileName}`);
         } catch (error: any) {
             console.error(error);
+            setTransferMessage(`导出失败：${error?.message || '未知错误'}`);
             alert(`导出失败：${error?.message || '未知错误'}`);
         } finally {
             setSyncing(false);
         }
     };
 
-    const handleTriggerImport = async () => {
-        const ok = requestConfirm
-            ? await requestConfirm({
-                title: '导入存档',
-                message: '支持导入 ZIP 存档包和旧版 JSON 存档，导入将以“合并+去重”方式写入本地存档，是否继续？',
-                confirmText: '继续导入'
-            })
-            : true;
-        if (!ok) return;
+    const handleTriggerImport = () => {
+        if (syncing) return;
+        setTransferMessage('请选择要导入的 ZIP 或 JSON 存档文件。');
         fileInputRef.current?.click();
     };
 
@@ -172,7 +207,20 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         e.currentTarget.value = '';
         if (!file) return;
 
+        const ok = requestConfirm
+            ? await requestConfirm({
+                title: '导入存档',
+                message: `将导入文件“${file.name}”，并以“合并+去重”方式写入本地存档，是否继续？`,
+                confirmText: '继续导入'
+            })
+            : true;
+        if (!ok) {
+            setTransferMessage('已取消导入。');
+            return;
+        }
+
         setSyncing(true);
+        setTransferMessage(`正在导入：${file.name}`);
         try {
             let payload: unknown;
             let repairedTip = '';
@@ -192,9 +240,11 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             await loadSaves();
             setActiveTab('manual');
 
+            setTransferMessage(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条。`);
             alert(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条。${repairedTip}`);
         } catch (error: any) {
             console.error(error);
+            setTransferMessage(`导入失败：${error?.message || '未知错误'}`);
             alert(`导入失败：${error?.message || '未知错误'}`);
         } finally {
             setSyncing(false);
@@ -242,7 +292,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                 导出存档
                             </GameButton>
                             <GameButton
-                                onClick={() => { void handleTriggerImport(); }}
+                                onClick={handleTriggerImport}
                                 disabled={busy}
                                 variant="secondary"
                                 className="px-4 py-2 text-xs"
@@ -253,10 +303,16 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                 ref={fileInputRef}
                                 type="file"
                                 accept=".zip,.json,application/zip,application/json,text/plain"
-                                className="hidden"
+                                className="absolute h-px w-px opacity-0 pointer-events-none"
+                                aria-label="选择要导入的存档文件"
                                 onChange={(e) => { void handleImportFileChange(e); }}
                             />
                         </div>
+                        {transferMessage && (
+                            <div className="px-6 py-2 text-[11px] text-wuxia-cyan bg-wuxia-cyan/10 border-b border-wuxia-cyan/25">
+                                {transferMessage}
+                            </div>
+                        )}
                         {saveProtectionEnabled && (
                             <div className="px-6 py-2 text-[11px] text-emerald-300 bg-emerald-900/10 border-b border-emerald-800/30">
                                 存档保护已开启，当前禁止删除存档。
