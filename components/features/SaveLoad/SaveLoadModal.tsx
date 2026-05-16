@@ -73,6 +73,16 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         return roleName || '未知角色';
     };
 
+    const 构建安全文件名片段 = (value: string, fallback: string): string => {
+        const normalized = value
+            .trim()
+            .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
+            .replace(/\s+/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_+|_+$/g, '');
+        return normalized || fallback;
+    };
+
     const 构建存档摘要 = (save: 存档结构): string => {
         const historyCount = typeof save.元数据?.历史记录条数 === 'number'
             ? save.元数据.历史记录条数
@@ -162,31 +172,57 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         return true;
     };
 
-    const handleExport = async () => {
+    const downloadArchiveBlob = async (blob: Blob, fileName: string): Promise<void> => {
+        if (await saveArchiveToDevice(blob, fileName)) {
+            setTransferMessage(`已导出到设备文档目录：${fileName}`);
+            alert(`导出完成：${fileName}\n已保存到设备文档目录。`);
+            return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.rel = 'noopener';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+        setTransferMessage(`已开始下载：${fileName}`);
+    };
+
+    const handleExportAll = async () => {
         if (syncing) return;
         setSyncing(true);
-        setTransferMessage('正在整理存档包...');
+        setTransferMessage('正在整理全部存档包...');
         try {
             const blob = await 导出ZIP存档文件();
             const stamp = new Date().toISOString().replace(/[:]/g, '-');
             const fileName = `wuxia-saves-${stamp}.zip`;
+            await downloadArchiveBlob(blob, fileName);
+        } catch (error: any) {
+            console.error(error);
+            setTransferMessage(`导出失败：${error?.message || '未知错误'}`);
+            alert(`导出失败：${error?.message || '未知错误'}`);
+        } finally {
+            setSyncing(false);
+        }
+    };
 
-            if (await saveArchiveToDevice(blob, fileName)) {
-                setTransferMessage(`已导出到设备文档目录：${fileName}`);
-                alert(`导出完成：${fileName}\n已保存到设备文档目录。`);
-                return;
-            }
+    const handleExportOne = async (save: 存档结构, event: React.MouseEvent) => {
+        event.stopPropagation();
+        if (syncing) return;
+        setSyncing(true);
+        const title = 构建存档标题(save);
+        setTransferMessage(`正在整理单个存档：${title}`);
+        try {
+            const blob = await 导出ZIP存档文件({ saves: [save] });
+            const stamp = new Date(save.时间戳 || Date.now()).toISOString().replace(/[:]/g, '-');
+            const titlePart = 构建安全文件名片段(title, 'save');
+            const typePart = save.类型 === 'auto' ? 'auto' : 'manual';
+            const fileName = `wuxia-save-${typePart}-${stamp}-${titlePart}.zip`;
+            await downloadArchiveBlob(blob, fileName);
 
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            link.rel = 'noopener';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
-            setTransferMessage(`已开始下载：${fileName}`);
         } catch (error: any) {
             console.error(error);
             setTransferMessage(`导出失败：${error?.message || '未知错误'}`);
@@ -284,12 +320,12 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                     <div className="flex-1 flex flex-col bg-ink-wash/5">
                         <div className="px-6 pt-4 pb-3 border-b border-gray-800/50 flex justify-end gap-2">
                             <GameButton
-                                onClick={() => { void handleExport(); }}
+                                onClick={() => { void handleExportAll(); }}
                                 disabled={busy}
                                 variant="secondary"
                                 className="px-4 py-2 text-xs"
                             >
-                                导出存档
+                                导出全部存档
                             </GameButton>
                             <GameButton
                                 onClick={handleTriggerImport}
@@ -369,6 +405,15 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                     <div className="text-[11px] text-gray-500">
                                         {构建存档摘要(save)}
                                     </div>
+
+                                    <button
+                                        onClick={(event) => { void handleExportOne(save, event); }}
+                                        className="absolute bottom-4 right-4 rounded border border-wuxia-cyan/35 bg-black/50 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-wuxia-cyan opacity-0 transition-all hover:border-wuxia-cyan hover:bg-wuxia-cyan/15 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                        title="只导出这一条存档"
+                                        disabled={busy}
+                                    >
+                                        导出此档
+                                    </button>
 
                                     <button
                                         onClick={(e) => { void handleDelete(save.id, e); }}
