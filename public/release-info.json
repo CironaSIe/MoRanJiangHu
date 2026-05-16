@@ -1,16 +1,31 @@
 {
-  "versionCode": 172,
-  "versionName": "1.0.171",
+  "versionCode": 173,
+  "versionName": "1.0.172",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "v1.0.171 正式发布：修复 WebDAV 大存档同步 413，并补充上传/下载进度反馈。",
-    "WebDAV 大存档会自动拆分为小分片上传，避开云盘单次请求大小限制，减少 Request Entity Too Large。",
-    "下载云端存档和设置时会自动按索引拼回分片，同时兼容旧版小包存档。",
-    "WebDAV 同步按钮新增处理中转圈、状态文案和分片进度条，上传与导入时能看到当前进度。",
-    "已用真实 WebDAV 账号完成本地端到端验证：大存档上传无 413，清空本地后可从云端导入恢复。",
-    "网页端、APK 包和更新清单同步提升到 v1.0.171 / CODE 172。"
+    "v1.0.172 正式发布：接入图床链接式图片存储，并优化 WebDAV 存档同步体积。",
+    "新生成或导入的本地 data URL 图片会优先上传到图床，成功后保存为在线链接，失败时自动回退本地缓存。",
+    "图床上传改为无损文件通道，保留图片扩展名但按 application/octet-stream 上传，避免 Telegram 压缩图片。",
+    "WebDAV 同步存档不再打包图片文件，只保存图床链接，大幅减少云存档体积和上传下载时间。",
+    "WebDAV 大包分片从 512KiB 调整为 768KiB，在避开 1MiB 限制的同时减少分片数量。",
+    "已完成本地端到端验证：图床链接下载 SHA 一致，同步 ZIP 不含图片目录且保留图床链接。",
+    "网页端、APK 包和更新清单同步提升到 v1.0.172 / CODE 173。"
   ],
   "releaseHistory": [
+    {
+      "versionCode": 173,
+      "versionName": "1.0.172",
+      "publishedAt": "2026-05-16T14:08:31.744+08:00",
+      "changes": [
+        "v1.0.172 正式发布：接入图床链接式图片存储，并优化 WebDAV 存档同步体积。",
+        "新生成或导入的本地 data URL 图片会优先上传到图床，成功后保存为在线链接，失败时自动回退本地缓存。",
+        "图床上传改为无损文件通道，保留图片扩展名但按 application/octet-stream 上传，避免 Telegram 压缩图片。",
+        "WebDAV 同步存档不再打包图片文件，只保存图床链接，大幅减少云存档体积和上传下载时间。",
+        "WebDAV 大包分片从 512KiB 调整为 768KiB，在避开 1MiB 限制的同时减少分片数量。",
+        "已完成本地端到端验证：图床链接下载 SHA 一致，同步 ZIP 不含图片目录且保留图床链接。",
+        "网页端、APK 包和更新清单同步提升到 v1.0.172 / CODE 173。"
+      ]
+    },
     {
       "versionCode": 172,
       "versionName": "1.0.171",
@@ -1830,6 +1845,6 @@
   "updateManifestUrl": "https://download.bacon.de5.net/moranjianghu/latest.json",
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
-  "releasePublishedAt": "2026-05-16T12:18:20.407+08:00",
+  "releasePublishedAt": "2026-05-16T14:08:31.744+08:00",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net"
 }

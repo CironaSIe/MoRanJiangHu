@@ -124,18 +124,34 @@ const 下载图片二进制 = async (source: string): Promise<图片二进制结
     };
 };
 
+const 读取图片同步链接 = async (source: string): Promise<string> => {
+    const normalizedSource = 读取文本(source);
+    if (!normalizedSource) return '';
+    if (是远程图片地址(normalizedSource)) return normalizedSource;
+    if (是否图片资源引用(normalizedSource)) {
+        const stored = await dbService.读取图片资源(normalizedSource);
+        if (!stored) return normalizedSource;
+        return 读取图片同步链接(stored);
+    }
+    if (是DataUrl图片(normalizedSource)) {
+        return await dbService.保存图片资源(normalizedSource);
+    }
+    return normalizedSource;
+};
+
 const 处理导出对象图片 = async (
     value: unknown,
     saveKey: string,
     files: Record<string, Uint8Array>,
     sourceToPath: Map<string, string>,
     sourceToBytes: Map<string, Promise<图片二进制结构>>,
+    includeImages: boolean,
     pathSegments: string[] = []
 ): Promise<void> => {
     if (!value || typeof value !== 'object') return;
     if (Array.isArray(value)) {
         for (let index = 0; index < value.length; index += 1) {
-            await 处理导出对象图片(value[index], saveKey, files, sourceToPath, sourceToBytes, [...pathSegments, `${index}`]);
+            await 处理导出对象图片(value[index], saveKey, files, sourceToPath, sourceToBytes, includeImages, [...pathSegments, `${index}`]);
         }
         return;
     }
@@ -146,6 +162,9 @@ const 处理导出对象图片 = async (
     const 注册图片文件 = async (source: string, hint: string): Promise<string> => {
         const normalizedSource = 读取文本(source);
         if (!normalizedSource || !是可导出图片地址(normalizedSource)) return normalizedSource;
+        if (!includeImages) {
+            return await 读取图片同步链接(normalizedSource);
+        }
         const cachedPath = sourceToPath.get(normalizedSource);
         if (cachedPath) return cachedPath;
 
@@ -200,7 +219,7 @@ const 处理导出对象图片 = async (
             continue;
         }
 
-        await 处理导出对象图片(child, saveKey, files, sourceToPath, sourceToBytes, [...pathSegments, key]);
+        await 处理导出对象图片(child, saveKey, files, sourceToPath, sourceToBytes, includeImages, [...pathSegments, key]);
     }
 };
 
@@ -240,11 +259,12 @@ const 还原导入对象图片 = async (
     }
 };
 
-export const 导出ZIP存档文件 = async (options?: { saves?: 存档结构[] }): Promise<Blob> => {
+export const 导出ZIP存档文件 = async (options?: { saves?: 存档结构[]; includeImages?: boolean }): Promise<Blob> => {
     const payload = options?.saves
         ? { saves: options.saves }
         : await dbService.导出存档数据();
     const saves = Array.isArray(payload.saves) ? payload.saves : [];
+    const includeImages = options?.includeImages !== false;
     if (saves.length === 0) {
         throw new Error('当前没有可导出的存档');
     }
@@ -269,7 +289,7 @@ export const 导出ZIP存档文件 = async (options?: { saves?: 存档结构[] }
         delete gameData.id;
         gameData.历史记录 = [];
 
-        await 处理导出对象图片(gameData, saveKey, files, sourceToPath, sourceToBytes, ['save', saveKey]);
+        await 处理导出对象图片(gameData, saveKey, files, sourceToPath, sourceToBytes, includeImages, ['save', saveKey]);
 
         files[gameDataPath] = strToU8(JSON.stringify(gameData, null, 2));
         files[historyPath] = strToU8(JSON.stringify({

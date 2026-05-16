@@ -18,7 +18,7 @@ const WEBDAV_SETTINGS_FILE = 'settings.json';
 const WEBDAV_PROXY_PATH = '/api/webdav-proxy';
 const PRIMARY_SYNC_API_BASE = 'https://msjh.bacon159.pp.ua';
 const WEBDAV_INLINE_PACKAGE_LIMIT = 700 * 1024;
-const WEBDAV_CHUNK_BASE64_SIZE = 512 * 1024;
+const WEBDAV_CHUNK_BASE64_SIZE = 768 * 1024;
 
 export interface WebDAV同步配置 {
     url: string;
@@ -593,7 +593,7 @@ export const 增量同步到WebDAV = async (config: WebDAV同步配置, saves?: 
     for (const save of localSaves) {
         onProgress?.({ stage: 'prepare', current: uploaded + skipped + 1, total: localSaves.length, message: `正在打包存档 ${uploaded + skipped + 1}/${localSaves.length}` });
         const saveCopy = 深拷贝(save);
-        const archiveBlob = await 导出ZIP存档文件({ saves: [saveCopy] });
+        const archiveBlob = await 导出ZIP存档文件({ saves: [saveCopy], includeImages: false });
         const archiveBytes = new Uint8Array(await archiveBlob.arrayBuffer());
         const metadata = await 构建云存档元数据(saveCopy, archiveBytes);
         if (knownHashes.has(metadata.hash)) {
