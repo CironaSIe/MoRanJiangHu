@@ -143,7 +143,7 @@ export interface NovelDecompositionFactionProfileAnalysisResult {
 
 export interface NovelDecompositionLocationProfileAnalysisResult {
     名称: string;
-    层级: '大地点' | '中地点' | '小地点' | '具体地点' | '未知';
+    层级: '寰宇' | '大地点' | '中地点' | '小地点' | '区地点' | '子地点' | '未知';
     上级地点: string;
     所属势力: string;
     地貌功能: string;
@@ -1062,9 +1062,12 @@ const 解析新小说拆分重要性 = (value: unknown): '核心' | '重要' | '
     return '一般';
 };
 
-const 解析新小说拆分地点层级 = (value: unknown): '大地点' | '中地点' | '小地点' | '具体地点' | '未知' => {
+const 解析新小说拆分地点层级 = (value: unknown): '寰宇' | '大地点' | '中地点' | '小地点' | '区地点' | '子地点' | '未知' => {
     const text = String(value || '').trim();
-    return text === '大地点' || text === '中地点' || text === '小地点' || text === '具体地点' ? text : '未知';
+    if (text === '具体地点') return '区地点';
+    return text === '寰宇' || text === '大地点' || text === '中地点' || text === '小地点' || text === '区地点' || text === '子地点'
+        ? text
+        : '未知';
 };
 
 const 解析新小说拆分数字 = (value: string, fallback = 1): number => {

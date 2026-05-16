@@ -629,7 +629,11 @@ const 规范化AI结果到分段 = (
     const 地图地点档案 = Array.isArray(result.locationProfiles)
         ? result.locationProfiles.map((item) => ({
             名称: 清理章节编号文本(item.名称 || ''),
-            层级: item.层级 === '大地点' || item.层级 === '中地点' || item.层级 === '小地点' || item.层级 === '具体地点' ? item.层级 : '未知' as const,
+            层级: item.层级 === '具体地点'
+                ? '区地点' as const
+                : item.层级 === '寰宇' || item.层级 === '大地点' || item.层级 === '中地点' || item.层级 === '小地点' || item.层级 === '区地点' || item.层级 === '子地点'
+                    ? item.层级
+                    : '未知' as const,
             上级地点: 清理章节编号文本(item.上级地点 || ''),
             所属势力: 清理章节编号文本(item.所属势力 || ''),
             地貌功能: 清理章节编号文本(item.地貌功能 || ''),

@@ -47,6 +47,37 @@ const 计算中心 = (quad: Array<{ x: number; y: number }>) => ({
 
 const 约束数值 = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
+const 约束地图点 = (
+    point: any,
+    mapWidth: number,
+    mapHeight: number,
+    padding = 0
+): { x: number; y: number } | null => {
+    const x = Number(point?.x);
+    const y = Number(point?.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    const safePadding = Math.max(0, Math.min(padding, mapWidth / 2, mapHeight / 2));
+    return {
+        x: 约束数值(x, safePadding, Math.max(safePadding, mapWidth - safePadding)),
+        y: 约束数值(y, safePadding, Math.max(safePadding, mapHeight - safePadding)),
+    };
+};
+
+const 约束路径点 = (
+    points: any[],
+    mapWidth: number,
+    mapHeight: number,
+    padding = 0
+): Array<{ x: number; y: number }> => {
+    if (!Array.isArray(points)) return [];
+    const result: Array<{ x: number; y: number }> = [];
+    points.forEach((point) => {
+        const safePoint = 约束地图点(point, mapWidth, mapHeight, padding);
+        if (safePoint) result.push(safePoint);
+    });
+    return result;
+};
+
 const 扩展边界 = (
     bounds: { minX: number; minY: number; maxX: number; maxY: number } | null,
     point?: { x: number; y: number }
@@ -260,6 +291,16 @@ const GridMapScene: React.FC<Props> = ({
     const mapWidth = Math.max(12, Number(selectedLayer?.网格宽度) || 24);
     const mapHeight = Math.max(12, Number(selectedLayer?.网格高度) || 24);
     const mapEdgePadding = Math.max(4, Math.min(8, Math.max(mapWidth, mapHeight) * 0.12));
+    const roadEdgePadding = Math.max(0.7, Math.min(1.6, Math.min(mapWidth, mapHeight) * 0.03));
+    const currentLayerRenderableRoads = useMemo(
+        () => currentLayerRoads
+            .map((road: any) => ({
+                ...road,
+                路径点: 约束路径点(road?.路径点, mapWidth, mapHeight, roadEdgePadding),
+            }))
+            .filter((road: any) => road.路径点.length >= 2),
+        [currentLayerRoads, mapWidth, mapHeight, roadEdgePadding]
+    );
 
     // 前端兜底：给没有坐标的 NPC 按稳定哈希分配一个靠近建筑入口/地图中心的位置。
     const currentLayerPeopleWithFallback = useMemo(() => {
@@ -292,10 +333,10 @@ const GridMapScene: React.FC<Props> = ({
     const features = useMemo(() => {
         const list: Array<{ id: string; kind: 'building' | 'road' | 'person'; data: any }> = [];
         currentLayerBuildings.forEach((item) => list.push({ id: `building:${item.ID}`, kind: 'building', data: item }));
-        currentLayerRoads.forEach((item) => list.push({ id: `road:${item.ID}`, kind: 'road', data: item }));
+        currentLayerRenderableRoads.forEach((item) => list.push({ id: `road:${item.ID}`, kind: 'road', data: item }));
         currentLayerPeopleWithFallback.forEach((item) => list.push({ id: `person:${item.ID}`, kind: 'person', data: item }));
         return list;
-    }, [currentLayerBuildings, currentLayerRoads, currentLayerPeopleWithFallback]);
+    }, [currentLayerBuildings, currentLayerRenderableRoads, currentLayerPeopleWithFallback]);
 
     useEffect(() => {
         if (!features.some((item) => item.id === selectedFeatureId)) {
@@ -346,7 +387,7 @@ const GridMapScene: React.FC<Props> = ({
                 bounds = 扩展边界(bounds, point);
             });
         });
-        currentLayerRoads.forEach((road) => {
+        currentLayerRenderableRoads.forEach((road) => {
             (Array.isArray(road?.路径点) ? road.路径点 : []).forEach((point: any) => {
                 bounds = 扩展边界(bounds, point);
             });
@@ -368,7 +409,7 @@ const GridMapScene: React.FC<Props> = ({
         const width = right - x;
         const height = bottom - y;
         return { x, y, width: Math.max(1, width), height: Math.max(1, height) };
-    }, [currentLayerBuildings, currentLayerRoads, currentLayerPeopleWithFallback, mapWidth, mapHeight, mapEdgePadding]);
+    }, [currentLayerBuildings, currentLayerRenderableRoads, currentLayerPeopleWithFallback, mapWidth, mapHeight, mapEdgePadding]);
     const mapViewBox = useMemo(() => {
         const zoom = 约束数值(mapZoom, 1, 8);
         const width = Math.max(1, contentBounds.width / zoom);
@@ -630,8 +671,8 @@ const GridMapScene: React.FC<Props> = ({
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#5f3a1e]">
                                 <span className="inline-flex items-center gap-1.5"><i className="h-0 w-5 border-t border-dashed border-[#7e5824]/70" />等高线</span>
                                 {terrainRegions.showWater && <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-4 rounded-sm border border-[#1d6384]/45 bg-[#4fafd3]/45" />水体</span>}
-                                <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-4 rounded-sm border border-[#5c2d0a]/70 bg-[#f5e7c6]" />{selectedLayer?.层级 === '具体地点' && currentLayerRoads.length === 0 ? '房间/结构' : '建筑'}</span>
-                                {currentLayerRoads.length > 0 && <span className="inline-flex items-center gap-1.5"><i className="h-0 w-5 border-t-2 border-[#1f1b13]" />道路</span>}
+                                <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-4 rounded-sm border border-[#5c2d0a]/70 bg-[#f5e7c6]" />{(selectedLayer?.层级 === '区地点' || selectedLayer?.层级 === '子地点') && currentLayerRenderableRoads.length === 0 ? '房间/结构' : '建筑'}</span>
+                                {currentLayerRenderableRoads.length > 0 && <span className="inline-flex items-center gap-1.5"><i className="h-0 w-5 border-t-2 border-[#1f1b13]" />道路</span>}
                                 <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full border border-[#5b4b8a] bg-[#c4b5fd]" />人物</span>
                                 <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full border border-[#8a6a10] bg-[#f9d976]" />主角</span>
                             </div>
@@ -713,7 +754,7 @@ const GridMapScene: React.FC<Props> = ({
                                 />
                             ))}
 
-                            {currentLayerRoads.map((road) => {
+                            {currentLayerRenderableRoads.map((road) => {
                                 const active = selectedFeatureId === `road:${road.ID}`;
                                 return (
                                     <g

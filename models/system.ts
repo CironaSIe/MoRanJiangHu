@@ -364,6 +364,10 @@ export interface 功能模型占位配置结构 {
     地图生成使用模型: string;
     地图生成API地址: string;
     地图生成API密钥: string;
+    地图自动更新独立模型开关: boolean;
+    地图自动更新使用模型: string;
+    地图自动更新API地址: string;
+    地图自动更新API密钥: string;
 }
 
 export interface 接口设置结构 {

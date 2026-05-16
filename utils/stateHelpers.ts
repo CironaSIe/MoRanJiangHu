@@ -84,6 +84,15 @@ const 兼容值路径别名 = (rawPath: string): string => {
     return path;
 };
 
+const 废弃世界地图字段 = new Set(['地图', '建筑', '地图建筑', '地图道路', '地图人物']);
+
+export const 是否废弃世界地图字段路径 = (normalizedKey: string): boolean => {
+    const comparable = (normalizedKey || '').trim().replace(/^gameState\./, '');
+    const match = comparable.match(/^世界(?:\.|\[|$)([^.\[]*)/u);
+    if (!match) return false;
+    return 废弃世界地图字段.has(match[1] || '');
+};
+
 export const normalizeStateCommandKey = (rawKey: string): string => {
     const key = 兼容值路径别名(rawKey);
     if (!key) return '';
@@ -303,6 +312,10 @@ export const applyStateCommand = (
     };
 
     if (!parsed) {
+        return result;
+    }
+
+    if (action !== 'delete' && 是否废弃世界地图字段路径(normalizedKey)) {
         return result;
     }
 

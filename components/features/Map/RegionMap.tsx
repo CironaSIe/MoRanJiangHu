@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { 地点树节点, 地点层级类型 } from '../../../utils/locationTree';
+import {
+    NPC有显式地图位置,
+    NPC属于地图视图,
+    NPC显式位置命中任一,
+    构建当前地点候选,
+    构建当前叶子地点候选,
+    地图文本相互命中,
+    选择NPC匹配地图节点,
+} from '../../../utils/mapNpcLocation';
 
 interface Props {
     nodes: 地点树节点[];
@@ -10,11 +19,26 @@ interface Props {
     level: 地点层级类型;
     socialList?: any[];
     env?: { 大地点?: string; 中地点?: string; 小地点?: string; 具体地点?: string };
+    viewLocationName?: string;
+    viewPathNames?: string[];
 }
 
 const 约束数值 = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
-const 归一化文本 = (v: unknown): string => String(v || '').trim().replace(/\s+/g, '').toLowerCase();
+const 约束地图点 = (
+    point: { x: number; y: number },
+    mapW: number,
+    mapH: number,
+    padding = 0
+) => {
+    const safePadding = Math.max(0, Math.min(padding, mapW / 2, mapH / 2));
+    const maxX = Math.max(safePadding, mapW - safePadding);
+    const maxY = Math.max(safePadding, mapH - safePadding);
+    return {
+        x: 约束数值(Number.isFinite(point.x) ? point.x : mapW / 2, safePadding, maxX),
+        y: 约束数值(Number.isFinite(point.y) ? point.y : mapH / 2, safePadding, maxY),
+    };
+};
 
 const 稳定哈希数 = (input: string): number => {
     let h = 2166136261;
@@ -70,9 +94,13 @@ const 计算布局 = (nodes: 地点树节点[], currentNodeId: string, mapW: num
         const row = Math.floor(i / cols);
         const jx = ((hash >> 4) % 20 - 10) / 30 * cellW;
         const jy = ((hash >> 12) % 20 - 10) / 30 * cellH;
-        return {
+        const safePoint = 约束地图点({
             x: pad + col * cellW + cellW / 2 + jx,
             y: pad + row * cellH + cellH / 2 + jy,
+        }, mapW, mapH, Math.max(1, mapPad));
+        return {
+            x: safePoint.x,
+            y: safePoint.y,
             node,
             isCurrent: node.ID === currentNodeId,
         };
@@ -87,7 +115,7 @@ const 取地图尺寸 = (level: 地点层级类型) => {
     return { w: 52, h: 40, pad: 4 };
 };
 
-const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName, onSelect, onLocateCurrent, level, socialList = [], env }) => {
+const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName, onSelect, onLocateCurrent, level, socialList = [], env, viewLocationName = '', viewPathNames = [] }) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const { w: MAP_W, h: MAP_H, pad: MAP_PAD } = 取地图尺寸(level);
 
@@ -366,40 +394,45 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
         });
     }, [isRoom, layouts, MAP_W, MAP_H, currentNodeId]);
 
-    // NPC匹配：按玩家当前位置匹配
+    // NPC匹配：城镇层按子建筑分配；房间/建筑层按当前具体地点兜底。
     const npcAtLocation = useMemo(() => {
         if ((!isTown && !isRoom) || socialList.length === 0) return [];
-        const locName = 归一化文本(currentLocationName);
-        if (!locName) return [];
+        const currentNames = 构建当前地点候选(env, currentLocationName);
+        const currentLeafNames = 构建当前叶子地点候选(env, currentLocationName);
+        const viewNames = [viewLocationName, ...viewPathNames].filter(Boolean);
+        const viewMatchesCurrent = viewNames.length === 0 || viewNames.some((viewName) => currentNames.some((currentName) => 地图文本相互命中(viewName, currentName)));
         return socialList.filter((npc: any) => {
-            const npcPos = 归一化文本(npc?.当前位置 || npc?.具体地点 || npc?.所在地点 || '');
-            const npcPath = 归一化文本(npc?.位置路径 || '');
-            if (!npcPos && !npcPath) return false;
-            return npcPos === locName || npcPath.includes(`>${locName}>`) || npcPath.includes(`>${locName}`) || npcPath.startsWith(locName);
+            if (isTown) {
+                return NPC属于地图视图(npc, nodes, {
+                    env,
+                    currentLocationName,
+                    viewNodeName: viewLocationName || env?.小地点 || currentLocationName,
+                    viewPathNames: viewNames.length > 0 ? viewNames : currentNames,
+                });
+            }
+            if (选择NPC匹配地图节点(npc, nodes, { env, currentLocationName: viewLocationName || currentLocationName })) return true;
+            if (NPC显式位置命中任一(npc, viewNames)) return true;
+            if (NPC显式位置命中任一(npc, currentLeafNames)) return true;
+            return !NPC有显式地图位置(npc) && npc?.是否在场 === true && viewMatchesCurrent;
         });
-    }, [isTown, isRoom, socialList, currentLocationName]);
+    }, [isTown, isRoom, socialList, nodes, env, currentLocationName, viewLocationName, viewPathNames]);
 
-    // NPC分配到具体建筑：按NPC当前位置匹配子节点名称
+    // NPC分配到具体建筑/房间：优先按当前位置路径命中节点；只写“在场”的 NPC 放到当前具体地点。
     const npcByNode = useMemo(() => {
         const map = new Map<string, any[]>();
         if ((!isTown && !isRoom) || npcAtLocation.length === 0) return map;
         npcAtLocation.forEach((npc: any) => {
-            const npcPos = 归一化文本(npc?.当前位置 || npc?.具体地点 || '');
-            for (const node of nodes) {
-                const nodeName = 归一化文本(node.名称);
-                if (npcPos === nodeName || npcPos.includes(nodeName) || nodeName.includes(npcPos)) {
-                    if (!map.has(node.ID)) map.set(node.ID, []);
-                    map.get(node.ID)!.push(npc);
-                    break;
-                }
-            }
-            if (![...map.values()].some(arr => arr.includes(npc)) && nodes.length > 0) {
+            const matchedNode = 选择NPC匹配地图节点(npc, nodes, { env, currentLocationName: viewLocationName || currentLocationName });
+            if (matchedNode) {
+                if (!map.has(matchedNode.ID)) map.set(matchedNode.ID, []);
+                map.get(matchedNode.ID)!.push(npc);
+            } else if (nodes.length > 0) {
                 if (!map.has('_unplaced')) map.set('_unplaced', []);
                 map.get('_unplaced')!.push(npc);
             }
         });
         return map;
-    }, [isTown, isRoom, npcAtLocation, nodes]);
+    }, [isTown, isRoom, npcAtLocation, nodes, env, currentLocationName, viewLocationName]);
 
     const markerSize = isSpace ? 3.2 : isWorld ? 0 : isContinent ? 0.5 : isTown ? 0 : isRoom ? 0 : 0.6;
     const hitSize = isWorld ? 4 : isTown ? 0 : isRoom ? 3 : markerSize + 1.5;
@@ -409,7 +442,10 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
     if (isRoom) {
         return (
             <div className="w-full h-full min-h-[400px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                {roomCards.map((card) => (
+                {roomCards.map((card, index) => {
+                    const cardNpcList = npcByNode.get(card.node.ID)
+                        || (roomCards.length === 1 ? npcAtLocation : (index === 0 ? (npcByNode.get('_unplaced') || []) : []));
+                    return (
                     <div key={card.node.ID}
                         onClick={() => { if (!card.node.ID.startsWith('room-default-')) onSelect(card.node); }}
                         className={`rounded-lg border px-4 py-3 transition-all ${
@@ -436,8 +472,8 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
                         {/* 房间内NPC */}
                         <div className="border-t border-white/5 pt-2">
                             <span className="text-[10px] text-gray-500 mr-2">房间内：</span>
-                            {npcAtLocation.length > 0 ? (
-                                npcAtLocation.map((npc: any, i: number) => {
+                            {cardNpcList.length > 0 ? (
+                                cardNpcList.map((npc: any, i: number) => {
                                     const npcColors = ['#d49090','#90b4d4','#90d490','#d4c490','#b490d4','#90d4c4'];
                                     const c = npcColors[Math.abs((npc?.姓名 || npc?.名称 || '').length) % npcColors.length];
                                     return (
@@ -452,7 +488,8 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
                             )}
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
         );
     }
@@ -598,7 +635,8 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
                 </>}
                 {/* 大洲层：驿道路网 */}
                 {isContinent && roadNetwork.map((e, i) => {
-                    const from = layouts[e.from], to = layouts[e.to];
+                    const from = 约束地图点(layouts[e.from], MAP_W, MAP_H, Math.max(MAP_PAD, markerSize + 0.6));
+                    const to = 约束地图点(layouts[e.to], MAP_W, MAP_H, Math.max(MAP_PAD, markerSize + 0.6));
                     return (
                         <g key={`road-${i}`}>
                             <line x1={from.x} y1={from.y} x2={to.x} y2={to.y}

@@ -14,6 +14,8 @@ import { 按世界演变分流净化响应 } from './storyResponseGuards';
 import type { 响应命令处理状态 } from './responseCommandProcessor';
 import type { 自动存档快照结构 } from './saveCoordinator';
 import type { 世界演变触发参数, 世界演变执行结果 } from './worldEvolutionWorkflow';
+import type { 地图更新执行结果 } from './mapUpdateWorkflow';
+import { 生成地图更新 } from './mapUpdateWorkflow';
 import { 获取激活小说拆分注入文本 } from '../../services/novelDecompositionInjection';
 import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
 
@@ -36,7 +38,7 @@ type 变量生成进度 = {
     commandTexts?: string[];
 };
 
-type 独立阶段标识 = 'polish' | 'world' | 'planning' | 'variable';
+type 独立阶段标识 = 'polish' | 'world' | 'planning' | 'variable' | 'map';
 type 独立阶段失败决策 = 'retry' | 'skip';
 type 独立阶段失败决策参数 = {
     stageId: 独立阶段标识;
@@ -54,6 +56,13 @@ type 规划分析进度 = {
 
 type 世界演变进度 = {
     phase: 'start' | 'done' | 'error' | 'skipped';
+    text?: string;
+    rawText?: string;
+    commandTexts?: string[];
+};
+
+type 地图更新进度 = {
+    phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
     text?: string;
     rawText?: string;
     commandTexts?: string[];
@@ -168,6 +177,7 @@ export type 发送选项 = {
     onWorldEvolutionProgress?: (progress: 世界演变进度) => void;
     onPlanningProgress?: (progress: 规划分析进度) => void;
     onVariableGenerationProgress?: (progress: 变量生成进度) => void;
+    onMapUpdateProgress?: (progress: 地图更新进度) => void;
     onStageFailureDecision?: (params: 独立阶段失败决策参数) => Promise<独立阶段失败决策> | 独立阶段失败决策;
 };
 
@@ -1319,6 +1329,106 @@ export const 执行主剧情发送工作流 = async (
                         );
                     }
                 }
+
+                if (options?.onMapUpdateProgress) {
+                    options.onMapUpdateProgress({
+                        phase: 'start',
+                        text: '正在执行地图更新...'
+                    });
+                }
+
+                let mapUpdateResult: 地图更新执行结果 | null = null;
+                const 地图更新前命令数 = Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands.length : 0;
+                const mapUpdateStage = await 执行可重试独立阶段({
+                    stageId: "map",
+                    stageLabel: "地图更新",
+                    beforeAttempt: (attempt) => {
+                        options?.onMapUpdateProgress?.({
+                            phase: "start",
+                            text: attempt > 1
+                                ? `正在重新执行地图更新...（第 ${attempt} 次手动重试）`
+                                : "正在执行地图更新..."
+                        });
+                    },
+                    onAutoRetry: (attempt, maxAttempts, reason) => {
+                        options?.onMapUpdateProgress?.({
+                            phase: "start",
+                            text: `地图更新请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ""}`
+                        });
+                    },
+                    run: async () => {
+                        const mapContextResponse: GameResponse = {
+                            ...displayAiData,
+                            tavern_commands: Array.isArray(responseForExecution.tavern_commands) ? [...responseForExecution.tavern_commands] : []
+                        };
+                        const result = await 生成地图更新({
+                            mode: 'auto_incremental',
+                            apiSettings: currentState.apiConfig,
+                            环境: simulatedState.环境,
+                            世界: simulatedState.世界,
+                            社交: simulatedState.社交,
+                            角色: simulatedState.角色,
+                            worldbooks: currentState.世界书列表,
+                            currentResponse: mapContextResponse,
+                            stateBase: simulatedState
+                        });
+                        if (result.phase === 'error') {
+                            const wrappedError = new Error(result.statusText || '地图更新失败');
+                            (wrappedError as Error & { stageResult?: 地图更新执行结果 }).stageResult = result;
+                            throw wrappedError;
+                        }
+                        return result;
+                    },
+                    getErrorText: (error: any) => (
+                        error?.stageResult?.statusText
+                        || deps.提取原始报错详情(error)
+                        || error?.message
+                        || "地图更新失败"
+                    ),
+                    onError: (errorText) => {
+                        options?.onMapUpdateProgress?.({
+                            phase: "error",
+                            text: `${errorText || "地图更新失败"}\n等待选择：重试当前阶段，或跳过继续。`
+                        });
+                    },
+                    onSkip: (errorText) => {
+                        options?.onMapUpdateProgress?.({
+                            phase: "skipped",
+                            text: `地图更新失败，已按用户选择跳过。${errorText ? `\n${errorText}` : ""}`
+                        });
+                    }
+                });
+                mapUpdateResult = mapUpdateStage.result || null;
+                if (!本次仍是最新前台回合) {
+                    options?.onMapUpdateProgress?.({
+                        phase: "skipped",
+                        text: "新的正文回合已经开始，本轮地图更新结果已作为过期后台结果丢弃。"
+                    });
+                    return;
+                }
+                if (mapUpdateStage.completed && mapUpdateResult) {
+                    options?.onMapUpdateProgress?.({
+                        phase: mapUpdateResult.phase,
+                        text: mapUpdateResult.statusText || (mapUpdateResult.ok ? "地图更新完成。" : "地图更新未产生更新。"),
+                        rawText: mapUpdateResult.rawText,
+                        commandTexts: 构建带索引命令文本(mapUpdateResult.commands, 地图更新前命令数 + 1)
+                    });
+                }
+                if (mapUpdateResult && mapUpdateResult.commands.length > 0) {
+                    responseForExecution = {
+                        ...responseForExecution,
+                        tavern_commands: [
+                            ...(Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands : []),
+                            ...mapUpdateResult.commands
+                        ]
+                    };
+                    await 让出主线程();
+                    simulatedState = 计时同步队列步骤(
+                        "map.simulateMergedResponseCommands",
+                        () => deps.processResponseCommands(responseForExecution, mainCommandBaseState, { applyState: false }),
+                        { commandCount: 获取响应命令数量(responseForExecution), mapCommandCount: mapUpdateResult.commands.length }
+                    );
+                }
                 finalParsedResponse = responseForExecution;
                 finalDisplayResponse = {
                     ...displayAiData,
@@ -1407,6 +1517,10 @@ export const 执行主剧情发送工作流 = async (
                 }
                 console.error("后台队列执行失败", backgroundError);
                 options?.onPlanningProgress?.({
+                    phase: "error",
+                    text: backgroundError?.message || "后台队列执行失败"
+                });
+                options?.onMapUpdateProgress?.({
                     phase: "error",
                     text: backgroundError?.message || "后台队列执行失败"
                 });

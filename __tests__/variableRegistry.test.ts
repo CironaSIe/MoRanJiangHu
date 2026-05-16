@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { 构建变量路径登记提示, 校验变量命令是否登记 } from '../utils/variableRegistry';
+import { applyStateCommand } from '../utils/stateHelpers';
 
 const baseState = {
     角色: {
@@ -21,7 +22,15 @@ const baseState = {
         }
     ],
     任务列表: [],
-    约定列表: []
+    约定列表: [],
+    世界: {
+        地图层级: [],
+        地图建筑: []
+    },
+    战斗: {},
+    剧情: {},
+    剧情规划: {},
+    玩家门派: {}
 };
 
 describe('variableRegistry', () => {
@@ -56,5 +65,39 @@ describe('variableRegistry', () => {
         expect(prompt).toContain('【变量路径登记表】');
         expect(prompt).toContain('- 角色.当前精力');
         expect(prompt).toContain('- 社交[0].记忆');
+    });
+
+    it('blocks writes to deprecated coordinate map fields', () => {
+        const result = 校验变量命令是否登记({
+            action: 'push',
+            key: '世界.地图建筑',
+            value: { 名称: '旧式建筑' }
+        }, baseState);
+
+        expect(result.allowed).toBe(false);
+        expect(result.reason).toBe('旧地图坐标字段已废弃');
+    });
+
+    it('ignores deprecated coordinate map writes when applying commands', () => {
+        const result = applyStateCommand(
+            baseState.角色 as any,
+            baseState.环境 as any,
+            baseState.社交 as any,
+            baseState.世界 as any,
+            baseState.战斗 as any,
+            baseState.剧情 as any,
+            baseState.剧情规划 as any,
+            undefined,
+            undefined,
+            undefined,
+            baseState.玩家门派 as any,
+            baseState.任务列表 as any,
+            baseState.约定列表 as any,
+            '世界.地图建筑',
+            { 名称: '旧式建筑' },
+            'push'
+        );
+
+        expect(result.world.地图建筑).toEqual([]);
     });
 });
