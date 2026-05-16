@@ -49,7 +49,7 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
                 Accept: request.headers.get('Accept') || 'application/json',
                 'Content-Type': contentType
             },
-            body: await request.arrayBuffer()
+            body: request.body
         });
 
         const responseHeaders = new Headers(upstreamResponse.headers);
