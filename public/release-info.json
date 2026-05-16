@@ -1,17 +1,25 @@
 {
-  "versionCode": 196,
-  "versionName": "1.0.195",
+  "versionCode": 197,
+  "versionName": "1.0.196",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "v1.0.195 正式发布：修复主要女角色资料补全、社交排序、浅色模式对白和图床迁移问题。",
-    "主要女角色每回合都会检查生日、称呼、身材、衣着、香闺秘档、性癖、敏感点和子宫档案，缺失时会在变量生成阶段要求 AI 补齐。",
-    "江湖谱排序改为主要人物优先显示，其次是在场人物，常用角色更容易找到。",
-    "手机端浅色模式对白气泡文字改为深色高对比，避免白底白字看不清。",
-    "图床迁移兼容只返回文件 ID 的上传响应，不再误报“响应中没有下载链接”。",
-    "Cloudflare 发布命令记忆为优先清空代理环境后执行，降低 Wrangler 命令卡住概率。",
-    "网页端、APK 包和更新清单同步提升到 v1.0.195 / CODE 196。"
+    "v1.0.196 正式发布：修复手机端图床迁移上传和下载失败。",
+    "APK 内的图床上传/下载代理现在会固定走线上同步接口，避免 capacitor://localhost 把 /api 请求误送到本地页面导致返回 text/html。",
+    "图床上传响应只有文件 ID 时，会生成可认证读取的 API 文件地址，不再误报“响应中没有下载链接”。",
+    "网页端、APK 包和更新清单同步提升到 v1.0.196 / CODE 197。"
   ],
   "releaseHistory": [
+    {
+      "versionCode": 197,
+      "versionName": "1.0.196",
+      "changes": [
+        "v1.0.196 正式发布：修复手机端图床迁移上传和下载失败。",
+        "APK 内的图床上传/下载代理现在会固定走线上同步接口，避免 capacitor://localhost 把 /api 请求误送到本地页面导致返回 text/html。",
+        "图床上传响应只有文件 ID 时，会生成可认证读取的 API 文件地址，不再误报“响应中没有下载链接”。",
+        "网页端、APK 包和更新清单同步提升到 v1.0.196 / CODE 197。"
+      ],
+      "publishedAt": "2026-05-17T00:08:29+08:00"
+    },
     {
       "versionCode": 196,
       "versionName": "1.0.195",
@@ -2107,5 +2115,5 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-16T23:45:42+08:00"
+  "releasePublishedAt": "2026-05-17T00:08:29+08:00"
 }

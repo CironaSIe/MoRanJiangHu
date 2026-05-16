@@ -1,5 +1,6 @@
 const IMAGE_HOST_UPLOAD_PROXY_PATH = '/api/image-host/upload';
 const DEFAULT_IMAGE_HOST_BASE = 'https://image.bacon159.pp.ua';
+const DEFAULT_SYNC_API_BASE = 'https://msjh.bacon159.pp.ua';
 
 export interface 图床上传结果 {
     url: string;
@@ -7,6 +8,19 @@ export interface 图床上传结果 {
     size?: number;
     storage?: string;
 }
+
+const readEnvText = (value: unknown): string => (
+    typeof value === 'string' ? value.trim().replace(/\/+$/, '') : ''
+);
+
+export const buildImageHostProxyUrl = (path: string): string => {
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const configuredBase = readEnvText((import.meta as any).env?.VITE_SYNC_API_BASE_URL);
+    if (configuredBase) return `${configuredBase}${normalizedPath}`;
+    if (typeof window === 'undefined') return normalizedPath;
+    if (/^https?:$/i.test(window.location.protocol)) return normalizedPath;
+    return `${DEFAULT_SYNC_API_BASE}${normalizedPath}`;
+};
 
 const 读取文本 = (value: unknown): string => (
     typeof value === 'string' ? value.trim() : ''
@@ -68,13 +82,9 @@ const 读取文件ID = (payload: any): string => (
 const 构建稳定下载链接 = (payload: any): string => {
     const downloadUrl = 读取下载链接(payload);
     const fileId = 读取文件ID(payload);
-    if (!fileId) return downloadUrl;
-    try {
-        const origin = new URL(downloadUrl).origin;
-        return `${origin}/file/${encodeURIComponent(fileId)}`;
-    } catch {
-        return `${DEFAULT_IMAGE_HOST_BASE}/file/${encodeURIComponent(fileId)}`;
-    }
+    if (downloadUrl) return downloadUrl;
+    if (!fileId) return '';
+    return `${DEFAULT_IMAGE_HOST_BASE}/api/v1/file/${encodeURIComponent(fileId)}`;
 };
 
 export const 上传DataUrl到图床 = async (dataUrl: string, options?: { fileName?: string }): Promise<图床上传结果> => {
@@ -89,7 +99,7 @@ export const 上传DataUrl到图床 = async (dataUrl: string, options?: { fileNa
     const form = new FormData();
     form.append('file', blob, fileName);
 
-    const response = await fetch(IMAGE_HOST_UPLOAD_PROXY_PATH, {
+    const response = await fetch(buildImageHostProxyUrl(IMAGE_HOST_UPLOAD_PROXY_PATH), {
         method: 'POST',
         body: form
     });
