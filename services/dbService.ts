@@ -38,6 +38,7 @@ const 是图床图片地址 = (value: string): boolean => {
 const 本地图片图床迁移状态缓存键 = 'moranjianghu.legacyImageMigrationStatus';
 const 图床备份下载失败跳过缓存键 = 'moranjianghu.imageHostBackupDownloadFailures.v1';
 const 图床备份下载失败跳过最大数量 = 600;
+const 图床备份下载失败跳过有效期毫秒 = 6 * 60 * 60 * 1000;
 const 图床备份下载代理路径 = '/api/image-host/download';
 
 export type 本地图片图床迁移阶段 = 'idle' | 'scanning' | 'running' | 'completed' | 'partial_failed' | 'failed';
@@ -274,7 +275,19 @@ const 读取图床备份下载失败跳过映射 = (): Record<string, { message:
     try {
         const parsed = JSON.parse(localStorage.getItem(图床备份下载失败跳过缓存键) || '{}');
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-        return parsed as Record<string, { message: string; failedAt: string }>;
+        const now = Date.now();
+        let changed = false;
+        const freshEntries = Object.entries(parsed as Record<string, { message?: string; failedAt?: string }>)
+            .filter(([, item]) => {
+                const failedAtMs = item?.failedAt ? Date.parse(item.failedAt) : 0;
+                const fresh = Number.isFinite(failedAtMs) && now - failedAtMs < 图床备份下载失败跳过有效期毫秒;
+                if (!fresh) changed = true;
+                return fresh;
+            })
+            .map(([key, item]) => [key, { message: String(item?.message || ''), failedAt: String(item?.failedAt || '') }]);
+        const records = Object.fromEntries(freshEntries) as Record<string, { message: string; failedAt: string }>;
+        if (changed) 写入图床备份下载失败跳过映射(records);
+        return records;
     } catch {
         return {};
     }
