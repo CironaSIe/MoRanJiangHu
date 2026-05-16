@@ -891,7 +891,7 @@ export const 执行主剧情发送工作流 = async (
             inputTokens,
             responseDurationSec,
             outputTokens: deps.估算AI输出Token(rawAiText, activeApi?.model),
-            autoScrollToTurnStart: isStreaming
+            autoScrollToTurnStart: true
         };
         if (isStreaming) {
             deps.设置历史记录(prev => {
@@ -1028,14 +1028,14 @@ export const 执行主剧情发送工作流 = async (
                                         }
                                         return -1;
                                     })();
-                                if (fallbackIndex < 0) return [...prev, { ...polishedAiMsg, autoScrollToTurnIcon: false, autoScrollToTurnStart: false }];
+                                if (fallbackIndex < 0) return [...prev, { ...polishedAiMsg, autoScrollToTurnIcon: false, autoScrollToTurnStart: true }];
                                 return prev.map((item, index) => {
                                     if (index !== fallbackIndex) return item;
                                     return {
                                         ...item,
                                         ...polishedAiMsg,
                                         autoScrollToTurnIcon: false,
-                                        autoScrollToTurnStart: false
+                                        autoScrollToTurnStart: item.autoScrollToTurnStart === true || polishedAiMsg.autoScrollToTurnStart === true
                                     };
                                 });
                             });
@@ -1359,7 +1359,7 @@ export const 执行主剧情发送工作流 = async (
                             }
                             return -1;
                         })();
-                    if (fallbackIndex < 0) return [...prev, { ...queuedAiMsg, autoScrollToTurnIcon: false, autoScrollToTurnStart: false }];
+                    if (fallbackIndex < 0) return [...prev, { ...queuedAiMsg, autoScrollToTurnIcon: false, autoScrollToTurnStart: true }];
                     return prev.map((item, index) => {
                         if (index !== fallbackIndex) return item;
 
@@ -1367,7 +1367,7 @@ export const 执行主剧情发送工作流 = async (
                             ...item,
                             ...queuedAiMsg,
                             autoScrollToTurnIcon: false,
-                            autoScrollToTurnStart: false
+                            autoScrollToTurnStart: item.autoScrollToTurnStart === true || queuedAiMsg.autoScrollToTurnStart === true
                         };
                     });
                 });
