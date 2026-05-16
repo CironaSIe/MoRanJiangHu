@@ -238,6 +238,7 @@ export default defineConfig(({ mode }) => {
         'test-results/**',
         'tests/e2e-*.spec.mjs',
         'tests/bugfix-*.spec.mjs',
+        'tests/battle-*.spec.mjs',
         'tests/dialogue-*.spec.mjs'
       ]
     }

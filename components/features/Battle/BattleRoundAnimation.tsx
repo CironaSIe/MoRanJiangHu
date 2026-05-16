@@ -208,11 +208,17 @@ const BattleRoundAnimation: React.FC<Props> = ({
     const damageIdRef = useRef(0);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // 如果没有回合数据，显示从当前战斗状态生成的模拟数据
+    const displayRound = useMemo(
+        () => roundData || generateMockRound(character, battle),
+        [roundData, character, battle],
+    );
+
     // 按身法排序的行动序列
     const sortedActions = useMemo(() => {
-        if (!roundData?.行动序列) return [];
-        return 计算身法排序(roundData.行动序列);
-    }, [roundData]);
+        if (!Array.isArray(displayRound?.行动序列)) return [];
+        return 计算身法排序(displayRound.行动序列);
+    }, [displayRound]);
 
     // 自动播放动画
     useEffect(() => {
@@ -268,9 +274,6 @@ const BattleRoundAnimation: React.FC<Props> = ({
     const removeDamageFloat = (id: number) => {
         setFloatingDamages(prev => prev.filter(d => d.id !== id));
     };
-
-    // 如果没有回合数据，显示从当前战斗状态生成的模拟数据
-    const displayRound = roundData || generateMockRound(character, battle);
 
     return (
         <div className="rounded-xl border border-wuxia-gold/20 bg-black/40 overflow-hidden">
@@ -382,6 +385,11 @@ const BattleRoundAnimation: React.FC<Props> = ({
                             </div>
                         );
                     })}
+                    {sortedActions.length === 0 && (
+                        <div className="rounded-lg border border-dashed border-wuxia-gold/20 bg-amber-950/10 px-3 py-4 text-center text-xs text-wuxia-gold/60">
+                            暂无可排序的行动单位
+                        </div>
+                    )}
                 </div>
             </div>
 

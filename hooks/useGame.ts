@@ -691,8 +691,9 @@ export const useGame = () => {
         snapshot: 回合快照结构,
         options?: { 保留图片状态?: boolean }
     ) => {
-        设置角色(规范化角色物品容器映射(深拷贝(snapshot.回档前状态.角色)));
-        设置环境(规范化环境信息(深拷贝(snapshot.回档前状态.环境)));
+        const snapshotEnv = 规范化环境信息(深拷贝(snapshot.回档前状态.环境));
+        设置角色(规范化角色物品容器映射(深拷贝(snapshot.回档前状态.角色), { 当前时间: snapshotEnv }));
+        设置环境(snapshotEnv);
         设置社交(规范化社交列表(深拷贝(snapshot.回档前状态.社交)));
         设置世界(规范化世界状态(深拷贝(snapshot.回档前状态.世界)));
         设置战斗(深拷贝(snapshot.回档前状态.战斗));

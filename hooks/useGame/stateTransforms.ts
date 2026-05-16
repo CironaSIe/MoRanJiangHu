@@ -1,5 +1,5 @@
 import { 角色数据结构, 环境信息结构, 装备槽位 } from '../../types';
-import { normalizeCanonicalGameTime, 结构化时间转标准串 } from './timeUtils';
+import { normalizeCanonicalGameTime, 环境时间转标准串, 结构化时间转标准串 } from './timeUtils';
 import { 压缩图片资源字段 } from '../../utils/imageAssets';
 import { 自动装备最佳装备 } from '../../utils/equipmentActions';
 import { 规范化消耗品使用效果 } from '../../utils/itemEffects';
@@ -49,6 +49,67 @@ const 规范化整数 = (value: unknown, fallback = 0): number => {
 const 规范化文本 = (value: unknown, fallback = ''): string => (
     typeof value === 'string' ? value.trim() : fallback
 );
+
+type 玩家BUFF规范化选项 = {
+    当前时间?: unknown;
+    事件文本?: string;
+};
+
+const 读取BUFF规范化当前时间 = (value: unknown): string => {
+    if (typeof value === 'string') return normalizeCanonicalGameTime(value) || '';
+    return 环境时间转标准串(value) || 结构化时间转标准串(value) || '';
+};
+
+const 比较标准游戏时间 = (left: string, right: string): number | null => {
+    const l = normalizeCanonicalGameTime(left);
+    const r = normalizeCanonicalGameTime(right);
+    if (!l || !r) return null;
+    const lp = l.split(':').map((part) => Number(part));
+    const rp = r.split(':').map((part) => Number(part));
+    for (let i = 0; i < Math.min(lp.length, rp.length); i += 1) {
+        if (lp[i] !== rp[i]) return lp[i] - rp[i];
+    }
+    return 0;
+};
+
+const BUFF无实际效果正则 = /^(?:无|暂无|无效果|没有效果|未生效|待定|不详|未知|无明显效果|仅剧情描述|仅氛围描述|状态描述)$/;
+const BUFF事件型结束时间正则 = /(?:本次|此次|当前|本场|本轮|本段|这次).{0,12}(?:结束|完毕|完成|收尾|散会|事毕|告一段落)|(?:议事|会议|会盟|商议|商讨|谈判|战斗|比试|切磋|审讯|问询|仪式|法会|试炼|巡查).{0,10}(?:结束|完毕|完成|收尾|散会|事毕|告一段落)/;
+const BUFF事件已结束事实正则 = /(?:议事|会议|会盟|商议|商讨|谈判|战斗|比试|切磋|审讯|问询|仪式|法会|试炼|巡查).{0,24}(?:结束|完毕|完成|收尾|散会|事毕|告一段落|散去|离开|走出|退出)|(?:结束|完毕|完成|收尾|散会|事毕|告一段落|散去|离开|走出|退出).{0,24}(?:议事|会议|会盟|商议|商讨|谈判|战斗|比试|切磋|审讯|问询|仪式|法会|试炼|巡查)/;
+
+const 标准化玩家BUFF列表 = (raw: any, options?: 玩家BUFF规范化选项): any[] => {
+    const currentTime = 读取BUFF规范化当前时间(options?.当前时间);
+    const eventText = typeof options?.事件文本 === 'string' ? options.事件文本 : '';
+    const source = Array.isArray(raw) ? raw : [];
+    return source
+        .map((item: any, idx: number) => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+            const 名称 = typeof item?.名称 === 'string' ? item.名称.trim() : '';
+            const 描述 = typeof item?.描述 === 'string' ? item.描述.trim() : '';
+            const 效果 = typeof item?.效果 === 'string' ? item.效果.trim() : '';
+            const rawEnd = typeof item?.结束时间 === 'string' ? item.结束时间.trim() : '';
+            const canonicalEnd = normalizeCanonicalGameTime(rawEnd);
+            const 结束时间 = rawEnd ? (canonicalEnd || rawEnd) : '';
+            if (!名称 && !描述 && !效果 && !结束时间) return null;
+            if (!效果 || BUFF无实际效果正则.test(效果)) return null;
+            if (canonicalEnd && currentTime) {
+                const compare = 比较标准游戏时间(canonicalEnd, currentTime);
+                if (compare !== null && compare <= 0) return null;
+            }
+            if (!canonicalEnd && 结束时间 && BUFF事件型结束时间正则.test(结束时间) && BUFF事件已结束事实正则.test(eventText)) {
+                return null;
+            }
+            return {
+                索引: idx,
+                名称,
+                描述,
+                效果,
+                结束时间
+            };
+        })
+        .filter(Boolean)
+        .slice(-2)
+        .map((item: any, idx: number) => ({ ...item, 索引: idx }));
+};
 const 未命名物品正则 = /^(未命名|未知物品|未知|无名|杂物|物品|\?+|n\/a)$/i;
 const 秘籍残卷正则 = /残卷|残篇|残本|残页|残章/;
 const 任务唯一道具正则 = /任务|主线|支线|剧情|信物|令牌|手令|调兵令|密令|密函|钥匙|契约|凭证|腰牌|玉佩|印信|地图|残图/;
@@ -635,7 +696,7 @@ const 合并角色图片档案对象 = (leftRaw: any, rightRaw: any): any | unde
     };
 };
 
-const 规范化角色物品容器映射 = (rawRole?: any): 角色数据结构 => {
+const 规范化角色物品容器映射 = (rawRole?: any, options?: 玩家BUFF规范化选项): 角色数据结构 => {
     const 装备槽位列表: 装备槽位[] = ['头部', '胸部', '盔甲', '内衬', '腿部', '手部', '足部', '主武器', '副武器', '暗器', '背部', '腰部', '坐骑'];
     const 装备槽位集合 = new Set<string>(装备槽位列表);
     const 槽位ID片段映射: Record<装备槽位, string> = {
@@ -715,28 +776,7 @@ const 规范化角色物品容器映射 = (rawRole?: any): 角色数据结构 =>
         银子: 规范化货币数值(rawMoney?.银子 ?? 默认金钱模板.银子),
         铜钱: 规范化货币数值(rawMoney?.铜钱 ?? 默认金钱模板.铜钱)
     };
-    const rawPlayerBuffs = Array.isArray((role as any).玩家BUFF) ? (role as any).玩家BUFF : [];
-    (role as any).玩家BUFF = rawPlayerBuffs
-        .map((item: any, idx: number) => {
-            if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
-            const 名称 = typeof item?.名称 === 'string' ? item.名称.trim() : '';
-            const 描述 = typeof item?.描述 === 'string' ? item.描述.trim() : '';
-            const 效果 = typeof item?.效果 === 'string' ? item.效果.trim() : '';
-            const 结束时间 = typeof item?.结束时间 === 'string'
-                ? (normalizeCanonicalGameTime(item.结束时间) || item.结束时间.trim())
-                : '';
-            if (!名称 && !描述 && !效果 && !结束时间) return null;
-            return {
-                索引: idx,
-                名称,
-                描述,
-                效果,
-                结束时间
-            };
-        })
-        .filter(Boolean)
-        .slice(-2)
-        .map((item: any, idx: number) => ({ ...item, 索引: idx }));
+    (role as any).玩家BUFF = 标准化玩家BUFF列表((role as any).玩家BUFF, options);
     const rawBreakthroughs = Array.isArray((role as any).突破条件) ? (role as any).突破条件 : [];
     (role as any).突破条件 = rawBreakthroughs
         .map((item: any, idx: number) => {

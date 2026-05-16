@@ -40,7 +40,7 @@ type 变量校准依赖 = {
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
     规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
     规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
-    规范化角色物品容器映射: (raw?: any) => 角色数据结构;
+    规范化角色物品容器映射: (raw?: any, options?: { 当前时间?: unknown; 事件文本?: string }) => 角色数据结构;
 };
 
 const 夹取数值 = (value: number, min: number, max: number): number => {
@@ -55,7 +55,7 @@ export const 执行变量自动校准 = (
     deps: 变量校准依赖
 ): { state: 变量校准状态; corrections: string[] } => {
     const corrections: string[] = [];
-    const 角色 = deps.规范化角色物品容器映射(inputState.角色);
+    const 角色 = deps.规范化角色物品容器映射(inputState.角色, { 当前时间: inputState.环境 });
 
     const 校准当前值 = (currentKey: keyof 角色数据结构, maxKey: keyof 角色数据结构, label: string) => {
         const rawCurrent = Number(角色[currentKey]);

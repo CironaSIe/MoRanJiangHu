@@ -42,7 +42,7 @@ type 响应命令处理依赖 = {
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
     规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
     规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
-    规范化角色物品容器映射: (raw?: any) => 角色数据结构;
+    规范化角色物品容器映射: (raw?: any, options?: { 当前时间?: unknown; 事件文本?: string }) => 角色数据结构;
     战斗结束自动清空: (battle: 战斗状态结构, story?: 剧情系统结构) => 战斗状态结构;
     设置角色?: (value: 角色数据结构) => void;
     设置环境?: (value: 环境信息结构) => void;
@@ -825,8 +825,8 @@ export const 执行响应命令处理 = (
     let fandomStoryPlanBuffer = deps.规范化同人剧情规划状态(baseState?.同人剧情规划 ?? currentState.同人剧情规划);
     let fandomHeroinePlanBuffer = deps.规范化同人女主剧情规划状态(baseState?.同人女主剧情规划 ?? currentState.同人女主剧情规划);
 
+    const responseFactText = 提取响应事实文本(response);
     if (Array.isArray(response.tavern_commands)) {
-        const responseFactText = 提取响应事实文本(response);
         response.tavern_commands.forEach(cmd => {
             const safeCmd = sanitizeInventoryCommand(
                 净化角色装备命令(cmd, charBuffer?.装备 || {}, responseFactText),
@@ -877,7 +877,10 @@ export const 执行响应命令处理 = (
         fandomHeroinePlanBuffer = deps.规范化同人女主剧情规划状态(fandomHeroinePlanBuffer);
 
         battleBuffer = deps.战斗结束自动清空(battleBuffer, storyBuffer);
-        charBuffer = deps.规范化角色物品容器映射(charBuffer);
+        charBuffer = deps.规范化角色物品容器映射(charBuffer, {
+            当前时间: envBuffer,
+            事件文本: responseFactText
+        });
         socialBuffer = deps.规范化社交列表(
             补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
             { 合并同名: false }
