@@ -1,17 +1,27 @@
 {
-  "versionCode": 170,
-  "versionName": "1.0.169",
+  "versionCode": 171,
+  "versionName": "1.0.170",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "v1.0.169 正式发布：修复 WebDAV 云同步在 pp.ua 主域名下的代理入口。",
-    "主域名更新为 https://msjh.bacon159.pp.ua，备用域名为 https://msjh.bacon.de5.net。",
-    "Cloudflare Worker 同时绑定主域名和备用域名，确保 /api/webdav-proxy 在两个域名下都可用。",
-    "WebDAV 云同步在备用域名访问时会自动回到主域名代理，避免静态备用站点返回 404/405。",
-    "WebDAV 上传遇到上游短暂 Network connection lost 时会自动短重试，减少偶发断连导致同步失败。",
-    "发布流程记忆已更新为 pp.ua 主站、de5.net 备用站，后续发布会按新主备域名检查。",
-    "网页端、APK 包和更新清单同步提升到 v1.0.169 / CODE 170。"
+    "v1.0.170 正式发布：优化 WebDAV 云同步上传稳定性。",
+    "WebDAV 创建云端目录时遇到短暂 Locked 锁定状态，会自动等待并重试，减少首次连接或连续同步时的失败。",
+    "WebDAV 目录初始化流程改为统一顺序执行，降低重复创建目录导致云盘返回锁定的概率。",
+    "已使用真实 WebDAV 账号完成本地页面验证：填写地址、用户名和密码后，可以成功测试连接并上传本地存档。",
+    "网页端、APK 包和更新清单同步提升到 v1.0.170 / CODE 171。"
   ],
   "releaseHistory": [
+    {
+      "versionCode": 171,
+      "versionName": "1.0.170",
+      "publishedAt": "2026-05-16T11:59:14.536+08:00",
+      "changes": [
+        "v1.0.170 正式发布：优化 WebDAV 云同步上传稳定性。",
+        "WebDAV 创建云端目录时遇到短暂 Locked 锁定状态，会自动等待并重试，减少首次连接或连续同步时的失败。",
+        "WebDAV 目录初始化流程改为统一顺序执行，降低重复创建目录导致云盘返回锁定的概率。",
+        "已使用真实 WebDAV 账号完成本地页面验证：填写地址、用户名和密码后，可以成功测试连接并上传本地存档。",
+        "网页端、APK 包和更新清单同步提升到 v1.0.170 / CODE 171。"
+      ]
+    },
     {
       "versionCode": 168,
       "versionName": "1.0.167",
@@ -1806,6 +1816,6 @@
   "updateManifestUrl": "https://download.bacon.de5.net/moranjianghu/latest.json",
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
-  "releasePublishedAt": "2026-05-16T11:24:41+08:00",
+  "releasePublishedAt": "2026-05-16T11:59:14.536+08:00",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net"
 }
