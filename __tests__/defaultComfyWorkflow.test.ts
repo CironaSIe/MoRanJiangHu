@@ -117,7 +117,7 @@ describe('默认 ComfyUI 生图配置', () => {
         expect(config?.图片接口路径).toBe('/prompt');
     });
 
-    it('adds Z-Image prompt guidance only to ComfyUI and keeps explicit NSFW detail scoped to close-ups', () => {
+    it('adds Z-Image prompt guidance only to non-close-up ComfyUI prompts and keeps close-ups macro-scoped', () => {
         const comfyConfig = {
             图片后端类型: 'comfyui',
             词组转化输出策略: 'plain'
@@ -134,7 +134,10 @@ describe('默认 ComfyUI 生图配置', () => {
         expect(normalComfy.最终正向提示词).toContain('Z-Image-Turbo narrative prompt');
         expect(normalComfy.最终正向提示词).not.toContain('露骨性器、体液、性行为细节');
         expect(normalOpenAI.最终正向提示词).not.toContain('Z-Image-Turbo narrative prompt');
-        expect(nsfwCloseup.最终正向提示词).toContain('露骨性器、体液、性行为细节');
+        expect(nsfwCloseup.最终正向提示词).not.toContain('Z-Image-Turbo narrative prompt');
+        expect(nsfwCloseup.最终正向提示词).not.toContain('露骨性器、体液、性行为细节');
+        expect(nsfwCloseup.最终正向提示词).toContain('macro anatomical close-up');
+        expect(nsfwCloseup.最终正向提示词).toContain('target fills the frame');
     });
 
     it('fills the default workflow when old settings have no ComfyUI workflow', () => {
