@@ -1637,7 +1637,15 @@ const 补齐ComfyUI负向提示词节点 = (workflow: Record<string, unknown>, n
     if (!negativePrompt.trim()) return workflow;
     const mutable = workflow as Record<string, any>;
     const nodes = Object.entries(mutable).filter(([, node]) => node && typeof node === 'object');
-    if (nodes.some(([, node]) => 判断ComfyUI负向文本编码节点(node))) return workflow;
+    const negativeTextNodes = nodes.filter(([, node]) => 判断ComfyUI负向文本编码节点(node));
+    if (negativeTextNodes.length > 0) {
+        negativeTextNodes.forEach(([, node]) => {
+            if ((node as any)?.inputs && typeof (node as any).inputs === 'object') {
+                (node as any).inputs.text = negativePrompt;
+            }
+        });
+        return workflow;
+    }
 
     const zeroOutEntry = nodes.find(([, node]) => /conditioningzeroout/i.test(String((node as any)?.class_type || '')));
     if (!zeroOutEntry) return workflow;
@@ -1686,6 +1694,9 @@ const 构建ComfyUI工作流 = (
 ): Record<string, unknown> => {
     const hasNegativePlaceholder = /(__NEGATIVE_PROMPT__|\{\{negative_prompt\}\})/.test(workflowText || '');
     const hasConditioningZeroOut = /ConditioningZeroOut/i.test(workflowText || '');
+    const parsed = 解析ComfyUI工作流(workflowText);
+    const rawNodes = Object.values(parsed).filter((node) => node && typeof node === 'object');
+    const hasNegativeTextNode = rawNodes.some((node) => 判断ComfyUI负向文本编码节点(node));
     // For ConditioningZeroOut workflows (Lumina2/Flux-like models):
     // 1. Do NOT inject negative prompt into positive prompt
     // 2. Strip ALL "no X" / "absolutely no X" anti-pattern phrases from positive prompt - these models
@@ -1711,7 +1722,7 @@ const 构建ComfyUI工作流 = (
             .replace(/^[\s,\n]+|[\s,\n]+$/g, '')
             .trim();
     }
-    const promptValue = hasNegativePlaceholder
+    const promptValue = hasNegativePlaceholder || hasNegativeTextNode
         ? cleanedPrompt
         : hasConditioningZeroOut
             ? cleanedPrompt
@@ -1750,7 +1761,6 @@ const 构建ComfyUI工作流 = (
         '__SMEA_DYN__': pngParams?.SMEA动态 === true ? 'true' : 'false',
         '{{smea_dyn}}': pngParams?.SMEA动态 === true ? 'true' : 'false'
     };
-    const parsed = 解析ComfyUI工作流(workflowText);
     const injected = 注入ComfyUI工作流占位符(parsed, replacements) as Record<string, unknown>;
     // For workflows using ConditioningZeroOut (Lumina2/Flux-like models), do NOT inject a negative
     // prompt node - these models don't support negative conditioning and the ZeroOut is intentional.
