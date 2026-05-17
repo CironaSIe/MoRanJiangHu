@@ -14,7 +14,7 @@ type ComfyUI远程探测结果 = {
 
 const 构建诊断API地址 = (path: string): string => {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    if (typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol)) {
+    if (typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol) && !isNativeCapacitorEnvironment()) {
         return `${window.location.origin}${normalizedPath}`;
     }
     const base = RELEASE_INFO.websiteUrl || 'https://msjh.bacon.de5.net';

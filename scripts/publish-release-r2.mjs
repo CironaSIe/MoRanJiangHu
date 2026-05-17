@@ -18,7 +18,7 @@ const apkPath = path.resolve(
 );
 
 if (!fs.existsSync(apkPath)) {
-  throw new Error(`未找到 APK: ${apkPath}`);
+  throw new Error(`APK not found: ${apkPath}`);
 }
 
 const bucket = releaseInfo.r2Bucket;
@@ -26,6 +26,7 @@ const prefix = String(releaseInfo.r2Prefix || '').replace(/^\/+|\/+$/g, '');
 const latestKey = `${bucket}/${prefix}/latest.apk`;
 const versionedKey = `${bucket}/${prefix}/MoRanJiangHu-v${releaseInfo.versionName}.apk`;
 const manifestKey = `${bucket}/${prefix}/latest.json`;
+const keepVersionedApkCount = Math.max(1, Number(process.env.MORAN_R2_KEEP_VERSIONED_APKS || 5));
 const versionedApkUrl = String(releaseInfo.apkDownloadUrl || '')
   .replace(/\/latest\.apk(?:\?.*)?$/i, `/MoRanJiangHu-v${releaseInfo.versionName}.apk`)
   || `https://download.bacon.de5.net/${prefix}/MoRanJiangHu-v${releaseInfo.versionName}.apk`;
@@ -55,15 +56,16 @@ const manifestPath = path.join(os.tmpdir(), `moranjianghu-release-${Date.now()}.
 fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
 const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-const runWrangler = (args) => {
+const runWrangler = (args, options = {}) => {
   const result = spawnSync(command, ['wrangler', ...args], {
     cwd: rootDir,
     stdio: 'inherit',
     shell: process.platform === 'win32'
   });
-  if (result.status !== 0) {
-    throw new Error(`Wrangler 命令执行失败: ${args.join(' ')}`);
+  if (result.status !== 0 && !options.allowFailure) {
+    throw new Error(`Wrangler command failed: ${args.join(' ')}`);
   }
+  return result.status === 0;
 };
 
 runWrangler([
@@ -88,8 +90,28 @@ runWrangler([
   '--remote'
 ]);
 
+const versionedApkNames = Array.from(new Set([
+  releaseInfo.versionName,
+  ...(Array.isArray(releaseInfo.releaseHistory) ? releaseInfo.releaseHistory.map((item) => item?.versionName) : [])
+].filter(Boolean)));
+const keptVersionNames = new Set(versionedApkNames.slice(0, keepVersionedApkCount));
+const staleVersionNames = versionedApkNames.filter((versionName) => !keptVersionNames.has(versionName));
+let deletedCount = 0;
+
+for (const versionName of staleVersionNames) {
+  const staleKey = `${bucket}/${prefix}/MoRanJiangHu-v${versionName}.apk`;
+  const deleted = runWrangler([
+    'r2', 'object', 'delete', staleKey,
+    '--remote',
+    '--force'
+  ], { allowFailure: true });
+  if (deleted) deletedCount += 1;
+}
+
 console.log(`R2 publish complete:
 - ${releaseInfo.apkDownloadUrl}
 - ${releaseInfo.updateManifestUrl}
 - apkSha256=${apkSha256}
-- apkSize=${apkSize}`);
+- apkSize=${apkSize}
+- keptVersionedApks=${Array.from(keptVersionNames).join(', ')}
+- staleVersionedApksDeleted=${deletedCount}`);

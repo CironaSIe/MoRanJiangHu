@@ -112,6 +112,18 @@ describe('item image preset fallback', () => {
 
         expect(获取物品已选图标地址(item)).toBe('https://example.com/generated-spaced-name.png');
     });
+
+    it('treats item-hosted image URLs as existing icons so auto generation can skip them', () => {
+        const item: any = {
+            ID: 'ItemRemote001',
+            名称: '无名玉佩',
+            类型: '饰品',
+            品质: '良品',
+            图床链接: 'https://cdn.example.com/items/jade-pendant.png'
+        };
+
+        expect(获取物品已选图标地址(item)).toBe('https://cdn.example.com/items/jade-pendant.png');
+    });
 });
 
 describe('item image prompt classification', () => {

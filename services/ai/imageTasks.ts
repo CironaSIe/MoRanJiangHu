@@ -1900,10 +1900,11 @@ const 执行ComfyUI生图 = async (
         const detail = await 读取失败详情文本(enqueueResponse, Number.POSITIVE_INFINITY);
         throw new 协议请求错误(`ComfyUI 请求失败: ${enqueueResponse.status}${detail ? ` - ${detail}` : ''}`, enqueueResponse.status, detail);
     }
-    const enqueuePayload = 解析可能是JSON字符串(await enqueueResponse.text());
+    const enqueueText = await enqueueResponse.text();
+    const enqueuePayload = 解析可能是JSON字符串(enqueueText);
     const promptId = typeof enqueuePayload?.prompt_id === 'string' ? enqueuePayload.prompt_id.trim() : '';
     if (!promptId) {
-        throw new Error('ComfyUI 未返回 prompt_id，无法轮询结果');
+        throw new Error(构建ComfyUI缺少PromptId提示(apiConfig.baseUrl, enqueueResponse, enqueueText));
     }
     const queueKey = 构建ComfyUI队列Key(baseUrl, promptId);
     const trackedTask: ComfyUI队列任务 = { baseUrl, apiConfig, promptId };
@@ -1975,7 +1976,7 @@ const 是ComfyUI后端不可用错误 = (error: any): boolean => {
         return error.status === 408 || error.status === 429 || error.status >= 500;
     }
     const message = typeof error?.message === 'string' ? error.message : String(error || '');
-    return /ComfyUI\s*连接失败|Failed to fetch|NetworkError|Load failed|timeout|超时|连接失败|跨域|CORS|服务器未启动|地址失效|工作区休眠/i.test(message);
+    return /ComfyUI\s*连接失败|ComfyUI\s*未返回\s*prompt_id|Failed to fetch|NetworkError|Load failed|timeout|超时|连接失败|跨域|CORS|服务器未启动|地址失效|工作区休眠|不是可用的\s*ComfyUI|错误页面|登录页|代理页面/i.test(message);
 };
 
 const 构建ComfyUI自动切换候选 = (apiConfig: 当前可用接口结构): 当前可用接口结构[] => {
@@ -3145,6 +3146,28 @@ const 解析可能是JSON字符串 = (text: string): any | null => {
     } catch {
         return null;
     }
+};
+
+const 构建ComfyUI缺少PromptId提示 = (baseUrlRaw: string, response: Response, responseText: string): string => {
+    const contentType = response.headers.get('content-type') || '未知类型';
+    const text = (responseText || '').trim();
+    const snippet = text
+        .replace(/\s+/g, ' ')
+        .slice(0, 500);
+    const looksLikeHtml = /<!doctype html|<html[\s>]|<title[\s>]/i.test(text);
+    const base = baseUrlRaw || '未配置地址';
+    const details = [
+        `ComfyUI 未返回 prompt_id，无法轮询结果。当前地址：${base}。`,
+        `HTTP ${response.status}，Content-Type: ${contentType}。`
+    ];
+    if (looksLikeHtml) {
+        details.push('服务端返回的是 HTML 页面，通常表示 CNB 8188 地址已失效、工作区休眠、被登录/代理页面拦截，或客户端保存了旧的 CNB 地址。');
+    } else {
+        details.push('服务端返回了非标准 ComfyUI /prompt 响应，可能是后端仍在启动、工作流校验失败、代理返回错误 JSON，或连到了不是 ComfyUI 的地址。');
+    }
+    if (snippet) details.push(`原始响应片段：${snippet}`);
+    details.push('请在文生图设置里刷新“自动发现 ComfyUI 后端”，重新选择在线的 8188 地址；如果使用 CNB，请保持 L40 工作区页面打开并确认终端显示 ComfyUI 8188 ready / initial sync ok。');
+    return details.join('\n');
 };
 
 const 提取图片生成结果 = (payload: any): 图片生成结果 | null => {

@@ -20,7 +20,7 @@ import { 获取内置世界书槽位内容 } from './utils/worldbook';
 import { 构建字体注入样式文本, 构建UI文字CSS变量 } from './utils/visualSettings';
 import { 获取图片资源文本地址, 读取远程图片兜底资源ID } from './utils/imageAssets';
 import { 生成物品图标 } from './services/ai/itemImageGeneration';
-import { 合并物品图片档案, 物品已有可用图标 } from './utils/itemImage';
+import { 合并物品图片档案, 获取物品远程图床地址, 物品已有可用图标 } from './utils/itemImage';
 import { 生图最大自动重试次数, 执行生图模型调用带重试, 读取生图错误文本 } from './utils/imageGenerationRetry';
 import { 丢弃背包物品, 是否杂物类物品 } from './utils/inventoryActions';
 import { MusicProvider } from './components/features/Music/MusicProvider';
@@ -1153,8 +1153,24 @@ const App: React.FC = () => {
             auctionId?: string;
         }> = [];
 
+        const 确保远程物品图本地兜底 = (item: 游戏物品) => {
+            const remoteUrl = 获取物品远程图床地址(item);
+            if (!remoteUrl || 读取远程图片兜底资源ID(remoteUrl)) return;
+            void 确保远程图片本地兜底(remoteUrl).catch((error) => {
+                recordDiagnosticLog('warn', '[物品自动生图] 远程图床本地兜底下载失败', {
+                    itemName: (item as any)?.名称 || '无名物品',
+                    remoteUrl,
+                    error: error?.message || String(error)
+                });
+            });
+        };
+
         bagItems.forEach((item: 游戏物品) => {
-            if (!item || 物品已有可用图标(item)) return;
+            if (!item) return;
+            if (物品已有可用图标(item)) {
+                确保远程物品图本地兜底(item);
+                return;
+            }
             candidates.push({
                 key: 获取物品自动生图Key('bag', item),
                 item,
@@ -1162,7 +1178,11 @@ const App: React.FC = () => {
             });
         });
         auctionItems.forEach((auction: any) => {
-            if (auction?.状态 !== '上架中' || !auction?.物品 || 物品已有可用图标(auction.物品)) return;
+            if (auction?.状态 !== '上架中' || !auction?.物品) return;
+            if (物品已有可用图标(auction.物品)) {
+                确保远程物品图本地兜底(auction.物品);
+                return;
+            }
             candidates.push({
                 key: 获取物品自动生图Key('auction', auction.物品, auction.ID),
                 item: auction.物品,

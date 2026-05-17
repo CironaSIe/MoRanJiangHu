@@ -61,7 +61,7 @@ export const getDiagnosticReportQuota = (): { used: number; remaining: number; l
 const buildApiBaseUrl = (): string => {
     if (typeof window === 'undefined') return RELEASE_INFO.websiteUrl || 'https://msjh.bacon.de5.net';
     const protocol = window.location.protocol;
-    if (protocol === 'http:' || protocol === 'https:') {
+    if ((protocol === 'http:' || protocol === 'https:') && !isNativeCapacitorEnvironment()) {
         return window.location.origin;
     }
     return RELEASE_INFO.websiteUrl || 'https://msjh.bacon.de5.net';

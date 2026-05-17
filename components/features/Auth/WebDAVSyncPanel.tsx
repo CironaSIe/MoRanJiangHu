@@ -133,6 +133,15 @@ export const WebDAVSyncPanel: React.FC = () => {
         window.alert(`WebDAV 设置上传完成：${formatTime(metadata.syncedAt)}。`);
     }, 'WebDAV 设置上传失败');
 
+    const handleUploadSavesAndSettings = () => runTask('upload-saves-settings', async () => {
+        if (!window.confirm('这会把当前本机的全部存档、全部游戏设置和设置引用的素材上传到 WebDAV。是否继续？')) return;
+        const active = await persistConfig();
+        const saveResult = await 增量同步到WebDAV(active, undefined, readProgress);
+        const metadata = await 上传设置到WebDAV(active, readProgress);
+        await refreshCloud(active);
+        window.alert(`WebDAV 存档和设置上传完成：存档上传 ${saveResult.uploaded} 个（其中更新 ${saveResult.updated || 0} 个），跳过 ${saveResult.skipped} 个，云端去重 ${saveResult.deduped || 0} 个；设置 ${formatTime(metadata.syncedAt)}。`);
+    }, 'WebDAV 存档和设置上传失败');
+
     const handleImportSave = () => runTask('import-save', async () => {
         const selected = cloudSaves.find((item) => item.id === selectedCloudSaveId);
         if (!selected) {
@@ -168,6 +177,30 @@ export const WebDAVSyncPanel: React.FC = () => {
         }
         window.alert(`WebDAV 设置恢复失败：${result.stageLabel} - ${result.error || '未知错误'}`);
     }, 'WebDAV 设置恢复失败');
+
+    const handleImportAllSavesAndSettings = () => runTask('import-all-saves-settings', async () => {
+        if (cloudSaves.length <= 0 && !summary?.settings) {
+            window.alert('云端暂无可导入的存档或设置，请先刷新云端列表。');
+            return;
+        }
+        if (!window.confirm('这会增量导入 WebDAV 云端全部存档，并下载云端设置覆盖当前本机全部设置。设置恢复后页面会刷新，是否继续？')) return;
+        const active = await persistConfig();
+        let saveResult = { imported: 0, skipped: 0 };
+        if (cloudSaves.length > 0) {
+            saveResult = await 增量导入WebDAV云存档(active, cloudSaves, readProgress);
+        }
+        if (summary?.settings) {
+            const settingsResult = await 下载设置自WebDAV(active, readProgress);
+            if (settingsResult.success) {
+                window.alert(`WebDAV 存档和设置下载完成：新增存档 ${saveResult.imported} 条，跳过 ${saveResult.skipped} 条；设置 ${settingsResult.importedSettingCount}/${settingsResult.settingCount}，页面即将刷新。`);
+                window.location.reload();
+                return;
+            }
+            window.alert(`WebDAV 设置恢复失败：${settingsResult.stageLabel} - ${settingsResult.error || '未知错误'}；存档已导入 ${saveResult.imported} 条，跳过 ${saveResult.skipped} 条。`);
+            return;
+        }
+        window.alert(`WebDAV 存档下载完成：新增 ${saveResult.imported} 条，跳过 ${saveResult.skipped} 条；云端暂无设置包。`);
+    }, 'WebDAV 存档和设置下载失败');
 
     return (
         <div className="rounded-2xl border border-sky-700/25 bg-sky-50/80 p-4 shadow-[0_10px_24px_rgba(12,74,110,0.08)]">
@@ -206,6 +239,7 @@ export const WebDAVSyncPanel: React.FC = () => {
                 <button onClick={handleTest} disabled={busy} className="rounded-lg border border-sky-700/30 bg-white/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-sky-900 hover:bg-sky-100 disabled:opacity-50">{buttonContent('test', '测试/刷新')}</button>
                 <button onClick={handleUploadSaves} disabled={busy} className="rounded-lg border border-emerald-700/30 bg-emerald-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-emerald-900 hover:bg-emerald-200 disabled:opacity-50">{buttonContent('upload-saves', '上传全部存档')}</button>
                 <button onClick={handleUploadSettings} disabled={busy} className="rounded-lg border border-amber-700/30 bg-amber-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-amber-900 hover:bg-amber-200 disabled:opacity-50">{buttonContent('upload-settings', '上传全部设置')}</button>
+                <button onClick={handleUploadSavesAndSettings} disabled={busy} className="rounded-lg border border-indigo-700/30 bg-indigo-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-indigo-900 hover:bg-indigo-200 disabled:opacity-50 sm:col-span-2">{buttonContent('upload-saves-settings', '上传存档+设置')}</button>
             </div>
 
             <div className="mt-4 grid gap-2">
@@ -218,7 +252,8 @@ export const WebDAVSyncPanel: React.FC = () => {
                 <div className="grid gap-2 sm:grid-cols-2">
                     <button onClick={handleImportSave} disabled={busy || !selectedCloudSaveId} className="rounded-lg border border-sky-700/30 bg-sky-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-sky-900 hover:bg-sky-200 disabled:opacity-50">{buttonContent('import-save', '导入所选存档')}</button>
                     <button onClick={handleImportAllSaves} disabled={busy || cloudSaves.length <= 0} className="rounded-lg border border-emerald-700/30 bg-emerald-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-emerald-900 hover:bg-emerald-200 disabled:opacity-50">{buttonContent('import-all-saves', '增量导入全部存档')}</button>
-                    <button onClick={handleRestoreSettings} disabled={busy || !summary?.settings} className="rounded-lg border border-violet-700/30 bg-violet-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-violet-900 hover:bg-violet-200 disabled:opacity-50 sm:col-span-2">{buttonContent('restore-settings', '恢复全部设置')}</button>
+                    <button onClick={handleRestoreSettings} disabled={busy || !summary?.settings} className="rounded-lg border border-violet-700/30 bg-violet-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-violet-900 hover:bg-violet-200 disabled:opacity-50">{buttonContent('restore-settings', '恢复全部设置')}</button>
+                    <button onClick={handleImportAllSavesAndSettings} disabled={busy || (cloudSaves.length <= 0 && !summary?.settings)} className="rounded-lg border border-indigo-700/30 bg-indigo-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-indigo-900 hover:bg-indigo-200 disabled:opacity-50">{buttonContent('import-all-saves-settings', '下载存档+设置')}</button>
                 </div>
             </div>
         </div>
