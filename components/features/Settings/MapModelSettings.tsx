@@ -157,13 +157,13 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
 
             <div className="rounded-md border border-wuxia-gold/20 bg-black/25 p-4 space-y-4">
                 <div className="text-[11px] text-gray-400">
-                    当前启用接口配置：{activeConfig?.名称 || '未配置'}。手动"解析地图"会使用下方解析配置；正文后的自动地图更新默认跟随主剧情接口，也可单独指定模型。
+                    当前启用接口配置：{activeConfig?.名称 || '未配置'}。手动“回忆解析”会使用下方解析配置；正文后的自动地图更新默认跟随主剧情接口，也可单独指定模型。
                 </div>
 
                 {onRegenerateMapFromMemory && (
                     <div className="rounded-md border border-wuxia-cyan/25 bg-wuxia-cyan/5 p-3 space-y-3">
                         <div>
-                            <div className="text-wuxia-cyan font-bold text-xs">旧存档地图适配</div>
+                            <div className="text-wuxia-cyan font-bold text-xs">回忆解析</div>
                             <div className="mt-1 text-[11px] text-gray-400">
                                 使用下方地图生成 API 读取当前存档回忆库，重建新版六层地图树。适合旧地图数据已清理、但回忆库仍保留地点线索的存档。
                             </div>
@@ -174,7 +174,7 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
                             className="w-full py-2 text-xs"
                             disabled={memoryParsing}
                         >
-                            {memoryParsing ? '解析中...' : '使用回忆库解析地图'}
+                            {memoryParsing ? '解析中...' : '回忆解析'}
                         </GameButton>
                         {streamText && (
                             <div
@@ -191,7 +191,7 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
                     <div className="text-wuxia-gold font-bold text-xs">提示</div>
                     <div className="text-gray-300">1. 地图生成是对 AI 算力消耗较低的轻量任务，推荐使用 Flash 或 mini 级模型。</div>
                     <div className="text-gray-300">2. 留空则自动复用主剧情接口配置。</div>
-                    <div className="text-gray-300">3. 填写独立模型后，地图解析请求将使用该模型。</div>
+                    <div className="text-gray-300">3. 填写独立模型后，回忆解析请求将使用该模型。</div>
                 </div>
 
                 <div className="flex gap-3 items-end">

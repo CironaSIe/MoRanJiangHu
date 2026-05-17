@@ -204,7 +204,40 @@ const 判断NPC本回合是否在场 = (
     if (relatedSentences.length <= 0) return false;
     if (relatedSentences.some((sentence) => 现场缺席事实正则.test(sentence))) return false;
     if (relatedSentences.some((sentence) => 现场确认事实正则.test(sentence))) return true;
-    return relatedSentences.length > 0;
+    if (relatedSentences.some((sentence) => 同行确认事实正则.test(sentence))) return true;
+    return false;
+};
+
+const 构建环境位置路径 = (env?: Partial<环境信息结构> | null): string => (
+    [env?.大地点, env?.中地点, env?.小地点, env?.具体地点]
+        .map((item) => typeof item === 'string' ? item.trim() : '')
+        .filter(Boolean)
+        .join(' > ')
+);
+
+const 同步在场NPC当前位置 = (
+    socialList: any[],
+    env?: Partial<环境信息结构> | null
+): any[] => {
+    if (!Array.isArray(socialList) || socialList.length <= 0) return socialList;
+    const currentLocation = typeof env?.具体地点 === 'string' && env.具体地点.trim()
+        ? env.具体地点.trim()
+        : ([env?.小地点, env?.中地点, env?.大地点]
+            .map((item) => typeof item === 'string' ? item.trim() : '')
+            .find(Boolean) || '');
+    const locationPath = 构建环境位置路径(env);
+    if (!currentLocation && !locationPath) return socialList;
+
+    return socialList.map((npc: any) => {
+        if (!npc || typeof npc !== 'object' || npc.是否在场 !== true) return npc;
+        const next = { ...npc };
+        if (currentLocation) {
+            next.当前位置 = currentLocation;
+            next.当前地点 = currentLocation;
+        }
+        if (locationPath) next.位置路径 = locationPath;
+        return next;
+    });
 };
 
 const 同步当前视角在场状态 = (
@@ -952,6 +985,10 @@ export const 执行响应命令处理 = (
             应用同行事实到队伍(response, socialBuffer, charBuffer?.姓名),
             { 合并同名: false }
         );
+        socialBuffer = deps.规范化社交列表(
+            同步在场NPC当前位置(socialBuffer, envBuffer),
+            { 合并同名: false }
+        );
         storyBuffer = deps.规范化剧情状态(storyBuffer);
 
         let finalState: 响应命令处理状态 = {
@@ -993,10 +1030,9 @@ export const 执行响应命令处理 = (
         return finalState;
     }
 
-    let finalState: 响应命令处理状态 = {
-        角色: charBuffer,
-        环境: deps.规范化环境信息(envBuffer),
-        社交: deps.规范化社交列表(
+    const normalizedEnv = deps.规范化环境信息(envBuffer);
+    const normalizedSocial = deps.规范化社交列表(
+        同步在场NPC当前位置(
             应用同行事实到队伍(
                 response,
                 同步当前视角在场状态(
@@ -1018,8 +1054,15 @@ export const 执行响应命令处理 = (
                 ),
                 charBuffer?.姓名
             ),
-            { 合并同名: false }
+            normalizedEnv
         ),
+        { 合并同名: false }
+    );
+
+    let finalState: 响应命令处理状态 = {
+        角色: charBuffer,
+        环境: normalizedEnv,
+        社交: normalizedSocial,
         世界: deps.规范化世界状态(worldBuffer),
         战斗: battleBuffer,
         玩家门派: deps.规范化门派状态(sectBuffer),

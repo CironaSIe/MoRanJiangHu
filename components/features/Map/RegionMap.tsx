@@ -2,11 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { 地点树节点, 地点层级类型 } from '../../../utils/locationTree';
 import {
     NPC有显式地图位置,
+    NPC有精确地图位置,
     NPC属于地图视图,
     NPC显式位置命中任一,
+    NPC精确位置命中任一,
     构建当前地点候选,
     构建当前叶子地点候选,
     地图文本相互命中,
+    选择NPC精确匹配地图节点,
     选择NPC匹配地图节点,
 } from '../../../utils/mapNpcLocation';
 
@@ -410,10 +413,10 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
                     viewPathNames: viewNames.length > 0 ? viewNames : currentNames,
                 });
             }
-            if (选择NPC匹配地图节点(npc, nodes, { env, currentLocationName: viewLocationName || currentLocationName })) return true;
-            if (NPC显式位置命中任一(npc, viewNames)) return true;
-            if (NPC显式位置命中任一(npc, currentLeafNames)) return true;
-            return !NPC有显式地图位置(npc) && npc?.是否在场 === true && viewMatchesCurrent;
+            if (选择NPC精确匹配地图节点(npc, nodes)) return true;
+            if (NPC精确位置命中任一(npc, viewNames)) return true;
+            if (NPC精确位置命中任一(npc, currentLeafNames)) return true;
+            return !NPC有精确地图位置(npc) && !NPC有显式地图位置(npc) && npc?.是否在场 === true && viewMatchesCurrent && nodes.length <= 1;
         });
     }, [isTown, isRoom, socialList, nodes, env, currentLocationName, viewLocationName, viewPathNames]);
 
@@ -422,7 +425,9 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
         const map = new Map<string, any[]>();
         if ((!isTown && !isRoom) || npcAtLocation.length === 0) return map;
         npcAtLocation.forEach((npc: any) => {
-            const matchedNode = 选择NPC匹配地图节点(npc, nodes, { env, currentLocationName: viewLocationName || currentLocationName });
+            const matchedNode = isRoom
+                ? 选择NPC精确匹配地图节点(npc, nodes)
+                : 选择NPC匹配地图节点(npc, nodes, { env, currentLocationName: viewLocationName || currentLocationName });
             if (matchedNode) {
                 if (!map.has(matchedNode.ID)) map.set(matchedNode.ID, []);
                 map.get(matchedNode.ID)!.push(npc);
@@ -444,7 +449,7 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
             <div className="w-full h-full min-h-[400px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {roomCards.map((card, index) => {
                     const cardNpcList = npcByNode.get(card.node.ID)
-                        || (roomCards.length === 1 ? npcAtLocation : (index === 0 ? (npcByNode.get('_unplaced') || []) : []));
+                        || (!isRoom && index === 0 ? (npcByNode.get('_unplaced') || []) : []);
                     return (
                     <div key={card.node.ID}
                         onClick={() => { if (!card.node.ID.startsWith('room-default-')) onSelect(card.node); }}

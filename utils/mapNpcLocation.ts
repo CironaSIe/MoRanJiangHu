@@ -62,7 +62,25 @@ export const 提取NPC地图位置片段 = (npc: any): string[] => {
     return 去重归一文本(rawItems);
 };
 
+export const 提取NPC精确地图位置片段 = (npc: any): string[] => {
+    if (!npc || typeof npc !== 'object') return [];
+    const rawItems = [
+        ...拆分位置文本(npc?.位置路径),
+        ...拆分位置文本(npc?.当前位置),
+        ...拆分位置文本(npc?.当前地点),
+        ...拆分位置文本(npc?.所在地点),
+        ...拆分位置文本(npc?.所在位置),
+        ...拆分位置文本(npc?.具体地点),
+        ...拆分位置文本(npc?.地点),
+        ...拆分位置文本(npc?.位置),
+        ...拆分位置文本(npc?.归属?.具体地点),
+    ];
+    return 去重归一文本(rawItems);
+};
+
 export const NPC有显式地图位置 = (npc: any): boolean => 提取NPC地图位置片段(npc).length > 0;
+
+export const NPC有精确地图位置 = (npc: any): boolean => 提取NPC精确地图位置片段(npc).length > 0;
 
 export const NPC位置命中名称 = (npc: any, name: unknown): boolean => {
     const target = 归一化NPC地图文本(name);
@@ -93,6 +111,30 @@ export const NPC显式位置命中任一 = (npc: any, names: unknown[]): boolean
     const parts = 提取NPC地图位置片段(npc);
     if (parts.length === 0) return false;
     return names.some((name) => parts.some((part) => 地图文本相互命中(part, name)));
+};
+
+export const NPC精确位置命中任一 = (npc: any, names: unknown[]): boolean => {
+    const parts = 提取NPC精确地图位置片段(npc);
+    if (parts.length === 0) return false;
+    return names.some((name) => parts.some((part) => 地图文本相互命中(part, name)));
+};
+
+export const 选择NPC精确匹配地图节点 = (
+    npc: any,
+    nodes: 地图节点摘录[]
+): 地图节点摘录 | null => {
+    if (!Array.isArray(nodes) || nodes.length === 0) return null;
+    const parts = 提取NPC精确地图位置片段(npc);
+    if (parts.length === 0) return null;
+    const exact = nodes.find((node) => {
+        const nodeName = 归一化NPC地图文本(node?.名称);
+        return Boolean(nodeName && parts.some((part) => part === nodeName));
+    });
+    if (exact) return exact;
+    return nodes.find((node) => {
+        const nodeName = 归一化NPC地图文本(node?.名称);
+        return Boolean(nodeName && parts.some((part) => 地图文本相互命中(part, nodeName)));
+    }) || null;
 };
 
 export const 选择NPC匹配地图节点 = (

@@ -2307,6 +2307,7 @@ const 构建临时人物 = (
     (Array.isArray(socialList) ? socialList : []).forEach((npc: any, index: number) => {
         const name = 取文本(npc?.姓名, npc?.name || `同场角色${index + 1}`);
         const pathText = [
+            npc?.位置路径,
             npc?.当前位置,
             npc?.所在地点,
             npc?.具体地点,
@@ -2316,7 +2317,7 @@ const 构建临时人物 = (
             npc?.归属?.中地点,
             npc?.归属?.小地点,
         ].map((item) => 取文本(item)).filter(Boolean).join(' > ');
-        const layer = 通过路径匹配层级(layers, pathText, npc?.当前位置 || npc?.具体地点) || currentLayer;
+        const layer = 通过路径匹配层级(layers, pathText, npc?.当前位置 || npc?.具体地点);
         if (!layer) return;
         const key = `${layer.ID}|${归一化地图文本(name)}`;
         if (usedKeys.has(key)) return;

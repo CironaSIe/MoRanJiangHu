@@ -322,3 +322,103 @@
 - 验证：`npm.cmd run build` 已通过。
 - 构建再次触发 `release:sync` 修改 release 元数据；已恢复 `data/releaseInfo.ts` 和 `public/release-info.json`，未混入本次 PR。
 - 如果合并后仍有卡顿，下一批优先排查：启动图片缓存预热、旧图迁移、图片兜底预取、页面切换时的存档列表扫描。
+
+## 2026-05-17 旧存档地图适配（回忆库重建地图）
+
+- 功能分支：`codex/memory-map-regenerate`，提交 `0775951`。
+- PR 已推送到用户 fork `LingYuYue1/MoRanJiangHu`。目标上游：`ypq123456789/MoRanJiangHu`。
+- 本机无 `gh` CLI，PR 需通过 GitHub 网页手动创建。
+
+### 功能说明
+
+- 在 `hooks/useGame/mapUpdateWorkflow.ts` 新增 `memory_regenerate` 模式。
+- 读取存档记忆系统（回忆档案、长期/中期/短期/即时记忆），提取地点线索。
+- 将线索发送给地图生成 API，AI 返回 JSON 地点树。
+- 解析响应后替换 `世界.地图层级` 为新六层树，同时清空旧坐标字段。
+- 成功重建后自动存档。
+
+### UI：流式输出窗口
+
+- 原实现使用 `pushNotification`（右下角弹窗）显示进度/结果——用户反馈遮挡视野。
+- 改为在"使用回忆库解析地图"按钮下方内嵌流式文本窗口，实时显示 AI 解析输出。
+- 回调签名从 `() => Promise<boolean | void>` 改为 `(onDelta: (delta: string) => void) => Promise<{ ok: boolean; message: string }>`。
+- `App.tsx` 中 `handleRegenerateMapFromMemory` 接收 `onDelta` 回调，返回 `{ ok, message }` 而非调用 `pushNotification`。
+- 流式窗口自动滚动，结束时显示 `[完成]` / `[失败]` / `[错误]` 状态。
+- 桌面端和移动端设置弹窗共用同一个 `MapModelSettings` 组件，双端同步支持。
+
+### 涉及文件
+
+- `hooks/useGame/mapUpdateWorkflow.ts` — 新模式 `memory_regenerate`，辅助函数 `构建回忆库地图线索`、`限长文本`。
+- `App.tsx` — `handleRegenerateMapFromMemory` 回调，支持流式 delta 输出。
+- `components/features/Settings/MapModelSettings.tsx` — 流式文本窗口 UI，更新 Props。
+- `components/features/Settings/SettingsModal.tsx` — Props 类型更新。
+- `components/features/Settings/mobile/MobileSettingsModal.tsx` — Props 类型更新。
+
+### 验证
+
+- `npm.cmd run build` 通过，无 TypeScript 错误。
+- 用户端到端测试确认功能正常。
+- Release 元数据文件（`data/releaseInfo.ts`、`public/release-info.json`）未纳入提交。
+
+## 2026-05-17 地图回忆解析改名、房间索引与 NPC 位置更新
+
+- 这是在旧存档地图适配（回忆库重建地图）之后继续完成的收尾记忆。
+- 用户已经确认回忆库重建地图流程可正常使用。
+- 原本的手动地图解析功能已改造成回忆解析：
+  - UI 按钮名称从 `解析地图` / 地图解析改为 `回忆解析`。
+  - 设置界面和地图界面都应触发同一套基于回忆库的地图重建流程。
+  - 地图界面的流式输出应与设置里的回忆解析流式输出保持一致。
+  - 旧的 `manual_regenerate` 地图解析模式已移除；当前地图工作流使用 `memory_regenerate` 与 `auto_incremental`。
+
+### 房间索引显示规则
+
+- 房间（`子地点`）只应显示在父级建筑/地点下的地图场景里。
+- 右侧地图索引/地点浏览器不应直接列出房间节点。
+- 如果当前选中的节点是房间（`子地点`），右侧索引默认选中节点应回退到父级建筑/地点。
+- 相关修复：
+  - `components/features/Map/LocationBrowser.tsx`：右侧地点索引过滤 `子地点`，当前节点为房间时默认回退到父节点。
+  - `components/features/Map/GridMapScene.tsx`：右侧地图层级 / 下一级列表过滤 `子地点`。
+
+### NPC 地图显示位置修复
+
+- 用户反馈修复后 NPC 标记/房间列表显示已经正确；此前的问题是 NPC 经常集中显示在一个房间里。
+- 定位到的原因：
+  - 房间/建筑层对“当前地点”的兜底过于激进。
+  - 单房间卡片兜底会把所有 `npcAtLocation` 都显示出来。
+  - `utils/mapSpatial.ts` 曾经把无法匹配位置的 NPC 兜底放到当前层。
+  - `responseCommandProcessor.ts` 曾经把正文里只要提到 NPC 名字就视为在场。
+- 修复方向：
+  - 房间层只显示有精确房间/建筑位置依据的 NPC。
+  - `归属.小地点 / 归属.中地点 / 归属.大地点` 这类宽泛归属字段，不能把 NPC 放入具体房间。
+  - 没有匹配到地点的 NPC 不再被强行放到当前房间/当前层。
+- 相关文件：
+  - `utils/mapNpcLocation.ts`：新增精确位置辅助函数，使用 `位置路径 / 当前位置 / 当前地点 / 所在地点 / 所在位置 / 具体地点 / 地点 / 位置 / 归属.具体地点`。
+  - `components/features/Map/RegionMap.tsx`：房间层改用精确匹配；移除单房间“显示全部 NPC”的兜底。
+  - `utils/mapSpatial.ts`：社交 NPC 路径匹配加入 `位置路径`，并移除无法匹配时的 `|| currentLayer` 兜底。
+  - `hooks/useGame/responseCommandProcessor.ts`：在场判断改为需要对白、明确在场或明确同行事实，不再仅凭名字被提到就标记在场。
+
+### NPC 游玩过程位置更新修复
+
+- 随后用户反馈：地图显示层没问题了，但游玩过程中 NPC 的位置更新不正确。
+- 根因：
+  - 社交 NPC 档案缺少稳定的持久化地点字段约束。
+  - 变量生成主要要求刷新 `是否在场`，没有强制同步刷新 `社交[i].当前位置 / 位置路径`。
+  - 变量路径登记可能拦截新增的 `社交[i].当前位置 / 当前地点 / 位置路径` 字段。
+- 修复方向：
+  - 当社交 NPC 被确认在当前场景中，本地命令处理会用当前 `环境` 自动补齐/刷新 `当前位置`、`当前地点`、`位置路径`。
+  - 变量生成提示词明确要求 NPC 登场、说话、同行或移动时同步写地点字段。
+  - NPC 离开当前场景时，只有正文给出新去向才更新地点；否则只设置 `是否在场=false`，不凭空猜地点。
+  - 变量路径登记允许新增社交 NPC 地点字段。
+- 相关文件：
+  - `hooks/useGame/responseCommandProcessor.ts`：新增 `同步在场NPC当前位置`，并在有命令/无命令两条流程里于社交列表规范化后应用。
+  - `models/social.ts`：为 `NPC结构` 增加可选 `当前位置`、`当前地点`、`位置路径`。
+  - `prompts/runtime/variableModel.ts`：加强每回合 NPC 地点更新规则。
+  - `prompts/stats/npc.ts`：新增 NPC 地点更新纪律和命令示例。
+  - `utils/variableRegistry.ts`：允许新增 `当前位置`、`当前地点`、`位置路径` 这三个社交 NPC 字段。
+
+### 验证
+
+- 房间索引/NPC 地图显示位置修复后，`npm.cmd run build` 已通过。
+- NPC 游玩过程位置更新修复后，`npm.cmd run build` 已通过。
+- 每次构建都会因 `release:sync` 修改 release 元数据；由于本次不是发布，已恢复 `data/releaseInfo.ts` 与 `public/release-info.json`。
+- 用户已确认 NPC 在地图上的显示位置修复后是正确的。

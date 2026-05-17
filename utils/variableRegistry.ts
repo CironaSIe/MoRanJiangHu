@@ -88,7 +88,10 @@ const 在同数组对象中存在字段 = (rootValue: any, tokens: 路径片段[
 };
 
 const 社交NPC可新增字段 = new Set([
-    '名器档案'
+    '名器档案',
+    '当前位置',
+    '当前地点',
+    '位置路径'
 ]);
 
 const 是允许新增社交NPC字段 = (root: string, tokens: 路径片段[]): boolean => {
