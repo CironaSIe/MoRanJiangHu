@@ -30,6 +30,7 @@ import { RELEASE_INFO } from '../../data/releaseInfo';
 import {
     判断疑似网络或跨域错误,
     构建ComfyUI精确连接失败提示,
+    构建ComfyUI运行时代理端点,
     构建OpenAI图片生成端点,
     构建通用生图连接失败提示,
     规范化OpenAI图片基础地址,
@@ -1506,6 +1507,10 @@ const 获取ComfyUI基础地址 = (baseUrlRaw: string): string => {
     return 清理末尾斜杠(baseUrlRaw || '');
 };
 
+const 构建ComfyUI端点 = (baseUrlRaw: string, pathRaw: string): string => {
+    return 构建ComfyUI运行时代理端点(获取ComfyUI基础地址(baseUrlRaw), pathRaw);
+};
+
 const 解析ComfyUI工作流 = (workflowText: string): Record<string, unknown> => {
     const trimmed = (workflowText || '').trim();
     if (!trimmed) {
@@ -1784,7 +1789,7 @@ const 提取ComfyUI图片地址 = (
         const subfolder = typeof first.subfolder === 'string' ? first.subfolder.trim() : '';
         const type = typeof first.type === 'string' ? first.type.trim() : 'output';
         const params = new URLSearchParams({ filename, subfolder, type });
-        return `${获取ComfyUI基础地址(baseUrlRaw)}/view?${params.toString()}`;
+        return 构建ComfyUI端点(baseUrlRaw, `/view?${params.toString()}`);
     }
     return null;
 };
@@ -1838,7 +1843,7 @@ const 构建ComfyUI队列Key = (baseUrl: string, promptId: string) => `${baseUrl
 
 const 尝试终止ComfyUI任务 = async (task: ComfyUI队列任务): Promise<void> => {
     try {
-        await fetch(`${task.baseUrl}/queue`, {
+        await fetch(构建ComfyUI端点(task.baseUrl, '/queue'), {
             method: 'DELETE',
             headers: 构建生图请求头(task.apiConfig),
             body: JSON.stringify({ delete: [task.promptId] })
@@ -1847,7 +1852,7 @@ const 尝试终止ComfyUI任务 = async (task: ComfyUI队列任务): Promise<voi
         // ComfyUI 的队列删除接口在不同代理下可能不可用，继续尝试 interrupt。
     }
     try {
-        await fetch(`${task.baseUrl}/interrupt`, {
+        await fetch(构建ComfyUI端点(task.baseUrl, '/interrupt'), {
             method: 'POST',
             headers: 构建生图请求头(task.apiConfig),
             body: JSON.stringify({ client_id: 'wuxia-web' })
@@ -1876,7 +1881,7 @@ const 执行ComfyUI生图 = async (
     if (!baseUrl) throw new Error('ComfyUI 缺少 API 地址');
     const [width, height] = size.split('x').map((value) => Number(value));
     const workflow = 构建ComfyUI工作流(apiConfig.ComfyUI工作流JSON || '', prompt, negativePrompt, width, height, pngParams);
-    const promptEndpoint = 构建图片端点(apiConfig.baseUrl, apiConfig.图片接口路径);
+    const promptEndpoint = 构建ComfyUI端点(apiConfig.baseUrl, apiConfig.图片接口路径 || '/prompt');
     let enqueueResponse: Response;
     try {
         enqueueResponse = await fetch(promptEndpoint, {
@@ -1911,7 +1916,7 @@ const 执行ComfyUI生图 = async (
 
     try {
         const startedAt = Date.now();
-        const historyEndpoint = `${baseUrl}/history/${encodeURIComponent(promptId)}`;
+        const historyEndpoint = 构建ComfyUI端点(baseUrl, `/history/${encodeURIComponent(promptId)}`);
         while (true) {
             if (Date.now() - startedAt > COMFYUI_POLL_TIMEOUT_MS) {
                 throw new Error(`ComfyUI 生图超过 ${Math.round(COMFYUI_POLL_TIMEOUT_MS / 1000)} 秒仍未返回图片，已自动判定本次尝试失败。`);

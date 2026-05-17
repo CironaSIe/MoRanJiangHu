@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     判断疑似网络或跨域错误,
     构建ComfyUI连接失败提示,
+    构建ComfyUI运行时代理端点,
     构建OpenAI图片生成端点,
     构建通用生图连接失败提示,
     规范化OpenAI图片基础地址,
@@ -54,6 +55,27 @@ describe('imageGenerationDiagnostics', () => {
                 .toBe('http://127.0.0.1:4173/api/pucoding-image/v1/images/generations');
             expect(构建OpenAI图片生成端点('https://api.example.com/v1', undefined, { useRuntimeProxy: true }))
                 .toBe('https://api.example.com/v1/images/generations');
+        } finally {
+            (globalThis as any).window = originalWindow;
+        }
+    });
+
+    it('routes CNB ComfyUI endpoints through the runtime same-origin proxy', () => {
+        const originalWindow = (globalThis as any).window;
+        (globalThis as any).window = {
+            location: {
+                protocol: 'https:',
+                origin: 'https://msjh.bacon159.pp.ua'
+            }
+        };
+
+        try {
+            expect(构建ComfyUI运行时代理端点('https://giexocxqpl-8188.cnb.run/', '/prompt'))
+                .toBe('https://msjh.bacon159.pp.ua/api/image-backend/comfyui-proxy/prompt?url=https%3A%2F%2Fgiexocxqpl-8188.cnb.run');
+            expect(构建ComfyUI运行时代理端点('https://giexocxqpl-8188.cnb.run', '/view?filename=a.png&type=output'))
+                .toBe('https://msjh.bacon159.pp.ua/api/image-backend/comfyui-proxy/view?filename=a.png&type=output&url=https%3A%2F%2Fgiexocxqpl-8188.cnb.run');
+            expect(构建ComfyUI运行时代理端点('https://example.com', '/prompt'))
+                .toBe('https://example.com/prompt');
         } finally {
             (globalThis as any).window = originalWindow;
         }

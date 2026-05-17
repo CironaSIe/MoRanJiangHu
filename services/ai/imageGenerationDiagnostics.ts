@@ -75,6 +75,30 @@ const 获取运行时代理基础地址 = (): string => {
     return (RELEASE_INFO.websiteUrl || 'https://msjh.bacon.de5.net').replace(/\/+$/, '');
 };
 
+const 判断可走ComfyUI运行时代理 = (baseUrlRaw: string): boolean => {
+    try {
+        const url = new URL((baseUrlRaw || '').trim());
+        return /^https?:$/i.test(url.protocol)
+            && (/(^|\.)cnb\.run$/i.test(url.hostname) || /(^|\.)cnb\.space$/i.test(url.hostname));
+    } catch {
+        return false;
+    }
+};
+
+export const 构建ComfyUI运行时代理端点 = (baseUrlRaw: string, pathRaw: string): string => {
+    const baseUrl = 清理末尾斜杠((baseUrlRaw || '').trim());
+    if (!baseUrl || !判断可走ComfyUI运行时代理(baseUrl)) {
+        const path = pathRaw.startsWith('/') ? pathRaw : `/${pathRaw}`;
+        return `${baseUrl}${path}`;
+    }
+
+    const proxyBase = 获取运行时代理基础地址();
+    const [pathPart, queryPart = ''] = (pathRaw.startsWith('/') ? pathRaw : `/${pathRaw}`).split('?');
+    const params = new URLSearchParams(queryPart);
+    params.set('url', baseUrl);
+    return `${proxyBase}/api/image-backend/comfyui-proxy${pathPart}?${params.toString()}`;
+};
+
 export const 规范化OpenAI图片模型名称 = (modelRaw: string): string => {
     const model = (modelRaw || '').trim();
     return model.replace(/^gpt-iamge-/i, 'gpt-image-');
