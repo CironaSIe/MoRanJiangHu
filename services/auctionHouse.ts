@@ -2,6 +2,7 @@ import type { 角色数据结构, 角色金钱 } from '../models/character';
 import type { 游戏物品, 物品品质, 物品类型 } from '../models/item';
 import { 获取默认拍卖物品图片档案 } from '../data/defaultAuctionItemImages';
 import { recordDiagnosticLog } from './diagnosticLog';
+import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 
 export type 拍卖品状态 = '上架中' | '已成交' | '已下架';
 export type 拍卖货币 = keyof 角色金钱;
@@ -242,6 +243,10 @@ const 获取拍卖行存储键 = (scope?: string): string => `${STORAGE_KEY_PREF
 
 const 拍卖行最多持久化拍品数 = 80;
 const 拍卖行最多持久化交易记录数 = 80;
+const 原生端拍卖行最多持久化拍品数 = 32;
+const 原生端拍卖行最多持久化交易记录数 = 24;
+const 拍卖行瘦身持久化拍品数 = 16;
+const 拍卖行瘦身持久化交易记录数 = 8;
 
 const 是否存储配额异常 = (error: unknown): boolean => (
     error instanceof DOMException
@@ -255,22 +260,32 @@ const 获取拍卖行存储时间 = (state: 拍卖行状态, key: string): numbe
 };
 
 const 压缩拍卖行持久化状态 = (state: 拍卖行状态, lean = false): 拍卖行状态 => {
+    const nativeRuntime = isNativeCapacitorEnvironment();
+    const maxPersistedAuctions = lean
+        ? 拍卖行瘦身持久化拍品数
+        : nativeRuntime
+            ? 原生端拍卖行最多持久化拍品数
+            : 拍卖行最多持久化拍品数;
+    const maxPersistedTransactions = lean
+        ? 拍卖行瘦身持久化交易记录数
+        : nativeRuntime
+            ? 原生端拍卖行最多持久化交易记录数
+            : 拍卖行最多持久化交易记录数;
     const active = (state.拍卖品列表 || [])
         .filter((entry) => entry.状态 === '上架中')
         .sort((a, b) => 读数(b.上架时间) - 读数(a.上架时间));
-    const inactiveLimit = lean ? 8 : Math.max(0, 拍卖行最多持久化拍品数 - active.length);
+    const inactiveLimit = lean ? 2 : Math.max(0, maxPersistedAuctions - active.length);
     const inactive = (state.拍卖品列表 || [])
         .filter((entry) => entry.状态 !== '上架中')
         .sort((a, b) => 读数(b.成交时间 || b.上架时间) - 读数(a.成交时间 || a.上架时间))
         .slice(0, inactiveLimit);
-    const transactionLimit = lean ? 20 : 拍卖行最多持久化交易记录数;
     return {
         ...state,
-        拍卖品列表: [...active, ...inactive].slice(0, lean ? 36 : 拍卖行最多持久化拍品数),
+        拍卖品列表: [...active, ...inactive].slice(0, maxPersistedAuctions),
         交易记录: (state.交易记录 || [])
             .slice()
             .sort((a: any, b: any) => 读数(b?.时间 || 获取拍卖行存储时间(state, b?.ID)) - 读数(a?.时间 || 获取拍卖行存储时间(state, a?.ID)))
-            .slice(0, transactionLimit),
+            .slice(0, maxPersistedTransactions),
         行情列表: (state.行情列表 || []).slice(0, lean ? 2 : 4),
     };
 };
@@ -355,6 +370,7 @@ export const 保存拍卖行状态 = (state: 拍卖行状态, scope?: string) =>
 
     清理旧拍卖行缓存(key);
     try {
+        window.localStorage.removeItem(key);
         window.localStorage.setItem(key, JSON.stringify(压缩拍卖行持久化状态(state, true)));
     } catch (error) {
         recordDiagnosticLog('warn', ['拍卖行状态保存空间不足，已跳过本次本地缓存', error]);
