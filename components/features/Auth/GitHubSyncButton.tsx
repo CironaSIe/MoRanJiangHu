@@ -372,7 +372,7 @@ export const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({ floating = t
                                                     {oauthRedirectUri}
                                                 </div>
                                                 <div className="mt-3 text-sky-800/80">
-                                                    如果你更想使用自定义 scheme，也可以把 GitHub OAuth App 的回调地址改成：
+                                                APK 默认使用网页桥接回调，避免 GitHub 拦截未登记的自定义 scheme。调试专用自定义 scheme：
                                                 </div>
                                                 <div className="mt-1 break-all font-mono text-[11px] text-sky-950">
                                                     {nativeDeepLinkUri}

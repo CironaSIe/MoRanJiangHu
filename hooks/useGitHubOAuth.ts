@@ -11,7 +11,7 @@ const OAUTH_STATE_KEY = 'github_oauth_pending_state';
 const GITHUB_OAUTH_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize';
 const GITHUB_OAUTH_SCOPE = 'repo';
 const WEB_CALLBACK_PATH = '/oauth/github/callback';
-const DEFAULT_NATIVE_APP_LINK = 'https://msjh.bacon.de5.net/oauth/github/callback';
+const DEFAULT_NATIVE_APP_LINK = 'https://msjh.bacon159.pp.ua/oauth/github/callback';
 const DEFAULT_NATIVE_DEEP_LINK = 'com.moranjianghu.game://oauth/github/callback';
 
 type GitHubOAuthSessionStatus = 'idle' | 'waiting' | 'exchanging' | 'success' | 'error';
@@ -231,6 +231,10 @@ const getNativeBridgeRedirectUri = () => {
     return configured || DEFAULT_NATIVE_APP_LINK;
 };
 
+const shouldUseNativeDirectRedirect = () => (
+    readEnvString((import.meta as any).env?.VITE_GITHUB_OAUTH_USE_DIRECT_DEEP_LINK).toLowerCase() === 'true'
+);
+
 const getWebRedirectUri = () => {
     if (typeof window === 'undefined') return WEB_CALLBACK_PATH;
     return new URL(WEB_CALLBACK_PATH, window.location.origin).toString();
@@ -247,7 +251,8 @@ export function useGitHubOAuth() {
     const webGitHubClientId = readEnvString((import.meta as any).env?.VITE_GITHUB_CLIENT_ID);
     const nativeGitHubClientId = readEnvString((import.meta as any).env?.VITE_GITHUB_NATIVE_CLIENT_ID);
     const hasNativeGitHubClientId = nativeGitHubClientId.length > 0;
-    const oauthClientType: GitHubOAuthClientType = isNativeApp && hasNativeGitHubClientId ? 'native' : 'web';
+    const nativeDirectRedirectEnabled = isNativeApp && hasNativeGitHubClientId && shouldUseNativeDirectRedirect();
+    const oauthClientType: GitHubOAuthClientType = nativeDirectRedirectEnabled ? 'native' : 'web';
     const githubClientId = oauthClientType === 'native' ? nativeGitHubClientId : webGitHubClientId;
     const hasGitHubOAuthClientId = githubClientId.length > 0;
     const syncApiBaseUrl = useMemo(() => getSyncApiBaseUrl(), []);
@@ -487,7 +492,7 @@ export function useGitHubOAuth() {
             return;
         }
 
-        const useNativeDirectCallback = isNativeApp && oauthClientType === 'native';
+        const useNativeDirectCallback = isNativeApp && oauthClientType === 'native' && shouldUseNativeDirectRedirect();
         const redirectUri = !isNativeApp
             ? getWebRedirectUri()
             : useNativeDirectCallback
