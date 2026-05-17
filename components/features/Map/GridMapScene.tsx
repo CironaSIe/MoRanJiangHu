@@ -36,6 +36,8 @@ const 四角转点串 = (quad: Array<{ x: number; y: number }>) => (
 
 const 点位文本 = (point: { x: number; y: number }) => `[${point.x.toFixed(1)}, ${point.y.toFixed(1)}]`;
 
+const 是否层级索引可见 = (layer?: any | null): boolean => layer?.层级 !== '子地点';
+
 const 路径文本 = (points: Array<{ x: number; y: number }>) => (
     points.map((point) => 点位文本(point)).join(' -> ')
 );
@@ -281,10 +283,10 @@ const GridMapScene: React.FC<Props> = ({
     const siblingLayers = useMemo(() => {
         if (!selectedLayer) return layers;
         const parentId = selectedLayer.父级ID || '';
-        return layers.filter((layer) => (layer.父级ID || '') === parentId);
+        return layers.filter((layer) => (layer.父级ID || '') === parentId && 是否层级索引可见(layer));
     }, [layers, selectedLayer]);
     const childLayers = useMemo(
-        () => (selectedLayer ? layers.filter((layer) => layer.父级ID === selectedLayer.ID) : []),
+        () => (selectedLayer ? layers.filter((layer) => layer.父级ID === selectedLayer.ID && 是否层级索引可见(layer)) : []),
         [layers, selectedLayer]
     );
 
@@ -656,7 +658,7 @@ const GridMapScene: React.FC<Props> = ({
                                 }}
                                 className="rounded-full border border-[#b45309]/50 bg-[#fff1d6] px-3 py-1 text-xs text-[#b45309] hover:bg-[#b45309] hover:text-white transition-colors disabled:opacity-50"
                             >
-                                {regenerating ? '解析中…' : '解析地图'}
+                                {regenerating ? '解析中…' : '回忆解析'}
                             </button>
                         )}
                     </div>

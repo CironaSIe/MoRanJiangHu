@@ -113,6 +113,9 @@ export interface NPC结构 {
     生日?: string;
     境界: string;
     身份: string;
+    当前位置?: string; // NPC 当前所在的短地点名，用于地图与再登场判断
+    当前地点?: string; // 兼容别名，优先与当前位置保持一致
+    位置路径?: string; // 完整地点链，如“大地点 > 中地点 > 小地点 > 具体地点”
     是否在场: boolean; // 是否处于当前场景
     是否队友: boolean; // 是否被编入玩家队伍
     是否主要角色: boolean;

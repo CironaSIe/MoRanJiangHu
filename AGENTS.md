@@ -335,3 +335,103 @@ If the task is "confirm this UI works" and the opening flow depends on external 
 - Verification: `npm.cmd run build` passed.
 - Build again touched release metadata via `release:sync`; generated `data/releaseInfo.ts` and `public/release-info.json` changes were restored and not included in the PR.
 - If stutter persists after this PR, next likely areas to inspect are startup image cache prewarm, legacy image migration, image fallback prefetch, and save-list scans on view changes.
+
+## 2026-05-17 Memory-Based Map Regeneration (旧存档地图适配)
+
+- Feature branch: `codex/memory-map-regenerate`, commit `0775951`.
+- PR pushed to user fork `LingYuYue1/MoRanJiangHu`. Target upstream: `ypq123456789/MoRanJiangHu`.
+- `gh` CLI not available on this Windows machine; PR needs to be created manually via GitHub web UI or another tool.
+
+### What It Does
+
+- Adds a `memory_regenerate` mode to `hooks/useGame/mapUpdateWorkflow.ts`.
+- Reads the save's memory system (回忆档案, 长期/中期/短期/即时记忆) and extracts location clues.
+- Sends the clues to the map generation API, which returns a JSON location tree.
+- Parses the response and replaces `世界.地图层级` with the new six-layer tree, clearing old coordinate fields.
+- Auto-saves after successful rebuild.
+
+### UI: Streaming Output Window
+
+- Original implementation used `pushNotification` (right-corner toast) for progress/result — user reported it blocks the view.
+- Replaced with an inline streaming text window below the "使用回忆库解析地图" button in `MapModelSettings.tsx`.
+- The callback signature changed from `() => Promise<boolean | void>` to `(onDelta: (delta: string) => void) => Promise<{ ok: boolean; message: string }>`.
+- `App.tsx` `handleRegenerateMapFromMemory` now accepts an `onDelta` callback and returns `{ ok, message }` instead of calling `pushNotification`.
+- The streaming window auto-scrolls, shows `[完成]` / `[失败]` / `[错误]` status at the end.
+- Desktop and mobile settings modals both pass through the same prop; they share the same `MapModelSettings` component.
+
+### Files Changed
+
+- `hooks/useGame/mapUpdateWorkflow.ts` — new mode `memory_regenerate`, helper `构建回忆库地图线索`, `限长文本`.
+- `App.tsx` — `handleRegenerateMapFromMemory` callback with streaming delta support.
+- `components/features/Settings/MapModelSettings.tsx` — streaming text window UI, updated Props.
+- `components/features/Settings/SettingsModal.tsx` — Props type update.
+- `components/features/Settings/mobile/MobileSettingsModal.tsx` — Props type update.
+
+### Verification
+
+- `npm.cmd run build` passed with no TypeScript errors.
+- User tested the feature end-to-end and confirmed it works correctly.
+- Release metadata files (`data/releaseInfo.ts`, `public/release-info.json`) excluded from commit.
+
+## 2026-05-17 Map Memory Parse Rename, Room Index, And NPC Location Updates
+
+- Continued from the memory-based map regeneration work after user testing.
+- User confirmed the memory map regeneration flow works correctly.
+- The old manual map parsing feature was repurposed as memory parsing:
+  - UI button label changed from `解析地图` / map parsing to `回忆解析`.
+  - Both settings and map UI should trigger the same memory-based map regeneration workflow.
+  - The map UI streaming output should stay aligned with the settings-side memory parsing stream.
+  - The previous `manual_regenerate` map parsing mode was removed; current map workflow uses `memory_regenerate` and `auto_incremental`.
+
+### Room Index Display Rule
+
+- Rooms (`子地点`) should only appear under their parent building/location layer in the map scene.
+- The right-side map index/location browser should not list room nodes directly.
+- If the current selected node is a room (`子地点`), the default selected index node should be its parent building/location.
+- Relevant fixes:
+  - `components/features/Map/LocationBrowser.tsx`: filters `子地点` from the right-side 地点索引 and falls back to the parent node when current node is a room.
+  - `components/features/Map/GridMapScene.tsx`: filters `子地点` from the right-side 地图层级 / 下一级 list.
+
+### NPC Map Placement Fix
+
+- User reported NPC markers/room lists were accurate after the fix, but NPC locations previously crowded into one room.
+- Root causes found:
+  - Room/building layer used current-location fallback too aggressively.
+  - Single-room card fallback displayed all `npcAtLocation` entries.
+  - `utils/mapSpatial.ts` previously fell back unmatched NPCs to the current layer.
+  - `responseCommandProcessor.ts` previously treated any sentence mentioning an NPC name as enough to mark that NPC present.
+- Fix direction:
+  - Room layer must only show NPCs with precise room/building location evidence.
+  - Broad ownership fields such as `归属.小地点 / 归属.中地点 / 归属.大地点` are not enough to place an NPC into a specific room.
+  - NPCs without a matched location should not be forcibly placed into the current room/layer.
+- Relevant files:
+  - `utils/mapNpcLocation.ts`: added precise-location helpers using `位置路径 / 当前位置 / 当前地点 / 所在地点 / 所在位置 / 具体地点 / 地点 / 位置 / 归属.具体地点`.
+  - `components/features/Map/RegionMap.tsx`: room-layer matching now uses precise helpers; removed the single-room “show all NPCs here” fallback.
+  - `utils/mapSpatial.ts`: includes `位置路径` in social NPC path matching and removed `|| currentLayer` fallback for unmatched NPCs.
+  - `hooks/useGame/responseCommandProcessor.ts`: present-state detection now requires dialogue, explicit presence, or explicit companion facts instead of name mention alone.
+
+### NPC Location Update Fix
+
+- User then reported that map display was fixed, but NPC locations did not update correctly during gameplay.
+- Root cause:
+  - Social NPC records did not have a strong persistent location contract.
+  - Variable generation was mainly asked to update `是否在场`, but not forced to update `社交[i].当前位置 / 位置路径`.
+  - Variable path registry could reject newly added `社交[i].当前位置 / 当前地点 / 位置路径` fields if they were not already present.
+- Fix direction:
+  - When a social NPC is confirmed present in the current scene, local command processing now fills/refreshes `当前位置`, `当前地点`, and `位置路径` from current `环境`.
+  - Variable generation prompts now explicitly require updating NPC location fields when NPCs appear, speak, travel with the player, or move.
+  - NPCs leaving the scene should update location only when the text gives a new destination; otherwise only `是否在场=false` should be set.
+  - The variable registry allows social NPC location fields to be added when absent.
+- Relevant files:
+  - `hooks/useGame/responseCommandProcessor.ts`: added `同步在场NPC当前位置` and applies it after social list normalization in both command and no-command flows.
+  - `models/social.ts`: added optional `当前位置`, `当前地点`, and `位置路径` to `NPC结构`.
+  - `prompts/runtime/variableModel.ts`: strengthened per-turn NPC location update rule.
+  - `prompts/stats/npc.ts`: added NPC location update discipline and command examples.
+  - `utils/variableRegistry.ts`: added `当前位置`, `当前地点`, and `位置路径` to allowed new social NPC fields.
+
+### Verification
+
+- `npm.cmd run build` passed after room index/NPC placement changes.
+- `npm.cmd run build` passed after NPC gameplay location update changes.
+- Each build touched release metadata via `release:sync`; generated `data/releaseInfo.ts` and `public/release-info.json` were restored because this was not a release.
+- User confirmed the map NPC placement display was correct after the placement fix.

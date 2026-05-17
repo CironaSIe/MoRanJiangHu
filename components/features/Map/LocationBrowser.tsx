@@ -22,6 +22,17 @@ const 层级标签: Record<string, string> = {
     '子地点': '房间',
 };
 
+const 是否索引可见节点 = (node?: 地点树节点 | null): boolean => node?.层级 !== '子地点';
+
+const 获取索引选中节点 = (
+    node: 地点树节点 | null | undefined,
+    nodeMap: Map<string, 地点树节点>
+): 地点树节点 | null => {
+    if (!node) return null;
+    if (是否索引可见节点(node)) return node;
+    return node.父级ID ? (nodeMap.get(node.父级ID) || null) : null;
+};
+
 const LocationTreeItem: React.FC<{
     node: 地点树节点;
     selectedId: string;
@@ -31,11 +42,13 @@ const LocationTreeItem: React.FC<{
     onSelect: (node: 地点树节点) => void;
 }> = ({ node, selectedId, playerLocationId, playerAncestorIds, depth, onSelect }) => {
     if (depth > 30) return null;
+    if (!是否索引可见节点(node)) return null;
     const inPlayerPath = playerAncestorIds.has(node.ID);
     const [expanded, setExpanded] = useState(depth < 2 || inPlayerPath);
     const isSelected = node.ID === selectedId;
     const isPlayerLocation = node.ID === playerLocationId;
-    const hasChildren = node.子节点.length > 0;
+    const visibleChildren = node.子节点.filter(c => c.ID !== node.ID && 是否索引可见节点(c));
+    const hasChildren = visibleChildren.length > 0;
 
     return (
         <div>
@@ -60,7 +73,7 @@ const LocationTreeItem: React.FC<{
             </div>
             {expanded && hasChildren && (
                 <div>
-                    {node.子节点.filter(c => c.ID !== node.ID).map(child => (
+                    {visibleChildren.map(child => (
                         <LocationTreeItem key={child.ID} node={child} selectedId={selectedId} playerLocationId={playerLocationId} playerAncestorIds={playerAncestorIds} depth={depth + 1} onSelect={onSelect} />
                     ))}
                 </div>
@@ -71,7 +84,7 @@ const LocationTreeItem: React.FC<{
 
 const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact = false, rawResponse = '', socialList = [] }) => {
     const tree = useMemo(() => 构建地点树(world, env), [world, env]);
-    const [selectedNode, setSelectedNode] = useState<地点树节点 | null>(tree.当前节点);
+    const [selectedNode, setSelectedNode] = useState<地点树节点 | null>(() => 获取索引选中节点(tree.当前节点, tree.节点映射));
     const [regenerating, setRegenerating] = useState(false);
 
     // 诊断：检查数据是否到达
@@ -94,7 +107,8 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
     const treeVersionRef = useRef(0);
     React.useEffect(() => {
         treeVersionRef.current += 1;
-        if (tree.当前节点) setSelectedNode(tree.当前节点);
+        const nextSelected = 获取索引选中节点(tree.当前节点, tree.节点映射);
+        if (nextSelected) setSelectedNode(nextSelected);
     }, [tree]);
 
     const currentViewNode = selectedNode || tree.根节点;
@@ -173,7 +187,7 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                             }}
                             className="shrink-0 rounded-full border border-wuxia-gold/30 bg-wuxia-gold/5 px-3 py-1 text-[10px] text-wuxia-gold hover:bg-wuxia-gold/15 transition-colors disabled:opacity-50 whitespace-nowrap"
                         >
-                            {regenerating ? '解析中…' : '解析地图'}
+                            {regenerating ? '解析中…' : '回忆解析'}
                         </button>
                     )}
                 </div>
@@ -222,7 +236,7 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                                 {onRegenerateMap && (
                                     <button disabled={regenerating} onClick={async () => { setRegenerating(true); try { await onRegenerateMap(); } finally { setRegenerating(false); } }}
                                         className="mt-2 px-3 py-1 rounded border border-wuxia-gold/30 bg-wuxia-gold/5 text-[10px] text-wuxia-gold hover:bg-wuxia-gold/10 transition-colors disabled:opacity-50">
-                                        {regenerating ? '解析中…' : '点击解析'}
+                                        {regenerating ? '解析中…' : '回忆解析'}
                                     </button>
                                 )}
                             </div>
@@ -273,7 +287,7 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                 <div className="flex flex-col overflow-hidden rounded-2xl border border-wuxia-gold/20 bg-[#0a0d14]">
                     <div className="border-b border-wuxia-gold/10 bg-black/40 px-4 py-3 shrink-0">
                         <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase">
-                            解析日志
+                            回忆解析日志
                             {regenerating && <span className="ml-2 text-wuxia-gold animate-pulse text-[10px]">● 流式输出中…</span>}
                             {!regenerating && rawResponse && <span className="ml-2 text-emerald-400 text-[10px]">● 解析完成</span>}
                         </h3>
@@ -282,7 +296,7 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                         {rawResponse ? (
                             <pre className="whitespace-pre-wrap break-words text-[10px] leading-relaxed text-gray-400 font-mono">{rawResponse}</pre>
                         ) : (
-                            <div className="text-xs text-gray-600">点击"解析地图"后，AI 的思考过程将在此流式显示。</div>
+                            <div className="text-xs text-gray-600">点击“回忆解析”后，AI 会从回忆库重建地图，过程将在此流式显示。</div>
                         )}
                     </div>
                 </div>

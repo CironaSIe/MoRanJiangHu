@@ -6,7 +6,7 @@ import { 地图重生成系统提示词 } from '../../prompts/runtime/mapRegener
 import { 地图重生成COT提示词 } from '../../prompts/runtime/mapRegenerateCot';
 import { 请求模型文本, 规范化文本补全消息链 } from '../../services/ai/chatCompletionClient';
 
-export type 地图更新模式 = 'manual_regenerate' | 'memory_regenerate' | 'auto_incremental';
+export type 地图更新模式 = 'memory_regenerate' | 'auto_incremental';
 
 export type 地图更新进度 = {
     phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
@@ -175,23 +175,6 @@ export const 构建地图更新用户提示词 = (params: {
             '4. 必须保留已有地图层级中的所有地点；回忆库中出现的明确地点尽量补全父子关系。',
             '5. 不要生成坐标、道路、建筑列表、地图人物等旧字段。',
             '6. 只输出 JSON，格式为 {"地点树":[{"名称":"...","层级":"...","父级ID":"父级名称或ID","描述":"..."}]}，不要输出命令。'
-        ].join('\n');
-    }
-
-    if (params.mode === 'manual_regenerate') {
-        return [
-            `当前地点：${currentLocation || '未知'}`,
-            `当前主角：${currentName}`,
-            `当前人物：\n${socialText}`,
-            '',
-            '【已有地图层级数据（请全部保留并整合进新树）】',
-            existingLayerInfo,
-            '',
-            '请根据以上信息重建完整的地点层级树。要求：',
-            '1. 根节点必须是 层级:"寰宇" 名称:"诸天万界"。',
-            '2. 必须保留已有数据中的所有地点，不删除不重命名。',
-            '3. 当前地点若可长期抵达，必须作为区地点或子地点出现在树中。',
-            '4. 只输出 JSON，不要输出命令。'
         ].join('\n');
     }
 
@@ -365,9 +348,9 @@ export const 解析地图自动更新命令 = (rawText: string, currentWorld?: a
 export const 生成地图更新 = async (
     params: 地图更新请求参数
 ): Promise<地图更新执行结果> => {
-    const api = params.mode === 'manual_regenerate'
-        ? 获取地图生成接口配置(params.apiSettings)
-        : 获取地图自动更新接口配置(params.apiSettings);
+    const api = params.mode === 'auto_incremental'
+        ? 获取地图自动更新接口配置(params.apiSettings)
+        : 获取地图生成接口配置(params.apiSettings);
     if (!接口配置是否可用(api)) return 创建地图接口缺失结果();
 
     const env = params.stateBase?.环境 || params.环境;
@@ -411,7 +394,7 @@ export const 生成地图更新 = async (
         errorDetailLimit: Number.POSITIVE_INFINITY
     });
 
-    if (params.mode === 'manual_regenerate' || params.mode === 'memory_regenerate') {
+    if (params.mode === 'memory_regenerate') {
         const rawNodes = 解析地图重生成节点(rawText);
         const newLayers = 构建地图层级替换结果(rawNodes, world);
         return {
