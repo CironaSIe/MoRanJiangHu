@@ -67,6 +67,18 @@ type NPC秘档部位生图工作流依赖 = {
 
 const 默认额外负面提示词 = 'face, eyes, portrait, headshot, upper body, half body, full body, torso, abdomen, legs, arm, feet, hands, multiple people, extra legs, extra arms, extra breasts, extra nipples, extra fingers, three legs, three breasts, merged body parts, duplicate anatomy, mirrored anatomy, multiple genitals, extra genitals, room focus, scenery focus, environment focus, background focus, wide shot, mid shot, collage, contact sheet, reference sheet, character sheet, split screen, panel layout, comic panel, manga panel, thumbnails, bottom strip, inset image, text, typography, letters, words, caption, subtitle, watermark, signature, logo, speech bubble, dialogue box, blurry, low quality, bad anatomy';
 const 默认裸体正向提示词 = 'nude, naked, unclothed';
+const NSFW部位特写词组转化器提示词 = [
+    '【NSFW ComfyUI 私密部位特写规则】',
+    '只用于香闺秘档/NSFW 部位特写，不得回退成普通 NPC 立绘、半身像、头像或公开展示图。',
+    '先清理冲突信息：过滤平台私有语法、长段解释、抽象情绪词、非目标部位信息，以及会导致拼贴/参考页/多镜头的描述。',
+    '补足可画细节：围绕目标部位补齐形状、颜色、肌理、湿润感、体液分布、边缘轮廓、布料压迫、临时状态、光影反射和材质质感。',
+    '保持短而稳定：输出适合 ComfyUI 的英文短语或 tags，主体必须是单一目标部位，单一镜头，单一画面。',
+    '构图必须是 extreme close-up / ultra tight crop / macro shot，目标部位占据绝对主体；严禁出现脸、眼睛、头发、手脚、全身、半身、房间远景或场景主体。',
+    '如果文本包含明确成人内容，允许并优先将性器官、体液、湿润光泽、插入/摩擦/压迫等可见细节转为具体画面元素；不要只写 nsfw、sexy、erotic 等空泛标签。',
+    '光影和材质要服务于成人细节：用 soft rim light、specular highlights、subsurface scattering、wet skin texture、glistening fluid 等可画短语强化局部质感。',
+    '锚点模式下只继承与目标部位相关的稳定身体特征，不要重复展开完整外貌、服装、身份和背景。',
+    '输出只保留最终生图词组，不输出解释、Markdown、规则说明或中文翻译。'
+].join('\n');
 
 const 获取画风标签 = (style?: 当前可用接口结构['画风']): string => {
     switch (style) {
@@ -216,7 +228,8 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
         { 包含输出格式提示词: false }
     );
     // 私密部位特写不能复用普通 NPC 角色预设；那套预设会鼓励完整外观、服装和环境，容易把画面拉回普通角色图。
-    const 词组转化器提示词 = '';
+    // 这里使用 NSFW 专用规则，承接客户模板里的细节强化要求，但只作用于香闺秘档部位特写。
+    const 词组转化器提示词 = NSFW部位特写词组转化器提示词;
     const promptApiForTask = promptApi ? {
         ...promptApi,
         词组转化器AI角色提示词: 词组转化器预设上下文.AI角色定制提示词,

@@ -4,6 +4,7 @@ import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取文生图接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 合并物品图片档案 } from '../../utils/itemImage';
 import { 默认NSFWComfyUI工作流JSON } from '../../data/defaultComfyWorkflow';
+import { 查找结构化物品 } from '../../data/structuredItemLibrary';
 import { generateImageByPrompt, persistImageAssetLocally } from './image';
 
 type 物品生图来源位置 = '背包' | '拍卖行';
@@ -51,6 +52,11 @@ const 构建物品生图接口配置 = (imageApi: 当前可用接口结构 | nul
  */
 export const 构建物品视觉描述 = (item: any): string => {
     const parts: string[] = [];
+    const structured = 查找结构化物品(读取文本(item?.名称));
+    if (structured?.生图描述) parts.push(structured.生图描述);
+    if (Array.isArray(structured?.视觉标签) && structured.视觉标签.length > 0) {
+        parts.push(`结构化材质与物品：${structured.视觉标签.join('，')}`);
+    }
     const 描述 = 读取文本(item?.描述);
     if (描述) parts.push(描述);
     if (Array.isArray(item?.词条列表) && item.词条列表.length > 0) {
@@ -436,8 +442,17 @@ export const 生成物品图标 = async (
     const renderStyle = feature?.自动物品生图渲染风格 || '写实道具';
     const size = 读取文本(options?.size || feature?.自动物品生图分辨率, '1024x1024') || '1024x1024';
     const sourceLocation = options?.sourceLocation || '背包';
+    const structuredItem = 查找结构化物品(读取文本((item as any)?.名称));
     const enrichedItem: 游戏物品 = {
         ...(item as any),
+        ...(structuredItem ? {
+            类型: (item as any)?.类型 || structuredItem.类型,
+            品质: (item as any)?.品质 || structuredItem.品质,
+            视觉标签: Array.from(new Set([
+                ...(((item as any)?.视觉标签 && Array.isArray((item as any).视觉标签)) ? (item as any).视觉标签 : []),
+                ...structuredItem.视觉标签
+            ])),
+        } : {}),
         视觉描述: 读取文本((item as any)?.视觉描述) || 构建物品视觉描述(item),
     };
     const enrichedItemIsSoftGarment = 物品是否柔性服装(enrichedItem);
