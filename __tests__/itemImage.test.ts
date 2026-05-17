@@ -170,6 +170,26 @@ describe('item image prompt classification', () => {
         expect(prompt).not.toContain('soft textile clothing item');
     });
 
+    it('keeps herb-gathering knives classified as weapons despite herb wording', () => {
+        const item = {
+            名称: '采药短刀',
+            类型: '武器',
+            品质: '凡品',
+            装备位置: '主手',
+            描述: '用来割药草的短刀，略带锈迹。'
+        };
+        const prompt = 构建物品图提示词(item);
+        const negativePrompt = 构建物品负面提示词(item);
+
+        expect(prompt).toContain('short herbal-gathering knife');
+        expect(prompt).toContain('strict traditional wuxia weapon prop only');
+        expect(prompt).toContain('blade, hilt, handle');
+        expect(prompt).not.toContain('strict botanical herb or flower');
+        expect(negativePrompt).toContain('potted plant');
+        expect(negativePrompt).toContain('flowerpot');
+        expect(negativePrompt).not.toContain('manufactured object');
+    });
+
     it('treats mystical lotus materials as botanical herbs instead of generic game props', () => {
         const item = {
             名称: '幽冥冰莲',

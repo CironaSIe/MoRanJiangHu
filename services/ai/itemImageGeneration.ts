@@ -153,6 +153,19 @@ const 物品是否坐骑生物 = (item: any): boolean => {
     return /坐骑|骏马|马匹|马\b|黑马|白马|赤兔|的卢|汗血|乌骓|青骢|黄骠|驴|骡|骆驼|牦牛/.test(text);
 };
 
+const 物品是否武器 = (item: any): boolean => {
+    const text = [
+        item?.名称,
+        item?.类型,
+        item?.装备位置,
+        item?.当前装备部位,
+        item?.描述,
+        item?.视觉描述,
+        Array.isArray(item?.视觉标签) ? item.视觉标签.join(' ') : ''
+    ].map((value) => 读取文本(value)).join(' ');
+    return /武器|武型|主手|副手|暗器|兵器|刀|短刀|匕首|剑|长剑|短剑|弓|弩|箭|枪|矛|戟|棍|棒|杖|斧|锤|鞭|刃|飞刀|袖箭|镖/.test(text);
+};
+
 const 物品是否古代药物 = (item: any): boolean => {
     const text = [
         item?.名称,
@@ -190,6 +203,25 @@ const 物品品质转英文 = (quality: string): string => {
 const 物品名称转英文描述 = (name: string): string => {
     // 常见武侠物品名称到英文视觉描述的映射
     const map: Record<string, string> = {
+        '采药短刀': 'short herbal-gathering knife, small rusty utility blade with a simple wooden handle, handheld cutting tool for harvesting herbs, blade and handle clearly visible',
+        '短刀': 'short knife, compact single edged metal blade, simple hilt and handle',
+        '匕首': 'dagger, short double edged metal blade, hilt and grip',
+        '长剑': 'jian sword, long straight metal blade with guard and handle',
+        '短剑': 'short jian sword, straight compact metal blade with guard and handle',
+        '飞刀': 'throwing knife, slim metal blade, small handle, hidden weapon prop',
+        '袖箭': 'sleeve dart launcher or small dart projectile, hidden weapon prop',
+        '弩箭': 'crossbow bolt, slender wooden shaft with metal arrowhead and fletching',
+        '弓': 'traditional bow weapon, curved wooden bow with taut string',
+        '弩': 'ancient crossbow weapon, wooden stock and bow limbs',
+        '枪': 'spear weapon, long shaft with metal spearhead',
+        '矛': 'spear weapon, long polearm with pointed metal head',
+        '棍': 'staff weapon, long wooden fighting staff',
+        '杖': 'staff weapon, carved wooden staff',
+        '斧': 'battle axe, metal axe head with wooden handle',
+        '锤': 'war hammer, heavy metal hammer head with handle',
+        '鞭': 'flexible whip weapon, braided leather or metal chain',
+        '剑': 'jian sword, straight metal blade with guard and handle',
+        '刀': 'saber knife weapon, curved or single edged metal blade with hilt and handle',
         '乌金软甲': 'wearable blackened gold soft armor vest, flexible torso protection, fine overlapping dark metal scales sewn onto black cloth, sleeveless martial arts body armor',
         '软甲': 'wearable soft armor vest, flexible torso protection, overlapping small armor scales sewn onto cloth, sleeveless martial arts body armor',
         '内甲': 'wearable inner armor vest, thin flexible torso protection worn under robes, cloth-backed armor panels',
@@ -252,6 +284,7 @@ const 物品名称转英文描述 = (name: string): string => {
         if (name.includes(cn)) return en;
     }
     // 通用关键词推断
+    if (/暗器|兵器|刀|短刀|匕首|剑|弓|弩|箭|枪|矛|戟|棍|棒|杖|斧|锤|鞭|刃|镖/.test(name)) return 'traditional wuxia weapon prop, metal blade or weapon body with visible handle, hilt, shaft or grip';
     if (/牌|令|符/.test(name)) return 'wooden or metal plaque token';
     if (/壶|瓶|罐/.test(name)) return 'ceramic or metal container vessel';
     if (/匣|盒|箱/.test(name)) return 'wooden box or case';
@@ -267,11 +300,12 @@ const 物品名称转英文描述 = (name: string): string => {
 const 构建物品视觉主体描述 = (item: any): string => {
     const name = 读取文本(item?.名称);
     const isLivingMount = 物品是否坐骑生物(item);
+    const isWeapon = 物品是否武器(item);
     const isSoftGarment = 物品是否柔性服装(item);
     const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isAncientMedicine = 物品是否古代药物(item);
-    const isBotanicalHerb = !isAncientMedicine && 物品是否草药植物(item);
-    const typeEn = isLivingMount ? 'living mount animal' : isSoftGarment ? 'cloth garment' : isWearableArmor ? 'wearable torso armor vest' : isAncientMedicine ? 'ancient medicinal powder or pills' : isBotanicalHerb ? 'botanical medicinal herb' : 物品类型转英文(读取文本(item?.类型, '物品'));
+    const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
+    const typeEn = isLivingMount ? 'living mount animal' : isWeapon ? 'traditional wuxia weapon' : isSoftGarment ? 'cloth garment' : isWearableArmor ? 'wearable torso armor vest' : isAncientMedicine ? 'ancient medicinal powder or pills' : isBotanicalHerb ? 'botanical medicinal herb' : 物品类型转英文(读取文本(item?.类型, '物品'));
     const qualityEn = 物品品质转英文(读取文本(item?.品质, '普通'));
     const nameEn = 物品名称转英文描述(name);
     const description = 读取文本(item?.视觉描述 || item?.描述);
@@ -283,6 +317,7 @@ const 构建物品视觉主体描述 = (item: any): string => {
             ? (nameEn ? `a single real living ${qualityEn} mount animal, ${nameEn}` : `a single real living ${qualityEn} ${typeEn}`)
             : (nameEn ? `a single ${qualityEn} ${nameEn}` : `a single ${qualityEn} ${typeEn} prop`),
         isLivingMount ? 'alive organic animal anatomy, natural fur coat, visible eyes, nostrils, mane or tail, standing on real ground, full body animal portrait' : '',
+        isWeapon ? 'strict traditional weapon prop: blade, edge, hilt, handle, grip, shaft or scabbard clearly visible; if the name mentions gathering herbs, render the cutting tool itself, not herbs or plants' : '',
         isSoftGarment ? 'soft textile clothing item, fabric seams, cloth folds, woven texture, flexible silhouette' : '',
         isWearableArmor ? 'strict wearable armor garment: torso vest shape, chest panel, back panel, shoulder straps, arm openings, waist hem, fitted to human upper body silhouette, displayed flat or on a simple invisible dress form' : '',
         isAncientMedicine ? 'ancient Chinese medicine presentation, herbal powder or pills, folded paper packet, cloth sachet, small ceramic medicine vial, apothecary prop, pre-modern wuxia era' : '',
@@ -293,12 +328,13 @@ const 构建物品视觉主体描述 = (item: any): string => {
 };
 
 export const 构建物品负面提示词 = (item: any): string => {
+    const isWeapon = 物品是否武器(item);
     const isSoftGarment = 物品是否柔性服装(item);
     const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isClothShoe = 物品是否布鞋(item);
     const isLivingMount = 物品是否坐骑生物(item);
     const isAncientMedicine = 物品是否古代药物(item);
-    const isBotanicalHerb = !isAncientMedicine && 物品是否草药植物(item);
+    const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
     return [
         isLivingMount ? 'rider, saddle covering the body, harness covering the body, cart, carriage, vehicle, boat' : 'person, human, face, hand',
         isLivingMount ? 'toy horse, plastic horse, resin figurine, statue, sculpture, ceramic, porcelain, model horse, miniature, collectible figurine, carousel horse, rocking horse, fake animal, mannequin, doll, glossy plastic, product prop, studio toy photography' : '',
@@ -307,6 +343,7 @@ export const 构建物品负面提示词 = (item: any): string => {
         'game controller, gamepad, joystick, console controller, d-pad, analog stick, buttons, electronic device, gadget, plastic controller, remote control, keyboard, mouse',
         'modern weapon, firearm, gun, rifle, pistol, shotgun, assault rifle, sniper rifle, machine gun, firearm stock, trigger guard, gun barrel, magazine, bullet, ammunition, grenade, rocket launcher, cannon, sci-fi weapon, futuristic weapon, tactical gear, modern military, plastic gun, mechanical firearm',
         isWearableArmor ? 'sword, saber, knife, dagger, blade, spear, staff, scabbard, sheath, hilt, handle, pommel, long narrow weapon, umbrella, baton, column, tower, statue, helmet only, shield only' : '',
+        isWeapon ? 'flower, plant, potted plant, bonsai, grass, herb specimen, petals, leaves as main subject, vase, flowerpot, medicine bottle, pill packet' : '',
         'item card, game card, trading card, UI overlay, interface, badge, quality badge, rarity badge, speech bubble, dialogue box, border frame, decorative frame',
         'white background, cluttered background, ink wash, guofeng illustration, Chinese painting, brush strokes, anime, cartoon, flat illustration',
         isSoftGarment ? 'armor, cuirass, breastplate, metal armor, metal plates, gauntlet, shield, helmet, hard shell, leather jacket, shiny leather garment' : '',
@@ -323,10 +360,11 @@ export const 构建物品图提示词 = (
     const style = options?.画风 || '写实';
     const renderStyle = options?.渲染风格 || '写实道具';
     const isLivingMount = 物品是否坐骑生物(item);
+    const isWeapon = 物品是否武器(item);
     const isSoftGarment = 物品是否柔性服装(item);
     const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isAncientMedicine = 物品是否古代药物(item);
-    const isBotanicalHerb = !isAncientMedicine && 物品是否草药植物(item);
+    const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
     const softGarmentGuard = isSoftGarment
         ? 'for clothing items: soft fabric garment laid flat or neatly folded, visible cloth weave, seams, wrinkles, flexible drape'
         : '';
@@ -346,6 +384,7 @@ export const 构建物品图提示词 = (
             : 'single wuxia inventory item asset on a plain neutral background, centered composition, clean silhouette',
         获取渲染风格要求(renderStyle),
         style === '写实' ? 'photorealistic' : style,
+        isWeapon ? 'strict traditional wuxia weapon prop only: blade, hilt, handle, grip, shaft or scabbard must be the main subject; herb-related words describe use or wear, not the object category' : '',
         isAncientMedicine ? 'strict ancient wuxia medicine prop only: folded paper medicine packet, small cloth sachet, ceramic medicine vial, herbal powder or pills; absolutely pre-modern, no modern technology' : '',
         isBotanicalHerb ? 'strict botanical herb or flower only: natural plant specimen, visible petals leaves roots or stems, organic plant anatomy, not a manufactured object' : '',
         isWearableArmor ? 'strict wearable armor item: upper-body vest or cuirass garment shape, sleeveless torso armor with arm holes, shoulder straps, chest and back panels, waist hem; product photo of clothing-shaped protective gear' : '',
@@ -376,6 +415,7 @@ export const 生成物品图标 = async (
     };
     const enrichedItemIsSoftGarment = 物品是否柔性服装(enrichedItem);
     const enrichedItemIsLivingMount = 物品是否坐骑生物(enrichedItem);
+    const enrichedItemIsWeapon = 物品是否武器(enrichedItem);
     const enrichedItemIsAncientMedicine = 物品是否古代药物(enrichedItem);
     const prompt = 构建物品图提示词(enrichedItem, {
         画风: style,
@@ -391,6 +431,8 @@ export const 生成物品图标 = async (
         尺寸: size,
         附加正向提示词: enrichedItemIsLivingMount
             ? 'real living animal, alive mount, full body animal portrait, natural fur, organic anatomy, standing on real ground, no toy, no statue'
+            : enrichedItemIsWeapon
+            ? 'single physical traditional wuxia weapon prop, blade and handle clearly visible, weapon silhouette, metal or wood materials, no plant as main subject, photorealistic product photo, neutral matte studio background'
             : !enrichedItemIsAncientMedicine && 物品是否草药植物(enrichedItem)
             ? 'botanical medicinal herb specimen, natural plant anatomy, petals leaves roots or stems, single organic flower or herb, pre-modern wuxia material, photorealistic product photo, neutral matte studio background'
             : enrichedItemIsAncientMedicine
