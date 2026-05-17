@@ -754,3 +754,34 @@ export const 下载WebDAV云存档 = async (
     onProgress?.({ stage: 'done', message: 'WebDAV 云存档下载完成' });
     return { save, metadata: payload.metadata || item };
 };
+
+export const 增量导入WebDAV云存档 = async (
+    config: WebDAV同步配置,
+    items?: WebDAV云存档元数据[],
+    onProgress?: WebDAV同步进度回调
+): Promise<dbService.存档导入结果> => {
+    const normalized = 规范化配置(config);
+    if (!normalized) throw new Error('请填写 WebDAV 地址、用户名和密码');
+    onProgress?.({ stage: 'manifest', message: '正在读取云端清单' });
+    const manifest = Array.isArray(items)
+        ? { saves: 整理WebDAV清单存档列表(items).saves }
+        : await 读取远端清单(normalized);
+    const saves: 存档结构[] = [];
+    const cloudSaves = [...manifest.saves].sort((a, b) => Number(b.saveTimestamp || 0) - Number(a.saveTimestamp || 0));
+    for (let index = 0; index < cloudSaves.length; index += 1) {
+        const item = cloudSaves[index];
+        onProgress?.({
+            stage: 'download',
+            current: index + 1,
+            total: cloudSaves.length,
+            message: `正在下载云端存档 ${index + 1}/${cloudSaves.length}`
+        });
+        const { save } = await 下载WebDAV云存档(normalized, item);
+        saves.push(save);
+    }
+    if (saves.length <= 0) throw new Error('WebDAV 云端没有可导入的存档');
+    onProgress?.({ stage: 'prepare', message: '正在合并并去重导入本地存档', current: saves.length, total: saves.length });
+    const result = await dbService.导入存档数据({ saves }, { 覆盖现有: false });
+    onProgress?.({ stage: 'done', message: 'WebDAV 云存档增量导入完成' });
+    return result;
+};

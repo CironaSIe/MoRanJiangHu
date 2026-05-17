@@ -4,6 +4,7 @@ import {
     保存WebDAV同步配置,
     下载WebDAV云存档,
     下载设置自WebDAV,
+    增量导入WebDAV云存档,
     列出WebDAV云存档,
     增量同步到WebDAV,
     上传设置到WebDAV,
@@ -145,6 +146,17 @@ export const WebDAVSyncPanel: React.FC = () => {
         window.alert(`云端存档已导入本地：新增 ${result.imported} 条，跳过 ${result.skipped} 条。`);
     }, 'WebDAV 存档读取失败');
 
+    const handleImportAllSaves = () => runTask('import-all-saves', async () => {
+        if (cloudSaves.length <= 0) {
+            window.alert('云端暂无可导入的存档，请先刷新云端列表。');
+            return;
+        }
+        if (!window.confirm(`将以“合并+去重”方式增量导入云端全部 ${cloudSaves.length} 个存档，不会清空本地存档。是否继续？`)) return;
+        const active = await persistConfig();
+        const result = await 增量导入WebDAV云存档(active, cloudSaves, readProgress);
+        window.alert(`云端存档增量导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条。`);
+    }, 'WebDAV 存档增量导入失败');
+
     const handleRestoreSettings = () => runTask('restore-settings', async () => {
         if (!window.confirm('这会下载 WebDAV 云端设置并覆盖当前本机全部设置，且不可撤销。是否继续？')) return;
         const active = await persistConfig();
@@ -205,7 +217,8 @@ export const WebDAVSyncPanel: React.FC = () => {
                 </select>
                 <div className="grid gap-2 sm:grid-cols-2">
                     <button onClick={handleImportSave} disabled={busy || !selectedCloudSaveId} className="rounded-lg border border-sky-700/30 bg-sky-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-sky-900 hover:bg-sky-200 disabled:opacity-50">{buttonContent('import-save', '导入所选存档')}</button>
-                    <button onClick={handleRestoreSettings} disabled={busy || !summary?.settings} className="rounded-lg border border-violet-700/30 bg-violet-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-violet-900 hover:bg-violet-200 disabled:opacity-50">{buttonContent('restore-settings', '恢复全部设置')}</button>
+                    <button onClick={handleImportAllSaves} disabled={busy || cloudSaves.length <= 0} className="rounded-lg border border-emerald-700/30 bg-emerald-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-emerald-900 hover:bg-emerald-200 disabled:opacity-50">{buttonContent('import-all-saves', '增量导入全部存档')}</button>
+                    <button onClick={handleRestoreSettings} disabled={busy || !summary?.settings} className="rounded-lg border border-violet-700/30 bg-violet-100/80 px-3 py-2 text-xs font-semibold tracking-[0.14em] text-violet-900 hover:bg-violet-200 disabled:opacity-50 sm:col-span-2">{buttonContent('restore-settings', '恢复全部设置')}</button>
                 </div>
             </div>
         </div>
