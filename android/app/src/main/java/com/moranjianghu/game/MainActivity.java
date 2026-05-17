@@ -1,5 +1,6 @@
 package com.moranjianghu.game;
 
+import android.content.pm.ApplicationInfo;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -33,11 +34,16 @@ public class MainActivity extends BridgeActivity {
         controller.hide(WindowInsetsCompat.Type.systemBars());
     }
 
+    private boolean isAppDebuggable() {
+        return (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        WebView.setWebContentsDebuggingEnabled(true);
+        WebView.setWebContentsDebuggingEnabled(isAppDebuggable());
         registerPlugin(ApkUpdaterPlugin.class);
         registerPlugin(NativeChatStreamerPlugin.class);
+        registerPlugin(SaveLoadDebugLoggerPlugin.class);
         super.onCreate(savedInstanceState);
         configureWindowSurface();
         applyImmersiveMode();

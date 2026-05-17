@@ -25,7 +25,7 @@ import {
 } from './chatCompletionClient';
 
 import * as dbService from '../dbService';
-import { 是否图片资源引用 } from '../../utils/imageAssets';
+import { 压缩图片资源字段, 是否图片资源引用 } from '../../utils/imageAssets';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
 import { RELEASE_INFO } from '../../data/releaseInfo';
 import {
@@ -4035,11 +4035,12 @@ export const generateImageByPrompt = async (
 export const persistImageAssetLocally = async (
     result: 图片生成结果
 ): Promise<图片生成结果> => {
-    const local = (result?.本地路径 || '').trim();
-    const imageUrl = (result?.图片URL || '').trim();
+    const compactResult = 压缩图片资源字段(result || {}) as 图片生成结果;
+    const local = (compactResult?.本地路径 || '').trim();
+    const imageUrl = (compactResult?.图片URL || '').trim();
     if (local && 是否图片资源引用(local)) {
         return {
-            ...result,
+            ...compactResult,
             图片URL: undefined,
             本地路径: local
         };
@@ -4047,21 +4048,21 @@ export const persistImageAssetLocally = async (
     if (local && /^data:image\//i.test(local)) {
         const assetRef = await dbService.保存图片资源(local);
         return {
-            ...result,
+            ...compactResult,
             图片URL: undefined,
             本地路径: assetRef
         };
     }
     if (local && /^https?:\/\//i.test(local)) {
         return persistImageAssetLocally({
-            ...result,
+            ...compactResult,
             图片URL: local,
             本地路径: undefined
         });
     }
     if (local && !imageUrl) {
         return {
-            ...result,
+            ...compactResult,
             图片URL: undefined,
             本地路径: local
         };
@@ -4073,7 +4074,7 @@ export const persistImageAssetLocally = async (
     if (/^data:image\//i.test(imageUrl)) {
         const assetRef = await dbService.保存图片资源(imageUrl);
         return {
-            ...result,
+            ...compactResult,
             图片URL: undefined,
             本地路径: assetRef
         };
@@ -4090,14 +4091,14 @@ export const persistImageAssetLocally = async (
         }
         const assetRef = await dbService.保存图片资源(dataUrl);
         return {
-            ...result,
+            ...compactResult,
             图片URL: undefined,
             本地路径: assetRef
         };
     }
     if (!/^https?:\/\//i.test(imageUrl)) {
         return {
-            ...result,
+            ...compactResult,
             图片URL: undefined,
             本地路径: imageUrl
         };
@@ -4115,7 +4116,7 @@ export const persistImageAssetLocally = async (
     }
     const assetRef = await dbService.保存图片资源(dataUrl);
     return {
-        ...result,
+        ...compactResult,
         图片URL: undefined,
         本地路径: assetRef
     };

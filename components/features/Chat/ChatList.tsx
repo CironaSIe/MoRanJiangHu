@@ -3,6 +3,7 @@ import { 聊天记录结构, NPC结构, 视觉设置结构 } from '../../../type
 import TurnItem from './TurnItem';
 import { 构建区域文字样式 } from '../../../utils/visualSettings';
 import BookLoader from '../../ui/BookLoader';
+import { buildHistoryDebugSummary, recordSaveLoadTrace } from '../../../utils/saveLoadTrace';
 
 interface Props {
     history: 聊天记录结构[];
@@ -104,6 +105,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
     const 回合容器Refs = React.useRef<Record<number, HTMLDivElement | null>>({});
     const 消息容器Refs = React.useRef<Record<number, HTMLDivElement | null>>({});
     const lastAutoScrolledTurnSignatureRef = React.useRef('');
+    const lastRenderTraceSignatureRef = React.useRef('');
 
     const 清理隐藏按钮计时器 = React.useCallback(() => {
         if (隐藏按钮计时器Ref.current !== null) {
@@ -274,6 +276,28 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
     const visibleHistory = history.slice(sliceIndex);
     const hiddenCount = sliceIndex;
     const hiddenTurns = Math.max(0, turnAnchors.length - normalizedRenderCount);
+    const renderTraceSignature = [
+        history.length,
+        turnAnchors.length,
+        sliceIndex,
+        visibleHistory.length,
+        normalizedRenderCount,
+        loading ? 1 : 0
+    ].join(':');
+    if (lastRenderTraceSignatureRef.current !== renderTraceSignature) {
+        lastRenderTraceSignatureRef.current = renderTraceSignature;
+        recordSaveLoadTrace('chat.render.window', {
+            history: buildHistoryDebugSummary(history),
+            turnAnchors: turnAnchors.length,
+            latestTurnAnchorIndex,
+            sliceIndex,
+            visibleHistoryLength: visibleHistory.length,
+            hiddenCount,
+            hiddenTurns,
+            normalizedRenderCount,
+            loading
+        });
+    }
 
     React.useEffect(() => {
         if (!最新回合定位签名 || loading || 待抑制自动滚动Ref.current) return;

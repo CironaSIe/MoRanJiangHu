@@ -34,6 +34,8 @@ import {
 } from '../../services/auctionHouse';
 import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
 import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
+import { buildHistoryDebugSummary, buildSaveDebugSummary, collectLargestStrings, collectValueStats, recordSaveLoadTrace } from '../../utils/saveLoadTrace';
+import { 清理内嵌图片冗余字段 } from '../../utils/imageAssets';
 
 const 收集图床图片地址 = (
     value: unknown,
@@ -418,6 +420,9 @@ export const 创建存档数据 = (
     const sceneImageArchiveSource = snapshot?.sceneImageArchive
         ? snapshot.sceneImageArchive
         : currentState.sceneImageArchive;
+    清理内嵌图片冗余字段(roleSource, { maxNodes: 50000 });
+    清理内嵌图片冗余字段(socialSource, { maxNodes: 70000 });
+    清理内嵌图片冗余字段(sceneImageArchiveSource, { maxNodes: 20000 });
     const auctionHouseScope = 构建拍卖行存储作用域({
         游戏初始时间: currentState.游戏初始时间,
         角色数据: roleSource,
@@ -441,14 +446,18 @@ export const 创建存档数据 = (
         }
         : undefined;
 
+    const 现实保存时间戳 = Date.now();
+
     return {
         类型: type,
-        时间戳: Date.now(),
+        时间戳: 现实保存时间戳,
         元数据: {
             schemaVersion: deps.存档格式版本,
             历史记录条数: historySnapshot.length,
             历史记录是否裁剪: false,
-            自动存档签名: type === 'auto' ? (autoSignature || '') : undefined
+            自动存档签名: type === 'auto' ? (autoSignature || '') : undefined,
+            现实保存时间戳,
+            现实保存时间ISO: new Date(现实保存时间戳).toISOString()
         },
         游戏初始时间: currentState.游戏初始时间,
         角色数据: deps.深拷贝(roleSource),
@@ -530,16 +539,84 @@ export const 执行读取存档 = async (
     save: 存档结构,
     deps: 存档协调依赖
 ): Promise<void> => {
+    const startAt = Date.now();
+    const trace = (stage: string, payload: Record<string, unknown> = {}) => {
+        recordSaveLoadTrace(`coordinator.${stage}`, {
+            id: save?.id,
+            elapsedMs: Date.now() - startAt,
+            native: isNativeCapacitorEnvironment(),
+            ...payload
+        });
+    };
+
+    trace('start', {
+        save: buildSaveDebugSummary(save)
+    });
     deps.清空重Roll快照();
     deps.重置自动存档状态();
     deps.切换生图存档作用域?.();
     deps.设置最近开局配置(null);
+    trace('reset.done');
+
+    const saveHistoryCount = Array.isArray(save.历史记录) ? save.历史记录.length : 0;
+    const shouldTrustPersistedHeavyFields = isNativeCapacitorEnvironment()
+        && Number(save.元数据?.schemaVersion || 0) >= deps.存档格式版本
+        && saveHistoryCount >= 80;
+    const cleanupResult = {
+        role: 清理内嵌图片冗余字段(save.角色数据, { maxNodes: 50000 }),
+        social: 清理内嵌图片冗余字段(save.社交, { maxNodes: 70000 }),
+        sceneArchive: 清理内嵌图片冗余字段(save.场景图片档案, { maxNodes: 20000 })
+    };
+    trace('heavyFieldPolicy', {
+        shouldTrustPersistedHeavyFields,
+        schemaVersion: save.元数据?.schemaVersion,
+        expectedSchemaVersion: deps.存档格式版本,
+        historyCount: saveHistoryCount,
+        cleanupResult
+    });
 
     const saveGameConfig = save.游戏设置 ? deps.规范化游戏设置(save.游戏设置) : undefined;
     const normalizedEnv = deps.规范化环境信息(save.环境信息 || deps.创建开场空白环境());
-    deps.设置角色(deps.规范化角色物品容器映射(save.角色数据, { 当前时间: normalizedEnv }));
+    trace('normalize.basic.done', {
+        hasGameConfig: Boolean(saveGameConfig),
+        envTime: (normalizedEnv as any)?.时间,
+        envLocation: (normalizedEnv as any)?.具体地点
+    });
+    trace('role.prepare.start', {
+        trusted: shouldTrustPersistedHeavyFields,
+        roleStats: collectValueStats(save.角色数据, 12000),
+        largestStrings: collectLargestStrings(save.角色数据, { limit: 8, maxNodes: 20000 })
+    });
+    const loadedRole = shouldTrustPersistedHeavyFields
+        ? ((save.角色数据 || {}) as 角色数据结构)
+        : deps.规范化角色物品容器映射(save.角色数据, { 当前时间: normalizedEnv });
+    trace('role.prepare.done', {
+        trusted: shouldTrustPersistedHeavyFields,
+        roleStats: collectValueStats(loadedRole, 12000),
+        largestStrings: collectLargestStrings(loadedRole, { limit: 8, maxNodes: 20000 })
+    });
+    deps.设置角色(loadedRole);
+    trace('role.set.done');
     deps.设置环境(normalizedEnv);
-    deps.设置社交(deps.规范化社交列表(save.社交 || []));
+    trace('env.set.done');
+    trace('social.prepare.start', {
+        trusted: shouldTrustPersistedHeavyFields,
+        socialCount: Array.isArray(save.社交) ? save.社交.length : 0,
+        socialStats: collectValueStats(save.社交, 16000)
+    });
+    const loadedSocial = shouldTrustPersistedHeavyFields
+        ? (Array.isArray(save.社交) ? save.社交 : [])
+        : deps.规范化社交列表(save.社交 || [], { 合并同名: false });
+    trace('social.prepare.done', {
+        trusted: shouldTrustPersistedHeavyFields,
+        socialCount: loadedSocial.length,
+        socialStats: collectValueStats(loadedSocial, 16000)
+    });
+    deps.设置社交(loadedSocial);
+    trace('roleEnvSocial.set.done', {
+        trusted: shouldTrustPersistedHeavyFields,
+        socialCount: loadedSocial.length
+    });
     const rawWorld = save.世界 || deps.创建开场空白世界();
     // 删除旧地图坐标字段
     ['地图', '建筑', '地图建筑', '地图道路', '地图人物'].forEach(k => { if (k in (rawWorld as any)) (rawWorld as any)[k] = []; });
@@ -551,20 +628,32 @@ export const 执行读取存档 = async (
     const normalizedWorld = deps.规范化世界状态(rawWorld);
     ['地图', '建筑', '地图建筑', '地图道路', '地图人物'].forEach(k => { if (k in (normalizedWorld as any)) (normalizedWorld as any)[k] = []; });
     deps.设置世界(normalizedWorld);
+    trace('world.set.done', {
+        layers: Array.isArray((normalizedWorld as any)?.地图层级) ? (normalizedWorld as any).地图层级.length : 0
+    });
     deps.设置战斗(deps.规范化战斗状态(save.战斗 || deps.创建开场空白战斗()));
     deps.设置玩家门派(deps.规范化门派状态(save.玩家门派 || deps.创建空门派状态()));
     deps.设置任务列表(规范化任务列表自动结算(save.任务列表 || []));
     deps.设置约定列表(save.约定列表 || []);
+    trace('battleSectTasks.set.done', {
+        taskCount: Array.isArray(save.任务列表) ? save.任务列表.length : 0,
+        agreementCount: Array.isArray(save.约定列表) ? save.约定列表.length : 0
+    });
     deps.设置剧情(deps.规范化剧情状态(save.剧情 || deps.创建开场空白剧情()));
     deps.设置剧情规划(deps.规范化剧情规划状态((save as any).剧情规划));
     deps.设置女主剧情规划(deps.规范化女主剧情规划状态((save as any).女主剧情规划));
     deps.设置同人剧情规划(deps.规范化同人剧情规划状态((save as any).同人剧情规划));
     deps.设置同人女主剧情规划(deps.规范化同人女主剧情规划状态((save as any).同人女主剧情规划));
     deps.设置开局配置(deps.规范化可选开局配置(save.openingConfig));
+    trace('storyPlans.set.done');
     const promptSnapshot = save.核心提示词快照 && typeof save.核心提示词快照 === 'object'
         ? save.核心提示词快照
         : undefined;
     if (promptSnapshot) {
+        trace('promptSnapshot.start', {
+            hasWorldPrompt: typeof promptSnapshot.世界观母本 === 'string' && Boolean(promptSnapshot.世界观母本.trim()),
+            hasRealmPrompt: typeof promptSnapshot.境界体系 === 'string' && Boolean(promptSnapshot.境界体系.trim())
+        });
         let nextPromptPool = Array.isArray(deps.获取当前提示词池())
             ? [...deps.获取当前提示词池()]
             : [];
@@ -588,9 +677,24 @@ export const 执行读取存档 = async (
             deps.设置提示词池(nextPromptPool);
             await dbService.保存设置(设置键.提示词池, nextPromptPool);
         }
+        trace('promptSnapshot.done');
     }
-    deps.设置历史记录(Array.isArray(save.历史记录) ? save.历史记录 : []);
+    const loadedHistoryForState = Array.isArray(save.历史记录) ? save.历史记录 : [];
+    trace('history.set.start', {
+        history: buildHistoryDebugSummary(loadedHistoryForState)
+    });
+    deps.设置历史记录(loadedHistoryForState);
+    trace('history.set.done');
     deps.应用并同步记忆系统(deps.规范化记忆系统(save.记忆系统), { 静默总结提示: true });
+    trace('memory.set.done', {
+        memory: {
+            archive: Array.isArray(save.记忆系统?.回忆档案) ? save.记忆系统?.回忆档案.length : 0,
+            instant: Array.isArray(save.记忆系统?.即时记忆) ? save.记忆系统?.即时记忆.length : 0,
+            short: Array.isArray(save.记忆系统?.短期记忆) ? save.记忆系统?.短期记忆.length : 0,
+            middle: Array.isArray(save.记忆系统?.中期记忆) ? save.记忆系统?.中期记忆.length : 0,
+            long: Array.isArray(save.记忆系统?.长期记忆) ? save.记忆系统?.长期记忆.length : 0
+        }
+    });
 
     if (saveGameConfig) deps.setGameConfig(saveGameConfig);
     if (save.记忆配置) deps.setMemoryConfig(deps.规范化记忆配置(save.记忆配置));
@@ -605,12 +709,20 @@ export const 执行读取存档 = async (
     } else {
         deps.设置视觉设置(deps.规范化视觉设置(currentVisual || {}));
     }
+    trace('configs.set.done', {
+        hasIncomingVisual: Boolean(incomingVisual)
+    });
     const loadedHistory = Array.isArray(save.历史记录) ? save.历史记录 : [];
     if (save.场景图片档案 && typeof save.场景图片档案 === 'object') {
+        trace('sceneArchive.set.start', {
+            sceneHistory: Array.isArray(save.场景图片档案.生图历史) ? save.场景图片档案.生图历史.length : 0
+        });
         deps.设置场景图片档案(过滤当前存档场景图片档案(save.场景图片档案, loadedHistory, deps));
     } else {
+        trace('sceneArchive.empty.start');
         deps.设置场景图片档案(deps.规范化场景图片档案({}));
     }
+    trace('sceneArchive.set.done');
     deps.设置游戏初始时间(typeof save.游戏初始时间 === 'string' ? save.游戏初始时间 : '');
     const loadedAnchors = 过滤当前存档角色锚点(
         Array.isArray(save.角色锚点列表) ? deps.深拷贝(save.角色锚点列表) : [],
@@ -620,19 +732,28 @@ export const 执行读取存档 = async (
     );
     deps.设置角色锚点列表(loadedAnchors.anchors);
     deps.设置当前角色锚点ID(loadedAnchors.currentAnchorId);
+    trace('anchors.set.done', {
+        anchors: loadedAnchors.anchors.length,
+        currentAnchorId: loadedAnchors.currentAnchorId
+    });
     const auctionScope = 构建拍卖行存储作用域(save);
     const loadedAuctionState = save.拍卖行 && typeof save.拍卖行 === 'object'
         ? 清理并补货(save.拍卖行 as 拍卖行状态)
         : 读取拍卖行状态(auctionScope);
     保存拍卖行状态(loadedAuctionState, auctionScope);
+    trace('auction.set.done');
     if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('moranjianghu:auction-house-loaded', {
             detail: { scope: auctionScope, state: loadedAuctionState }
         }));
     }
 
+    trace('view.set.start');
     deps.setHasSave(true);
     deps.setView('game');
     deps.setShowSaveLoad({ show: false, mode: 'load' });
+    trace('view.set.done');
+    trace('imageCache.schedule.start');
     后台缓存当前存档图床图片(save);
+    trace('done');
 };

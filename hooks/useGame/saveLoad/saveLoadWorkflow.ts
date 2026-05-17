@@ -20,6 +20,7 @@ import type {
 } from '../../../types';
 import { 执行手动存档, 执行自动存档, 执行读取存档 } from '../saveCoordinator';
 import type { 自动存档快照结构 } from '../saveCoordinator';
+import { buildSaveDebugSummary, recordSaveLoadTrace } from '../../../utils/saveLoadTrace';
 
 type 存档编排工作流依赖 = {
     存档格式版本: number;
@@ -215,13 +216,34 @@ export const 创建存读档工作流 = (deps: 存档编排工作流依赖) => {
     );
 
     const handleLoadGame = async (save: 存档结构) => {
+        const startAt = Date.now();
+        recordSaveLoadTrace('workflow.loadGame.start', {
+            id: save?.id,
+            save: buildSaveDebugSummary(save)
+        });
         deps.读档前重置瞬态状态();
+        recordSaveLoadTrace('workflow.loadGame.beforeCoordinator', {
+            id: save?.id,
+            elapsedMs: Date.now() - startAt
+        });
         await 执行读取存档(
             save,
             构建协调依赖()
         );
+        recordSaveLoadTrace('workflow.loadGame.afterCoordinator', {
+            id: save?.id,
+            elapsedMs: Date.now() - startAt
+        });
         deps.读档后重置上下文();
+        recordSaveLoadTrace('workflow.loadGame.afterContextReset', {
+            id: save?.id,
+            elapsedMs: Date.now() - startAt
+        });
         deps.读档后定位到最新回合();
+        recordSaveLoadTrace('workflow.loadGame.done', {
+            id: save?.id,
+            elapsedMs: Date.now() - startAt
+        });
     };
 
     return {
