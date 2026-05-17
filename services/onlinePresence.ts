@@ -5,6 +5,16 @@ import { 获取本地图片图床迁移状态, 读取本地图片资源统计 } 
 const ONLINE_SESSION_ID_KEY = 'moranjianghu.onlineSessionId';
 const HEARTBEAT_PATH = '/api/admin/online';
 const HEARTBEAT_INTERVAL_MS = 30 * 1000;
+const WS_HEARTBEAT_INTERVAL_MS = 25 * 1000;
+const WS_RECONNECT_MS = 10 * 1000;
+
+const getOnlineApiBaseUrl = (): string => {
+    if (!isNativeCapacitorEnvironment()) return '';
+    const configuredUrl = typeof RELEASE_INFO.websiteUrl === 'string' ? RELEASE_INFO.websiteUrl.trim() : '';
+    return (configuredUrl || 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '');
+};
+
+const buildOnlineHttpUrl = (): string => `${getOnlineApiBaseUrl()}${HEARTBEAT_PATH}`;
 
 const readSessionId = (): string => {
     try {
@@ -37,7 +47,7 @@ const buildHeartbeatPayload = async (sessionId: string) => {
 };
 
 const sendHeartbeat = async (sessionId: string): Promise<void> => {
-    await fetch(HEARTBEAT_PATH, {
+    await fetch(buildOnlineHttpUrl(), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -48,6 +58,15 @@ const sendHeartbeat = async (sessionId: string): Promise<void> => {
     }).catch(() => undefined);
 };
 
+const buildOnlineWebSocketUrl = (): string => {
+    const baseUrl = getOnlineApiBaseUrl();
+    if (baseUrl) {
+        return `${baseUrl.replace(/^http:/i, 'ws:').replace(/^https:/i, 'wss:')}${HEARTBEAT_PATH}`;
+    }
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}${HEARTBEAT_PATH}`;
+};
+
 export const startOnlinePresenceHeartbeat = (): (() => void) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return () => undefined;
     if (window.location.pathname.startsWith('/admin/')) return () => undefined;
@@ -55,12 +74,81 @@ export const startOnlinePresenceHeartbeat = (): (() => void) => {
     const sessionId = readSessionId();
     let stopped = false;
     let timer: ReturnType<typeof window.setInterval> | null = null;
+    let wsTimer: ReturnType<typeof window.setInterval> | null = null;
+    let reconnectTimer: ReturnType<typeof window.setTimeout> | null = null;
+    let socket: WebSocket | null = null;
+
+    const clearWsTimer = () => {
+        if (wsTimer) {
+            window.clearInterval(wsTimer);
+            wsTimer = null;
+        }
+    };
+
+    const closeSocket = () => {
+        clearWsTimer();
+        if (socket) {
+            try {
+                socket.close();
+            } catch {
+                // ignore close failures
+            }
+            socket = null;
+        }
+    };
+
+    const sendSocketPayload = async (type: 'hello' | 'ping') => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        try {
+            socket.send(JSON.stringify({
+                type,
+                ...(await buildHeartbeatPayload(sessionId))
+            }));
+        } catch {
+            // HTTP heartbeat remains as a fallback.
+        }
+    };
+
+    const scheduleReconnect = () => {
+        if (stopped || reconnectTimer) return;
+        reconnectTimer = window.setTimeout(() => {
+            reconnectTimer = null;
+            connectSocket();
+        }, WS_RECONNECT_MS);
+    };
+
+    const connectSocket = () => {
+        if (stopped || typeof WebSocket === 'undefined') return;
+        if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
+        try {
+            socket = new WebSocket(buildOnlineWebSocketUrl());
+            socket.addEventListener('open', () => {
+                void sendSocketPayload('hello');
+                clearWsTimer();
+                wsTimer = window.setInterval(() => {
+                    void sendSocketPayload('ping');
+                }, WS_HEARTBEAT_INTERVAL_MS);
+            });
+            socket.addEventListener('close', () => {
+                clearWsTimer();
+                socket = null;
+                scheduleReconnect();
+            });
+            socket.addEventListener('error', () => {
+                closeSocket();
+                scheduleReconnect();
+            });
+        } catch {
+            scheduleReconnect();
+        }
+    };
 
     const tick = () => {
-        if (stopped || document.visibilityState === 'hidden') return;
+        if (stopped) return;
         void sendHeartbeat(sessionId);
     };
 
+    connectSocket();
     tick();
     timer = window.setInterval(tick, HEARTBEAT_INTERVAL_MS);
 
@@ -72,6 +160,8 @@ export const startOnlinePresenceHeartbeat = (): (() => void) => {
     return () => {
         stopped = true;
         if (timer) window.clearInterval(timer);
+        if (reconnectTimer) window.clearTimeout(reconnectTimer);
+        closeSocket();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
 };

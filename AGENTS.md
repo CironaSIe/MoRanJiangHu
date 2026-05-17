@@ -12,6 +12,12 @@
 - Keep it suitable for direct forwarding to customers.
 - Prefer plain-language benefit statements over internal implementation detail.
 
+## Admin/Internal Changelog Rule
+
+- Do not include admin-only, monitoring-only, internal operations, or management console changes in customer-facing release notes or public changelogs unless the user explicitly asks.
+- Keep release notes focused on player-visible gameplay, app behavior, APK, sync, or customer support changes.
+- Admin-related fixes may still be committed and deployed, but should be described privately in the final engineering summary rather than in public customer changelog text.
+
 ## Release Commit Backup Rule
 
 - Whenever publishing a new version, update the release version number first, then sync the release metadata before any build, upload, deploy, or verification step.

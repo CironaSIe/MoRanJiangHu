@@ -253,6 +253,110 @@ const uniqueLimited = (values: string[], value: string, limit = 4): string[] => 
     return [...values, text].slice(0, limit);
 };
 
+const upsertSessionHeartbeat = async (request: Request, env: any, body: any): Promise<{ sessionId: string; accepted: boolean; serverTime: string; nextHeartbeatSeconds: number }> => {
+    const bucket = getBucket(env);
+    if (!bucket) throw new Error('Online session storage is not configured');
+
+    const now = new Date();
+    const nowMs = now.getTime();
+    const nowIso = now.toISOString();
+    const sessionId = sanitizeSessionId(body?.sessionId) || buildSessionId();
+    const registry = await readRegistry(env);
+    const sessions = cleanupSessions(registry.sessions, nowMs);
+    const existingIndex = sessions.findIndex((item) => item.id === sessionId);
+    const existing = existingIndex >= 0 ? sessions[existingIndex] : null;
+    const existingLastSeenMs = existing ? Date.parse(existing.lastSeenAt || '') : 0;
+    const isWebSocketHeartbeat = readString(body?.transport) === 'websocket' || readString(body?.type) === 'hello' || readString(body?.type) === 'ping';
+
+    if (!isWebSocketHeartbeat && existing && Number.isFinite(existingLastSeenMs) && nowMs - existingLastSeenMs < HEARTBEAT_MIN_INTERVAL_MS) {
+        return {
+            sessionId,
+            serverTime: nowIso,
+            accepted: false,
+            nextHeartbeatSeconds: Math.ceil((HEARTBEAT_MIN_INTERVAL_MS - (nowMs - existingLastSeenMs)) / 1000)
+        };
+    }
+
+    const cf = (request as any).cf || {};
+    const nextRecord: OnlineSessionRecord = {
+        id: sessionId,
+        firstSeenAt: existing?.firstSeenAt || nowIso,
+        lastSeenAt: nowIso,
+        ip: getClientIp(request),
+        country: readString(cf.country),
+        region: readString(cf.region) || readString(cf.regionCode),
+        city: readString(cf.city),
+        timezone: readString(cf.timezone),
+        colo: readString(cf.colo),
+        userAgent: readString(request.headers.get('User-Agent')).slice(0, 240),
+        path: readString(body?.path).slice(0, 240),
+        referrer: readString(body?.referrer).slice(0, 240),
+        versionName: readString(body?.versionName).slice(0, 40),
+        versionCode: toPositiveInt(body?.versionCode, existing?.versionCode || 0) || undefined,
+        platform: readString(body?.platform).slice(0, 80),
+        imageStats: sanitizeImageStats(body?.imageStats, existing?.imageStats),
+        heartbeatCount: (existing?.heartbeatCount || 0) + 1
+    };
+
+    if (existingIndex >= 0) {
+        sessions[existingIndex] = nextRecord;
+    } else {
+        sessions.unshift(nextRecord);
+    }
+    await writeRegistry(env, { sessions: cleanupSessions(sessions, nowMs) });
+
+    return {
+        sessionId,
+        serverTime: nowIso,
+        accepted: true,
+        nextHeartbeatSeconds: 30
+    };
+};
+
+const handleOnlineWebSocket = (request: Request, env: any): Response => {
+    const pair = new WebSocketPair();
+    const client = pair[0];
+    const server = pair[1];
+
+    server.accept();
+    server.addEventListener('message', (event) => {
+        void (async () => {
+            try {
+                const raw = typeof event.data === 'string' ? event.data : '';
+                const body = raw ? JSON.parse(raw) : {};
+                const result = await upsertSessionHeartbeat(request, env, {
+                    ...body,
+                    transport: 'websocket'
+                });
+                server.send(JSON.stringify({
+                    success: true,
+                    transport: 'websocket',
+                    ...result
+                }));
+            } catch (error: any) {
+                server.send(JSON.stringify({
+                    success: false,
+                    error: 'Online websocket heartbeat failed',
+                    detail: error?.message || String(error)
+                }));
+            }
+        })();
+    });
+
+    server.addEventListener('close', () => {
+        try {
+            server.close();
+        } catch {
+            // ignore close failures
+        }
+    });
+
+    return new Response(null, {
+        status: 101,
+        webSocket: client
+    });
+};
+
 const aggregateUsersByIp = (sessions: OnlineSessionRecord[], nowMs: number, ttlMs: number): OnlineUserRecord[] => {
     const users = new Map<string, OnlineUserRecord>();
     sessions.forEach((session) => {
@@ -323,6 +427,10 @@ export function onRequestOptions(): Response {
 }
 
 export async function onRequestGet({ request, env }: any): Promise<Response> {
+    if (readString(request.headers.get('Upgrade')).toLowerCase() === 'websocket') {
+        return handleOnlineWebSocket(request, env);
+    }
+
     if (!isAdminRequest(request, env)) {
         return buildJsonResponse({ success: false, error: 'Unauthorized' }, 401);
     }
@@ -353,64 +461,11 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
 
 export async function onRequestPost({ request, env }: any): Promise<Response> {
     try {
-        const bucket = getBucket(env);
-        if (!bucket) return buildJsonResponse({ success: false, error: 'Online session storage is not configured' }, 503);
-
         const body = await readRequestJson(request);
-        const now = new Date();
-        const nowMs = now.getTime();
-        const nowIso = now.toISOString();
-        const sessionId = sanitizeSessionId(body?.sessionId) || buildSessionId();
-        const registry = await readRegistry(env);
-        const sessions = cleanupSessions(registry.sessions, nowMs);
-        const existingIndex = sessions.findIndex((item) => item.id === sessionId);
-        const existing = existingIndex >= 0 ? sessions[existingIndex] : null;
-        const existingLastSeenMs = existing ? Date.parse(existing.lastSeenAt || '') : 0;
-
-        if (existing && Number.isFinite(existingLastSeenMs) && nowMs - existingLastSeenMs < HEARTBEAT_MIN_INTERVAL_MS) {
-            return buildJsonResponse({
-                success: true,
-                sessionId,
-                serverTime: nowIso,
-                accepted: false,
-                nextHeartbeatSeconds: Math.ceil((HEARTBEAT_MIN_INTERVAL_MS - (nowMs - existingLastSeenMs)) / 1000)
-            });
-        }
-
-        const cf = (request as any).cf || {};
-        const nextRecord: OnlineSessionRecord = {
-            id: sessionId,
-            firstSeenAt: existing?.firstSeenAt || nowIso,
-            lastSeenAt: nowIso,
-            ip: getClientIp(request),
-            country: readString(cf.country),
-            region: readString(cf.region) || readString(cf.regionCode),
-            city: readString(cf.city),
-            timezone: readString(cf.timezone),
-            colo: readString(cf.colo),
-            userAgent: readString(request.headers.get('User-Agent')).slice(0, 240),
-            path: readString(body?.path).slice(0, 240),
-            referrer: readString(body?.referrer).slice(0, 240),
-            versionName: readString(body?.versionName).slice(0, 40),
-            versionCode: toPositiveInt(body?.versionCode, existing?.versionCode || 0) || undefined,
-            platform: readString(body?.platform).slice(0, 80),
-            imageStats: sanitizeImageStats(body?.imageStats, existing?.imageStats),
-            heartbeatCount: (existing?.heartbeatCount || 0) + 1
-        };
-
-        if (existingIndex >= 0) {
-            sessions[existingIndex] = nextRecord;
-        } else {
-            sessions.unshift(nextRecord);
-        }
-        await writeRegistry(env, { sessions: cleanupSessions(sessions, nowMs) });
-
+        const result = await upsertSessionHeartbeat(request, env, body);
         return buildJsonResponse({
             success: true,
-            sessionId,
-            serverTime: nowIso,
-            accepted: true,
-            nextHeartbeatSeconds: 30
+            ...result
         });
     } catch (error: any) {
         return buildJsonResponse({

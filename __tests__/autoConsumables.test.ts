@@ -141,3 +141,63 @@ describe('stateTransforms 只补一次系统丹药预设', () => {
         expect(normalized.物品列表.some((item: any) => item.名称 === '破境丹')).toBe(false);
     });
 });
+
+describe('丹药重量归一', () => {
+    it('会把离谱的单颗丹药重量压回轻便小件，并重算负重', () => {
+        const role: any = {
+            姓名: '测试',
+            最大负重: 180,
+            物品列表: [
+                {
+                    ID: 'Item001',
+                    名称: '避瘴丹',
+                    描述: '用极品西域香料做药引熬制，能防住大多数迷烟和毒瘴。',
+                    类型: '消耗品',
+                    品质: '良品',
+                    重量: 5,
+                    堆叠数量: 50,
+                    是否可堆叠: true,
+                    价值: 10,
+                    当前耐久: 100,
+                    最大耐久: 100,
+                    词条列表: []
+                }
+            ],
+            已补齐系统丹药预设: true
+        };
+
+        const normalized = 规范化角色物品容器映射(role);
+        const pill = normalized.物品列表.find((item: any) => item.名称 === '避瘴丹');
+        expect(pill.重量).toBeLessThanOrEqual(0.2);
+        expect(normalized.当前负重).toBeLessThanOrEqual(10);
+    });
+
+    it('会把离谱的备用弩箭重量压回小件弹药重量，并兼容旧存档', () => {
+        const role: any = {
+            姓名: '测试',
+            最大负重: 180,
+            物品列表: [
+                {
+                    ID: 'Item002',
+                    名称: '淬毒的备用弩箭',
+                    描述: '从慕容氏守卫尸体上搜刮来的备用弩箭，箭头淬有剧毒。',
+                    类型: '消耗品',
+                    品质: '良品',
+                    重量: 2,
+                    堆叠数量: 10,
+                    是否可堆叠: true,
+                    价值: 5,
+                    当前耐久: 100,
+                    最大耐久: 100,
+                    词条列表: []
+                }
+            ],
+            已补齐系统丹药预设: true
+        };
+
+        const normalized = 规范化角色物品容器映射(role);
+        const bolts = normalized.物品列表.find((item: any) => item.名称 === '淬毒的备用弩箭');
+        expect(bolts.重量).toBeLessThanOrEqual(0.15);
+        expect(normalized.当前负重).toBeLessThanOrEqual(1.5);
+    });
+});
