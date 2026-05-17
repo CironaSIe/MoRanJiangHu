@@ -1,17 +1,29 @@
 {
-  "versionCode": 206,
-  "versionName": "1.0.205",
+  "versionCode": 207,
+  "versionName": "1.0.206",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "v1.0.205 正式发布：修复手机端诊断上报 HTTP 200 误判，并降低图片迁移重复上传。",
-    "诊断日志上报现在会识别 HTTP 200 但响应体异常的情况，记录响应片段，并自动尝试备用站点入口。",
-    "手机端上报日志不需要额外开启梯子；如果主域被网络环境拦截，会自动切换备用域名尝试。",
-    "旧存档图片自动图床化新增失败冷却，同一张图片上传 1102 后短时间内不会每次启动都重复上传。",
-    "图床上传 1102 会继续保留原图和本地存档引用，稍后自动重试，不会因为迁移失败丢图。",
-    "新增诊断上报备用入口回归测试，并通过图床上传、代理和移动端本地烟测。",
-    "网页端、APK 包和更新清单同步提升到 v1.0.205 / CODE 206。"
+    "v1.0.206 正式发布：修复 CNB ComfyUI 生图被浏览器 CORS 拦截的问题。",
+    "CNB 的 ComfyUI 地址现在会自动通过网站同源代理提交 /prompt、轮询 /history 并下载 /view 图片，减少 Failed to fetch 报错。",
+    "用户无需手动修改 ComfyUI 的 CORS 启动参数；保持 CNB 工作区在线并选择 8188 地址即可继续生图。",
+    "非 CNB 的自建 ComfyUI 地址仍保持原直连方式，避免影响本地或私有后端使用。",
+    "新增 CNB ComfyUI 代理端点回归测试，并通过 Web 构建与 Worker 函数编译。",
+    "网页端、APK 包和更新清单同步提升到 v1.0.206 / CODE 207。"
   ],
   "releaseHistory": [
+    {
+      "versionCode": 207,
+      "versionName": "1.0.206",
+      "changes": [
+        "v1.0.206 正式发布：修复 CNB ComfyUI 生图被浏览器 CORS 拦截的问题。",
+        "CNB 的 ComfyUI 地址现在会自动通过网站同源代理提交 /prompt、轮询 /history 并下载 /view 图片，减少 Failed to fetch 报错。",
+        "用户无需手动修改 ComfyUI 的 CORS 启动参数；保持 CNB 工作区在线并选择 8188 地址即可继续生图。",
+        "非 CNB 的自建 ComfyUI 地址仍保持原直连方式，避免影响本地或私有后端使用。",
+        "新增 CNB ComfyUI 代理端点回归测试，并通过 Web 构建与 Worker 函数编译。",
+        "网页端、APK 包和更新清单同步提升到 v1.0.206 / CODE 207。"
+      ],
+      "publishedAt": "2026-05-17T10:58:09+08:00"
+    },
     {
       "versionCode": 206,
       "versionName": "1.0.205",
@@ -2218,5 +2230,5 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-17T09:00:20+08:00"
+  "releasePublishedAt": "2026-05-17T10:58:09+08:00"
 }
