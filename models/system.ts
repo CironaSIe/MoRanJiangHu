@@ -612,6 +612,8 @@ export interface 存档元数据结构 {
     历史记录条数?: number;
     历史记录是否裁剪?: boolean;
     自动存档签名?: string;
+    现实保存时间戳?: number;
+    现实保存时间ISO?: string;
 }
 
 export interface 核心提示词快照结构 {

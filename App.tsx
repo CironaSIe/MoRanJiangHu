@@ -961,11 +961,16 @@ const App: React.FC = () => {
     );
     const effectiveVisualConfig = React.useMemo(() => {
         if (!isMobile || !state.visualConfig) return state.visualConfig;
+        const mobileRenderLayers = Math.max(
+            1,
+            Math.min(8, Number(state.visualConfig.渲染层数) || 10)
+        );
 
         return {
             ...state.visualConfig,
             ['字体大小']: 16,
             ['段落间距']: 1.6,
+            ['渲染层数']: mobileRenderLayers,
             ['区域文字样式']: undefined,
             ['UI文字样式']: undefined
         } as typeof state.visualConfig;

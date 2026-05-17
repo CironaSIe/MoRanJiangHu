@@ -3,6 +3,13 @@ type 图片资源结构 = {
     本地路径?: string;
 };
 
+export type 图片冗余字段清理结果 = {
+    visitedNodes: number;
+    removedFields: number;
+    removedStringChars: number;
+    truncated: boolean;
+};
+
 const 图片资源引用前缀 = 'wuxia-asset://';
 const 图片资源缓存 = new Map<string, string>();
 const 图片资源缓存最大条目数 = 80;
@@ -11,10 +18,118 @@ let 图片资源缓存字符数 = 0;
 const 远程图片兜底缓存键 = 'moranjianghu.remoteImageFallbacks.v1';
 const 远程图片兜底最大数量 = 600;
 let 远程图片兜底缓存: Record<string, string> | null = null;
+const 图片冗余响应字段 = new Set([
+    '原始响应',
+    'rawResponse',
+    'rawText',
+    'responseText',
+    'fullResponse',
+    'debugResponse',
+    'base64',
+    'b64_json',
+    'image_base64',
+    'dataUrl',
+    'dataURL',
+    'data_url',
+    '图片Base64',
+    '图片数据'
+]);
+const 图片展示地址字段 = new Set(['图片URL', '本地路径', '头像图片URL', '背景图片']);
+const 图片冗余长文本阈值 = 512 * 1024;
+const 图片记录描述长文本阈值 = 32 * 1024;
 
 const 读取文本 = (value: unknown): string => (
     typeof value === 'string' ? value.trim() : ''
 );
+
+const 是否图片冗余响应字段 = (key: string, value: unknown): boolean => {
+    if (图片冗余响应字段.has(key)) return true;
+    if (
+        key === '原始描述'
+        && typeof value === 'string'
+        && value.length > 图片记录描述长文本阈值
+    ) {
+        return true;
+    }
+    if (
+        typeof value === 'string'
+        && value.length > 图片冗余长文本阈值
+        && !图片展示地址字段.has(key)
+    ) {
+        return true;
+    }
+    const lowerKey = key.toLowerCase();
+    if (
+        typeof value === 'string'
+        && value.length > 128 * 1024
+        && (
+            lowerKey.includes('base64')
+            || lowerKey.includes('response')
+            || lowerKey.includes('dataurl')
+            || lowerKey.includes('data_url')
+            || key.includes('原始响应')
+            || key.includes('图片数据')
+        )
+    ) {
+        return true;
+    }
+    return false;
+};
+
+const 移除浅层图片冗余字段 = <T extends Record<string, unknown>>(asset: T): T => {
+    Object.keys(asset).forEach((key) => {
+        if (是否图片冗余响应字段(key, asset[key])) {
+            delete asset[key];
+        }
+    });
+    return asset;
+};
+
+export const 清理内嵌图片冗余字段 = (
+    value: unknown,
+    options: { maxNodes?: number } = {}
+): 图片冗余字段清理结果 => {
+    const maxNodes = Math.max(100, Number(options.maxNodes) || 60000);
+    const seen = new WeakSet<object>();
+    const stack: unknown[] = [value];
+    const result: 图片冗余字段清理结果 = {
+        visitedNodes: 0,
+        removedFields: 0,
+        removedStringChars: 0,
+        truncated: false
+    };
+
+    while (stack.length > 0) {
+        if (result.visitedNodes >= maxNodes) {
+            result.truncated = true;
+            break;
+        }
+        const current = stack.pop();
+        result.visitedNodes += 1;
+        if (!current || typeof current !== 'object') continue;
+        if (seen.has(current as object)) continue;
+        seen.add(current as object);
+
+        if (Array.isArray(current)) {
+            for (let index = current.length - 1; index >= 0; index -= 1) {
+                stack.push(current[index]);
+            }
+            continue;
+        }
+
+        Object.entries(current as Record<string, unknown>).forEach(([key, child]) => {
+            if (是否图片冗余响应字段(key, child)) {
+                result.removedFields += 1;
+                if (typeof child === 'string') result.removedStringChars += child.length;
+                delete (current as Record<string, unknown>)[key];
+                return;
+            }
+            if (child && typeof child === 'object') stack.push(child);
+        });
+    }
+
+    return result;
+};
 
 export const 是否图片资源引用 = (value: unknown): boolean => (
     读取文本(value).startsWith(图片资源引用前缀)
@@ -164,17 +279,18 @@ export const 获取图片资源文本地址 = (value: unknown): string => {
 
 export const 压缩图片资源字段 = <T extends 图片资源结构 | null | undefined>(asset: T): T => {
     if (!asset || typeof asset !== 'object') return asset;
+    const compactAsset = 移除浅层图片冗余字段({ ...(asset as Record<string, unknown>) }) as T & 图片资源结构;
     const 本地路径 = 读取文本(asset.本地路径);
     const 图片URL = 读取文本(asset.图片URL);
-    if (!本地路径 && !图片URL) return asset;
+    if (!本地路径 && !图片URL) return compactAsset as T;
     if (!本地路径) {
         return {
-            ...asset,
+            ...compactAsset,
             图片URL: 图片URL || undefined
         };
     }
     return {
-        ...asset,
+        ...compactAsset,
         本地路径,
         图片URL: undefined
     };

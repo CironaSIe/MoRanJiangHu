@@ -3,6 +3,8 @@ import * as dbService from '../../../services/dbService';
 import { 导出ZIP存档文件, 解析ZIP存档文件 } from '../../../services/saveArchiveService';
 import { 存档结构 } from '../../../types';
 import { parseJsonWithRepair } from '../../../utils/jsonRepair';
+import { isNativeCapacitorEnvironment } from '../../../utils/nativeRuntime';
+import { buildSaveDebugSummary, recordSaveLoadError, recordSaveLoadTrace } from '../../../utils/saveLoadTrace';
 import GameButton from '../../ui/GameButton';
 
 interface Props {
@@ -18,26 +20,129 @@ type 存档列表项 = dbService.存档摘要结构;
 const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode, requestConfirm }) => {
     const [saves, setSaves] = useState<存档列表项[]>([]);
     const [activeTab, setActiveTab] = useState<'auto' | 'manual'>('manual');
+    const pageSize = isNativeCapacitorEnvironment() ? 24 : 80;
+    const [visibleSaveCount, setVisibleSaveCount] = useState(pageSize);
+    const [hasMoreSaves, setHasMoreSaves] = useState(false);
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
     const [saveProtectionEnabled, setSaveProtectionEnabled] = useState(false);
     const [transferMessage, setTransferMessage] = useState('');
+    const [hydratingVisibleSummaries, setHydratingVisibleSummaries] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const hydratedSummaryIdsRef = useRef<Set<number>>(new Set());
+    const hydratedSummaryCountRef = useRef(0);
+    const hydrateRunningRef = useRef(false);
 
     useEffect(() => {
-        void loadSaves();
+        void loadSaves(true);
     }, []);
 
-    const loadSaves = async () => {
+    useEffect(() => {
+        if (hydrateRunningRef.current || syncing) return;
+        const native = isNativeCapacitorEnvironment();
+        const hydrateLimit = native ? pageSize : 40;
+        const hydrateCandidates = saves.slice(0, hydrateLimit);
+        const nextTarget = hydrateCandidates.find((save) => (
+            是旧版缺摘要存档(save)
+            && typeof save.id === 'number'
+            && !hydratedSummaryIdsRef.current.has(save.id)
+        ));
+        if (!nextTarget || typeof nextTarget.id !== 'number') {
+            if (native && transferMessage.startsWith('正在恢复存档列表详情')) {
+                setTransferMessage('存档列表详情已恢复。');
+            }
+            return;
+        }
+
+        let cancelled = false;
+        const timer = window.setTimeout(() => {
+            const id = nextTarget.id as number;
+            hydrateRunningRef.current = true;
+            hydratedSummaryIdsRef.current.add(id);
+            hydratedSummaryCountRef.current += 1;
+            recordSaveLoadTrace('modal.summaryHydrate.start', {
+                id,
+                activeTab,
+                native,
+                count: hydratedSummaryCountRef.current
+            });
+            if (native) {
+                const missingTotal = hydrateCandidates.filter((save) => 是旧版缺摘要存档(save)).length;
+                setTransferMessage(`正在恢复存档列表详情：${hydratedSummaryCountRef.current} / ${hydratedSummaryCountRef.current + Math.max(0, missingTotal - 1)}`);
+            }
+            void dbService.补全存档摘要(id)
+                .then((summary) => {
+                    recordSaveLoadTrace('modal.summaryHydrate.done', {
+                        id,
+                        hasSummary: Boolean(summary),
+                        historyCount: summary?.元数据?.历史记录条数,
+                        type: summary?.类型
+                    });
+                    if (cancelled || !summary) return;
+                    setSaves((current) => current.map((item) => item.id === id ? summary : item));
+                })
+                .catch((error) => {
+                    recordSaveLoadError('modal.summaryHydrate.error', error, { id, activeTab });
+                    console.warn('补全旧存档摘要失败:', error);
+                })
+                .finally(() => {
+                    recordSaveLoadTrace('modal.summaryHydrate.finally', { id, activeTab });
+                    hydrateRunningRef.current = false;
+                });
+        }, native ? 260 : 80);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+        };
+    }, [saves, pageSize, syncing, transferMessage]);
+
+    useEffect(() => {
+        setVisibleSaveCount(pageSize);
+    }, [activeTab, pageSize, saves.length]);
+
+    useEffect(() => {
+        void loadSaves(true);
+    }, [activeTab]);
+
+    const loadSaves = async (reset = true) => {
         setLoading(true);
+        const startAt = Date.now();
         try {
+            const usePagedNativeList = isNativeCapacitorEnvironment();
+            const offset = reset ? 0 : saves.length;
+            const type = activeTab === 'auto' ? 'auto' : 'manual';
+            recordSaveLoadTrace('modal.list.start', {
+                reset,
+                activeTab,
+                offset,
+                pageSize,
+                usePagedNativeList
+            });
             const [list, protect] = await Promise.all([
-                dbService.读取存档摘要列表(),
+                usePagedNativeList
+                    ? dbService.读取存档摘要列表({ limit: pageSize, offset, 类型: type })
+                    : dbService.读取存档摘要列表(),
                 dbService.读取存档保护状态()
             ]);
-            setSaves(list);
+            recordSaveLoadTrace('modal.list.done', {
+                reset,
+                activeTab,
+                count: list.length,
+                missingSummaryCount: list.filter((item) => 是旧版缺摘要存档(item)).length,
+                firstId: list[0]?.id,
+                lastId: list[list.length - 1]?.id,
+                elapsedMs: Date.now() - startAt
+            });
+            setSaves((current) => reset ? list : [...current, ...list]);
+            setHasMoreSaves(usePagedNativeList && list.length >= pageSize);
             setSaveProtectionEnabled(protect);
         } catch (error) {
+            recordSaveLoadError('modal.list.error', error, {
+                reset,
+                activeTab,
+                elapsedMs: Date.now() - startAt
+            });
             console.error(error);
         } finally {
             setLoading(false);
@@ -70,7 +175,18 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         return `${saveDate.getFullYear()}:${pad2(saveDate.getMonth() + 1)}:${pad2(saveDate.getDate())}:${pad2(saveDate.getHours())}:${pad2(saveDate.getMinutes())}`;
     };
 
+    const 读取现实保存时间文本 = (save: 存档列表项): string => {
+        if (是旧版缺摘要存档(save)) return '正在恢复详情';
+        const timestamp = Number(save.元数据?.现实保存时间戳 || save.时间戳 || 0);
+        if (!Number.isFinite(timestamp) || timestamp <= 0) return '保存时间未知';
+        const date = new Date(timestamp);
+        if (Number.isNaN(date.getTime())) return '保存时间未知';
+        const pad2 = (n: number) => Math.trunc(n).toString().padStart(2, '0');
+        return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+    };
+
     const 构建存档标题 = (save: 存档列表项): string => {
+        if (是旧版缺摘要存档(save)) return '正在恢复详情';
         const roleName = typeof save.角色数据?.姓名 === 'string' ? save.角色数据.姓名.trim() : '';
         return roleName || '未知角色';
     };
@@ -86,11 +202,13 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     };
 
     const 构建存档摘要 = (save: 存档列表项): string => {
+        if (是旧版缺摘要存档(save)) return '正在读取存档摘要，请稍候';
         const historyCount = typeof save.元数据?.历史记录条数 === 'number'
             ? save.元数据.历史记录条数
             : (Array.isArray(save.历史记录) ? save.历史记录.length : 0);
         const tags: string[] = [
             save.类型 === 'auto' ? '自动快照' : '手动快照',
+            `保存于 ${读取现实保存时间文本(save)}`,
             `历史 ${historyCount} 条`
         ];
         if (save.元数据?.历史记录是否裁剪) {
@@ -116,13 +234,34 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const 读取完整存档 = async (save: 存档列表项): Promise<存档结构> => {
         const id = typeof save.id === 'number' ? save.id : 0;
         if (!id) throw new Error('存档 ID 缺失，无法读取完整存档。');
+        const startAt = Date.now();
+        recordSaveLoadTrace('modal.fullRead.start', {
+            id,
+            type: save.类型,
+            listHistoryCount: save.元数据?.历史记录条数,
+            activeTab
+        });
         const fullSave = await dbService.读取存档(id);
         if (!fullSave) throw new Error('存档不存在或已被删除。');
+        recordSaveLoadTrace('modal.fullRead.done', {
+            id,
+            elapsedMs: Date.now() - startAt,
+            save: buildSaveDebugSummary(fullSave)
+        });
         return fullSave;
     };
 
     const handleLoadClick = async (save: 存档列表项) => {
         if (mode !== 'load') return;
+        const id = typeof save.id === 'number' ? save.id : 0;
+        const startAt = Date.now();
+        recordSaveLoadTrace('modal.loadClick.start', {
+            id,
+            type: save.类型,
+            activeTab,
+            listHistoryCount: save.元数据?.历史记录条数,
+            missingSummary: 是旧版缺摘要存档(save)
+        });
         const ok = requestConfirm
             ? await requestConfirm({
                 title: '读取存档',
@@ -130,16 +269,34 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 confirmText: '读取'
             })
             : true;
+        recordSaveLoadTrace('modal.loadClick.confirm', { id, ok });
         if (!ok) return;
         try {
             setSyncing(true);
             setTransferMessage(`正在读取：${构建存档标题(save)}`);
             const fullSave = await 读取完整存档(save);
+            recordSaveLoadTrace('modal.loadClick.beforeOnLoad', {
+                id,
+                elapsedMs: Date.now() - startAt,
+                save: buildSaveDebugSummary(fullSave)
+            });
             await Promise.resolve(onLoadGame(fullSave));
+            recordSaveLoadTrace('modal.loadClick.afterOnLoad', {
+                id,
+                elapsedMs: Date.now() - startAt
+            });
         } catch (error: any) {
+            recordSaveLoadError('modal.loadClick.error', error, {
+                id,
+                elapsedMs: Date.now() - startAt
+            });
             console.error(error);
             alert(`读取失败：${error?.message || '未知错误'}`);
         } finally {
+            recordSaveLoadTrace('modal.loadClick.finally', {
+                id,
+                elapsedMs: Date.now() - startAt
+            });
             setSyncing(false);
             setTransferMessage('');
         }
@@ -158,6 +315,44 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             alert(`保存失败：${error?.message || '未知错误'}`);
         } finally {
             setSyncing(false);
+        }
+    };
+
+    const handleHydrateVisibleSummaries = async () => {
+        if (hydratingVisibleSummaries || syncing) return;
+        const targets = visibleSaves
+            .filter((save) => 是旧版缺摘要存档(save))
+            .map((save) => save.id)
+            .filter((id): id is number => typeof id === 'number');
+        if (targets.length <= 0) return;
+
+        setHydratingVisibleSummaries(true);
+        setTransferMessage(`正在恢复当前页存档详情：0 / ${targets.length}`);
+        let completed = 0;
+        try {
+            for (const id of targets) {
+                recordSaveLoadTrace('modal.manualSummaryHydrate.itemStart', { id, completed, total: targets.length });
+                const summary = await dbService.补全存档摘要(id);
+                completed += 1;
+                recordSaveLoadTrace('modal.manualSummaryHydrate.itemDone', {
+                    id,
+                    completed,
+                    total: targets.length,
+                    hasSummary: Boolean(summary),
+                    historyCount: summary?.元数据?.历史记录条数
+                });
+                if (summary) {
+                    setSaves((current) => current.map((item) => item.id === id ? summary : item));
+                }
+                setTransferMessage(`正在恢复当前页存档详情：${completed} / ${targets.length}`);
+                await new Promise((resolve) => window.setTimeout(resolve, isNativeCapacitorEnvironment() ? 700 : 120));
+            }
+            setTransferMessage('当前页存档详情已恢复。');
+        } catch (error: any) {
+            console.error(error);
+            setTransferMessage(`恢复详情中断：${error?.message || '未知错误'}`);
+        } finally {
+            setHydratingVisibleSummaries(false);
         }
     };
 
@@ -304,10 +499,15 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         }
     };
 
+    const 是旧版缺摘要存档 = (save: 存档列表项): boolean => Boolean((save.元数据 as any)?.摘要缺失);
+
     const filteredSaves = saves.filter((save) => {
+        if (是旧版缺摘要存档(save)) return true;
         if (activeTab === 'auto') return save.类型 === 'auto';
         return save.类型 !== 'auto';
     });
+    const visibleSaves = filteredSaves.slice(0, visibleSaveCount);
+    const hasMoreRenderedSaves = visibleSaveCount < filteredSaves.length;
     const busy = loading || syncing;
 
     return (
@@ -336,6 +536,16 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
                     <div className="flex-1 flex flex-col bg-ink-wash/5">
                         <div className="px-6 pt-4 pb-3 border-b border-gray-800/50 flex justify-end gap-2">
+                            {isNativeCapacitorEnvironment() && saves.some((save) => 是旧版缺摘要存档(save)) && (
+                                <GameButton
+                                    onClick={() => { void handleHydrateVisibleSummaries(); }}
+                                    disabled={busy || hydratingVisibleSummaries}
+                                    variant="secondary"
+                                    className="px-4 py-2 text-xs"
+                                >
+                                    恢复当前页详情
+                                </GameButton>
+                            )}
                             <GameButton
                                 onClick={() => { void handleExportAll(); }}
                                 disabled={busy}
@@ -395,7 +605,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                 <div className="text-center text-gray-500 py-10">读取中...</div>
                             )}
 
-                            {filteredSaves.map((save) => (
+                            {visibleSaves.map((save) => (
                                 <div
                                     key={save.id}
                                     onClick={() => { void handleLoadClick(save); }}
@@ -403,21 +613,21 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                 >
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-2">
-                                            <span className={`text-[10px] px-1.5 rounded border ${save.类型 === 'auto' ? 'border-blue-500 text-blue-400' : 'border-wuxia-gold text-wuxia-gold'}`}>
-                                                {save.类型 === 'auto' ? 'AUTO' : 'MANUAL'}
+                                            <span className={`text-[10px] px-1.5 rounded border ${是旧版缺摘要存档(save) ? 'border-gray-500 text-gray-300' : (save.类型 === 'auto' ? 'border-blue-500 text-blue-400' : 'border-wuxia-gold text-wuxia-gold')}`}>
+                                                {是旧版缺摘要存档(save) ? '恢复中' : (save.类型 === 'auto' ? 'AUTO' : 'MANUAL')}
                                             </span>
                                             <span className="font-bold text-gray-200 text-sm">{构建存档标题(save)}</span>
                                             <span className="text-xs text-gray-500">
                                                 {save.角色数据?.境界 || '未知境界'}
                                             </span>
                                         </div>
-                                        <div className="text-[10px] text-gray-600 font-mono" style={{ fontFamily: 'var(--ui-等宽信息-font-family, inherit)', fontSize: 'var(--ui-等宽信息-font-size, 12px)' }}>
-                                            {读取时间文本(save)}
+                                        <div className="text-[10px] text-gray-600 font-mono text-right" style={{ fontFamily: 'var(--ui-等宽信息-font-family, inherit)', fontSize: 'var(--ui-等宽信息-font-size, 12px)' }}>
+                                            {读取现实保存时间文本(save)}
                                         </div>
                                     </div>
 
                                     <div className="text-xs text-gray-400 border-l-2 border-gray-700 pl-2">
-                                        {读取地点文本(save)} · {读取时间文本(save)}
+                                        {读取地点文本(save)} · 游戏内 {读取时间文本(save)}
                                     </div>
                                     <div className="text-[11px] text-gray-500">
                                         {构建存档摘要(save)}
@@ -448,6 +658,22 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                     </button>
                                 </div>
                             ))}
+                            {(hasMoreRenderedSaves || hasMoreSaves) && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (hasMoreRenderedSaves) {
+                                            setVisibleSaveCount((count) => count + pageSize);
+                                        } else {
+                                            void loadSaves(false);
+                                        }
+                                    }}
+                                    disabled={loading}
+                                    className="w-full rounded-lg border border-wuxia-cyan/35 bg-black/30 px-4 py-3 text-xs font-semibold tracking-wider text-wuxia-cyan transition-colors hover:border-wuxia-cyan hover:bg-wuxia-cyan/15"
+                                >
+                                    加载更多存档（已显示 {visibleSaves.length} 条）
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
