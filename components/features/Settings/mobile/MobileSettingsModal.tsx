@@ -82,6 +82,7 @@ interface Props {
     onSaveMemory?: (config: 记忆配置结构) => void;
     onDeleteMemory?: (round: number) => void;
     onRefineMemories?: (rounds: number[]) => Promise<boolean | void>;
+    onRegenerateMapFromMemory?: (onDelta: (delta: string) => void) => Promise<{ ok: boolean; message: string }>;
     onCreateNpc: (seed?: Partial<NPC结构>) => NPC结构 | void;
     onSaveNpc: (npcId: string, npc: NPC结构) => void;
     onDeleteNpc: (npcId: string) => void;
@@ -100,7 +101,7 @@ interface Props {
 const MobileSettingsModal: React.FC<Props> = ({
     activeTab, onTabChange, onClose,
     apiConfig, visualConfig, gameConfig, memoryConfig, prompts, festivals, currentTheme, history, memorySystem, socialList, runtimeState, currentStory, openingConfig, contextSnapshot,
-    onSaveApi, onSaveVisual, onSaveGame, onSaveMemory, onDeleteMemory, onRefineMemories, onCreateNpc, onSaveNpc, onDeleteNpc, onStartNpcMemorySummary, onUploadNpcImage, onReplaceVariableSection, onApplyVariableCommand, onUpdatePrompts, onUpdateFestivals, onThemeChange,
+    onSaveApi, onSaveVisual, onSaveGame, onSaveMemory, onDeleteMemory, onRefineMemories, onRegenerateMapFromMemory, onCreateNpc, onSaveNpc, onDeleteNpc, onStartNpcMemorySummary, onUploadNpcImage, onReplaceVariableSection, onApplyVariableCommand, onUpdatePrompts, onUpdateFestivals, onThemeChange,
     onReturnToHome, isHome, requestConfirm
 }) => {
     const tabItems = [
@@ -150,7 +151,7 @@ const MobileSettingsModal: React.FC<Props> = ({
         if (activeTab === 'recall') return <RecallModelSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'memory_summary_model') return <MemorySummaryModelSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'memory_refine_model') return <MemoryRefineModelSettings settings={apiConfig} onSave={onSaveApi} />;
-        if (activeTab === 'map_model') return <MapModelSettings settings={apiConfig} onSave={onSaveApi} />;
+        if (activeTab === 'map_model') return <MapModelSettings settings={apiConfig} onSave={onSaveApi} onRegenerateMapFromMemory={onRegenerateMapFromMemory} />;
         if (activeTab === 'polish') return <PolishModelSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'world_evolution') return <WorldEvolutionModelSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'variable_model') return <VariableModelSettings settings={apiConfig} onSave={onSaveApi} />;

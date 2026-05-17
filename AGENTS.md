@@ -257,3 +257,75 @@ If the task is "confirm this UI works" and the opening flow depends on external 
 - The app-side object storage sync should use the `/api/object-storage-proxy` runtime endpoint, AWS Signature V4 signing, region `auto`, service `s3`, and the same manifest/chunk/incremental-sync semantics as WebDAV.
 - The storage prefix defaults to `MoRanJiangHu`; save packages live under `MoRanJiangHu/saves`, chunks under `MoRanJiangHu/chunks`, and the manifest is `MoRanJiangHu/manifest.json`.
 - For local end-to-end testing, load the credentials from user env vars, PUT a small object under `MoRanJiangHu/e2e/`, GET it back, verify content, then DELETE the test object.
+
+## 2026-05-17 Map Rewrite And Sync Memory
+
+- Upstream project: `ypq123456789/MoRanJiangHu`.
+- User fork/id: `LingYuYue1`.
+- Before continuing local fixes, we synced the upstream repository. If the user asks to continue map work later, verify remotes first instead of assuming local code is current.
+- A PR branch was pushed to the user fork: `codex/map-system-queue-fixes`.
+- PR title used/recommended: `重构地图更新队列并修复地图 NPC 联动`.
+- Local `main` was later fast-forwarded to upstream `origin/main` at `17ed36d`.
+
+### Six-Layer Map Tree Direction
+
+- The current map rewrite should use only the six-layer tree: `寰宇 -> 大地点 -> 中地点 -> 小地点 -> 区地点 -> 子地点`.
+- Do not reintroduce old coordinate map fields: `世界.地图`, `世界.建筑`, `世界.地图建筑`, `世界.地图道路`, `世界.地图人物`.
+- `具体地点` is an environment/location field, not a map layer. If AI returns `具体地点`, normalize it toward `区地点`; room/interior-like nodes should normalize toward `子地点`.
+- Map nodes are maintained through `世界.地图层级` with `DT-xxx` ids.
+- New map data should be name/layer/parent/description based. AI should not generate coordinates.
+
+### Map Rendering And NPC Fixes
+
+- Large-region/continent map path points were clamped so generated paths do not drift outside the map frame.
+- NPC map linkage was repaired: town/city layer shows a pink marker on matching building blocks; building/room card layer shows the present NPC list.
+- NPC location matching should prefer precise location paths when available.
+- Relevant files from this work include `utils/mapSpatial.ts`, `utils/mapNpcLocation.ts`, `components/features/Map/RegionMap.tsx`, `components/features/Map/GridMapScene.tsx`, and `components/features/Map/LocationBrowser.tsx`.
+
+### Map Update Workflow Separation
+
+- Map update must be separated from world evolution.
+- World evolution should no longer be responsible for writing map updates.
+- Automatic map update runs as a separate post-story queue stage after the main story response finishes.
+- Queue order should be: `文章优化 -> 变量生成 -> 动态世界 -> 规划分析 -> 地图更新 -> 最终落盘`.
+- Map update queue stage is last before final command application.
+- If the user enables the independent map-update API switch, automatic map update uses that independent API/model.
+- If independent map-update API is disabled, automatic map update follows the main story API/model.
+- Manual `解析地图` remains distinct from automatic post-story map update.
+- Manual map generation uses the map generation API configuration.
+- Automatic map update uses the automatic map update API selection.
+- Automatic mode should parse and apply only commands targeting `世界.地图层级`.
+
+### Files Touched For Map Update Separation
+
+- `hooks/useGame/mapUpdateWorkflow.ts`: shared workflow for manual map regeneration and automatic incremental map update.
+- `utils/apiConfig.ts`: added/used automatic map-update API resolution.
+- `models/system.ts`: added map automatic update independent model fields.
+- `components/features/Settings/MapModelSettings.tsx`: added `正文后自动地图更新` settings.
+- `hooks/useGame/sendWorkflow.ts`: added independent `地图更新` post-story queue stage after planning analysis and before final apply.
+- `hooks/useGame.ts`: added map update progress typing/pass-through.
+- `components/features/Chat/InputArea.tsx`: added queue UI stage `地图更新`, displayed last.
+
+### Verification Notes From This Work
+
+- `npm run build` may fail on Windows PowerShell due to disabled script execution for `npm.ps1`; use `npm.cmd run build`.
+- `npm.cmd run build` passed after wiring the map update queue.
+- Build may update release metadata (`data/releaseInfo.ts`, `public/release-info.json`) because the project runs `release:sync` before build. Do not include those generated changes in unrelated PRs unless release metadata is intentionally part of the task.
+- A local Vite preview was tested on desktop and mobile LAN. For mobile access, run preview with `--host 0.0.0.0` and open the machine LAN IP from the phone.
+
+## 2026-05-17 Online Presence Heartbeat Stutter Fix
+
+- User reported periodic UI freezes/stutters on both PC and mobile while switching pages or idling.
+- Main suspected cause found: `services/onlinePresence.ts` sent online heartbeat every 25-30 seconds, and each heartbeat called `读取本地图片资源统计`.
+- `读取本地图片资源统计` scans IndexedDB saves, settings, and image assets, so large saves/image libraries can cause periodic main-thread jank.
+- Fix applied in branch `codex/fix-presence-heartbeat-stutter`, commit `67273b8`:
+  - removed full local image resource statistics from online heartbeat payload;
+  - kept only lightweight image migration status via `获取本地图片图床迁移状态`;
+  - made heartbeat payload synchronous/lightweight;
+  - skipped fallback HTTP heartbeat while WebSocket heartbeat is already open.
+- PR branch pushed to user fork: `LingYuYue1/MoRanJiangHu`, branch `codex/fix-presence-heartbeat-stutter`.
+- PR creation link: `https://github.com/LingYuYue1/MoRanJiangHu/pull/new/codex/fix-presence-heartbeat-stutter`.
+- Suggested PR title: `修复在线心跳导致的周期性卡顿`.
+- Verification: `npm.cmd run build` passed.
+- Build again touched release metadata via `release:sync`; generated `data/releaseInfo.ts` and `public/release-info.json` changes were restored and not included in the PR.
+- If stutter persists after this PR, next likely areas to inspect are startup image cache prewarm, legacy image migration, image fallback prefetch, and save-list scans on view changes.

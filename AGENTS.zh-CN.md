@@ -250,3 +250,75 @@
 - 应用内对象存储同步应走 `/api/object-storage-proxy` 运行时端点，使用 AWS Signature V4 签名，region 使用 `auto`，service 使用 `s3`，并复用 WebDAV 的清单、分片和增量同步语义。
 - 默认存储前缀为 `MoRanJiangHu`；存档包放在 `MoRanJiangHu/saves`，分片放在 `MoRanJiangHu/chunks`，清单文件是 `MoRanJiangHu/manifest.json`。
 - 本地端到端测试时，从用户环境变量读取凭据，在 `MoRanJiangHu/e2e/` 下 PUT 一个小对象，GET 回来校验内容，然后 DELETE 该测试对象。
+
+## 2026-05-17 地图重构与同步记忆
+
+- 原作者项目：`ypq123456789/MoRanJiangHu`。
+- 用户 fork / GitHub ID：`LingYuYue1`。
+- 继续本地修复前，已经先同步过原作者仓库。以后继续地图工作时，不要默认本地就是最新，先检查远程。
+- 已推送到用户 fork 的 PR 分支：`codex/map-system-queue-fixes`。
+- PR 标题建议/使用：`重构地图更新队列并修复地图 NPC 联动`。
+- 后续本地 `main` 已快进同步到原作者最新 `origin/main`，提交位置为 `17ed36d`。
+
+### 六层地图树方向
+
+- 当前地图重构只使用六层地点树：`寰宇 -> 大地点 -> 中地点 -> 小地点 -> 区地点 -> 子地点`。
+- 不要重新引入旧坐标地图字段：`世界.地图`、`世界.建筑`、`世界.地图建筑`、`世界.地图道路`、`世界.地图人物`。
+- `具体地点` 是环境/当前位置字段，不是地图层级。如果 AI 返回 `具体地点`，应归一到 `区地点`；房间/室内类节点应归一到 `子地点`。
+- 地图节点通过 `世界.地图层级` 维护，使用 `DT-xxx` ID。
+- 新地图数据应基于名称、层级、父级、描述，不让 AI 生成坐标。
+
+### 地图渲染与 NPC 修复
+
+- 已修复大地点/大洲地图路径点越界问题，路径点会被限制在地图框内。
+- 已修复 NPC 与地图地点联动：城镇/建筑层显示粉色 NPC 标记；建筑/房间卡片显示在场 NPC 列表。
+- NPC 地点匹配优先使用精确位置路径。
+- 相关文件包括：`utils/mapSpatial.ts`、`utils/mapNpcLocation.ts`、`components/features/Map/RegionMap.tsx`、`components/features/Map/GridMapScene.tsx`、`components/features/Map/LocationBrowser.tsx`。
+
+### 地图更新工作流拆分
+
+- 地图更新必须从世界演变中拆分出来。
+- 世界演变不应继续负责写入地图更新。
+- 自动地图更新作为正文结束后的独立后台队列阶段运行。
+- 队列顺序应为：`文章优化 -> 变量生成 -> 动态世界 -> 规划分析 -> 地图更新 -> 最终落盘`。
+- 地图更新阶段排在最终应用命令之前的最后一位。
+- 用户开启地图自动更新独立 API 时，自动地图更新使用独立 API/模型。
+- 未开启独立地图更新 API 时，自动地图更新跟随主剧情 API/模型。
+- 手动 `解析地图` 和正文后的自动地图更新保持分离。
+- 手动地图解析使用“地图生成”API 配置。
+- 自动地图更新使用“地图自动更新”API 选择逻辑。
+- 自动模式只解析并应用指向 `世界.地图层级` 的命令。
+
+### 地图更新拆分涉及文件
+
+- `hooks/useGame/mapUpdateWorkflow.ts`：手动地图重生成和自动增量地图更新共用工作流。
+- `utils/apiConfig.ts`：新增/使用地图自动更新接口解析。
+- `models/system.ts`：新增地图自动更新独立模型字段。
+- `components/features/Settings/MapModelSettings.tsx`：新增 `正文后自动地图更新` 设置区。
+- `hooks/useGame/sendWorkflow.ts`：在规划分析后、最终落盘前新增独立 `地图更新` 队列阶段。
+- `hooks/useGame.ts`：补充地图更新进度类型和透传。
+- `components/features/Chat/InputArea.tsx`：新增队列 UI 阶段 `地图更新`，并显示在最后。
+
+### 本次验证记录
+
+- Windows PowerShell 可能因为 `npm.ps1` 执行策略导致 `npm run build` 失败；使用 `npm.cmd run build`。
+- 接入地图更新队列后，`npm.cmd run build` 已通过。
+- 构建会因为项目执行 `release:sync` 修改 `data/releaseInfo.ts` 和 `public/release-info.json`，如果任务不是发布，不要把这些生成文件混进 PR。
+- 已用本地 Vite preview 在桌面端和手机局域网访问测试。手机访问时 preview 需要使用 `--host 0.0.0.0`，然后手机打开电脑局域网 IP。
+
+## 2026-05-17 在线心跳周期性卡顿修复
+
+- 用户反馈 PC 和手机端都会周期性卡顿/冻结，包括切换页面和停留在任意页面时。
+- 主要可疑原因定位在 `services/onlinePresence.ts`：在线心跳每 25-30 秒发送一次，并且每次都会调用 `读取本地图片资源统计`。
+- `读取本地图片资源统计` 会扫描 IndexedDB 里的存档、设置和图片资源；当存档或图片较多时，会造成周期性主线程卡顿。
+- 修复已在分支 `codex/fix-presence-heartbeat-stutter`、提交 `67273b8` 中完成：
+  - 在线心跳不再携带完整本地图片资源统计；
+  - 仅保留轻量的图片迁移状态 `获取本地图片图床迁移状态`；
+  - 心跳 payload 改为同步轻量构建；
+  - WebSocket 心跳已连接时跳过备用 HTTP 心跳，避免双路重复心跳。
+- PR 分支已推送到用户 fork：`LingYuYue1/MoRanJiangHu`，分支 `codex/fix-presence-heartbeat-stutter`。
+- PR 创建链接：`https://github.com/LingYuYue1/MoRanJiangHu/pull/new/codex/fix-presence-heartbeat-stutter`。
+- PR 标题建议：`修复在线心跳导致的周期性卡顿`。
+- 验证：`npm.cmd run build` 已通过。
+- 构建再次触发 `release:sync` 修改 release 元数据；已恢复 `data/releaseInfo.ts` 和 `public/release-info.json`，未混入本次 PR。
+- 如果合并后仍有卡顿，下一批优先排查：启动图片缓存预热、旧图迁移、图片兜底预取、页面切换时的存档列表扫描。

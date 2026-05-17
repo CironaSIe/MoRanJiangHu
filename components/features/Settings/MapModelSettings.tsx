@@ -8,14 +8,18 @@ import { 规范化接口设置 } from '../../../utils/apiConfig';
 interface Props {
     settings: 接口设置结构;
     onSave: (settings: 接口设置结构) => void;
+    onRegenerateMapFromMemory?: (onDelta: (delta: string) => void) => Promise<{ ok: boolean; message: string }>;
 }
 
-const MapModelSettings: React.FC<Props> = ({ settings, onSave }) => {
+const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFromMemory }) => {
     const [form, setForm] = useState<接口设置结构>(() => 规范化接口设置(settings));
     const [modelOptions, setModelOptions] = useState<string[]>([]);
     const [loadingModels, setLoadingModels] = useState(false);
     const [message, setMessage] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
+    const [memoryParsing, setMemoryParsing] = useState(false);
+    const [streamText, setStreamText] = useState('');
+    const streamRef = React.useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const normalized = 规范化接口设置(settings);
@@ -110,6 +114,32 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave }) => {
         setTimeout(() => setShowSuccess(false), 2000);
     };
 
+    React.useEffect(() => {
+        if (streamRef.current) {
+            streamRef.current.scrollTop = streamRef.current.scrollHeight;
+        }
+    }, [streamText]);
+
+    const handleRegenerateFromMemory = async () => {
+        if (!onRegenerateMapFromMemory || memoryParsing) return;
+        setMemoryParsing(true);
+        setStreamText('');
+        try {
+            const result = await onRegenerateMapFromMemory((delta) => {
+                setStreamText((prev) => prev + delta);
+            });
+            if (!result.ok) {
+                setStreamText((prev) => prev + `\n\n[失败] ${result.message}`);
+            } else {
+                setStreamText((prev) => prev + `\n\n[完成] ${result.message}`);
+            }
+        } catch (error: any) {
+            setStreamText((prev) => prev + `\n\n[错误] ${error?.message || '未知错误'}`);
+        } finally {
+            setMemoryParsing(false);
+        }
+    };
+
     const mapModelValue = 地图生成模型;
     const mapModelDisplay = mapModelValue || (activeConfig?.model || '');
     const autoMapModelDisplay = 自动更新独立开启 ? 自动更新模型 : 主剧情解析模型;
@@ -129,6 +159,33 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave }) => {
                 <div className="text-[11px] text-gray-400">
                     当前启用接口配置：{activeConfig?.名称 || '未配置'}。手动"解析地图"会使用下方解析配置；正文后的自动地图更新默认跟随主剧情接口，也可单独指定模型。
                 </div>
+
+                {onRegenerateMapFromMemory && (
+                    <div className="rounded-md border border-wuxia-cyan/25 bg-wuxia-cyan/5 p-3 space-y-3">
+                        <div>
+                            <div className="text-wuxia-cyan font-bold text-xs">旧存档地图适配</div>
+                            <div className="mt-1 text-[11px] text-gray-400">
+                                使用下方地图生成 API 读取当前存档回忆库，重建新版六层地图树。适合旧地图数据已清理、但回忆库仍保留地点线索的存档。
+                            </div>
+                        </div>
+                        <GameButton
+                            onClick={handleRegenerateFromMemory}
+                            variant="secondary"
+                            className="w-full py-2 text-xs"
+                            disabled={memoryParsing}
+                        >
+                            {memoryParsing ? '解析中...' : '使用回忆库解析地图'}
+                        </GameButton>
+                        {streamText && (
+                            <div
+                                ref={streamRef}
+                                className="mt-2 max-h-48 overflow-y-auto rounded border border-wuxia-cyan/20 bg-black/40 p-2 text-[11px] text-gray-300 whitespace-pre-wrap font-mono leading-relaxed"
+                            >
+                                {streamText}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className="rounded border border-wuxia-gold/20 bg-wuxia-gold/5 p-3 space-y-1.5 text-[11px]">
                     <div className="text-wuxia-gold font-bold text-xs">提示</div>

@@ -1,4 +1,4 @@
-import type { GameResponse, TavernCommand, 世界数据结构, 环境信息结构, 接口设置结构, 世界书结构 } from '../../types';
+import type { GameResponse, TavernCommand, 世界数据结构, 环境信息结构, 接口设置结构, 世界书结构, 记忆系统结构 } from '../../types';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取地图生成接口配置, 获取地图自动更新接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 获取内置世界书槽位内容 } from '../../utils/worldbook';
@@ -6,7 +6,7 @@ import { 地图重生成系统提示词 } from '../../prompts/runtime/mapRegener
 import { 地图重生成COT提示词 } from '../../prompts/runtime/mapRegenerateCot';
 import { 请求模型文本, 规范化文本补全消息链 } from '../../services/ai/chatCompletionClient';
 
-export type 地图更新模式 = 'manual_regenerate' | 'auto_incremental';
+export type 地图更新模式 = 'manual_regenerate' | 'memory_regenerate' | 'auto_incremental';
 
 export type 地图更新进度 = {
     phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
@@ -31,6 +31,7 @@ type 地图更新请求参数 = {
     世界: 世界数据结构;
     社交?: any[];
     角色?: any;
+    记忆系统?: 记忆系统结构;
     worldbooks?: 世界书结构[];
     currentResponse?: GameResponse;
     stateBase?: {
@@ -63,12 +64,66 @@ const 提取响应正文 = (response?: GameResponse): string => (
         .trim()
 );
 
+const 限长文本 = (value: unknown, maxLength: number): string => {
+    const text = 取文本(value);
+    if (!text || text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength)}...`;
+};
+
+const 构建回忆库地图线索 = (memory?: Partial<记忆系统结构> | null): string => {
+    const archives = Array.isArray(memory?.回忆档案) ? memory!.回忆档案 : [];
+    const archiveText = archives
+        .slice(-120)
+        .map((item: any, index: number) => {
+            const round = Number(item?.回合) || index + 1;
+            const title = 取文本(item?.名称) || `回忆${round}`;
+            const time = 取文本(item?.记录时间) || 取文本(item?.时间戳);
+            const summary = 限长文本(item?.概括, 600);
+            const body = 限长文本(item?.原文, 1800);
+            return [
+                `【${title}｜回合 ${round}${time ? `｜${time}` : ''}】`,
+                summary ? `概括：${summary}` : '',
+                body ? `原文：${body}` : ''
+            ].filter(Boolean).join('\n');
+        })
+        .filter(Boolean)
+        .join('\n\n');
+    const longText = (Array.isArray(memory?.长期记忆) ? memory!.长期记忆 : [])
+        .map((item) => 限长文本(item, 900))
+        .filter(Boolean)
+        .join('\n');
+    const midText = (Array.isArray(memory?.中期记忆) ? memory!.中期记忆 : [])
+        .slice(-80)
+        .map((item) => 限长文本(item, 700))
+        .filter(Boolean)
+        .join('\n');
+    const shortText = (Array.isArray(memory?.短期记忆) ? memory!.短期记忆 : [])
+        .slice(-80)
+        .map((item) => 限长文本(item, 500))
+        .filter(Boolean)
+        .join('\n');
+    const immediateText = (Array.isArray(memory?.即时记忆) ? memory!.即时记忆 : [])
+        .slice(-40)
+        .map((item) => 限长文本(item, 900))
+        .filter(Boolean)
+        .join('\n');
+
+    return [
+        archiveText ? `【回忆档案】\n${archiveText}` : '',
+        longText ? `【长期记忆】\n${longText}` : '',
+        midText ? `【中期记忆】\n${midText}` : '',
+        shortText ? `【短期记忆】\n${shortText}` : '',
+        immediateText ? `【近期即时记忆】\n${immediateText}` : ''
+    ].filter(Boolean).join('\n\n').trim();
+};
+
 export const 构建地图更新用户提示词 = (params: {
     mode: 地图更新模式;
     环境?: any;
     世界?: any;
     社交?: any[];
     角色?: any;
+    记忆系统?: 记忆系统结构;
     currentResponse?: GameResponse;
 }): string => {
     const env = params.环境 || {};
@@ -97,6 +152,31 @@ export const 构建地图更新用户提示词 = (params: {
         .join('\n') || '暂无';
     const body = 提取响应正文(params.currentResponse) || '暂无';
     const currentName = 取文本(params.角色?.姓名) || '主角';
+
+    if (params.mode === 'memory_regenerate') {
+        const memoryText = 构建回忆库地图线索(params.记忆系统);
+        return [
+            '你正在执行【旧存档地图适配】任务。旧存档里的旧地图坐标字段已经被清理，请只根据回忆库和当前状态重建新版六层地图树。',
+            '',
+            `当前地点：${currentLocation || '未知'}`,
+            `当前主角：${currentName}`,
+            `当前人物：\n${socialText}`,
+            '',
+            '【已有地图层级数据（如有，请全部保留并整合进新树）】',
+            existingLayerInfo,
+            '',
+            '【回忆库内容】',
+            memoryText || '暂无可用回忆。',
+            '',
+            '请从回忆库中提取所有可长期抵达或反复出现的地点，并重建完整地点层级树。要求：',
+            '1. 根节点必须是 层级:"寰宇" 名称:"诸天万界"。',
+            '2. 地图层级只能是：寰宇、大地点、中地点、小地点、区地点、子地点。',
+            '3. 大地点=世界/大陆/秘境大世界；中地点=大洲/区域；小地点=城镇/山门/村庄；区地点=建筑/地标/街区；子地点=房间/院落/室内空间。',
+            '4. 必须保留已有地图层级中的所有地点；回忆库中出现的明确地点尽量补全父子关系。',
+            '5. 不要生成坐标、道路、建筑列表、地图人物等旧字段。',
+            '6. 只输出 JSON，格式为 {"地点树":[{"名称":"...","层级":"...","父级ID":"父级名称或ID","描述":"..."}]}，不要输出命令。'
+        ].join('\n');
+    }
 
     if (params.mode === 'manual_regenerate') {
         return [
@@ -300,6 +380,7 @@ export const 生成地图更新 = async (
         世界: world,
         社交: social,
         角色: role,
+        记忆系统: params.记忆系统,
         currentResponse: params.currentResponse
     });
     const cotPrompt = 获取内置世界书槽位内容({
@@ -319,7 +400,7 @@ export const 生成地图更新 = async (
         { role: 'user', content: userPrompt }
     ], { 保留System: true, 合并同角色: false });
     const rawText = await 请求模型文本(api as 当前可用接口结构, messages, {
-        temperature: params.mode === 'manual_regenerate' ? 0.7 : 0.35,
+        temperature: params.mode === 'auto_incremental' ? 0.35 : 0.7,
         signal: params.signal,
         streamOptions: params.onDelta
             ? {
@@ -330,7 +411,7 @@ export const 生成地图更新 = async (
         errorDetailLimit: Number.POSITIVE_INFINITY
     });
 
-    if (params.mode === 'manual_regenerate') {
+    if (params.mode === 'manual_regenerate' || params.mode === 'memory_regenerate') {
         const rawNodes = 解析地图重生成节点(rawText);
         const newLayers = 构建地图层级替换结果(rawNodes, world);
         return {
