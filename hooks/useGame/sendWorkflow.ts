@@ -125,6 +125,7 @@ const 执行主剧情流式请求带空闲超时 = async <T,>(
 
     parentSignal.addEventListener('abort', abortByParent, { once: true });
     startTimer();
+
     try {
         return await Promise.race([
             task(requestController.signal, markStreamActivity),
@@ -688,6 +689,9 @@ export const 执行主剧情发送工作流 = async (
     }): Promise<{ completed: boolean; result?: T }> => {
         let manualAttempt = 0;
         while (true) {
+            if (controller.signal.aborted) {
+                throw controller.signal.reason || new DOMException('Aborted', 'AbortError');
+            }
             manualAttempt += 1;
             params.beforeAttempt?.(manualAttempt);
             try {
@@ -696,6 +700,9 @@ export const 执行主剧情发送工作流 = async (
                     action: params.run,
                     onRetry: params.onAutoRetry
                 });
+                if (controller.signal.aborted) {
+                    throw controller.signal.reason || new DOMException('Aborted', 'AbortError');
+                }
                 return { completed: true, result };
             } catch (error: any) {
                 if (error?.name === 'AbortError') {
@@ -728,6 +735,8 @@ export const 执行主剧情发送工作流 = async (
             }
         }
     };
+
+    let 后台队列已启动 = false;
 
     try {
         const recallContextActiveForMain = recallFeatureEnabled && Boolean(recallTag);
@@ -1055,6 +1064,7 @@ export const 执行主剧情发送工作流 = async (
         });
 
         deps.set后台队列处理中(true);
+        后台队列已启动 = true;
         void (async () => {
             try {
                 if (deps.文章优化功能已开启()) {
@@ -1453,7 +1463,8 @@ export const 执行主剧情发送工作流 = async (
                             角色: simulatedState.角色,
                             worldbooks: currentState.世界书列表,
                             currentResponse: mapContextResponse,
-                            stateBase: simulatedState
+                            stateBase: simulatedState,
+                            signal: controller.signal
                         });
                         if (result.phase === 'error') {
                             const wrappedError = new Error(result.statusText || '地图更新失败');
@@ -1482,7 +1493,7 @@ export const 执行主剧情发送工作流 = async (
                     }
                 });
                 mapUpdateResult = mapUpdateStage.result || null;
-                if (!本次仍是最新前台回合) {
+                if (!本次仍是最新前台回合()) {
                     options?.onMapUpdateProgress?.({
                         phase: "skipped",
                         text: "新的正文回合已经开始，本轮地图更新结果已作为过期后台结果丢弃。"
@@ -1609,6 +1620,9 @@ export const 执行主剧情发送工作流 = async (
                 });
             } finally {
                 deps.set后台队列处理中(false);
+                if (deps.abortControllerRef.current === controller) {
+                    deps.abortControllerRef.current = null;
+                }
             }
         })();
         return { attachedRecallPreview };
@@ -1670,7 +1684,9 @@ export const 执行主剧情发送工作流 = async (
         };
     } finally {
         deps.setLoading(false);
-        deps.abortControllerRef.current = null;
+        if (!后台队列已启动 && deps.abortControllerRef.current === controller) {
+            deps.abortControllerRef.current = null;
+        }
         deps.recallAbortControllerRef.current = null;
     }
 };
