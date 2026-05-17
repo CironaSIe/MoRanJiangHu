@@ -1,5 +1,6 @@
 package com.moranjianghu.game;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -171,13 +172,24 @@ public class ApkUpdaterPlugin extends Plugin {
             apkFile
         );
 
-        Intent intent = new Intent(Intent.ACTION_INSTALL_PACKAGE);
-        intent.setData(apkUri);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
-        intent.putExtra(Intent.EXTRA_RETURN_RESULT, true);
-        getContext().startActivity(intent);
+        Intent installIntent = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+        installIntent.setData(apkUri);
+        installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        installIntent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+        installIntent.putExtra(Intent.EXTRA_RETURN_RESULT, true);
+
+        try {
+            getContext().startActivity(installIntent);
+            return;
+        } catch (ActivityNotFoundException | SecurityException firstError) {
+            Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+            viewIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            viewIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            viewIntent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+            getContext().startActivity(viewIntent);
+        }
     }
 
     private void notifyUpdateProgress(
