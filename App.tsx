@@ -17,6 +17,7 @@ import { 记忆精炼系统提示词 } from './prompts/runtime/memoryRefine';
 import { 地图重生成系统提示词 } from './prompts/runtime/mapRegenerate';
 import { 地图重生成COT提示词 } from './prompts/runtime/mapRegenerateCot';
 import { 获取内置世界书槽位内容 } from './utils/worldbook';
+import { 生成地图更新 } from './hooks/useGame/mapUpdateWorkflow';
 import { 构建字体注入样式文本, 构建UI文字CSS变量 } from './utils/visualSettings';
 import { 获取图片资源文本地址, 读取远程图片兜底资源ID } from './utils/imageAssets';
 import { 生成物品图标 } from './services/ai/itemImageGeneration';
@@ -1952,6 +1953,55 @@ const App: React.FC = () => {
     const stableRefineMemories = React.useCallback((rounds: number[]) =>
         handleRefineMemoriesRef.current(rounds)
     , []);
+    const handleRegenerateMapFromMemory = React.useCallback(async (onDelta: (delta: string) => void): Promise<{ ok: boolean; message: string }> => {
+        const memory = state.记忆系统;
+        const memoryCount = [
+            Array.isArray(memory?.回忆档案) ? memory.回忆档案.length : 0,
+            Array.isArray(memory?.即时记忆) ? memory.即时记忆.length : 0,
+            Array.isArray(memory?.短期记忆) ? memory.短期记忆.length : 0,
+            Array.isArray(memory?.中期记忆) ? memory.中期记忆.length : 0,
+            Array.isArray(memory?.长期记忆) ? memory.长期记忆.length : 0
+        ].reduce((sum, count) => sum + count, 0);
+        if (memoryCount <= 0) {
+            return { ok: false, message: '当前存档没有可用于解析地图的回忆内容。' };
+        }
+        try {
+            setMapRegenerateRawText('');
+            const result = await 生成地图更新({
+                mode: 'memory_regenerate',
+                apiSettings: apiConfigRef.current,
+                环境: state.环境,
+                世界: state.世界,
+                社交: state.社交,
+                角色: safeCharacter,
+                记忆系统: memory,
+                worldbooks: meta.worldbooks,
+                onDelta: (delta: string) => {
+                    setMapRegenerateRawText((prev: string) => prev + delta);
+                    onDelta(delta);
+                }
+            });
+            if (!result.ok || !Array.isArray(result.newLayers) || result.newLayers.length === 0) {
+                throw new Error(result.statusText || '未生成有效地图节点');
+            }
+
+            const nextWorld: any = { ...(state.世界 || {}) };
+            nextWorld.地图层级 = result.newLayers;
+            nextWorld.地图 = [];
+            nextWorld.建筑 = [];
+            nextWorld.地图建筑 = [];
+            nextWorld.地图道路 = [];
+            nextWorld.地图人物 = [];
+            setters.setWorld(nextWorld);
+            worldRef.current = nextWorld;
+            setMapRegenerateRawText(result.rawText || '');
+            void actions.performAutoSave?.({ world: nextWorld, force: true });
+            return { ok: true, message: `已从回忆库重建 ${result.newLayers.length} 个地点节点。` };
+        } catch (error: any) {
+            const errorMsg = error?.message || '未知错误';
+            return { ok: false, message: errorMsg };
+        }
+    }, [actions, meta.worldbooks, safeCharacter, setters, state.世界, state.环境, state.社交, state.记忆系统]);
     const handleRegenerateMap = React.useCallback(async (): Promise<boolean> => {
         const currentEnv = state.环境;
         const currentSocial = state.社交;
@@ -3056,6 +3106,7 @@ const App: React.FC = () => {
                             onSaveMemory={actions.saveMemorySettings}
                             onDeleteMemory={handleDeleteMemory}
                             onRefineMemories={stableRefineMemories}
+                            onRegenerateMapFromMemory={handleRegenerateMapFromMemory}
                             onCreateNpc={actions.createNpcManually}
                             onSaveNpc={actions.updateNpcManually}
                             onDeleteNpc={actions.deleteNpcManually}
@@ -3095,6 +3146,7 @@ const App: React.FC = () => {
                             onSaveMemory={actions.saveMemorySettings}
                             onDeleteMemory={handleDeleteMemory}
                             onRefineMemories={handleRefineMemories}
+                            onRegenerateMapFromMemory={handleRegenerateMapFromMemory}
                             onCreateNpc={actions.createNpcManually}
                             onSaveNpc={actions.updateNpcManually}
                             onDeleteNpc={actions.deleteNpcManually}
