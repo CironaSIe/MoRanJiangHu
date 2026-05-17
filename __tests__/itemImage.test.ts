@@ -158,6 +158,43 @@ describe('item image prompt classification', () => {
         expect(negativePrompt).toContain('polished leather shoe');
     });
 
+    it('renders old straw sandals as empty footwear without people or feet', () => {
+        const item = {
+            名称: '旧草鞋',
+            类型: '防具',
+            品质: '凡品',
+            描述: '一双磨旧的草鞋，草绳已经有些松散。'
+        };
+        const prompt = 构建物品图提示词(item);
+        const negativePrompt = 构建物品负面提示词(item);
+
+        expect(prompt).toContain('old straw sandals');
+        expect(prompt).toContain('strict empty footwear prop only');
+        expect(prompt).toContain('unworn product still life');
+        expect(prompt).not.toMatch(/\b(?:no|not)\b/i);
+        expect(negativePrompt).toContain('feet');
+        expect(negativePrompt).toContain('person wearing shoes');
+    });
+
+    it('renders bandages as dressing supplies without portraits or body parts', () => {
+        const item = {
+            名称: '绷带',
+            类型: '消耗品',
+            品质: '凡品',
+            描述: '用于包扎伤口的干净布条。'
+        };
+        const prompt = 构建物品图提示词(item);
+        const negativePrompt = 构建物品负面提示词(item);
+
+        expect(prompt).toContain('rolled medical bandage');
+        expect(prompt).toContain('strict bandage dressing prop only');
+        expect(prompt).toContain('first-aid supply still life');
+        expect(prompt).not.toMatch(/\b(?:no|not)\b/i);
+        expect(negativePrompt).toContain('framed portrait');
+        expect(negativePrompt).toContain('body part');
+        expect(negativePrompt).toContain('hand wrapping bandage');
+    });
+
     it('keeps real defensive gear classified as armor', () => {
         const prompt = 构建物品图提示词({
             名称: '精铁护腕',

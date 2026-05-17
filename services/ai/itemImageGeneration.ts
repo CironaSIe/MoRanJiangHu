@@ -140,6 +140,17 @@ const 物品是否布鞋 = (item: any): boolean => {
     return /布鞋|旧布鞋|千层底|布靴|麻鞋|草鞋/.test(text);
 };
 
+const 物品是否绷带敷料 = (item: any): boolean => {
+    const text = [
+        item?.名称,
+        item?.类型,
+        item?.描述,
+        item?.视觉描述,
+        Array.isArray(item?.视觉标签) ? item.视觉标签.join(' ') : ''
+    ].map((value) => 读取文本(value)).join(' ');
+    return /绷带|纱布|布条|包扎布|止血布|敷料|药棉|棉布卷|白布卷/.test(text);
+};
+
 const 物品是否坐骑生物 = (item: any): boolean => {
     const text = [
         item?.名称,
@@ -241,8 +252,14 @@ const 物品名称转英文描述 = (name: string): string => {
         '长袍': 'long robe, soft fabric garment',
         '内衬': 'inner cloth lining garment, soft fabric clothing',
         '长裤': 'cloth trousers, folded fabric clothing',
+        '旧草鞋': 'a pair of old straw sandals, woven straw footwear, two worn empty sandals placed side by side',
+        '草鞋': 'a pair of straw sandals, woven straw footwear, two empty sandals placed side by side',
+        '旧布鞋': 'a pair of old cloth shoes, worn fabric footwear, two empty shoes placed side by side',
         '布鞋': 'cloth shoes, woven fabric upper, layered stitched cloth sole, soft worn fabric footwear',
         '靴': 'boots, leather or cloth footwear',
+        '绷带': 'rolled medical bandage, folded white cloth strip roll, gauze bandage spool, clean first-aid fabric supply',
+        '纱布': 'folded sterile gauze pads and rolled gauze bandage, white medical dressing cloth',
+        '止血布': 'folded hemostatic cloth dressing, white fabric bandage roll, first-aid supply',
         '木牌': 'wooden plaque tablet', '身份木牌': 'wooden identity plaque with carved text',
         '令牌': 'metal command token', '腰牌': 'waist badge token',
         '铜牌': 'bronze badge', '铁牌': 'iron plaque',
@@ -301,6 +318,8 @@ const 构建物品视觉主体描述 = (item: any): string => {
     const name = 读取文本(item?.名称);
     const isLivingMount = 物品是否坐骑生物(item);
     const isWeapon = 物品是否武器(item);
+    const isClothShoe = 物品是否布鞋(item);
+    const isBandageDressing = 物品是否绷带敷料(item);
     const isSoftGarment = 物品是否柔性服装(item);
     const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isAncientMedicine = 物品是否古代药物(item);
@@ -318,6 +337,8 @@ const 构建物品视觉主体描述 = (item: any): string => {
             : (nameEn ? `a single ${qualityEn} ${nameEn}` : `a single ${qualityEn} ${typeEn} prop`),
         isLivingMount ? 'alive organic animal anatomy, natural fur coat, visible eyes, nostrils, mane or tail, standing on real ground, full body animal portrait' : '',
         isWeapon ? 'strict traditional weapon prop: blade, edge, hilt, handle, grip, shaft or scabbard clearly visible; if the name mentions gathering herbs, render the cutting tool itself, not herbs or plants' : '',
+        isClothShoe ? 'strict footwear prop: a pair of empty shoes or sandals placed side by side, visible soles and woven fabric or straw texture, unworn product still life' : '',
+        isBandageDressing ? 'strict first-aid dressing prop: standalone rolled bandage or folded gauze cloth, white fabric strip spool, clean product still life' : '',
         isSoftGarment ? 'soft textile clothing item, fabric seams, cloth folds, woven texture, flexible silhouette' : '',
         isWearableArmor ? 'strict wearable armor garment: torso vest shape, chest panel, back panel, shoulder straps, arm openings, waist hem, fitted to human upper body silhouette, displayed flat or on a simple invisible dress form' : '',
         isAncientMedicine ? 'ancient Chinese medicine presentation, herbal powder or pills, folded paper packet, cloth sachet, small ceramic medicine vial, apothecary prop, pre-modern wuxia era' : '',
@@ -332,11 +353,12 @@ export const 构建物品负面提示词 = (item: any): string => {
     const isSoftGarment = 物品是否柔性服装(item);
     const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isClothShoe = 物品是否布鞋(item);
+    const isBandageDressing = 物品是否绷带敷料(item);
     const isLivingMount = 物品是否坐骑生物(item);
     const isAncientMedicine = 物品是否古代药物(item);
     const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
     return [
-        isLivingMount ? 'rider, saddle covering the body, harness covering the body, cart, carriage, vehicle, boat' : 'person, human, face, hand',
+        isLivingMount ? 'rider, saddle covering the body, harness covering the body, cart, carriage, vehicle, boat' : 'person, human, face, hand, foot, feet, body part, skin, portrait, headshot, framed portrait, photo frame, picture frame',
         isLivingMount ? 'toy horse, plastic horse, resin figurine, statue, sculpture, ceramic, porcelain, model horse, miniature, collectible figurine, carousel horse, rocking horse, fake animal, mannequin, doll, glossy plastic, product prop, studio toy photography' : '',
         isLivingMount ? '' : 'toy, plastic figurine, resin model, statue, sculpture, mannequin',
         'text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, logo, watermark, signature, title, poster text',
@@ -349,7 +371,8 @@ export const 构建物品负面提示词 = (item: any): string => {
         isSoftGarment ? 'armor, cuirass, breastplate, metal armor, metal plates, gauntlet, shield, helmet, hard shell, leather jacket, shiny leather garment' : '',
         isAncientMedicine ? 'weapon, blade, sword, dagger, knife, armor plate, metal weapon, hardware tool, industrial object, modern container, syringe, capsule bottle, plastic medical bottle, laboratory vial' : '',
         isBotanicalHerb ? 'machine, mechanism, tool, container, box, bottle, vial, weapon, armor, toy, controller, manufactured object, plastic, metal gadget' : '',
-        isClothShoe ? 'leather dress shoe, polished leather shoe, oxford shoe, loafer, business shoe, high heel, glossy leather, hard stacked heel' : ''
+        isClothShoe ? 'feet, toes, legs, socks, person wearing shoes, shoe model, leather dress shoe, polished leather shoe, oxford shoe, loafer, business shoe, high heel, glossy leather, hard stacked heel' : '',
+        isBandageDressing ? 'patient, wounded person, nurse, doctor, face, portrait, hand wrapping bandage, arm, leg, injury, blood, hospital bed, medical scene, photo frame, framed portrait' : ''
     ].filter(Boolean).join(', ');
 };
 
@@ -361,6 +384,8 @@ export const 构建物品图提示词 = (
     const renderStyle = options?.渲染风格 || '写实道具';
     const isLivingMount = 物品是否坐骑生物(item);
     const isWeapon = 物品是否武器(item);
+    const isClothShoe = 物品是否布鞋(item);
+    const isBandageDressing = 物品是否绷带敷料(item);
     const isSoftGarment = 物品是否柔性服装(item);
     const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isAncientMedicine = 物品是否古代药物(item);
@@ -385,6 +410,8 @@ export const 构建物品图提示词 = (
         获取渲染风格要求(renderStyle),
         style === '写实' ? 'photorealistic' : style,
         isWeapon ? 'strict traditional wuxia weapon prop only: blade, hilt, handle, grip, shaft or scabbard must be the main subject; herb-related words describe use or wear, not the object category' : '',
+        isClothShoe ? 'strict empty footwear prop only: two unworn sandals or cloth shoes side by side, product still life' : '',
+        isBandageDressing ? 'strict bandage dressing prop only: standalone rolled gauze bandage or folded cloth strips, first-aid supply still life' : '',
         isAncientMedicine ? 'strict ancient wuxia medicine prop only: folded paper medicine packet, small cloth sachet, ceramic medicine vial, herbal powder or pills; absolutely pre-modern, no modern technology' : '',
         isBotanicalHerb ? 'strict botanical herb or flower only: natural plant specimen, visible petals leaves roots or stems, organic plant anatomy, not a manufactured object' : '',
         isWearableArmor ? 'strict wearable armor item: upper-body vest or cuirass garment shape, sleeveless torso armor with arm holes, shoulder straps, chest and back panels, waist hem; product photo of clothing-shaped protective gear' : '',
@@ -416,6 +443,8 @@ export const 生成物品图标 = async (
     const enrichedItemIsSoftGarment = 物品是否柔性服装(enrichedItem);
     const enrichedItemIsLivingMount = 物品是否坐骑生物(enrichedItem);
     const enrichedItemIsWeapon = 物品是否武器(enrichedItem);
+    const enrichedItemIsClothShoe = 物品是否布鞋(enrichedItem);
+    const enrichedItemIsBandageDressing = 物品是否绷带敷料(enrichedItem);
     const enrichedItemIsAncientMedicine = 物品是否古代药物(enrichedItem);
     const prompt = 构建物品图提示词(enrichedItem, {
         画风: style,
@@ -433,6 +462,10 @@ export const 生成物品图标 = async (
             ? 'real living animal, alive mount, full body animal portrait, natural fur, organic anatomy, standing on real ground, no toy, no statue'
             : enrichedItemIsWeapon
             ? 'single physical traditional wuxia weapon prop, blade and handle clearly visible, weapon silhouette, metal or wood materials, no plant as main subject, photorealistic product photo, neutral matte studio background'
+            : enrichedItemIsClothShoe
+            ? 'single pair of empty cloth shoes or straw sandals, footwear prop, side by side, unworn product still life, photorealistic product photo, neutral matte studio background'
+            : enrichedItemIsBandageDressing
+            ? 'rolled gauze bandage and folded white cloth dressing, standalone first-aid supply still life, photorealistic product photo, neutral matte studio background'
             : !enrichedItemIsAncientMedicine && 物品是否草药植物(enrichedItem)
             ? 'botanical medicinal herb specimen, natural plant anatomy, petals leaves roots or stems, single organic flower or herb, pre-modern wuxia material, photorealistic product photo, neutral matte studio background'
             : enrichedItemIsAncientMedicine
