@@ -20,7 +20,7 @@ import { 获取内置世界书槽位内容 } from './utils/worldbook';
 import { 构建字体注入样式文本, 构建UI文字CSS变量 } from './utils/visualSettings';
 import { 获取图片资源文本地址, 读取远程图片兜底资源ID } from './utils/imageAssets';
 import { 生成物品图标 } from './services/ai/itemImageGeneration';
-import { 合并物品图片档案, 获取物品远程图床地址, 物品已有可用图标 } from './utils/itemImage';
+import { 合并物品图片档案, 物品已有可用图标 } from './utils/itemImage';
 import { 生图最大自动重试次数, 执行生图模型调用带重试, 读取生图错误文本 } from './utils/imageGenerationRetry';
 import { 丢弃背包物品, 是否杂物类物品 } from './utils/inventoryActions';
 import { MusicProvider } from './components/features/Music/MusicProvider';
@@ -32,7 +32,7 @@ import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
-import { 获取本地图片图床迁移状态, 读取图片资源兜底地址, 确保远程图片本地兜底, 订阅本地图片图床迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
+import { 获取本地图片图床迁移状态, 读取图片资源兜底地址, 订阅本地图片图床迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
 import { startOnlinePresenceHeartbeat } from './services/onlinePresence';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
@@ -46,6 +46,7 @@ const DESKTOP_DETAIL_RIGHT_GAP = 12;
 const ITEM_AUTO_IMAGE_RETRY_INTERVAL = 10 * 60 * 1000;
 const ITEM_AUTO_IMAGE_AFTER_CHARACTER_SCENE_IDLE_DELAY = 2500;
 const ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL = 10 * 60 * 1000;
+const DIAGNOSTIC_ERROR_TOAST_COOLDOWN_MS = 90 * 1000;
 const IMAGE_TASK_BUSY_STATES = new Set(['queued', 'running']);
 
 const getDesktopDetailDefaultWidth = (_panelId: string | null): number => {
@@ -450,6 +451,7 @@ const App: React.FC = () => {
     const autoItemImageFailedAtRef = React.useRef<Map<string, number>>(new Map());
     const auctionSettlementHandledRef = React.useRef<Set<string>>(new Set());
     const 最近运行报错提示IDRef = React.useRef('');
+    const 最近运行报错提示时间Ref = React.useRef(0);
     const legacyImageMigrationNoticeStageRef = React.useRef(legacyImageMigrationStatus.stage);
     const auctionHouseScope = React.useMemo(() => 构建拍卖行存储作用域({
         游戏初始时间: state.游戏初始时间,
@@ -473,7 +475,6 @@ const App: React.FC = () => {
     React.useEffect(() => subscribeAppUpdateProgress(setAppUpdateProgress), []);
     React.useEffect(() => startOnlinePresenceHeartbeat(), []);
     React.useEffect(() => {
-        const 正在回源的图床地址 = new Set<string>();
         const handleImageError = (event: Event) => {
             const target = event.target;
             if (!(target instanceof HTMLImageElement)) return;
@@ -486,28 +487,9 @@ const App: React.FC = () => {
                 if (fallbackSrc) target.src = fallbackSrc;
             });
         };
-        const handleImageLoad = (event: Event) => {
-            const target = event.target;
-            if (!(target instanceof HTMLImageElement)) return;
-            const sourceUrl = target.currentSrc || target.src;
-            if (!/^https?:\/\//i.test(sourceUrl)) return;
-            if (正在回源的图床地址.has(sourceUrl)) return;
-            正在回源的图床地址.add(sourceUrl);
-            void 确保远程图片本地兜底(sourceUrl)
-                .catch((error) => {
-                    console.warn('图床图片本地兜底下载失败:', error);
-                })
-                .finally(() => {
-                    正在回源的图床地址.delete(sourceUrl);
-                });
-        };
         window.addEventListener('error', handleImageError, true);
-        window.addEventListener('load', handleImageLoad, true);
-        document.addEventListener('load', handleImageLoad, true);
         return () => {
             window.removeEventListener('error', handleImageError, true);
-            window.removeEventListener('load', handleImageLoad, true);
-            document.removeEventListener('load', handleImageLoad, true);
         };
     }, []);
     React.useEffect(() => 订阅本地图片图床迁移状态((status) => {
@@ -526,7 +508,13 @@ const App: React.FC = () => {
                 return Number.isFinite(entryTime) && entryTime >= subscribedAt;
             });
             if (!latestError || 最近运行报错提示IDRef.current === latestError.id) return;
+            const now = Date.now();
+            if (now - 最近运行报错提示时间Ref.current < DIAGNOSTIC_ERROR_TOAST_COOLDOWN_MS) {
+                最近运行报错提示IDRef.current = latestError.id;
+                return;
+            }
             最近运行报错提示IDRef.current = latestError.id;
+            最近运行报错提示时间Ref.current = now;
             actions.pushNotification({
                 title: '运行报错已记录',
                 message: '可打开“设置 → 运行日志”查看详情、复制诊断或点击“上报日志”提交给维护人员。',
@@ -1153,24 +1141,9 @@ const App: React.FC = () => {
             auctionId?: string;
         }> = [];
 
-        const 确保远程物品图本地兜底 = (item: 游戏物品) => {
-            const remoteUrl = 获取物品远程图床地址(item);
-            if (!remoteUrl || 读取远程图片兜底资源ID(remoteUrl)) return;
-            void 确保远程图片本地兜底(remoteUrl).catch((error) => {
-                recordDiagnosticLog('warn', '[物品自动生图] 远程图床本地兜底下载失败', {
-                    itemName: (item as any)?.名称 || '无名物品',
-                    remoteUrl,
-                    error: error?.message || String(error)
-                });
-            });
-        };
-
         bagItems.forEach((item: 游戏物品) => {
             if (!item) return;
-            if (物品已有可用图标(item)) {
-                确保远程物品图本地兜底(item);
-                return;
-            }
+            if (物品已有可用图标(item)) return;
             candidates.push({
                 key: 获取物品自动生图Key('bag', item),
                 item,
@@ -1179,10 +1152,7 @@ const App: React.FC = () => {
         });
         auctionItems.forEach((auction: any) => {
             if (auction?.状态 !== '上架中' || !auction?.物品) return;
-            if (物品已有可用图标(auction.物品)) {
-                确保远程物品图本地兜底(auction.物品);
-                return;
-            }
+            if (物品已有可用图标(auction.物品)) return;
             candidates.push({
                 key: 获取物品自动生图Key('auction', auction.物品, auction.ID),
                 item: auction.物品,

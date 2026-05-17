@@ -246,6 +246,13 @@ const writeAutoReportState = (state: { lastAt: number; lastErrorId: string }) =>
 };
 
 export const submitAutomaticErrorDiagnosticReport = async (reason?: string): Promise<DiagnosticReportResult | null> => {
+    // 自动上报在 Android WebView 中容易被本机 localhost 路由放大成重复错误。
+    // 诊断上报改为用户在日志页手动触发，避免后台网络失败刷屏。
+    void reason;
+    return null;
+};
+
+export const submitAutomaticErrorDiagnosticReportDisabled = async (reason?: string): Promise<DiagnosticReportResult | null> => {
     const logs = getDiagnosticLogs().slice(0, 200);
     const latestError = logs.find((entry) => entry.level === 'error');
     if (!latestError) return null;

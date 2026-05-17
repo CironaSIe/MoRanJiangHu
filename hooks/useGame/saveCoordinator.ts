@@ -34,6 +34,60 @@ import {
 } from '../../services/auctionHouse';
 import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
 
+const 收集图床图片地址 = (
+    value: unknown,
+    urls: Set<string>,
+    seen: WeakSet<object> = new WeakSet()
+): void => {
+    if (typeof value === 'string') {
+        const text = value.trim();
+        if (/^https?:\/\//i.test(text)) urls.add(text);
+        return;
+    }
+    if (!value || typeof value !== 'object') return;
+    if (seen.has(value as object)) return;
+    seen.add(value as object);
+    if (Array.isArray(value)) {
+        value.forEach((item) => 收集图床图片地址(item, urls, seen));
+        return;
+    }
+    Object.values(value as Record<string, unknown>).forEach((child) => 收集图床图片地址(child, urls, seen));
+};
+
+const 后台缓存当前存档图床图片 = (save: 存档结构): void => {
+    if (typeof window === 'undefined') return;
+    const urls = new Set<string>();
+    收集图床图片地址(save.角色数据, urls);
+    收集图床图片地址(save.社交, urls);
+    收集图床图片地址(save.场景图片档案, urls);
+    收集图床图片地址(save.世界, urls);
+    收集图床图片地址(save.拍卖行, urls);
+    if (urls.size === 0) return;
+
+    const queue = Array.from(urls).slice(0, 120);
+    const run = async () => {
+        const poolSize = 2;
+        let cursor = 0;
+        const worker = async () => {
+            while (cursor < queue.length) {
+                const url = queue[cursor++];
+                await dbService.确保远程图片本地兜底(url).catch(() => undefined);
+                await new Promise(resolve => window.setTimeout(resolve, 80));
+            }
+        };
+        await Promise.all(Array.from({ length: poolSize }, () => worker()));
+    };
+
+    const win = window as Window & {
+        requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+    };
+    if (typeof win.requestIdleCallback === 'function') {
+        win.requestIdleCallback(() => void run(), { timeout: 5000 });
+        return;
+    }
+    window.setTimeout(() => void run(), 800);
+};
+
 export type 自动存档快照结构 = {
     history?: 聊天记录结构[];
     role?: 角色数据结构;
@@ -567,4 +621,5 @@ export const 执行读取存档 = async (
     deps.setHasSave(true);
     deps.setView('game');
     deps.setShowSaveLoad({ show: false, mode: 'load' });
+    后台缓存当前存档图床图片(save);
 };

@@ -113,98 +113,102 @@ const LogViewer: React.FC = () => {
     };
 
     return (
-        <div className="h-full flex flex-col animate-fadeIn">
-            <div className="shrink-0 flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-4">
-                <div>
-                    <h3 className="text-wuxia-gold font-serif font-bold text-lg">运行日志</h3>
-                    <div className="text-[11px] text-gray-500 mt-1">
+        <div className="h-full min-h-0 flex flex-col animate-fadeIn">
+            <div className="shrink-0 flex flex-col gap-2 md:gap-3 md:flex-row md:items-start md:justify-between mb-2 md:mb-4">
+                <div className="flex items-center justify-between gap-3 md:block">
+                    <h3 className="text-wuxia-gold font-serif font-bold text-base md:text-lg">运行日志</h3>
+                    <div className="shrink-0 rounded-full border border-gray-700 bg-black/25 px-2 py-0.5 text-[10px] text-gray-300 md:hidden">
+                        {filteredLogs.length}/{logs.length}
+                    </div>
+                    <div className="hidden md:block text-[11px] text-gray-500 mt-1">
                         捕获最近 {logs.length} 条浏览器与应用运行记录，用于排查黑屏、模型异常、存档和发布问题。
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-4 gap-1.5 md:flex md:flex-wrap md:gap-2">
                     <button
                         onClick={handleCopy}
-                        className="px-3 py-2 text-xs rounded-md border border-wuxia-gold/50 text-wuxia-gold bg-[#332812] hover:border-wuxia-gold/80"
+                        className="px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-wuxia-gold/50 text-wuxia-gold bg-[#332812] hover:border-wuxia-gold/80"
                     >
-                        {copied ? '已复制' : '复制诊断'}
+                        {copied ? '已复制' : '复制'}
                     </button>
                     <button
                         onClick={handleExport}
-                        className="px-3 py-2 text-xs rounded-md border border-sky-500/45 text-sky-200 bg-sky-950/25 hover:border-sky-300/60"
+                        className="px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-sky-500/45 text-sky-200 bg-sky-950/25 hover:border-sky-300/60"
                     >
-                        导出 JSON
+                        导出
                     </button>
                     <button
                         onClick={handleSubmitReport}
                         disabled={reporting || filteredLogs.length === 0 || quota.remaining <= 0}
-                        className="px-3 py-2 text-xs rounded-md border border-emerald-500/45 text-emerald-200 bg-emerald-950/25 hover:border-emerald-300/60 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-emerald-500/45 text-emerald-200 bg-emerald-950/25 hover:border-emerald-300/60 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        {reporting ? '上报中...' : '上报日志'}
+                        {reporting ? '上报中' : '上报'}
                     </button>
                     <button
                         onClick={clearDiagnosticLogs}
-                        className="px-3 py-2 text-xs rounded-md border border-red-900/60 text-red-300 bg-red-950/20 hover:bg-red-900/25"
+                        className="px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-red-900/60 text-red-300 bg-red-950/20 hover:bg-red-900/25"
                     >
-                        清空日志
+                        清空
                     </button>
                 </div>
             </div>
 
-            <div className="shrink-0 mb-3 rounded-lg border border-emerald-500/20 bg-emerald-950/10 px-3 py-2 text-xs leading-5 text-emerald-100/85">
-                每台设备每天最多上报 {quota.limit} 次诊断日志，今天已用 {quota.used} 次，剩余 {quota.remaining} 次。上报内容会保存到云端诊断桶，保留 1 个月后过期。
-                {reportMessage && <div className="mt-1 text-wuxia-gold">{reportMessage}</div>}
+            <div className="shrink-0 mb-2 md:mb-3 rounded-md border border-emerald-500/20 bg-emerald-950/10 px-2.5 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs leading-4 md:leading-5 text-emerald-100/85">
+                <span>今日上报 {quota.used}/{quota.limit}，剩余 {quota.remaining} 次。</span>
+                <span className="hidden md:inline"> 上报内容会保存到云端诊断桶，保留 1 个月后过期。</span>
+                {reportMessage && <div className="mt-1 text-wuxia-gold line-clamp-2 md:line-clamp-none">{reportMessage}</div>}
             </div>
 
-            <div className="shrink-0 grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+            <div className="shrink-0 flex gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:grid md:grid-cols-5 md:gap-2 md:overflow-visible md:pb-0 mb-2 md:mb-3">
                 {(['error', 'warn', 'info', 'debug', 'log'] as DiagnosticLogLevel[]).map(item => (
                     <button
                         key={item}
                         onClick={() => setLevel(prev => prev === item ? 'all' : item)}
-                        className={`rounded-md border px-3 py-2 text-left text-xs transition-colors ${levelClassNames[item]} ${level === item ? 'ring-1 ring-wuxia-gold/70' : ''}`}
+                        className={`shrink-0 min-w-[72px] md:min-w-0 rounded-md border px-2 md:px-3 py-1.5 md:py-2 text-left text-[11px] md:text-xs transition-colors ${levelClassNames[item]} ${level === item ? 'ring-1 ring-wuxia-gold/70' : ''}`}
                     >
-                        <div className="font-bold">{levelLabels[item]}</div>
-                        <div className="mt-1 font-mono text-base">{counts[item]}</div>
+                        <div className="font-bold leading-none">{levelLabels[item]}</div>
+                        <div className="mt-1 font-mono text-sm md:text-base leading-none">{counts[item]}</div>
                     </button>
                 ))}
             </div>
 
-            <div className="shrink-0 mb-3 flex flex-col md:flex-row gap-2">
+            <div className="shrink-0 mb-2 md:mb-3 flex flex-row gap-2">
                 <input
                     type="text"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="搜索日志内容 / 错误 / 接口 / 存档"
-                    className="flex-1 bg-black/40 border border-gray-700 p-2.5 text-sm text-white rounded-md outline-none focus:border-wuxia-gold"
+                    className="min-w-0 flex-1 bg-black/40 border border-gray-700 px-2.5 py-2 md:p-2.5 text-xs md:text-sm text-white rounded-md outline-none focus:border-wuxia-gold"
                 />
                 {level !== 'all' && (
                     <button
                         onClick={() => setLevel('all')}
-                        className="px-3 py-2 text-xs rounded-md border border-gray-700 text-gray-300 bg-black/35"
+                        className="shrink-0 px-2.5 md:px-3 py-2 text-[11px] md:text-xs rounded-md border border-gray-700 text-gray-300 bg-black/35"
                     >
-                        显示全部
+                        全部
                     </button>
                 )}
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-black/20 border border-gray-800 rounded-lg p-3 space-y-2">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-black/20 border border-gray-800 rounded-lg p-2 md:p-3 space-y-1.5 md:space-y-2">
                 {filteredLogs.map(entry => {
                     const expanded = expandedId === entry.id;
                     return (
-                        <div key={entry.id} className={`rounded-lg border overflow-hidden ${levelClassNames[entry.level]}`}>
+                        <div key={entry.id} className={`rounded-md md:rounded-lg border overflow-hidden ${levelClassNames[entry.level]}`}>
                             <button
                                 onClick={() => setExpandedId(prev => prev === entry.id ? null : entry.id)}
-                                className="w-full text-left px-3 py-2.5 hover:bg-white/5 transition-colors"
+                                className="w-full text-left px-2.5 md:px-3 py-2 md:py-2.5 hover:bg-white/5 transition-colors"
                             >
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="min-w-0 flex items-center gap-2">
+                                <div className="flex items-start md:items-center justify-between gap-2 md:gap-3">
+                                    <div className="min-w-0 flex items-start md:items-center gap-1.5 md:gap-2">
                                         <span className="shrink-0 rounded border border-current/35 px-1.5 py-0.5 text-[10px]">{levelLabels[entry.level]}</span>
-                                        <span className="truncate text-sm text-gray-100">{entry.message}</span>
+                                        <span className="line-clamp-2 md:truncate text-xs md:text-sm text-gray-100 leading-4">{entry.message}</span>
                                     </div>
-                                    <span className="shrink-0 text-[10px] text-gray-500">{formatTime(entry.time)}</span>
+                                    <span className="shrink-0 max-w-[74px] md:max-w-none text-right text-[9px] md:text-[10px] leading-3 text-gray-500">{formatTime(entry.time)}</span>
                                 </div>
                             </button>
                             {expanded && (
-                                <div className="border-t border-current/15 px-3 py-3">
+                                <div className="border-t border-current/15 px-2.5 md:px-3 py-2.5 md:py-3">
                                     <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed text-gray-300">{entry.detail || entry.message}</pre>
                                 </div>
                             )}

@@ -29,8 +29,6 @@ const logs: DiagnosticLogEntry[] = [];
 const listeners = new Set<Listener>();
 let installed = false;
 let restoredPersistedLogs = false;
-let autoReportTimer: ReturnType<typeof setTimeout> | null = null;
-let autoReportInFlight = false;
 
 const stringifyValue = (value: unknown): string => {
     if (typeof value === 'string') return value;
@@ -87,24 +85,6 @@ const persistLogs = () => {
     }
 };
 
-const scheduleAutomaticErrorReport = (entry: DiagnosticLogEntry) => {
-    if (typeof window === 'undefined' || entry.level !== 'error') return;
-    if (autoReportTimer) {
-        window.clearTimeout(autoReportTimer);
-    }
-    autoReportTimer = window.setTimeout(() => {
-        autoReportTimer = null;
-        if (autoReportInFlight) return;
-        autoReportInFlight = true;
-        import('./diagnosticReport')
-            .then(module => module.submitAutomaticErrorDiagnosticReport(entry.message))
-            .catch(() => undefined)
-            .finally(() => {
-                autoReportInFlight = false;
-            });
-    }, 1500);
-};
-
 export const recordDiagnosticLog = (level: DiagnosticLogLevel, valuesOrFirst: unknown[] | unknown, ...restValues: unknown[]) => {
     restorePersistedLogs();
     const values = Array.isArray(valuesOrFirst) && restValues.length === 0
@@ -126,7 +106,6 @@ export const recordDiagnosticLog = (level: DiagnosticLogLevel, valuesOrFirst: un
     }
     persistLogs();
     emit();
-    scheduleAutomaticErrorReport(entry);
 };
 
 const normalizeLogLevel = (level: unknown): DiagnosticLogLevel => {

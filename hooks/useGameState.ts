@@ -32,7 +32,6 @@ import { THEMES, 应用主题到根元素 } from '../styles/themes';
 import { 创建空接口设置, 规范化接口设置 } from '../utils/apiConfig';
 import { 默认游戏设置, 规范化游戏设置 } from '../utils/gameSettings';
 import { 设置键 } from '../utils/settingsSchema';
-import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 import { 规范化视觉设置 } from '../utils/visualSettings';
 import { 默认图片管理设置, 规范化图片管理设置 } from '../utils/imageManagerSettings';
 import {
@@ -45,26 +44,6 @@ import {
 const 加载默认提示词 = async (): Promise<提示词结构[]> => {
     const mod = await import('../prompts');
     return Array.isArray(mod.默认提示词) ? mod.默认提示词 : [];
-};
-
-const 安排旧图自动迁移 = (task: () => void): (() => void) => {
-    const delay = isNativeCapacitorEnvironment() ? 8000 : 1200;
-    const idleCallback = typeof window !== 'undefined' ? (window as any).requestIdleCallback : undefined;
-    const cancelIdleCallback = typeof window !== 'undefined' ? (window as any).cancelIdleCallback : undefined;
-    let idleHandle: number | null = null;
-    const timeoutHandle = window.setTimeout(() => {
-        if (typeof idleCallback === 'function') {
-            idleHandle = idleCallback(task, { timeout: 15000 });
-            return;
-        }
-        task();
-    }, delay);
-    return () => {
-        window.clearTimeout(timeoutHandle);
-        if (idleHandle !== null && typeof cancelIdleCallback === 'function') {
-            cancelIdleCallback(idleHandle);
-        }
-    };
 };
 
 export const useGameState = () => {
@@ -300,17 +279,10 @@ export const useGameState = () => {
 
     // Init Settings
     useEffect(() => {
-        let cleanup旧图自动迁移: (() => void) | null = null;
         const init = async () => {
             try {
                 await dbService.迁移图片资源到独立存储();
                 await dbService.预热图片资源缓存();
-                cleanup旧图自动迁移 = 安排旧图自动迁移(() => {
-                    void dbService.自动迁移本地图片到图床()
-                        .catch((error) => {
-                            console.error('旧存档本地图片自动图床化失败:', error);
-                        });
-                });
                 const savedTheme = await dbService.读取设置(设置键.应用主题);
                 if (savedTheme && THEMES[savedTheme as ThemePreset]) setCurrentTheme(savedTheme as ThemePreset);
                 const savedApi = await dbService.读取设置(设置键.API配置);
@@ -347,9 +319,6 @@ export const useGameState = () => {
             }
         };
         init();
-        return () => {
-            cleanup旧图自动迁移?.();
-        };
     }, []);
 
     useEffect(() => {
