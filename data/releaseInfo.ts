@@ -23,7 +23,7 @@ export const RELEASE_INFO = {
                 "新增 CNB ComfyUI 代理端点回归测试，并通过 Web 构建与 Worker 函数编译。",
                 "网页端、APK 包和更新清单同步提升到 v1.0.206 / CODE 207。"
             ],
-            "publishedAt": "2026-05-17T10:58:09+08:00"
+            "publishedAt": "2026-05-17T11:00:39+08:00"
         },
         {
             "versionCode": 206,
@@ -2231,7 +2231,7 @@ export const RELEASE_INFO = {
     "r2Bucket": "quark-downloads-bacon",
     "r2Prefix": "moranjianghu",
     "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-    "releasePublishedAt": "2026-05-17T10:58:09+08:00"
+    "releasePublishedAt": "2026-05-17T11:00:39+08:00"
 } as const;
 
 export type ReleaseInfo = typeof RELEASE_INFO;
