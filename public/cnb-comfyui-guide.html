@@ -245,13 +245,21 @@
         <li class="step">
           <div class="num">3</div>
           <div>
+            <h2>经常检查并同步上游更新</h2>
+            <p>Fork 后要时刻留意仓库页面右上角的 <code>同步更新</code>。如果提示上游分支有更新，说明原仓库已经修复或升级了脚本、模型清单、基础镜像配置或默认工作流，请及时点击 <code>同步更新</code>，把自己的 Fork 更新到最新版。</p>
+            <p>建议每次打开 CNB 工作区前先看一眼仓库是否有可同步更新；如果刚同步过更新，请重新打开或重启工作区，让新的启动脚本和配置生效。</p>
+          </div>
+        </li>
+        <li class="step">
+          <div class="num">4</div>
+          <div>
             <h2>找到自己的 CNB 用户名称</h2>
             <p>打开 CNB 个人主页，看左侧头像下方的中文用户名称。这个名称就是 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 里的“CNB 用户名称”，也是后端默认上报的自动连接标识。示例图里应填写的是 <code>培根冲冲冲</code>。</p>
             <img class="guide-image" src="/assets/tutorial/cnb-user-name-guide.png" alt="CNB 个人主页用户名称位置示意图" />
           </div>
         </li>
         <li class="step">
-          <div class="num">4</div>
+          <div class="num">5</div>
           <div>
             <h2>进入工作区等待自动启动</h2>
             <p>进入自己 Fork 后的仓库页面，打开 CNB 工作区。正常情况下不需要手动执行命令，只要等待系统自动执行启动流程即可。终端里看到 <code>[Startup] 正在启动 ComfyUI: ...</code>，说明启动脚本已经跑到最后一步；随后如果看到 <code>ComfyUI 8188 ready</code>、<code>Detected ComfyUI URL: ...</code>、<code>initial sync ok</code>，就表示 ComfyUI 已经启动并把地址上报给 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a>。没有报错时，CNB 通常也会自动弹出打开 ComfyUI 的提示。</p>
@@ -263,7 +271,7 @@ npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-
           </div>
         </li>
         <li class="step">
-          <div class="num">5</div>
+          <div class="num">6</div>
           <div>
             <h2>保持 CNB 工作区页面打开</h2>
             <p>启动后会进入一个 CNB 的 VS Code / workspace 页面，请不要关闭这个页面，它需要一直开着用于保活。页面地址通常类似：</p>
@@ -272,14 +280,14 @@ npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-
           </div>
         </li>
         <li class="step">
-          <div class="num">6</div>
+          <div class="num">7</div>
           <div>
             <h2>回到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 自动发现后端</h2>
             <p>等 CNB 环境启动完成后，回到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 的“自动发现 ComfyUI 后端”，填入自己的 CNB 用户名称并点击刷新列表。用户名称匹配后会显示当前 ComfyUI 域名，并自动回填 API 地址。</p>
           </div>
         </li>
         <li class="step">
-          <div class="num">7</div>
+          <div class="num">8</div>
           <div>
             <h2>开启默认工作流</h2>
             <p>回到 <a class="app-link" href="https://msjh.bacon159.pp.ua/" target="_blank" rel="noopener noreferrer">墨色江湖 bacon159 二创版</a> 的文生图设置，确认 ComfyUI 后端类型已经选中，并打开 <code>使用默认工作流</code>。普通玩家建议优先使用默认工作流，不需要导出或上传任何 workflow JSON。</p>
@@ -287,7 +295,7 @@ npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-
           </div>
         </li>
         <li class="step">
-          <div class="num">8</div>
+          <div class="num">9</div>
           <div>
             <h2>可选：自定义 ComfyUI 工作流</h2>
             <p>只有在你明确想使用自己的 ComfyUI 节点链路时，才需要关闭 <code>使用默认工作流</code>，然后走自定义 workflow 流程。</p>

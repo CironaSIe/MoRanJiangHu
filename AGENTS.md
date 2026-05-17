@@ -56,6 +56,13 @@
 - **No hotfix deploys allowed**: every deploy must increment the version number. Never deploy with the same version number as the previous deploy.
 - If multiple hotfixes are deployed without a version bump, still report the deploy time and note that the version was not bumped.
 
+## Documentation-Only Deployment Rule
+
+- If the only meaningful change is documentation or static guide content, and the user explicitly asks to deploy without updating the version number, do not bump `versionName`, `versionCode`, or `releasePublishedAt`.
+- This exception applies to documentation-only changes such as `public/cnb-comfyui-guide.html`, changelog wording, README/AGENTS updates, or other customer-facing guide text that does not change app behavior, APK contents, update manifest, or runtime code.
+- For documentation-only deploys, still run a local build, deploy the website/Worker with proxy variables cleared, verify the updated public guide URL over HTTPS, and report that the version number was intentionally unchanged because it was a documentation-only deployment.
+- For future documentation-only deploy requests, follow this rule by default once the user explicitly asks to deploy.
+
 ## Local File Reference Rules
 
 - Do not use local-file Markdown or URL links.
