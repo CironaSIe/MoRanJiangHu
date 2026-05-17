@@ -2842,7 +2842,7 @@ const PresetsTabContent: React.FC<TabProps> = ({
                             ...sceneJudgePresets.map((preset) => ({ value: preset.id, label: preset.名称 }))
                         ]}
                         onChange={(value) => { void handleSaveSceneJudgePreset(value); }}
-                        disabled={!onSaveApiConfig || !!busyActionKey || !!activeModelTransformerPreset}
+                        disabled={!onSaveApiConfig || !!busyActionKey}
                     />
                     <div className="text-[10px] text-wuxia-gold/40 font-serif">
                         {activeModelTransformerPreset ? `已使用预设：${activeModelTransformerPreset.名称}` : '未使用模型预设时，此处为默认场景判定预设。'}
@@ -3065,7 +3065,7 @@ const RulesTabContent: React.FC<TabProps> = ({
                             ...sceneJudgePresets.map((preset) => ({ value: preset.id, label: preset.名称 }))
                         ]}
                         onChange={(value) => { void handleSaveSceneJudgePreset(value); }}
-                        disabled={!onSaveApiConfig || !!busyActionKey || !!activeModelTransformerPreset}
+                        disabled={!onSaveApiConfig || !!busyActionKey}
                     />
                     <div className="text-[10px] text-wuxia-gold/40 font-serif">
                         {activeModelTransformerPreset ? `已使用预设：${activeModelTransformerPreset.名称}` : '未启用模型规则集时，此处作为默认场景判定规则。'}

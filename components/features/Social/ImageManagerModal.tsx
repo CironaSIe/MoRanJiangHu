@@ -4584,7 +4584,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                     <div className="space-y-3">
                                         <div className="space-y-2">
                                             <label className="text-[11px] text-wuxia-gold/60 uppercase tracking-wider block">当前生效</label>
-                                            <select value={当前生效NPC预设ID} onChange={(e) => handleSelectDefaultNpcTransformerPreset(e.target.value)} disabled={Boolean(activeModelTransformerPreset)} className="w-full rounded border border-wuxia-gold/20 bg-black/50 px-3 py-2 text-sm text-gray-300 outline-none focus:border-wuxia-gold/50 transition-all font-serif disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <select value={当前生效NPC预设ID} onChange={(e) => handleSelectDefaultNpcTransformerPreset(e.target.value)} className="w-full rounded border border-wuxia-gold/20 bg-black/50 px-3 py-2 text-sm text-gray-300 outline-none focus:border-wuxia-gold/50 transition-all font-serif">
                                                 <option value="">不启用</option>
                                                 {npcTransformerPresets.map((preset) => (
                                                     <option key={preset.id} value={preset.id}>{preset.名称}</option>
@@ -4635,7 +4635,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                     <div className="space-y-3">
                                         <div className="space-y-2">
                                             <label className="text-[11px] text-wuxia-gold/60 uppercase tracking-wider block">当前生效</label>
-                                            <select value={当前生效场景预设ID} onChange={(e) => handleSelectDefaultSceneTransformerPreset(e.target.value)} disabled={Boolean(activeModelTransformerPreset)} className="w-full rounded border border-wuxia-gold/20 bg-black/50 px-3 py-2 text-sm text-gray-300 outline-none focus:border-wuxia-gold/50 transition-all font-serif disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <select value={当前生效场景预设ID} onChange={(e) => handleSelectDefaultSceneTransformerPreset(e.target.value)} className="w-full rounded border border-wuxia-gold/20 bg-black/50 px-3 py-2 text-sm text-gray-300 outline-none focus:border-wuxia-gold/50 transition-all font-serif">
                                                 <option value="">不启用</option>
                                                 {sceneTransformerPresets.map((preset) => (
                                                     <option key={preset.id} value={preset.id}>{preset.名称}</option>
@@ -4686,7 +4686,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                     <div className="space-y-3">
                                         <div className="space-y-2">
                                             <label className="text-[11px] text-wuxia-gold/60 uppercase tracking-wider block">当前生效</label>
-                                            <select value={当前生效场景判定预设ID} onChange={(e) => handleSelectDefaultSceneJudgePreset(e.target.value)} disabled={Boolean(activeModelTransformerPreset)} className="w-full rounded border border-wuxia-gold/20 bg-black/50 px-3 py-2 text-sm text-gray-300 outline-none focus:border-wuxia-gold/50 transition-all font-serif disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <select value={当前生效场景判定预设ID} onChange={(e) => handleSelectDefaultSceneJudgePreset(e.target.value)} className="w-full rounded border border-wuxia-gold/20 bg-black/50 px-3 py-2 text-sm text-gray-300 outline-none focus:border-wuxia-gold/50 transition-all font-serif">
                                                 <option value="">不启用</option>
                                                 {sceneJudgePresets.map((preset) => (
                                                     <option key={preset.id} value={preset.id}>{preset.名称}</option>
