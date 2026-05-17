@@ -69,7 +69,7 @@ export const 判断疑似网络或跨域错误 = (error: any): boolean => {
 const 清理末尾斜杠 = (value: string): string => value.replace(/\/+$/, '');
 
 const 获取运行时代理基础地址 = (): string => {
-    if (typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol)) {
+    if (typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol) && !isNativeCapacitorEnvironment()) {
         return window.location.origin.replace(/\/+$/, '');
     }
     return (RELEASE_INFO.websiteUrl || 'https://msjh.bacon.de5.net').replace(/\/+$/, '');

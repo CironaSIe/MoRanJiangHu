@@ -8,6 +8,8 @@ type 后端注册表响应 = {
 
 const normalizeUrl = (value: string): string => value.trim().replace(/\/+$/, '');
 const CONNECTION_STATS_STORAGE_KEY = 'moranjianghu.imageBackendConnectionStats.v1';
+const UNAVAILABLE_BACKENDS_STORAGE_KEY = 'moranjianghu.imageBackendUnavailable.v1';
+const UNAVAILABLE_BACKEND_TTL_MS = 10 * 60 * 1000;
 
 export type ImageBackendConnectionTarget = 'main' | 'scene' | 'nsfw' | 'global';
 
@@ -24,6 +26,56 @@ const canUseLocalStorage = (): boolean => (
 );
 
 export const normalizeDiscoveredBackendUrl = (value?: string): string => normalizeUrl(value || '');
+
+const readUnavailableBackends = (): Record<string, number> => {
+    if (!canUseLocalStorage()) return {};
+    try {
+        const raw = window.localStorage.getItem(UNAVAILABLE_BACKENDS_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        if (!parsed || typeof parsed !== 'object') return {};
+        const now = Date.now();
+        return Object.fromEntries(
+            Object.entries(parsed as Record<string, unknown>)
+                .map(([key, value]) => [normalizeDiscoveredBackendUrl(key), Math.max(0, Number(value) || 0)] as const)
+                .filter(([key, value]) => key && now - value < UNAVAILABLE_BACKEND_TTL_MS)
+        );
+    } catch {
+        return {};
+    }
+};
+
+const writeUnavailableBackends = (items: Record<string, number>): void => {
+    if (!canUseLocalStorage()) return;
+    try {
+        window.localStorage.setItem(UNAVAILABLE_BACKENDS_STORAGE_KEY, JSON.stringify(items));
+    } catch {
+        // localStorage may be full; failing to remember an unavailable backend should not break image generation.
+    }
+};
+
+export const recordImageBackendConnectionFailure = (backend: Partial<发现图片后端记录结构> | string): void => {
+    const url = normalizeDiscoveredBackendUrl(typeof backend === 'string' ? backend : backend.url);
+    if (!url) return;
+    writeUnavailableBackends({
+        ...readUnavailableBackends(),
+        [url]: Date.now()
+    });
+};
+
+export const clearImageBackendConnectionFailure = (backend: Partial<发现图片后端记录结构> | string): void => {
+    const url = normalizeDiscoveredBackendUrl(typeof backend === 'string' ? backend : backend.url);
+    if (!url) return;
+    const items = readUnavailableBackends();
+    if (!(url in items)) return;
+    delete items[url];
+    writeUnavailableBackends(items);
+};
+
+export const isImageBackendRecentlyUnavailable = (backend: Partial<发现图片后端记录结构> | string): boolean => {
+    const url = normalizeDiscoveredBackendUrl(typeof backend === 'string' ? backend : backend.url);
+    if (!url) return false;
+    return url in readUnavailableBackends();
+};
 
 const buildBackendStatKeys = (
     target: ImageBackendConnectionTarget,
@@ -87,6 +139,7 @@ export const recordImageBackendConnectionSuccess = (
     target: Exclude<ImageBackendConnectionTarget, 'global'>,
     backend: Partial<发现图片后端记录结构> | string
 ): ImageBackendConnectionStats => {
+    clearImageBackendConnectionFailure(backend);
     const keys = buildBackendStatKeys(target, backend);
     if (!keys.length) return readImageBackendConnectionStats();
     const now = Date.now();
@@ -108,6 +161,11 @@ export const sortDiscoveredImageBackendsByPreference = (
     stats: ImageBackendConnectionStats = readImageBackendConnectionStats()
 ): 发现图片后端记录结构[] => {
     return [...items].sort((a, b) => {
+        const unavailableA = isImageBackendRecentlyUnavailable(a) ? 1 : 0;
+        const unavailableB = isImageBackendRecentlyUnavailable(b) ? 1 : 0;
+        if (unavailableA !== unavailableB) {
+            return unavailableA - unavailableB;
+        }
         const matchedA = a.connectTokenMatched === true ? 1 : 0;
         const matchedB = b.connectTokenMatched === true ? 1 : 0;
         if (matchedA !== matchedB) {

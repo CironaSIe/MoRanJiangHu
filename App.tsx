@@ -46,9 +46,9 @@ const DESKTOP_DETAIL_RIGHT_GAP = 12;
 const ITEM_AUTO_IMAGE_RETRY_INTERVAL = 10 * 60 * 1000;
 const ITEM_AUTO_IMAGE_AFTER_CHARACTER_SCENE_IDLE_DELAY = 2500;
 const ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL = 10 * 60 * 1000;
+const ITEM_AUTO_IMAGE_BACKEND_FAILURE_COOLDOWN_MS = 15 * 60 * 1000;
 const DIAGNOSTIC_ERROR_TOAST_COOLDOWN_MS = 90 * 1000;
 const IMAGE_TASK_BUSY_STATES = new Set(['queued', 'running']);
-
 const getDesktopDetailDefaultWidth = (_panelId: string | null): number => {
     return DESKTOP_DETAIL_MAX_WIDTH;
 };
@@ -58,6 +58,10 @@ const 获取物品自动生图Key = (scope: 'bag' | 'auction', item: any, ownerI
     ownerId || '',
     item?.ID || item?.名称 || 'unknown'
 ].join(':');
+
+const 是生图后端不可用错误文本 = (message: string): boolean => (
+    /ComfyUI\s*未返回\s*prompt_id|ComfyUI\s*连接失败|不是可用的\s*ComfyUI|HTTP\s*200.*text\/html|Content-Type:\s*text\/html|服务端返回的是\s*HTML|地址已失效|地址失效|工作区休眠|登录页|代理页面|错误页面|CNB\s*8188/i.test(message)
+);
 
 type 物品自动生图近期结果 = {
     completedAt: number;
@@ -413,7 +417,20 @@ const App: React.FC = () => {
     const [showNovelExport, setShowNovelExport] = React.useState(false);
     const [mapRegenerateRawText, setMapRegenerateRawText] = React.useState('');
     const [showAuctionHouse, setShowAuctionHouse] = React.useState(false);
-    const [auctionHouseState, setAuctionHouseState] = React.useState<拍卖行状态>(() => 读取拍卖行状态());
+    const [auctionHouseState, setAuctionHouseState] = React.useState<拍卖行状态>(() => {
+        try {
+            return 读取拍卖行状态();
+        } catch (error) {
+            recordDiagnosticLog('warn', ['拍卖行初始化失败，已使用空状态兜底', error]);
+            return 清理并补货({
+                拍卖品列表: [],
+                交易记录: [],
+                最近补货时间: 0,
+                行情列表: [],
+                最近行情时间: 0
+            }, { 允许系统补货: false });
+        }
+    });
     const [showMobileMusic, setShowMobileMusic] = React.useState(false);
     const [chatContentHidden, setChatContentHidden] = React.useState(false);
     const [sceneQuickGenHint, setSceneQuickGenHint] = React.useState(false);
@@ -449,6 +466,7 @@ const App: React.FC = () => {
     const autoItemImageScheduledRef = React.useRef<Set<string>>(new Set());
     const autoItemImageRecentSuccessRef = React.useRef<Map<string, 物品自动生图近期结果>>(new Map());
     const autoItemImageFailedAtRef = React.useRef<Map<string, number>>(new Map());
+    const autoItemImageBackendCooldownUntilRef = React.useRef(0);
     const auctionSettlementHandledRef = React.useRef<Set<string>>(new Set());
     const 最近运行报错提示IDRef = React.useRef('');
     const 最近运行报错提示时间Ref = React.useRef(0);
@@ -1126,6 +1144,7 @@ const App: React.FC = () => {
         if (autoItemImageRunningRef.current.size >= MAX_CONCURRENT_ITEM_IMAGE_TASKS) return;
 
         const now = Date.now();
+        if (autoItemImageBackendCooldownUntilRef.current > now) return;
         autoItemImageRecentSuccessRef.current.forEach((value, key) => {
             if (now - value.completedAt > ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL) {
                 autoItemImageRecentSuccessRef.current.delete(key);
@@ -1297,9 +1316,20 @@ const App: React.FC = () => {
                 写回物品生图记录('failed', errorMessage);
                 autoItemImageFailedAtRef.current.set(candidate.key, Date.now());
                 console.warn('[物品自动生图] 生成失败', candidate.sourceLocation, candidate.item?.名称, error);
+                if (是生图后端不可用错误文本(errorMessage)) {
+                    autoItemImageBackendCooldownUntilRef.current = Date.now() + ITEM_AUTO_IMAGE_BACKEND_FAILURE_COOLDOWN_MS;
+                    recordDiagnosticLog('warning', '[物品自动生图] 当前 ComfyUI 后端不可用，已暂停自动提交以等待后端恢复', {
+                        cooldownMs: ITEM_AUTO_IMAGE_BACKEND_FAILURE_COOLDOWN_MS,
+                        sourceLocation: candidate.sourceLocation,
+                        itemName: candidate.item?.名称 || '无名物品',
+                        errorMessage
+                    });
+                }
                 actions.pushNotification({
                     title: '物品图标生成失败',
-                    message: `「${candidate.item?.名称 || '无名物品'}」已自动重试 ${生图最大自动重试次数} 次，仍未成功。`,
+                    message: 是生图后端不可用错误文本(errorMessage)
+                        ? '当前 ComfyUI 后端不可用，已暂停自动提交，稍后会自动重试。'
+                        : `「${candidate.item?.名称 || '无名物品'}」已自动重试 ${生图最大自动重试次数} 次，仍未成功。`,
                     tone: 'warning'
                 });
             } finally {

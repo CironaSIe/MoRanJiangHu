@@ -1,6 +1,7 @@
 import { decompressSync, unzlibSync, unzipSync } from 'fflate';
 import {
     获取已发现ComfyUI后端候选,
+    标记ComfyUI后端近期不可用,
     用已发现ComfyUI后端替换地址,
     type 当前可用接口结构
 } from '../../utils/apiConfig';
@@ -90,6 +91,12 @@ type NPC秘档部位提示词选项 = {
     };
 };
 type 分词器任务类型 = '角色' | '场景' | '部位特写';
+class ComfyUI后端不可用错误 extends Error {
+    constructor(message: string, public readonly baseUrl: string) {
+        super(message);
+        this.name = 'ComfyUI后端不可用错误';
+    }
+}
 
 const 自动去水印负面提示词 = 'text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, watermark, signature, username, logo, artist name, web address, url, copyright, subtitle, subtitles, title, poster text, comic text, manga text, dialogue text, speech bubble, dialogue box, word balloon, UI overlay, interface text, date stamp, QR code, barcode, poster layout, magazine cover, comic page, comic panel, manga panel, callout, text box, white oval bubble, black outline bubble, overlay, title card, credits, framed text, floating label, name tag';
 const 全局无文字正向提示词 = 'plain single image, clean composition, uncluttered visual presentation, natural subject focus, clear silhouette';
@@ -1507,8 +1514,55 @@ const 获取ComfyUI基础地址 = (baseUrlRaw: string): string => {
     return 清理末尾斜杠(baseUrlRaw || '');
 };
 
-const 构建ComfyUI端点 = (baseUrlRaw: string, pathRaw: string): string => {
+type ComfyUI请求通道 = 'direct' | 'proxy';
+
+const 构建ComfyUI直连端点 = (baseUrlRaw: string, pathRaw: string): string => {
+    const baseUrl = 获取ComfyUI基础地址(baseUrlRaw);
+    const path = pathRaw.startsWith('/') ? pathRaw : `/${pathRaw}`;
+    return `${baseUrl}${path}`;
+};
+
+const 构建ComfyUI代理端点 = (baseUrlRaw: string, pathRaw: string): string => {
     return 构建ComfyUI运行时代理端点(获取ComfyUI基础地址(baseUrlRaw), pathRaw);
+};
+
+const 构建ComfyUI端点 = (baseUrlRaw: string, pathRaw: string, channel: ComfyUI请求通道 = 'direct'): string => {
+    return channel === 'proxy'
+        ? 构建ComfyUI代理端点(baseUrlRaw, pathRaw)
+        : 构建ComfyUI直连端点(baseUrlRaw, pathRaw);
+};
+
+const 判断可重试ComfyUI代理 = (baseUrlRaw: string, pathRaw: string): boolean => {
+    const directEndpoint = 构建ComfyUI直连端点(baseUrlRaw, pathRaw);
+    const proxyEndpoint = 构建ComfyUI代理端点(baseUrlRaw, pathRaw);
+    return Boolean(proxyEndpoint && proxyEndpoint !== directEndpoint);
+};
+
+const fetchComfyUI直连优先 = async (
+    baseUrl: string,
+    path: string,
+    init: RequestInit,
+    contextBaseUrl: string
+): Promise<{ response: Response; channel: ComfyUI请求通道 }> => {
+    const directEndpoint = 构建ComfyUI直连端点(baseUrl, path);
+    try {
+        return {
+            response: await fetch(directEndpoint, init),
+            channel: 'direct'
+        };
+    } catch (directError: any) {
+        if (!判断可重试ComfyUI代理(baseUrl, path)) {
+            throw new Error(await 构建ComfyUI精确连接失败提示(contextBaseUrl, directError));
+        }
+        try {
+            return {
+                response: await fetch(构建ComfyUI代理端点(baseUrl, path), init),
+                channel: 'proxy'
+            };
+        } catch (proxyError: any) {
+            throw new Error(await 构建ComfyUI精确连接失败提示(contextBaseUrl, proxyError));
+        }
+    }
 };
 
 const 解析ComfyUI工作流 = (workflowText: string): Record<string, unknown> => {
@@ -1772,7 +1826,8 @@ const 等待 = async (ms: number, signal?: AbortSignal): Promise<void> => {
 
 const 提取ComfyUI图片地址 = (
     historyPayload: any,
-    baseUrlRaw: string
+    baseUrlRaw: string,
+    channel: ComfyUI请求通道 = 'direct'
 ): string | null => {
     if (!historyPayload || typeof historyPayload !== 'object') return null;
     const root = Array.isArray(historyPayload)
@@ -1789,7 +1844,7 @@ const 提取ComfyUI图片地址 = (
         const subfolder = typeof first.subfolder === 'string' ? first.subfolder.trim() : '';
         const type = typeof first.type === 'string' ? first.type.trim() : 'output';
         const params = new URLSearchParams({ filename, subfolder, type });
-        return 构建ComfyUI端点(baseUrlRaw, `/view?${params.toString()}`);
+        return 构建ComfyUI端点(baseUrlRaw, `/view?${params.toString()}`, channel);
     }
     return null;
 };
@@ -1835,6 +1890,7 @@ type ComfyUI队列任务 = {
     baseUrl: string;
     apiConfig: 当前可用接口结构;
     promptId: string;
+    channel: ComfyUI请求通道;
 };
 
 const ComfyUI进行中队列 = new Map<string, ComfyUI队列任务>();
@@ -1843,7 +1899,7 @@ const 构建ComfyUI队列Key = (baseUrl: string, promptId: string) => `${baseUrl
 
 const 尝试终止ComfyUI任务 = async (task: ComfyUI队列任务): Promise<void> => {
     try {
-        await fetch(构建ComfyUI端点(task.baseUrl, '/queue'), {
+        await fetch(构建ComfyUI端点(task.baseUrl, '/queue', task.channel), {
             method: 'DELETE',
             headers: 构建生图请求头(task.apiConfig),
             body: JSON.stringify({ delete: [task.promptId] })
@@ -1852,7 +1908,7 @@ const 尝试终止ComfyUI任务 = async (task: ComfyUI队列任务): Promise<voi
         // ComfyUI 的队列删除接口在不同代理下可能不可用，继续尝试 interrupt。
     }
     try {
-        await fetch(构建ComfyUI端点(task.baseUrl, '/interrupt'), {
+        await fetch(构建ComfyUI端点(task.baseUrl, '/interrupt', task.channel), {
             method: 'POST',
             headers: 构建生图请求头(task.apiConfig),
             body: JSON.stringify({ client_id: 'wuxia-web' })
@@ -1881,10 +1937,11 @@ const 执行ComfyUI生图 = async (
     if (!baseUrl) throw new Error('ComfyUI 缺少 API 地址');
     const [width, height] = size.split('x').map((value) => Number(value));
     const workflow = 构建ComfyUI工作流(apiConfig.ComfyUI工作流JSON || '', prompt, negativePrompt, width, height, pngParams);
-    const promptEndpoint = 构建ComfyUI端点(apiConfig.baseUrl, apiConfig.图片接口路径 || '/prompt');
+    const promptPath = apiConfig.图片接口路径 || '/prompt';
     let enqueueResponse: Response;
-    try {
-        enqueueResponse = await fetch(promptEndpoint, {
+    let requestChannel: ComfyUI请求通道 = 'direct';
+    {
+        const result = await fetchComfyUI直连优先(baseUrl, promptPath, {
             method: 'POST',
             headers: 构建生图请求头(apiConfig),
             body: JSON.stringify({
@@ -1892,9 +1949,9 @@ const 执行ComfyUI生图 = async (
                 client_id: 'wuxia-web'
             }),
             signal
-        });
-    } catch (error: any) {
-        throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
+        }, apiConfig.baseUrl);
+        enqueueResponse = result.response;
+        requestChannel = result.channel;
     }
     if (!enqueueResponse.ok) {
         const detail = await 读取失败详情文本(enqueueResponse, Number.POSITIVE_INFINITY);
@@ -1904,10 +1961,15 @@ const 执行ComfyUI生图 = async (
     const enqueuePayload = 解析可能是JSON字符串(enqueueText);
     const promptId = typeof enqueuePayload?.prompt_id === 'string' ? enqueuePayload.prompt_id.trim() : '';
     if (!promptId) {
-        throw new Error(构建ComfyUI缺少PromptId提示(apiConfig.baseUrl, enqueueResponse, enqueueText));
+        const message = 构建ComfyUI缺少PromptId提示(apiConfig.baseUrl, enqueueResponse, enqueueText);
+        if (判断ComfyUI响应像HTML(enqueueText, enqueueResponse)) {
+            await 标记ComfyUI后端近期不可用(baseUrl);
+            throw new ComfyUI后端不可用错误(message, baseUrl);
+        }
+        throw new Error(message);
     }
     const queueKey = 构建ComfyUI队列Key(baseUrl, promptId);
-    const trackedTask: ComfyUI队列任务 = { baseUrl, apiConfig, promptId };
+    const trackedTask: ComfyUI队列任务 = { baseUrl, apiConfig, promptId, channel: requestChannel };
     ComfyUI进行中队列.set(queueKey, trackedTask);
     const handleAbort = () => {
         ComfyUI进行中队列.delete(queueKey);
@@ -1917,25 +1979,44 @@ const 执行ComfyUI生图 = async (
 
     try {
         const startedAt = Date.now();
-        const historyEndpoint = 构建ComfyUI端点(baseUrl, `/history/${encodeURIComponent(promptId)}`);
+        const historyPath = `/history/${encodeURIComponent(promptId)}`;
         while (true) {
             if (Date.now() - startedAt > COMFYUI_POLL_TIMEOUT_MS) {
                 throw new Error(`ComfyUI 生图超过 ${Math.round(COMFYUI_POLL_TIMEOUT_MS / 1000)} 秒仍未返回图片，已自动判定本次尝试失败。`);
             }
             let historyResponse: Response;
             try {
-                historyResponse = await fetch(historyEndpoint, {
+                const result = requestChannel === 'proxy'
+                    ? {
+                        response: await fetch(构建ComfyUI端点(baseUrl, historyPath, 'proxy'), {
+                            method: 'GET',
+                            headers: 构建生图请求头(apiConfig),
+                            signal
+                        }),
+                        channel: 'proxy' as const
+                    }
+                    : await fetchComfyUI直连优先(baseUrl, historyPath, {
                     method: 'GET',
                     headers: 构建生图请求头(apiConfig),
                     signal
-                });
+                    }, apiConfig.baseUrl);
+                historyResponse = result.response;
+                requestChannel = result.channel;
+                trackedTask.channel = requestChannel;
             } catch (error: any) {
                 throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
             }
             if (historyResponse.ok) {
                 const historyText = await historyResponse.text();
+                if (判断ComfyUI响应像HTML(historyText, historyResponse)) {
+                    await 标记ComfyUI后端近期不可用(baseUrl);
+                    throw new ComfyUI后端不可用错误(
+                        构建ComfyUI非JSON响应提示(apiConfig.baseUrl, historyResponse, historyText, 'history'),
+                        baseUrl
+                    );
+                }
                 const historyPayload = 解析可能是JSON字符串(historyText);
-                const imageUrl = 提取ComfyUI图片地址(historyPayload, baseUrl);
+                const imageUrl = 提取ComfyUI图片地址(historyPayload, baseUrl, requestChannel);
                 if (imageUrl) {
                     if (responseFormat === 'b64_json') {
                         let imageResponse: Response;
@@ -1972,6 +2053,7 @@ const 执行ComfyUI生图 = async (
 
 const 是ComfyUI后端不可用错误 = (error: any): boolean => {
     if (error?.name === 'AbortError') return false;
+    if (error instanceof ComfyUI后端不可用错误) return true;
     if (error instanceof 协议请求错误) {
         return error.status === 408 || error.status === 429 || error.status >= 500;
     }
@@ -3148,13 +3230,38 @@ const 解析可能是JSON字符串 = (text: string): any | null => {
     }
 };
 
+const 判断ComfyUI响应像HTML = (responseText: string, response?: Response): boolean => {
+    const contentType = response?.headers.get('content-type') || '';
+    const text = (responseText || '').trim();
+    return /text\/html/i.test(contentType) || /<!doctype html|<html[\s>]|<title[\s>]/i.test(text);
+};
+
+const 构建ComfyUI非JSON响应提示 = (
+    baseUrlRaw: string,
+    response: Response,
+    responseText: string,
+    phase: 'prompt' | 'history'
+): string => {
+    const contentType = response.headers.get('content-type') || '未知类型';
+    const text = (responseText || '').trim();
+    const snippet = text.replace(/\s+/g, ' ').slice(0, 500);
+    const base = baseUrlRaw || '未配置地址';
+    return [
+        `ComfyUI ${phase === 'history' ? '轮询结果' : '提交任务'}返回了 HTML 页面，当前地址已判定为不可用：${base}。`,
+        `HTTP ${response.status}，Content-Type: ${contentType}。`,
+        '这通常表示 CNB 8188 地址已失效、工作区休眠、被登录/代理页面拦截，或当前地址实际指向了墨色江湖前端页面。',
+        snippet ? `原始响应片段：${snippet}` : '',
+        '系统已临时屏蔽这个 ComfyUI 地址并尝试切换到其它在线后端；请在文生图设置里刷新“自动发现 ComfyUI 后端”，重新选择在线的 8188 地址。'
+    ].filter(Boolean).join('\n');
+};
+
 const 构建ComfyUI缺少PromptId提示 = (baseUrlRaw: string, response: Response, responseText: string): string => {
     const contentType = response.headers.get('content-type') || '未知类型';
     const text = (responseText || '').trim();
     const snippet = text
         .replace(/\s+/g, ' ')
         .slice(0, 500);
-    const looksLikeHtml = /<!doctype html|<html[\s>]|<title[\s>]/i.test(text);
+    const looksLikeHtml = 判断ComfyUI响应像HTML(text, response);
     const base = baseUrlRaw || '未配置地址';
     const details = [
         `ComfyUI 未返回 prompt_id，无法轮询结果。当前地址：${base}。`,

@@ -240,6 +240,57 @@ const 规范化拍卖行存储作用域 = (scope?: string): string => {
 
 const 获取拍卖行存储键 = (scope?: string): string => `${STORAGE_KEY_PREFIX}:${规范化拍卖行存储作用域(scope)}`;
 
+const 拍卖行最多持久化拍品数 = 80;
+const 拍卖行最多持久化交易记录数 = 80;
+
+const 是否存储配额异常 = (error: unknown): boolean => (
+    error instanceof DOMException
+        ? error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+        : error instanceof Error && /quota|storage/i.test(error.name + error.message)
+);
+
+const 获取拍卖行存储时间 = (state: 拍卖行状态, key: string): number => {
+    const entry = state.拍卖品列表.find((item) => item.ID === key);
+    return 读数(entry?.成交时间 || entry?.上架时间 || entry?.过期时间, 0);
+};
+
+const 压缩拍卖行持久化状态 = (state: 拍卖行状态, lean = false): 拍卖行状态 => {
+    const active = (state.拍卖品列表 || [])
+        .filter((entry) => entry.状态 === '上架中')
+        .sort((a, b) => 读数(b.上架时间) - 读数(a.上架时间));
+    const inactiveLimit = lean ? 8 : Math.max(0, 拍卖行最多持久化拍品数 - active.length);
+    const inactive = (state.拍卖品列表 || [])
+        .filter((entry) => entry.状态 !== '上架中')
+        .sort((a, b) => 读数(b.成交时间 || b.上架时间) - 读数(a.成交时间 || a.上架时间))
+        .slice(0, inactiveLimit);
+    const transactionLimit = lean ? 20 : 拍卖行最多持久化交易记录数;
+    return {
+        ...state,
+        拍卖品列表: [...active, ...inactive].slice(0, lean ? 36 : 拍卖行最多持久化拍品数),
+        交易记录: (state.交易记录 || [])
+            .slice()
+            .sort((a: any, b: any) => 读数(b?.时间 || 获取拍卖行存储时间(state, b?.ID)) - 读数(a?.时间 || 获取拍卖行存储时间(state, a?.ID)))
+            .slice(0, transactionLimit),
+        行情列表: (state.行情列表 || []).slice(0, lean ? 2 : 4),
+    };
+};
+
+const 清理旧拍卖行缓存 = (currentKey: string) => {
+    if (typeof window === 'undefined') return;
+    const keys: string[] = [];
+    try {
+        for (let i = 0; i < window.localStorage.length; i++) {
+            const key = window.localStorage.key(i);
+            if (key?.startsWith(`${STORAGE_KEY_PREFIX}:`) && key !== currentKey) {
+                keys.push(key);
+            }
+        }
+        keys.forEach((key) => window.localStorage.removeItem(key));
+    } catch {
+        // Storage cleanup is best-effort; callers will still degrade gracefully.
+    }
+};
+
 export const 构建拍卖行存储作用域 = (source?: {
     游戏初始时间?: unknown;
     角色数据?: any;
@@ -290,7 +341,24 @@ export const 读取拍卖行状态 = (scope?: string): 拍卖行状态 => {
 
 export const 保存拍卖行状态 = (state: 拍卖行状态, scope?: string) => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(获取拍卖行存储键(scope), JSON.stringify(state));
+    const key = 获取拍卖行存储键(scope);
+    const compactState = 压缩拍卖行持久化状态(state);
+    try {
+        window.localStorage.setItem(key, JSON.stringify(compactState));
+        return;
+    } catch (error) {
+        if (!是否存储配额异常(error)) {
+            recordDiagnosticLog('warn', ['拍卖行状态保存失败', error]);
+            return;
+        }
+    }
+
+    清理旧拍卖行缓存(key);
+    try {
+        window.localStorage.setItem(key, JSON.stringify(压缩拍卖行持久化状态(state, true)));
+    } catch (error) {
+        recordDiagnosticLog('warn', ['拍卖行状态保存空间不足，已跳过本次本地缓存', error]);
+    }
 };
 
 export const 创建默认拍卖行状态 = (): 拍卖行状态 => 清理并补货(创建空拍卖行状态(), { 允许系统补货: false }); // 新档不自动补货

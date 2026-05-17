@@ -60,7 +60,7 @@ describe('imageGenerationDiagnostics', () => {
         }
     });
 
-    it('routes CNB ComfyUI endpoints through the runtime same-origin proxy', () => {
+    it('builds CNB ComfyUI runtime proxy endpoints for fallback requests', () => {
         const originalWindow = (globalThis as any).window;
         (globalThis as any).window = {
             location: {
@@ -76,6 +76,26 @@ describe('imageGenerationDiagnostics', () => {
                 .toBe('https://msjh.bacon159.pp.ua/api/image-backend/comfyui-proxy/view?filename=a.png&type=output&url=https%3A%2F%2Fgiexocxqpl-8188.cnb.run');
             expect(构建ComfyUI运行时代理端点('https://example.com', '/prompt'))
                 .toBe('https://example.com/prompt');
+        } finally {
+            (globalThis as any).window = originalWindow;
+        }
+    });
+
+    it('routes CNB ComfyUI proxy through the public site inside native APK', () => {
+        const originalWindow = (globalThis as any).window;
+        (globalThis as any).window = {
+            location: {
+                protocol: 'https:',
+                origin: 'https://localhost'
+            },
+            Capacitor: {
+                isNativePlatform: () => true,
+            }
+        };
+
+        try {
+            expect(构建ComfyUI运行时代理端点('https://giexocxqpl-8188.cnb.run/', '/prompt'))
+                .toBe('https://msjh.bacon159.pp.ua/api/image-backend/comfyui-proxy/prompt?url=https%3A%2F%2Fgiexocxqpl-8188.cnb.run');
         } finally {
             (globalThis as any).window = originalWindow;
         }
