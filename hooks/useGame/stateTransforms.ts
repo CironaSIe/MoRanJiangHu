@@ -1971,7 +1971,7 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
     const 屁穴描述 = 读取屁穴描述(npc);
     const 性癖 = 读取性癖(npc);
     const 敏感点 = 读取敏感点(npc);
-    const 子宫 = 标准化子宫档案对象(npc?.子宫);
+    const 子宫 = 标准化子宫档案对象(npc?.子宫 ?? npc?.子宫档案);
     const 上次更新时间 = 解析任意时间字段(npc?.上次更新时间 ?? npc?.最后更新时间 ?? npc?.更新时间);
     const 图片档案 = (() => {
         const source = npc?.图片档案 && typeof npc.图片档案 === 'object' && !Array.isArray(npc.图片档案)
