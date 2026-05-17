@@ -102,7 +102,7 @@ const 自动去水印负面提示词 = 'text, typography, letters, words, number
 const 全局无文字正向提示词 = 'plain single image, clean composition, uncluttered visual presentation, natural subject focus, clear silhouette';
 const 部位特写单图正向提示词 = 'single image, one frame, one subject only, extreme close-up macro crop, target fills the frame, plain blurred background, cohesive macro composition';
 const ZImageTurbo叙事构图增强提示词 = 'Z-Image-Turbo narrative prompt, translate the story beat into one clear visual moment, preserve fixed character features across images, use absolute screen positions such as left side, right side, foreground, middle ground and background, describe concrete action, expression, material, lighting, color palette and atmosphere, one complete image only';
-const NSFW生图细节增强提示词 = 'adult characters only, consensual adult NSFW scene when the source prompt explicitly asks for it, 露骨性器、体液、性行为细节, explicit genital details, body fluid details, wet skin texture, glistening body fluids, genital shape and state, insertion or friction details when explicitly requested, material pressure, soft rim light, specular highlights, macro anatomical close-up, and sex act details only for NSFW close-up generation, keep the image focused on the requested private anatomy or adult interaction, no minors, no coercion';
+const NSFW部位特写画质增强提示词 = 'adult character only, target anatomy only, macro anatomical close-up, ultra tight crop, wet skin texture, glistening moisture, natural skin folds, soft rim light, specular highlights, subsurface scattering, single private anatomy focus, no minors';
 const 部位特写反拼贴负面提示词 = 'multiple views, split screen, panel layout, comic panel, comic page, manga panel, story panels, collage, contact sheet, reference sheet, character sheet, turnaround, comparison sheet, montage, triptych, diptych, quadriptych, grid layout, tiled composition, thumbnails, bottom strip, inset image, duplicate anatomy, mirrored anatomy, repeated organ, multiple organs, multiple nipples, extra nipples, multiple genitals, extra genitals';
 const 默认NovelAI负面提示词 = 'photorealistic, realistic, 3d, rendering, unreal engine, octane render, real life, photography, bokeh, lowres, bad anatomy, bad hands, text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, logo, blurry, artist name, border, out of frame, subtitles, title, poster text, speech bubble, dialogue box, word balloon, UI overlay, date stamp, QR code, barcode';
 const 默认分词器AI角色提示词 = [
@@ -1403,8 +1403,8 @@ const 构建后置正向提示词 = (
 ): string => {
     return 合并正向提示词片段(
         全局无文字正向提示词,
-        options?.后端类型 === 'comfyui' ? ZImageTurbo叙事构图增强提示词 : '',
-        options?.构图 === '部位特写' ? NSFW生图细节增强提示词 : '',
+        options?.后端类型 === 'comfyui' && options?.构图 !== '部位特写' ? ZImageTurbo叙事构图增强提示词 : '',
+        options?.构图 === '部位特写' ? NSFW部位特写画质增强提示词 : '',
         options?.构图 === '部位特写' ? 部位特写单图正向提示词 : ''
     );
 };
@@ -3500,7 +3500,7 @@ export const generateNpcSecretPartImagePrompt = async (
         `目标部位：${部位}`,
         '构图：部位特写 / 仅展示目标部位及其必要周边',
         '画面保持局部聚焦、单主体表达，禁止参考页、拼贴页、多分镜或宫格化排版。',
-        '画面要求：描述必须具体、可见、可画，优先写形状、颜色、肌理、湿润感、边缘和布料裁切。',
+        '画面要求：描述必须具体、可见、可画，优先写形状、颜色、肌理、湿润感和边缘轮廓；除非附加要求明确指定，不要主动加入衣物、布料裁切或压迫。',
         '镜头要求：必须是 extreme close-up / ultra tight crop，目标部位占据画面主体，不能退成普通近景。',
         '数量要求：只允许一个目标部位，不允许重复、镜像复制、并排复制。',
         '版式要求：只允许单张画面；禁止 collage, contact sheet, reference sheet, panel layout, thumbnails, bottom strip, speech bubble, text, watermark。',

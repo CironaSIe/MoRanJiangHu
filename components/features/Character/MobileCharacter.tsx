@@ -37,7 +37,7 @@ type 主角生图选项 = {
     尺寸?: string;
 };
 
-type MobileCharacterView = 'profile' | 'stats' | 'image';
+type MobileCharacterView = 'profile' | 'skills' | 'stats' | 'image';
 
 const 输入框样式 = 'w-full rounded-xl border border-gray-800 bg-black/40 px-3 py-2.5 text-sm text-gray-200 outline-none transition-all focus:border-wuxia-gold/40';
 const 文本域样式 = `${输入框样式} min-h-[84px] resize-y`;
@@ -90,6 +90,23 @@ const MobileStatCard: React.FC<{ label: string; value: string | number; accent?:
     </div>
 );
 
+const 技艺等级序列 = ['未入门', '入门', '初窥', '小成', '大成', '登堂', '入室', '圆满', '宗师', '大宗师'];
+
+const 获取技艺等级索引 = (level?: string): number => {
+    const idx = 技艺等级序列.indexOf(String(level || ''));
+    return idx >= 0 ? idx : 0;
+};
+
+const 获取技艺等级颜色 = (level?: string): string => {
+    const idx = 获取技艺等级索引(level);
+    if (idx <= 0) return 'text-gray-500';
+    if (idx <= 2) return 'text-gray-300';
+    if (idx <= 4) return 'text-emerald-300';
+    if (idx <= 6) return 'text-cyan-300';
+    if (idx <= 8) return 'text-wuxia-gold';
+    return 'text-purple-300';
+};
+
 const MobileCharacter: React.FC<Props> = ({
     character,
     gameConfig,
@@ -119,6 +136,16 @@ const MobileCharacter: React.FC<Props> = ({
     const 金钱 = character.金钱 || { 金元宝: 0, 银子: 0, 铜钱: 0 };
     const 玩家BUFF列表 = Array.isArray(character.玩家BUFF) ? character.玩家BUFF : [];
     const 天赋列表 = Array.isArray(character.天赋列表) ? character.天赋列表 : [];
+    const 技艺列表 = useMemo(
+        () => (Array.isArray((character as any)?.技艺) ? [...(character as any).技艺] : [])
+            .filter((item) => item && typeof item === 'object')
+            .sort((a, b) => {
+                const levelDiff = 获取技艺等级索引(b?.等级) - 获取技艺等级索引(a?.等级);
+                if (levelDiff !== 0) return levelDiff;
+                return Number(b?.熟练度 || 0) - Number(a?.熟练度 || 0);
+            }),
+        [character]
+    );
     const 启用饱腹口渴系统 = gameConfig?.启用饱腹口渴系统 !== false;
     const 启用修炼体系 = gameConfig?.启用修炼体系 !== false;
     const 身份信息 = useMemo(() => 构建角色身份摘要(character), [character]);
@@ -259,6 +286,7 @@ const MobileCharacter: React.FC<Props> = ({
                     <div className="mt-3 flex gap-2">
                         {[
                             { id: 'profile', label: '档案' },
+                            { id: 'skills', label: '技艺' },
                             { id: 'stats', label: '属性' },
                             { id: 'image', label: '影像' },
                         ].map((item) => (
@@ -375,6 +403,61 @@ const MobileCharacter: React.FC<Props> = ({
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveView('skills')}
+                                className="w-full rounded-2xl border border-wuxia-gold/25 bg-wuxia-gold/10 px-4 py-3 text-left transition-all hover:border-wuxia-gold/50 hover:bg-wuxia-gold/15"
+                            >
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-[10px] tracking-[0.32em] text-wuxia-gold/75">技艺面板</div>
+                                        <div className="mt-1 text-sm text-gray-200">查看炼器、炼丹、医术、阵法等技艺进度</div>
+                                    </div>
+                                    <div className="rounded-full border border-wuxia-gold/25 bg-black/25 px-2.5 py-1 font-mono text-xs text-wuxia-gold">{技艺列表.length} 项</div>
+                                </div>
+                            </button>
+                        </>
+                    )}
+
+                    {activeView === 'skills' && (
+                        <>
+                            <div className="rounded-2xl border border-wuxia-gold/15 bg-black/25 p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div className="text-[10px] tracking-[0.32em] text-wuxia-gold/65">主角技艺</div>
+                                        <div className="mt-1 text-[12px] leading-6 text-gray-400">技艺会随剧情学习、实践、请教与突破更新。</div>
+                                    </div>
+                                    <div className="rounded-full border border-wuxia-gold/25 bg-black/35 px-2.5 py-1 font-mono text-xs text-wuxia-gold">{技艺列表.length}</div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {技艺列表.length > 0 ? 技艺列表.map((skill: any, index: number) => {
+                                    const name = String(skill?.名称 || '未命名技艺').trim();
+                                    const level = String(skill?.等级 || '未入门').trim();
+                                    const progress = Math.max(0, Math.min(100, Number(skill?.熟练度 || 0)));
+                                    return (
+                                        <div key={`${name}-${index}`} className="rounded-2xl border border-gray-800 bg-black/30 p-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <div className="truncate text-base font-semibold tracking-[0.12em] text-gray-100">{name}</div>
+                                                    <div className={`mt-1 text-xs ${获取技艺等级颜色(level)}`}>{level}</div>
+                                                </div>
+                                                <div className="shrink-0 rounded-full border border-wuxia-gold/20 bg-wuxia-gold/10 px-2.5 py-1 font-mono text-[11px] text-wuxia-gold">{progress}/100</div>
+                                            </div>
+                                            <div className="mt-3 h-2 overflow-hidden rounded-full border border-white/5 bg-black/70">
+                                                <div className="h-full bg-gradient-to-r from-wuxia-gold/55 to-wuxia-gold transition-all" style={{ width: `${progress}%` }} />
+                                            </div>
+                                            <p className="mt-3 text-[12px] leading-6 text-gray-400">{skill?.描述 || '尚未形成稳定技艺。'}</p>
+                                        </div>
+                                    );
+                                }) : (
+                                    <div className="rounded-xl border border-dashed border-gray-700 bg-black/25 px-3 py-8 text-center text-sm text-gray-500">
+                                        尚无技艺记录。开局或剧情学习后会自动写入这里。
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}
