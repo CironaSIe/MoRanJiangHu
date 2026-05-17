@@ -1152,12 +1152,10 @@ const App: React.FC = () => {
         });
 
         const bagItems = Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : [];
-        const auctionItems = Array.isArray(auctionHouseState?.拍卖品列表) ? auctionHouseState.拍卖品列表 : [];
         const candidates: Array<{
             key: string;
             item: 游戏物品;
-            sourceLocation: '背包' | '拍卖行';
-            auctionId?: string;
+            sourceLocation: '背包';
         }> = [];
 
         bagItems.forEach((item: 游戏物品) => {
@@ -1167,16 +1165,6 @@ const App: React.FC = () => {
                 key: 获取物品自动生图Key('bag', item),
                 item,
                 sourceLocation: '背包'
-            });
-        });
-        auctionItems.forEach((auction: any) => {
-            if (auction?.状态 !== '上架中' || !auction?.物品) return;
-            if (物品已有可用图标(auction.物品)) return;
-            candidates.push({
-                key: 获取物品自动生图Key('auction', auction.物品, auction.ID),
-                item: auction.物品,
-                sourceLocation: '拍卖行',
-                auctionId: auction.ID
             });
         });
 
@@ -1201,18 +1189,6 @@ const App: React.FC = () => {
                         void actions.performAutoSave?.({ role: nextCharacter, force: true });
                     }
                 }
-            } else if (candidate.auctionId) {
-                setAuctionHouseState((prev) => {
-                    const list = Array.isArray(prev?.拍卖品列表) ? prev.拍卖品列表 : [];
-                    const next: 拍卖行状态 = {
-                        ...prev,
-                        拍卖品列表: list.map((entry: any) => entry.ID === candidate.auctionId ? { ...entry, 物品: nextItem } : entry)
-                    };
-                    if (shouldSave) {
-                        保存拍卖行状态(next, auctionHouseScope);
-                    }
-                    return next;
-                });
             }
         };
 
@@ -1342,7 +1318,7 @@ const App: React.FC = () => {
             autoItemImageScheduledRef.current.delete(candidate.key);
             window.clearTimeout(idleTimer);
         };
-    }, [state.view, state.apiConfig, state.角色, auctionHouseState, auctionHouseScope, setters, actions, meta.imageGenerationQueue, meta.sceneImageQueue]);
+    }, [state.view, state.apiConfig, state.角色, setters, actions, meta.imageGenerationQueue, meta.sceneImageQueue]);
 
     const activeMobileWindow =
         showCharacter ? '角色' :
