@@ -27,7 +27,13 @@ const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)
 const 死亡状态正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|已故)/;
 const NPC是否死亡 = (npc?: NPC结构 | null): boolean => {
     if (!npc) return false;
+    const 当前血量 = Number((npc as any).当前血量);
+    const 最大血量 = Number((npc as any).最大血量);
+    if (Number.isFinite(当前血量) && 当前血量 <= 0 && Number.isFinite(最大血量) && 最大血量 > 0) return true;
     const statusText = [
+        (npc as any).状态,
+        (npc as any).生死状态,
+        (npc as any).生命状态,
         (npc as any).死亡描述,
         ...(Array.isArray((npc as any).DEBUFF) ? (npc as any).DEBUFF.flatMap((item: any) => [item?.名称, item?.描述, item?.效果]) : [])
     ].filter(Boolean).join(' ');
@@ -335,6 +341,9 @@ const SocialModal: React.FC<Props> = ({
         ['精力', `${读取数值(currentNPC, ['当前精力'])}/${读取数值(currentNPC, ['最大精力'])}`],
         ['内力', `${读取数值(currentNPC, ['当前内力'])}/${读取数值(currentNPC, ['最大内力'])}`],
     ] : [];
+    const 在场切换文案 = currentNPC
+        ? (当前角色已死亡 ? '已故不可调度' : currentNPC.是否在场 ? '设为离场' : '设为在场')
+        : '开关在场';
 
     return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fadeIn">
@@ -506,20 +515,21 @@ const SocialModal: React.FC<Props> = ({
 
                         {currentNPC ? (
                             <div className={`social-detail-content flex-1 min-h-0 overflow-y-auto custom-scrollbar relative z-10 flex flex-col transition-all duration-500 ${showFullBackground ? 'p-0 gap-0 opacity-0 pointer-events-none' : 'p-6 gap-6 opacity-100'}`}>
-                                {/* JRPG Style Header */}
-                                <div className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-r from-black/80 via-black/60 to-black/80 backdrop-blur-md p-6 flex items-start justify-between shadow-2xl group shrink-0">
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-wuxia-gold/5 rounded-full filter blur-3xl group-hover:bg-wuxia-gold/10 transition-colors"></div>
+                                {/* Dossier Hero Card */}
+                                <div className="relative overflow-hidden rounded-[1.35rem] border border-wuxia-gold/20 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.14),transparent_34%),linear-gradient(115deg,rgba(13,10,8,0.98),rgba(31,22,15,0.94),rgba(13,10,8,0.98))] p-5 flex items-start justify-between shadow-[0_18px_42px_rgba(0,0,0,0.5)] group shrink-0">
+                                    <div className="absolute inset-0 bg-[linear-gradient(125deg,rgba(255,255,255,0.03),transparent_28%,transparent_72%,rgba(212,175,55,0.05))] pointer-events-none"></div>
 
                                     <div className="flex gap-6 relative z-10">
                                         {/* Portrait Thumbnail */}
                                         <div
-                                            className="w-24 h-32 rounded-lg border-2 border-wuxia-gold/30 overflow-hidden relative shadow-[0_0_20px_rgba(212,175,55,0.2)] bg-black/50 shrink-0 group-hover:border-wuxia-gold/60 transition-all cursor-pointer group/portrait"
+                                            className="w-28 h-36 rounded-[1.1rem] border border-wuxia-gold/30 overflow-hidden relative shadow-[0_0_22px_rgba(212,175,55,0.16)] bg-black/55 shrink-0 group-hover:border-wuxia-gold/60 transition-all cursor-pointer group/portrait"
                                             onClick={() => 打开图片查看器(当前详情主图, `${currentNPC.姓名}${当前立绘 ? ' 立绘' : ' 头像'}`)}
                                             title={当前详情主图 ? "点击查看图片大图" : ""}
                                         >
                                             {当前详情主图 ? (
                                                 <>
-                                                    <img src={当前详情主图} alt={currentNPC.姓名} className={`w-full h-full object-cover group-hover/portrait:scale-110 transition-transform duration-500 ${当前角色已死亡 ? 'grayscale opacity-65' : ''}`} />
+                                                    <img src={当前详情主图} alt={currentNPC.姓名} className={`w-full h-full object-cover group-hover/portrait:scale-[1.04] transition-transform duration-500 ${当前角色已死亡 ? 'grayscale opacity-65' : ''}`} />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/10 pointer-events-none"></div>
                                                     {当前角色已死亡 && (
                                                         <div className="absolute inset-x-0 bottom-0 bg-black/70 py-1 text-center text-xs tracking-[0.3em] text-gray-200">
                                                             已故
@@ -573,23 +583,34 @@ const SocialModal: React.FC<Props> = ({
                                                 <button
                                                     type="button"
                                                     onClick={() => 切换在场状态(currentNPC)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-black/50 border border-white/10 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400 transition-all text-xs text-gray-300"
+                                                    disabled={当前角色已死亡}
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded border transition-all text-xs ${
+                                                        当前角色已死亡
+                                                            ? 'cursor-not-allowed border-gray-800 bg-black/45 text-gray-600'
+                                                            : currentNPC.是否在场
+                                                                ? 'border-emerald-900/50 bg-emerald-950/20 text-emerald-200 hover:bg-emerald-900/30'
+                                                                : 'border-white/10 bg-black/50 text-gray-300 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400'
+                                                    }`}
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                                                     </svg>
-                                                    随缘/召唤
+                                                    {在场切换文案}
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => 切换重要角色状态(currentNPC)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-black/50 border border-white/10 hover:bg-wuxia-gold/10 hover:border-wuxia-gold/30 hover:text-wuxia-gold transition-all text-xs text-gray-300"
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded border transition-all text-xs ${
+                                                        currentNPC.是否主要角色
+                                                            ? 'border-wuxia-gold/50 bg-wuxia-gold/10 text-wuxia-gold'
+                                                            : 'border-white/10 bg-black/50 text-gray-300 hover:bg-wuxia-gold/10 hover:border-wuxia-gold/30 hover:text-wuxia-gold'
+                                                    }`}
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
                                                     </svg>
-                                                    设为重要
+                                                    {currentNPC.是否主要角色 ? '已设重要' : '设为重要'}
                                                 </button>
                                             </div>
                                         </div>
@@ -602,8 +623,8 @@ const SocialModal: React.FC<Props> = ({
                                         <div className="text-5xl font-serif text-wuxia-red drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]">
                                             <IconHeart size={20} className="mr-1" />{currentNPC.好感度}
                                         </div>
-                                        <div className="text-xs text-wuxia-gold/80 tracking-widest uppercase mt-2 bg-black/40 px-3 py-1 rounded border border-wuxia-gold/20 shadow-inner">
-                                            {currentNPC.关系状态}
+                                        <div className="text-xs text-wuxia-gold/80 tracking-widest uppercase mt-2 bg-black/40 px-3 py-1 rounded border border-wuxia-gold/20 shadow-inner max-w-[220px] truncate">
+                                            {currentNPC.关系状态 || '萍水相逢'}
                                         </div>
                                         <button
                                             type="button"

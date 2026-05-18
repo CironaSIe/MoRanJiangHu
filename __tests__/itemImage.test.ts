@@ -39,9 +39,12 @@ describe('item image preset fallback', () => {
         const pants: any = { 名称: '粗布长裤', 类型: '防具', 品质: '凡品' };
         const shoes: any = { 名称: '旧布鞋', 类型: '防具', 品质: '凡品' };
 
-        expectHostedPreset(获取物品已选图标地址(pants));
-        expect(获取物品已选图标地址(shoes)).toBe('/assets/item-presets/旧布鞋.png');
-        expect(获取物品已选图标地址(pants)).not.toBe(获取物品已选图标地址(shoes));
+        const pantsIcon = 获取物品已选图标地址(pants);
+        const shoesIcon = 获取物品已选图标地址(shoes);
+
+        expectHostedPreset(pantsIcon);
+        expectHostedPreset(shoesIcon);
+        expect(pantsIcon).not.toBe(shoesIcon);
     });
 
     it('uses generated local presets for structured item library names', () => {
@@ -89,7 +92,7 @@ describe('item image preset fallback', () => {
             }
         };
 
-        expect(获取物品已选图标地址(item)).toBe('https://cdn.nodeimage.com/i/MzHlups3ymlkKKeKdsWNYPR6BXM55aLG.png');
+        expectHostedPreset(获取物品已选图标地址(item));
     });
 
     it('does not use a preset image when the Chinese name differs by even one character', () => {

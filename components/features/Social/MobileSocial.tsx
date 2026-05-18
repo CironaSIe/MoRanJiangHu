@@ -25,7 +25,13 @@ const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)
 const 死亡状态正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|已故)/;
 const NPC是否死亡 = (npc?: NPC结构 | null): boolean => {
     if (!npc) return false;
+    const 当前血量 = Number((npc as any).当前血量);
+    const 最大血量 = Number((npc as any).最大血量);
+    if (Number.isFinite(当前血量) && 当前血量 <= 0 && Number.isFinite(最大血量) && 最大血量 > 0) return true;
     const statusText = [
+        (npc as any).状态,
+        (npc as any).生死状态,
+        (npc as any).生命状态,
         (npc as any).死亡描述,
         ...(Array.isArray((npc as any).DEBUFF) ? (npc as any).DEBUFF.flatMap((item: any) => [item?.名称, item?.描述, item?.效果]) : [])
     ].filter(Boolean).join(' ');
@@ -317,6 +323,9 @@ const MobileSocial: React.FC<Props> = ({
             <div className={`text-[11px] font-serif leading-relaxed ${accent}`}>{value?.trim() || "暂无记录"}</div>
         </div>
     );
+    const 在场切换文案 = currentNPC
+        ? (当前角色已死亡 ? '已故不可调度' : currentNPC.是否在场 ? '设为离场' : '设为在场')
+        : '开关在场';
 
     return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[200] flex items-center justify-center p-0 sm:p-4 md:hidden animate-fadeIn">
@@ -469,21 +478,22 @@ const MobileSocial: React.FC<Props> = ({
                                     </button>
                                 )}
 
-                                {/* JRPG Style Header (Mobile) */}
-                                <div className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-b from-black/60 to-black/80 backdrop-blur-md p-4 flex flex-col shadow-xl origin-top animate-fadeIn">
-                                    <div className="absolute top-0 right-0 w-48 h-48 bg-wuxia-gold/5 rounded-full filter blur-3xl pointer-events-none"></div>
+                                {/* Dossier Hero Card */}
+                                <div className="relative overflow-hidden rounded-[1.35rem] border border-wuxia-gold/20 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.14),transparent_34%),linear-gradient(180deg,rgba(31,22,15,0.96),rgba(13,10,8,0.98))] p-3.5 flex flex-col shadow-[0_14px_34px_rgba(0,0,0,0.5)] origin-top animate-fadeIn">
+                                    <div className="absolute inset-0 bg-[linear-gradient(125deg,rgba(255,255,255,0.025),transparent_28%,transparent_72%,rgba(212,175,55,0.05))] pointer-events-none"></div>
                                     
                                     <div className="flex gap-4 relative z-10 items-start">
                                         {/* Portrait Thumbnail */}
                                         <button
                                             type="button"
-                                            className="w-20 h-28 rounded-lg border border-wuxia-gold/30 overflow-hidden relative shadow-[0_0_15px_rgba(212,175,55,0.2)] bg-black/50 shrink-0"
+                                            className="w-24 h-32 rounded-[1.05rem] border border-wuxia-gold/30 overflow-hidden relative shadow-[0_0_18px_rgba(212,175,55,0.16)] bg-black/55 shrink-0"
                                             onClick={() => 打开图片查看器(当前详情主图, `${currentNPC.姓名}${当前立绘 ? ' 立绘' : ' 头像'}`)}
                                             title={当前详情主图 ? '点击查看图片大图' : ''}
                                         >
                                             {当前详情主图 ? (
                                                 <>
                                                     <img src={当前详情主图} alt={currentNPC.姓名} className={`w-full h-full object-cover ${当前角色已死亡 ? 'grayscale opacity-65' : ''}`} />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/10 pointer-events-none"></div>
                                                     {当前角色已死亡 && (
                                                         <div className="absolute inset-x-0 bottom-0 bg-black/70 py-0.5 text-center text-[10px] tracking-[0.25em] text-gray-200">
                                                             已故
@@ -532,13 +542,20 @@ const MobileSocial: React.FC<Props> = ({
                                                 <button
                                                     type="button"
                                                     onClick={() => 切换在场状态(currentNPC)}
-                                                    className="inline-flex items-center gap-1 px-2 py-1 rounded bg-black/50 border border-white/10 active:bg-emerald-500/10 active:border-emerald-500/30 active:text-emerald-400 transition-all text-[9px] text-gray-300"
+                                                    disabled={当前角色已死亡}
+                                                    className={`inline-flex items-center gap-1 px-2 py-1 rounded border transition-all text-[9px] ${
+                                                        当前角色已死亡
+                                                            ? 'cursor-not-allowed border-gray-800 bg-black/45 text-gray-600'
+                                                            : currentNPC.是否在场
+                                                                ? 'border-emerald-900/50 bg-emerald-950/20 text-emerald-200 active:bg-emerald-900/30'
+                                                                : 'border-white/10 bg-black/50 text-gray-300 active:bg-emerald-500/10 active:border-emerald-500/30 active:text-emerald-400'
+                                                    }`}
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-2.5 h-2.5">
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                                                     </svg>
-                                                    开关在场
+                                                    {在场切换文案}
                                                 </button>
                                                 <button
                                                     type="button"
