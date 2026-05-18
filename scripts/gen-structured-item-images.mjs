@@ -99,6 +99,35 @@ const negative = [
   'jpeg artifacts'
 ].join(', ');
 
+const manualNegative = [
+  'blank page',
+  'empty scroll',
+  'empty book',
+  'plain paper only',
+  'modern printed book',
+  'readable text',
+  'legible letters',
+  'legible Chinese characters',
+  'object label',
+  'caption',
+  'watermark',
+  'logo',
+  'signature',
+  'ui',
+  'card frame',
+  'border',
+  'badge',
+  'collage',
+  'person',
+  'human',
+  'hand',
+  'face',
+  'modern plastic',
+  'blurry',
+  'low quality',
+  'jpeg artifacts'
+].join(', ');
+
 const qualityMap = {
   '传说': 'legendary',
   '绝世': 'mythic',
@@ -134,8 +163,19 @@ const itemSpecificPrompt = (item) => {
       'not a longbow, not a staff, not a gun, not a sword, not armor'
     ].join(', ');
   }
+  if (item.类型 === '秘籍') {
+    return [
+      'must clearly look like an ancient martial arts manual, not a blank prop',
+      'visible dense black ink-like pseudo calligraphy strokes, visible abstract meridian diagrams or martial arts figure diagrams',
+      'the marks must look like writing at a glance but must be unreadable decorative pseudo-text',
+      'ancient Chinese book or scroll material, yellowed paper, cloth binding or silk scroll edges',
+      'not blank, not empty pages, not a clean unused scroll, no readable real words'
+    ].join(', ');
+  }
   return '';
 };
+
+const buildNegative = (item) => item.类型 === '秘籍' ? manualNegative : negative;
 
 const stableSeed = (name) => {
   let hash = 2166136261;
@@ -171,7 +211,7 @@ const inject = (value, replacements) => {
 
 const buildWorkflow = (item) => inject(JSON.parse(WORKFLOW === 'fallback' ? 默认NSFWComfyUI工作流JSON : 默认ComfyUI工作流JSON), {
   '__PROMPT__': buildPrompt(item),
-  '__NEGATIVE_PROMPT__': negative,
+  '__NEGATIVE_PROMPT__': buildNegative(item),
   '__WIDTH__': WIDTH,
   '__HEIGHT__': HEIGHT,
   '__SEED__': stableSeed(item.名称),

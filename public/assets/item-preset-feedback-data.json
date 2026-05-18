@@ -647,15 +647,15 @@
     "name": "金钟罩",
     "type": "秘籍",
     "quality": "上品",
-    "src": "https://cdn.nodeimage.com/i/tGZioa16KLGSYlEo6wWkuajp3qSglP3R.png",
-    "source": "远程图"
+    "src": "./assets/item-presets/%E9%87%91%E9%92%9F%E7%BD%A9.png",
+    "source": "本地"
   },
   {
     "name": "九阳真经",
     "type": "秘籍",
     "quality": "传说",
-    "src": "https://cdn.nodeimage.com/i/3qY5LZxAOcecBXu4CyvfouSOPVwPwt58.png",
-    "source": "远程图"
+    "src": "./assets/item-presets/%E4%B9%9D%E9%98%B3%E7%9C%9F%E7%BB%8F.png",
+    "source": "本地"
   },
   {
     "name": "轻身术",
