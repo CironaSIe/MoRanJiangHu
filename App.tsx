@@ -1989,17 +1989,17 @@ const App: React.FC = () => {
             }
 
             const nextWorld: any = { ...(state.世界 || {}) };
-            nextWorld.地图层级 = result.newLayers;
             nextWorld.地图 = [];
             nextWorld.建筑 = [];
             nextWorld.地图建筑 = [];
             nextWorld.地图道路 = [];
             nextWorld.地图人物 = [];
+            nextWorld.地图层级 = result.newLayers;
             setters.setWorld(nextWorld);
             worldRef.current = nextWorld;
             setMapRegenerateRawText(result.rawText || '');
             void actions.performAutoSave?.({ world: nextWorld, force: true });
-            return { ok: true, message: `已从回忆库重建 ${result.newLayers.length} 个地点节点。` };
+            return { ok: true, message: `已清除旧地图，并从回忆库重建 ${result.newLayers.length} 个地点节点。` };
         } catch (error: any) {
             const errorMsg = error?.message || '未知错误';
             return { ok: false, message: errorMsg };

@@ -162,7 +162,7 @@ export const 构建地图更新用户提示词 = (params: {
             `当前主角：${currentName}`,
             `当前人物：\n${socialText}`,
             '',
-            '【已有地图层级数据（如有，请全部保留并整合进新树）】',
+            '【旧地图层级数据（仅供识别旧存档残留；不要保留、不要合并进新树）】',
             existingLayerInfo,
             '',
             '【回忆库内容】',
@@ -172,7 +172,7 @@ export const 构建地图更新用户提示词 = (params: {
             '1. 根节点必须是 层级:"寰宇" 名称:"诸天万界"。',
             '2. 地图层级只能是：寰宇、大地点、中地点、小地点、区地点、子地点。',
             '3. 大地点=世界/大陆/秘境大世界；中地点=大洲/区域；小地点=城镇/山门/村庄；区地点=建筑/地标/街区；子地点=房间/院落/室内空间。',
-            '4. 必须保留已有地图层级中的所有地点；回忆库中出现的明确地点尽量补全父子关系。',
+            '4. 这是全量重建任务：旧地图会在写入前被删除，绝对不要为了保留旧数据而复制旧层级；只写回忆库和当前状态能支持的地点。',
             '5. 不要生成坐标、道路、建筑列表、地图人物等旧字段。',
             '6. 只输出 JSON，格式为 {"地点树":[{"名称":"...","层级":"...","父级ID":"父级名称或ID","描述":"..."}]}，不要输出命令。'
         ].join('\n');
@@ -240,15 +240,8 @@ export const 解析地图重生成节点 = (rawText: string): any[] => {
 
 export const 构建地图层级替换结果 = (
     rawNodes: any[],
-    currentWorld?: any
+    _currentWorld?: any
 ): any[] => {
-    const existingLayers = Array.isArray(currentWorld?.地图层级) ? currentWorld.地图层级 : [];
-    const oldNameToId = new Map<string, string>();
-    existingLayers.forEach((layer: any) => {
-        const name = 取文本(layer?.名称);
-        const id = 取文本(layer?.ID);
-        if (name && /^DT-\d+/i.test(id)) oldNameToId.set(name, id);
-    });
     const normalizedNodes = (Array.isArray(rawNodes) ? rawNodes : [])
         .map((node) => ({
             名称: 取文本(node?.名称),
@@ -268,7 +261,7 @@ export const 构建地图层级替换结果 = (
     };
     const nameToId = new Map<string, string>();
     normalizedNodes.forEach((node) => {
-        if (!nameToId.has(node.名称)) nameToId.set(node.名称, oldNameToId.get(node.名称) || nextId());
+        if (!nameToId.has(node.名称)) nameToId.set(node.名称, nextId());
     });
 
     return normalizedNodes.map((node) => ({

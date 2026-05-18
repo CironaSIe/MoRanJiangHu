@@ -16,9 +16,9 @@ interface Props {
 }
 
 const MobileMapModal: React.FC<Props> = ({ world, env, onClose, onRegenerateMap, rawResponse, socialList }) => (
-    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/95 p-1.5 backdrop-blur-sm md:hidden animate-fadeIn">
-        <div className="relative flex h-[95vh] w-full flex-col overflow-hidden rounded-xl border border-wuxia-gold/20 bg-[#0b0907]/95 shadow-[0_0_80px_rgba(0,0,0,0.9)]">
-            <div className="flex h-14 shrink-0 items-center justify-between border-b border-wuxia-gold/10 bg-black/70 px-4">
+    <div className="fixed inset-0 z-[220] flex items-stretch justify-center bg-black/95 p-0 backdrop-blur-sm md:hidden animate-fadeIn">
+        <div className="relative flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden border border-wuxia-gold/20 bg-[#0b0907]/95 shadow-[0_0_80px_rgba(0,0,0,0.9)]">
+            <div className="flex h-12 shrink-0 items-center justify-between border-b border-wuxia-gold/10 bg-black/70 px-3">
                 <div className="min-w-0">
                     <div className="truncate font-serif text-lg font-bold tracking-[0.22em] text-wuxia-gold">江湖舆图</div>
                     <div className="truncate text-[10px] tracking-[0.16em] text-[#bba77b]">{env?.具体地点 || env?.小地点 || '未知之境'}</div>
@@ -32,7 +32,7 @@ const MobileMapModal: React.FC<Props> = ({ world, env, onClose, onRegenerateMap,
                 </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-hidden p-2">
+            <div className="min-h-0 flex-1 overflow-hidden p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                 <LocationBrowser
                     world={world}
                     env={env}

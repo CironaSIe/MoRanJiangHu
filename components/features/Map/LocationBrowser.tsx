@@ -143,12 +143,12 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
         });
     }, [selectedNode, socialList, breadcrumb, env, tree.当前节点]);
 
-    const rightPanelWidth = compact ? 'min-h-[200px]' : 'w-[320px]';
+    const rightPanelWidth = compact ? 'min-h-0' : 'w-[320px]';
 
     return (
-        <div className={`${compact ? 'flex flex-col gap-2 overflow-y-auto' : 'flex gap-4'} h-full min-h-0`}>
+        <div className={`${compact ? 'grid grid-rows-[minmax(0,1fr)_minmax(220px,42dvh)] gap-2 overflow-hidden' : 'flex gap-4'} h-full min-h-0`}>
             {/* 左侧：区域地图 */}
-            <div className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-wuxia-gold/20 bg-[#0a0d14] ${compact ? 'h-[40vh] flex-shrink-0' : 'flex-1'}`}>
+            <div className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-wuxia-gold/20 bg-[#0a0d14] ${compact ? '' : 'flex-1'}`}>
                 {/* 面包屑 */}
                 <div className="flex items-start gap-2 border-b border-wuxia-gold/10 bg-black/40 px-4 py-2 shrink-0">
                     {/* 返回上一层 */}
@@ -216,9 +216,9 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
             </div>
 
             {/* 右侧面板：三栏固定高度 */}
-            <div className={`${rightPanelWidth} grid gap-3 min-h-0 ${compact ? 'flex-shrink-0' : 'shrink-0'}`} style={{
-                height: compact ? 'auto' : '100%',
-                gridTemplateRows: compact ? '200px 80px 100px' : '1fr auto auto',
+            <div className={`${rightPanelWidth} grid gap-2 min-h-0 ${compact ? 'overflow-hidden' : 'shrink-0'}`} style={{
+                height: compact ? '100%' : '100%',
+                gridTemplateRows: compact ? 'minmax(110px,1fr) minmax(72px,auto) minmax(76px,0.8fr)' : '1fr auto auto',
             }}>
 
                 {/* 框一：地点索引 — 最长 */}

@@ -36,6 +36,7 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
     const 地图生成模型 = (form.功能模型占位.地图生成使用模型 || '').trim();
     const 地图生成API地址 = (form.功能模型占位.地图生成API地址 || '').trim();
     const 地图生成API密钥 = (form.功能模型占位.地图生成API密钥 || '').trim();
+    const 地图生成功能开启 = form.功能模型占位.地图生成功能启用 !== false;
     const 主剧情解析模型 = (form.功能模型占位.主剧情使用模型 || '').trim() || (activeConfig?.model || '').trim();
     const 自动更新独立开启 = Boolean(form.功能模型占位.地图自动更新独立模型开关);
     const 自动更新模型 = (form.功能模型占位.地图自动更新使用模型 || '').trim();
@@ -156,8 +157,32 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
             </div>
 
             <div className="rounded-md border border-wuxia-gold/20 bg-black/25 p-4 space-y-4">
+                <div className="rounded border border-wuxia-gold/20 bg-wuxia-gold/5 p-3 space-y-1.5 text-[11px]">
+                    <div className="text-wuxia-gold font-bold text-xs">提示</div>
+                    <div className="text-gray-300">1. 地图生成是对 AI 算力消耗较低的轻量任务，通过检索正文来更新地图，推荐使用 Flash 或 mini 级模型。</div>
+                    <div className="text-gray-300">2. 开启地图生成功能后，需要在下面配置 API 模型，否则就和正文使用同一个模型。</div>
+                    <div className="text-gray-300">3. 回忆解析是根据回忆库来生成地图，会删除目前的地图内容；如果你是老版本迁移过来的存档，可以先使用这个功能。</div>
+                    <div className="text-gray-300">4. 回忆解析多用于老存档兼容；如果你是新开的存档，则不需要使用它，只需要选择是否开启地图生成以及是否使用独立模型生成。</div>
+                </div>
+
                 <div className="text-[11px] text-gray-400">
-                    当前启用接口配置：{activeConfig?.名称 || '未配置'}。手动“回忆解析”会使用下方解析配置；正文后的自动地图更新默认跟随主剧情接口，也可单独指定模型。
+                    当前启用接口配置：{activeConfig?.名称 || '未配置'}。手动“回忆解析”会使用下方解析配置；正文后的自动地图更新由地图生成功能总开关控制，开启后默认跟随主剧情接口，也可单独指定模型。
+                </div>
+
+                <div className="rounded-md border border-wuxia-gold/20 bg-wuxia-gold/5 p-3 space-y-2">
+                    <label className="flex items-center justify-between gap-3 text-xs text-gray-200">
+                        <span>
+                            <span className="block text-wuxia-gold font-bold">开启地图生成功能</span>
+                            <span className="mt-1 block text-[11px] text-gray-400">
+                                开启后，正文输出结束会加入地图更新队列；关闭后自动地图更新阶段会显示“未开启，跳过”。手动回忆解析仍可用于旧存档地图重建。
+                            </span>
+                        </span>
+                        <ToggleSwitch
+                            checked={地图生成功能开启}
+                            onChange={(checked) => updatePlaceholder('地图生成功能启用', checked)}
+                            ariaLabel="切换地图生成功能"
+                        />
+                    </label>
                 </div>
 
                 {onRegenerateMapFromMemory && (
@@ -187,11 +212,8 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
                     </div>
                 )}
 
-                <div className="rounded border border-wuxia-gold/20 bg-wuxia-gold/5 p-3 space-y-1.5 text-[11px]">
-                    <div className="text-wuxia-gold font-bold text-xs">提示</div>
-                    <div className="text-gray-300">1. 地图生成是对 AI 算力消耗较低的轻量任务，推荐使用 Flash 或 mini 级模型。</div>
-                    <div className="text-gray-300">2. 留空则自动复用主剧情接口配置。</div>
-                    <div className="text-gray-300">3. 填写独立模型后，回忆解析请求将使用该模型。</div>
+                <div className="text-[11px] text-gray-400">
+                    开启地图生成功能后，如果不单独填写地图生成模型/API，就会直接复用主剧情模型和接口。
                 </div>
 
                 <div className="flex gap-3 items-end">
@@ -250,7 +272,7 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
             <div className="rounded-md border border-wuxia-gold/20 bg-black/25 p-4 space-y-4">
                 <div className="text-wuxia-gold font-bold text-xs">正文后自动地图更新</div>
                 <div className="text-[11px] text-gray-400">
-                    自动队列会在文章优化、变量生成、动态世界、规划分析之后最后执行。关闭独立模型时，地图更新跟随主剧情接口；开启后仅地图更新改用这里的模型/API。
+                    自动队列会在文章优化、变量生成、动态世界、规划分析之后最后执行。关闭地图生成功能时，本阶段会显示未开启并跳过；开启地图生成功能且关闭独立模型时，地图更新跟随主剧情接口；开启独立模型后仅地图更新改用这里的模型/API。
                 </div>
 
                 <label className="flex items-center justify-between gap-3 text-xs text-gray-300">
@@ -269,6 +291,7 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
                                 }
                             }));
                         }}
+                        disabled={!地图生成功能开启}
                         ariaLabel="切换地图自动更新独立模型"
                     />
                 </label>
@@ -280,11 +303,13 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
                             value={autoMapModelDisplay}
                             options={selectOptions.map((model) => ({ value: model, label: model }))}
                             onChange={(model) => updatePlaceholder('地图自动更新使用模型', model)}
-                            disabled={!自动更新独立开启 || selectOptions.length === 0}
-                            placeholder={!自动更新独立开启
+                            disabled={!地图生成功能开启 || !自动更新独立开启 || selectOptions.length === 0}
+                            placeholder={!地图生成功能开启
+                                ? '地图生成功能未开启'
+                                : !自动更新独立开启
                                 ? `跟随主剧情模型：${主剧情解析模型 || '未设置'}`
                                 : (selectOptions.length ? '请选择模型' : '请先点击获取列表')}
-                            buttonClassName={自动更新独立开启
+                            buttonClassName={地图生成功能开启 && 自动更新独立开启
                                 ? 'bg-black/50 border-gray-600 py-2.5'
                                 : 'bg-black/30 border-gray-700 py-2.5'}
                         />
@@ -298,9 +323,9 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
                         value={form.功能模型占位.地图自动更新API地址 || ''}
                         onChange={(e) => updatePlaceholder('地图自动更新API地址', e.target.value)}
                         placeholder={activeConfig?.baseUrl || '留空则复用主剧情 Base URL'}
-                        disabled={!自动更新独立开启}
+                        disabled={!地图生成功能开启 || !自动更新独立开启}
                         className={`w-full border p-2 text-white rounded-md outline-none ${
-                            自动更新独立开启
+                            地图生成功能开启 && 自动更新独立开启
                                 ? 'bg-black/50 border-gray-700 focus:border-wuxia-gold'
                                 : 'bg-black/30 border-gray-800 text-gray-400'
                         }`}
@@ -314,16 +339,20 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
                         value={form.功能模型占位.地图自动更新API密钥 || ''}
                         onChange={(e) => updatePlaceholder('地图自动更新API密钥', e.target.value)}
                         placeholder={activeConfig?.apiKey ? '留空则复用主剧情 API Key' : 'sk-...'}
-                        disabled={!自动更新独立开启}
+                        disabled={!地图生成功能开启 || !自动更新独立开启}
                         className={`w-full border p-2 text-white rounded-md outline-none ${
-                            自动更新独立开启
+                            地图生成功能开启 && 自动更新独立开启
                                 ? 'bg-black/50 border-gray-700 focus:border-wuxia-gold'
                                 : 'bg-black/30 border-gray-800 text-gray-400'
                         }`}
                     />
                 </div>
 
-                {!自动更新独立开启 && (
+                {!地图生成功能开启 ? (
+                    <div className="text-[11px] text-gray-400">
+                        当前状态：地图生成功能未开启，正文后自动地图更新会跳过。
+                    </div>
+                ) : !自动更新独立开启 && (
                     <div className="text-[11px] text-gray-400">
                         当前状态：自动地图更新跟随主剧情接口（{主剧情解析模型 || '未配置'}）。
                     </div>

@@ -435,3 +435,44 @@
 - 后续正常发布新版本不要依赖 GitHub Actions，应从本机执行直连 Cloudflare 的发布命令。
 - 执行 Cloudflare 部署时，先清空代理环境变量，并使用明确的命令超时，继续遵守现有发布覆盖验证规则。
 - 推送到 `main` 现在只作为源码备份步骤，不再视为部署机制。
+
+## 2026-05-18 地图生成开关、手机地图布局与回忆解析重建
+
+- 新增全局 `地图生成功能启用` 设置。
+- 设置入口位于 `components/features/Settings/MapModelSettings.tsx`；桌面端和手机端设置页共用这个组件，所以双端同步生效。
+- 默认行为保持开启，避免影响已有存档。
+- 开启时，正文输出后仍按之前逻辑进入地图更新队列；地图更新可以复用主剧情 API/模型，也可以使用独立地图更新配置。
+- 关闭时，正文流程继续正常运行，但地图更新队列阶段会提示地图生成功能未开启，并跳过自动地图更新。
+- 相关文件：
+  - `models/system.ts`：持久化新增设置字段。
+  - `utils/apiConfig.ts`：新增地图生成开关的默认规范化。
+  - `components/features/Settings/MapModelSettings.tsx`：新增设置开关和顶部提示。
+  - `hooks/useGame/sendWorkflow.ts`：地图生成关闭时的队列跳过逻辑。
+
+### 手机地图布局记录
+
+- 手机地图 UI 已针对小屏幕调整。
+- `components/features/Map/MobileMapModal.tsx` 使用移动端安全高度 `100dvh`，压缩顶部间距，并加入底部 safe-area 余量。
+- `components/features/Map/LocationBrowser.tsx` 的紧凑布局避免手机端整页溢出。
+- `components/features/Map/RegionMap.tsx` 的建筑/房间列表支持内部滚动，房间很多时不会导致页面无法滚到底。
+
+### 地图设置提示与回忆解析行为
+
+- 地图生成设置里的“提示”区应保持在页面顶部。
+- 提示内容应说明：
+  - 地图生成是通过检索正文来更新地图的轻量任务，适合 Flash 或 mini 级模型。
+  - 开启地图生成功能后，需要在下方配置 API/模型；如果不配置，则复用主剧情模型/API。
+  - 回忆解析会根据回忆库生成地图，并且会先删除目前的地图内容；主要用于老存档迁移。
+  - 新开的存档通常不需要回忆解析，只需要选择是否开启地图生成、是否使用独立模型。
+- 回忆解析（`memory_regenerate`）现在是全量重建路径：
+  - 提示词不能再要求 AI 保留或合并旧地图层级。
+  - 旧地图层级最多作为旧存档残留诊断参考，不能复制进新地图树。
+  - `App.tsx` 会先清空旧坐标地图字段，再写入新的 `世界.地图层级`。
+  - `hooks/useGame/mapUpdateWorkflow.ts` 会为重建节点重新分配新的 `DT-xxx` ID，不沿用旧 ID。
+
+### 验证
+
+- 地图生成开关与队列跳过逻辑完成后，`npm.cmd run build` 已通过。
+- 手机地图布局调整后，`npm.cmd run build` 已通过。
+- 地图设置提示移动/改文案、回忆解析改为清旧重建后，`npm.cmd run build` 已通过。
+- 每次构建都会因 `release:sync` 修改 release 元数据；由于本次不是发布，已恢复 `data/releaseInfo.ts` 与 `public/release-info.json`。

@@ -442,3 +442,44 @@ If the task is "confirm this UI works" and the opening flow depends on external 
 - Do not rely on GitHub Actions for normal releases. Future release publishing should be performed from the local machine with direct Cloudflare commands.
 - For Cloudflare deploys, clear proxy environment variables first and use explicit command timeouts, following the existing release deployment coverage rules.
 - Pushing to `main` is now only a source backup step; it should not be treated as the deployment mechanism.
+
+## 2026-05-18 Map Generation Toggle, Mobile Map Layout, And Memory Parse Rebuild
+
+- Added a global `地图生成功能启用` setting for map generation.
+- The setting lives in `components/features/Settings/MapModelSettings.tsx` and is shared by desktop and mobile settings because both use the same component.
+- Default behavior remains enabled for existing saves.
+- When enabled, the post-story queue works as before: after story output, map update enters the queue and can use either the main story API/model or the independent map-update configuration.
+- When disabled, the story flow continues normally, but the map update queue stage reports that map generation is not enabled and skips the automatic map update.
+- Relevant files:
+  - `models/system.ts`: persisted setting field.
+  - `utils/apiConfig.ts`: default normalization for the new map generation switch.
+  - `components/features/Settings/MapModelSettings.tsx`: settings UI toggle and top tips.
+  - `hooks/useGame/sendWorkflow.ts`: queue-stage skip behavior when map generation is disabled.
+
+### Mobile Map Layout Notes
+
+- Mobile map UI was adjusted for small screens.
+- `components/features/Map/MobileMapModal.tsx` uses a mobile-safe height (`100dvh`), compact header spacing, and bottom safe-area padding.
+- `components/features/Map/LocationBrowser.tsx` compact layout avoids whole-page overflow on mobile.
+- `components/features/Map/RegionMap.tsx` room/building lists support internal scrolling so many rooms do not prevent reaching the bottom.
+
+### Map Settings Tips And Memory Parse Behavior
+
+- The map generation settings tip block should stay at the top of the settings page.
+- The tips should explain:
+  - Map generation is a lightweight task that updates the map by retrieving story text and is suitable for Flash/mini-level models.
+  - After enabling map generation, users should configure an API/model below, otherwise the main story model/API is reused.
+  - Memory parse rebuilds the map from the memory library and deletes the current map content first; it is mainly for old-save migration.
+  - New saves usually do not need memory parse; users only need to decide whether to enable map generation and whether to use an independent model.
+- Memory parse (`memory_regenerate`) is now a full rebuild path:
+  - The prompt must not ask AI to preserve or merge old map layers.
+  - Old map layers may be shown only as diagnostic old-save residue and must not be copied into the new tree.
+  - `App.tsx` clears old coordinate map fields before writing the new `世界.地图层级`.
+  - `hooks/useGame/mapUpdateWorkflow.ts` assigns fresh `DT-xxx` ids for rebuilt nodes instead of reusing old ids.
+
+### Verification
+
+- `npm.cmd run build` passed after the map generation toggle and queue skip work.
+- `npm.cmd run build` passed after mobile map layout adjustments.
+- `npm.cmd run build` passed after moving/rewording map tips and making memory parse a full clear-and-rebuild path.
+- Each build touched release metadata via `release:sync`; generated `data/releaseInfo.ts` and `public/release-info.json` were restored because this was not a release.

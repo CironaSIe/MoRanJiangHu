@@ -446,7 +446,7 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
     // 房间层：纯列表卡片面板，无地图样式
     if (isRoom) {
         return (
-            <div className="w-full h-full min-h-[400px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            <div className="w-full h-full min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-3 custom-scrollbar">
                 {roomCards.map((card, index) => {
                     const cardNpcList = npcByNode.get(card.node.ID)
                         || (!isRoom && index === 0 ? (npcByNode.get('_unplaced') || []) : []);
