@@ -18,6 +18,7 @@ const OBJECT_STORAGE_MANIFEST_VERSION = 1;
 const OBJECT_STORAGE_SETTINGS_FILE = 'settings.json';
 const OBJECT_STORAGE_PROXY_PATH = '/api/object-storage-proxy';
 const PRIMARY_SYNC_API_BASE = 'https://msjh.bacon159.pp.ua';
+const BACKUP_SYNC_API_BASE = 'https://msjh.bacon.de5.net';
 const OBJECT_STORAGE_FALLBACK_CHUNK_THRESHOLD = 700 * 1024;
 const OBJECT_STORAGE_CHUNK_BASE64_SIZE = 768 * 1024;
 const OBJECT_STORAGE_UPLOAD_CONCURRENCY = 3;
@@ -420,6 +421,16 @@ const 构建对象存储代理地址 = (): string => {
     return configured;
 };
 
+const 构建对象存储代理地址列表 = (): string[] => {
+    const configured = 构建对象存储代理地址();
+    const candidates = [
+        configured,
+        `${PRIMARY_SYNC_API_BASE}${OBJECT_STORAGE_PROXY_PATH}`,
+        `${BACKUP_SYNC_API_BASE}${OBJECT_STORAGE_PROXY_PATH}`
+    ];
+    return Array.from(new Set(candidates.filter(Boolean)));
+};
+
 const 等待 = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 const 是否可重试代理错误 = (status: number, detail: string): boolean => (
@@ -483,34 +494,59 @@ const objectStorageFetch = async (
     }
 
     let lastTransientFailure: Response | null = null;
+    const proxyUrls = 构建对象存储代理地址列表();
     for (let attempt = 0; attempt < 3; attempt += 1) {
-        const response = await fetch(构建对象存储代理地址(), {
-            method: 'POST',
-            headers: {
-                'X-Object-Storage-Method': method,
-                'X-Object-Storage-Endpoint': config.endpoint,
-                'X-Object-Storage-Bucket': config.bucket,
-                'X-Object-Storage-Key': objectKey,
-                'X-Object-Storage-Access-Key': config.accessKey,
-                'X-Object-Storage-Secret-Key': config.secretKey,
-                ...(config.username ? { 'X-Object-Storage-Username': config.username } : {}),
-                ...init?.headers
-            },
-            body: init?.body ?? null
-        });
-        记录对象存储日志('对象存储代理请求完成', {
-            method,
-            key: objectKey,
-            attempt: attempt + 1,
-            status: response.status,
-            ok: response.ok
-        }, response.ok || response.status === 404 ? 'debug' : 'warn');
-        if (response.status !== 502) return response;
+        for (const proxyUrl of proxyUrls) {
+            let response: Response;
+            try {
+                response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-Object-Storage-Method': method,
+                        'X-Object-Storage-Endpoint': config.endpoint,
+                        'X-Object-Storage-Bucket': config.bucket,
+                        'X-Object-Storage-Key': objectKey,
+                        'X-Object-Storage-Access-Key': config.accessKey,
+                        'X-Object-Storage-Secret-Key': config.secretKey,
+                        ...(config.username ? { 'X-Object-Storage-Username': config.username } : {}),
+                        ...init?.headers
+                    },
+                    body: init?.body ?? null
+                });
+            } catch (error) {
+                记录对象存储日志('对象存储代理请求网络失败，尝试下一个代理域名', {
+                    method,
+                    key: objectKey,
+                    proxyHost: (() => {
+                        try { return new URL(proxyUrl, window.location.href).host; } catch { return proxyUrl; }
+                    })(),
+                    attempt: attempt + 1,
+                    error: error instanceof Error ? error.message : String(error)
+                }, 'warn');
+                const rawMessage = error instanceof Error ? error.message : String(error);
+                lastTransientFailure = new Response(
+                    `网络连接失败：${rawMessage}。请先关闭 VPN、系统代理或浏览器代理后重试；如果仍失败，请切换网络或稍后再试。`,
+                    { status: 502 }
+                );
+                continue;
+            }
+            记录对象存储日志('对象存储代理请求完成', {
+                method,
+                key: objectKey,
+                proxyHost: (() => {
+                    try { return new URL(proxyUrl, window.location.href).host; } catch { return proxyUrl; }
+                })(),
+                attempt: attempt + 1,
+                status: response.status,
+                ok: response.ok
+            }, response.ok || response.status === 404 ? 'debug' : 'warn');
+            if (response.status !== 502) return response;
 
-        const cloned = await 克隆响应(response);
-        const detail = await cloned.clone().text().catch(() => '');
-        if (!是否可重试代理错误(response.status, detail)) return cloned;
-        lastTransientFailure = cloned;
+            const cloned = await 克隆响应(response);
+            const detail = await cloned.clone().text().catch(() => '');
+            if (!是否可重试代理错误(response.status, detail)) return cloned;
+            lastTransientFailure = cloned;
+        }
         await 等待(450 * (attempt + 1));
     }
     return lastTransientFailure || new Response('对象存储 proxy request failed', { status: 502 });
