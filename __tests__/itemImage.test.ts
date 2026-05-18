@@ -3,6 +3,10 @@ import { 获取物品已选图标地址 } from '../utils/itemImage';
 import { 构建物品图提示词, 构建物品负面提示词 } from '../services/ai/itemImageGeneration';
 
 describe('item image preset fallback', () => {
+    const expectHostedPreset = (url: string | undefined) => {
+        expect(url).toMatch(/^https:\/\/image\.bacon159\.pp\.ua\/file\/.+\.png$/);
+    };
+
     it('uses safe preset icons for known starter equipment instead of stale generated images', () => {
         const item: any = {
             ID: 'Item001',
@@ -28,15 +32,36 @@ describe('item image preset fallback', () => {
             }
         };
 
-        expect(获取物品已选图标地址(item)).toBe('/assets/item-presets/精钢长剑.png');
+        expectHostedPreset(获取物品已选图标地址(item));
     });
 
     it('uses distinct starter clothing presets for pants and shoes', () => {
         const pants: any = { 名称: '粗布长裤', 类型: '防具', 品质: '凡品' };
         const shoes: any = { 名称: '旧布鞋', 类型: '防具', 品质: '凡品' };
 
-        expect(获取物品已选图标地址(pants)).toBe('/assets/item-presets/粗布长裤.png');
+        expectHostedPreset(获取物品已选图标地址(pants));
         expect(获取物品已选图标地址(shoes)).toBe('/assets/item-presets/旧布鞋.png');
+        expect(获取物品已选图标地址(pants)).not.toBe(获取物品已选图标地址(shoes));
+    });
+
+    it('uses generated local presets for structured item library names', () => {
+        const sword: any = { 名称: '钢剑', 类型: '武器', 品质: '良品' };
+        const armor: any = { 名称: '钢盔甲', 类型: '防具', 品质: '良品' };
+
+        expectHostedPreset(获取物品已选图标地址(sword));
+        expectHostedPreset(获取物品已选图标地址(armor));
+        expect(获取物品已选图标地址(sword)).not.toBe(获取物品已选图标地址(armor));
+    });
+
+    it('uses normative preset names when the display name follows the story flavor', () => {
+        const item: any = {
+            名称: '杨氏断门刀',
+            规范物品名称: '钢刀',
+            类型: '武器',
+            品质: '良品'
+        };
+
+        expectHostedPreset(获取物品已选图标地址(item));
     });
 
     it('uses preset image first for every exact preset name', () => {
@@ -95,7 +120,7 @@ describe('item image preset fallback', () => {
         expect(获取物品已选图标地址(item)).toBe('https://example.com/generated-custom-sword.png');
     });
 
-    it('does not normalize whitespace when matching preset names', () => {
+    it('normalizes whitespace when matching structured preset names', () => {
         const item: any = {
             名称: ' 精钢长剑 ',
             类型: '武器',
@@ -110,7 +135,7 @@ describe('item image preset fallback', () => {
             }
         };
 
-        expect(获取物品已选图标地址(item)).toBe('https://example.com/generated-spaced-name.png');
+        expectHostedPreset(获取物品已选图标地址(item));
     });
 
     it('treats item-hosted image URLs as existing icons so auto generation can skip them', () => {

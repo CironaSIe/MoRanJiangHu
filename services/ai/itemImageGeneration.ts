@@ -52,7 +52,14 @@ const 构建物品生图接口配置 = (imageApi: 当前可用接口结构 | nul
  */
 export const 构建物品视觉描述 = (item: any): string => {
     const parts: string[] = [];
-    const structured = 查找结构化物品(读取文本(item?.名称));
+    const structured = 查找结构化物品(
+        读取文本(item?.规范物品名称)
+        || 读取文本(item?.预设物品名称)
+        || 读取文本(item?.标准物品名称)
+        || 读取文本(item?.基础物品名称)
+        || 读取文本(item?.图片匹配名称)
+        || 读取文本(item?.名称)
+    );
     if (structured?.生图描述) parts.push(structured.生图描述);
     if (Array.isArray(structured?.视觉标签) && structured.视觉标签.length > 0) {
         parts.push(`结构化材质与物品：${structured.视觉标签.join('，')}`);

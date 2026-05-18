@@ -3,40 +3,138 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { 默认ComfyUI工作流JSON, 默认NSFWComfyUI工作流JSON } from '../data/defaultComfyWorkflow.ts';
+import { 结构化物品库 } from '../data/structuredItemLibrary.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 const outDir = path.join(rootDir, 'public', 'assets', 'item-presets');
+const presetRegistryPath = path.join(rootDir, 'data', 'presetItemImages.ts');
+
 const args = process.argv.slice(2);
 const getArg = (name, fallback = '') => {
   const idx = args.indexOf(`--${name}`);
   return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
 };
+const hasFlag = (name) => args.includes(`--${name}`);
 
 const COMFY_URL = getArg('comfy').replace(/\/+$/, '');
 const ONLY = getArg('only');
+const START = Math.max(0, Number(getArg('start', '0')) || 0);
+const LIMIT = Math.max(0, Number(getArg('limit', '0')) || 0);
 const WIDTH = Number(getArg('width', '768')) || 768;
 const HEIGHT = Number(getArg('height', '768')) || 768;
-const STEPS = Number(getArg('steps', '4')) || 4;
+const STEPS = Number(getArg('steps', '9')) || 9;
 const CFG = Number(getArg('cfg', '1')) || 1;
-const SAMPLER = getArg('sampler', 'euler');
-const SCHEDULER = getArg('scheduler', 'simple');
+const SAMPLER = getArg('sampler', 'res_multistep');
+const SCHEDULER = getArg('scheduler', 'sgm_uniform');
 const WORKFLOW = getArg('workflow', 'normal');
+const DRY_RUN = hasFlag('dry-run');
+const MISSING_ONLY = hasFlag('missing');
+const MISSING_REMOTE_ONLY = hasFlag('missing-remote');
+const SKIP_REGISTRY = hasFlag('no-registry');
+const REUSE_EXISTING = hasFlag('reuse-existing');
+const LOCAL_ONLY = hasFlag('local-only');
+const UPLOAD_HOST = hasFlag('upload-host');
+const UPLOAD_BASE = getArg('upload-base', 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '');
+const UPLOAD_STORAGE = getArg('upload-storage', 'telegram');
 
-if (!COMFY_URL) throw new Error('Missing --comfy');
+if (!COMFY_URL && !DRY_RUN) throw new Error('Missing --comfy');
 
-const common = 'photorealistic product photo of a single physical wuxia inventory item, centered on warm neutral parchment, realistic material texture, studio lighting, soft shadow, clean silhouette, no text, no letters, no logo, no watermark, no UI, no card frame';
-const negative = 'text, letters, numbers, chinese characters, caption, label, watermark, logo, signature, ui, card frame, border, badge, collage, person, human, hand, feet, face, modern plastic, blurry, low quality, jpeg artifacts';
+const common = [
+  'photorealistic product photo of a single physical wuxia inventory item',
+  'centered on warm neutral parchment',
+  'realistic material texture',
+  'studio lighting',
+  'soft shadow',
+  'clean silhouette',
+  'isolated object only',
+  'no text',
+  'no letters',
+  'no printed words',
+  'no inscriptions',
+  'no labels on the object',
+  'no logo',
+  'no watermark',
+  'no UI',
+  'no card frame'
+].join(', ');
 
-const targets = [
-  { name: '金创药', filename: '金创药.png', seed: 951001, prompt: `${common}, traditional wound medicine powder, yellow brown crushed herbal powder spilling from a folded paper packet and rough linen pouch tied with string, ancient battlefield first aid prop, loose powder grains and dried herbs, no bottle, no jar` },
-  { name: '钢剑', filename: '钢剑.png', seed: 951002, prompt: `${common}, refined polished steel Chinese jian sword, straight double edged blade, visible central ridge, simple brass guard, dark leather wrapped handle, practical martial sword` },
-  { name: '铁剑', filename: '铁剑.png', seed: 951003, prompt: `${common}, rough forged iron Chinese jian sword, dark metal blade, simple worn wooden grip, utilitarian martial weapon` },
-  { name: '木剑', filename: '木剑.png', seed: 951004, prompt: `${common}, plain wooden practice jian sword, carved hardwood blade and handle, training weapon, visible wood grain` },
-  { name: '钢盔甲', filename: '钢盔甲.png', seed: 951005, prompt: `${common}, wearable steel armor vest, chest and back panels, shoulder straps, arm openings, waist hem, polished riveted plates, torso armor only` },
-  { name: '铁盔甲', filename: '铁盔甲.png', seed: 951006, prompt: `${common}, rough iron armor vest, dark riveted metal plates, torso protection, shoulder straps, arm openings, waist hem` },
-  { name: '草鞋', filename: '草鞋.png', seed: 951007, prompt: `${common}, a pair of empty woven straw sandals placed side by side, rustic ancient footwear, visible straw weave and simple ties, no feet` },
-];
+const negative = [
+  'text',
+  'letters',
+  'numbers',
+  'chinese characters',
+  'printed words',
+  'inscription',
+  'object label',
+  'writing on pouch',
+  'writing on scroll',
+  'calligraphy',
+  'caption',
+  'label',
+  'watermark',
+  'logo',
+  'signature',
+  'ui',
+  'card frame',
+  'border',
+  'badge',
+  'collage',
+  'person',
+  'human',
+  'legs',
+  'vertical leg armor',
+  'greaves',
+  'shin guards',
+  'feet inside shoes',
+  'pants',
+  'mannequin',
+  'full armor suit',
+  'hand',
+  'feet',
+  'face',
+  'modern plastic',
+  'blurry',
+  'low quality',
+  'jpeg artifacts'
+].join(', ');
+
+const qualityMap = {
+  '传说': 'legendary',
+  '绝世': 'mythic',
+  '极品': 'top grade',
+  '上品': 'superior',
+  '良品': 'fine',
+  '凡品': 'common'
+};
+
+const typeMap = {
+  '武器': 'weapon',
+  '防具': 'armor or garment',
+  '消耗品': 'medicine consumable',
+  '材料': 'crafting material',
+  '秘籍': 'martial arts manual scroll',
+  '饰品': 'accessory',
+  '杂物': 'miscellaneous prop'
+};
+
+const stableSeed = (name) => {
+  let hash = 2166136261;
+  for (const ch of name) {
+    hash ^= ch.codePointAt(0) || 0;
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash) % 900000000000000;
+};
+
+const buildPrompt = (item) => [
+  common,
+  `single ${qualityMap[item.品质] || 'common'} ${typeMap[item.类型] || 'prop'}`,
+  `form and materials: ${item.生图描述}`,
+  Array.isArray(item.视觉标签) && item.视觉标签.length > 0 ? `visual tags: ${item.视觉标签.join(', ')}` : '',
+  'inventory icon source image, product photography, object fills most of the frame, readable silhouette, ancient Chinese wuxia prop, plain background',
+  'absolutely no text, no letters, no numbers, no Chinese characters, no calligraphy, no captions, no labels, no watermarks, no logos, no writing on the object'
+].filter(Boolean).join('\n');
 
 const inject = (value, replacements) => {
   if (typeof value === 'string') {
@@ -52,11 +150,11 @@ const inject = (value, replacements) => {
 };
 
 const buildWorkflow = (item) => inject(JSON.parse(WORKFLOW === 'fallback' ? 默认NSFWComfyUI工作流JSON : 默认ComfyUI工作流JSON), {
-  '__PROMPT__': item.prompt,
+  '__PROMPT__': buildPrompt(item),
   '__NEGATIVE_PROMPT__': negative,
   '__WIDTH__': WIDTH,
   '__HEIGHT__': HEIGHT,
-  '__SEED__': item.seed,
+  '__SEED__': stableSeed(item.名称),
   '__STEPS__': STEPS,
   '__CFG__': CFG,
   '__SAMPLER__': SAMPLER,
@@ -70,13 +168,13 @@ async function submitPrompt(workflow) {
     body: JSON.stringify({ prompt: workflow, client_id: `mrjh-structured-${Math.random().toString(36).slice(2, 10)}` }),
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(`POST /prompt ${res.status}: ${text.slice(0, 800)}`);
+  if (!res.ok) throw new Error(`POST /prompt ${res.status}: ${text.slice(0, 1200)}`);
   const json = JSON.parse(text);
-  if (!json.prompt_id) throw new Error(`Bad response: ${text.slice(0, 800)}`);
+  if (!json.prompt_id) throw new Error(`Bad response: ${text.slice(0, 1200)}`);
   return json.prompt_id;
 }
 
-async function waitForHistory(promptId, timeoutMs = 240000) {
+async function waitForHistory(promptId, timeoutMs = 300000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const res = await fetch(`${COMFY_URL}/history/${promptId}`);
@@ -84,7 +182,7 @@ async function waitForHistory(promptId, timeoutMs = 240000) {
       const json = await res.json();
       const entry = json?.[promptId];
       if (entry?.status?.completed) return entry;
-      if (entry?.status?.status_str === 'error') throw new Error(JSON.stringify(entry.status.messages).slice(0, 1200));
+      if (entry?.status?.status_str === 'error') throw new Error(JSON.stringify(entry.status.messages).slice(0, 1600));
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
@@ -109,19 +207,188 @@ async function downloadView(fileRef) {
   return Buffer.from(await res.arrayBuffer());
 }
 
-await fs.mkdir(outDir, { recursive: true });
-const stats = await fetch(`${COMFY_URL}/system_stats`).then((r) => r.json());
-console.log(`ComfyUI ${stats.system?.comfyui_version || 'unknown'} ready`);
-const selected = ONLY ? targets.filter((item) => item.name === ONLY || item.filename === ONLY) : targets;
-for (const item of selected) {
-  console.log(`[${item.name}] generating...`);
-  const promptId = await submitPrompt(buildWorkflow(item));
-  console.log(`  prompt_id=${promptId}`);
-  const history = await waitForHistory(promptId);
-  const fileRef = extractOutputFile(history);
-  if (!fileRef) throw new Error('No output image');
-  const buf = await downloadView(fileRef);
-  const localPath = path.join(outDir, item.filename);
-  await fs.writeFile(localPath, buf);
-  console.log(`  saved ${localPath} ${(buf.length / 1024).toFixed(1)}KB`);
+async function localPresetExists(item) {
+  try {
+    await fs.access(path.join(outDir, `${item.名称}.png`));
+    return true;
+  } catch {
+    return false;
+  }
 }
+
+const readLocalPreset = async (item) => fs.readFile(path.join(outDir, `${item.名称}.png`));
+
+async function uploadImageToHost(item, buf) {
+  if (!UPLOAD_HOST) return `/assets/item-presets/${item.filename}`;
+  const attemptUpload = async () => {
+    const form = new FormData();
+    const blob = new Blob([buf], { type: 'image/png' });
+    form.append('file', blob, item.filename);
+    const url = `${UPLOAD_BASE}/api/image-host/upload?storage=${encodeURIComponent(UPLOAD_STORAGE)}`;
+    const res = await fetch(url, { method: 'POST', body: form });
+    const text = await res.text();
+    return { res, text };
+  };
+  let res = null;
+  let text = '';
+  let lastError = null;
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      ({ res, text } = await attemptUpload());
+      if (res.ok) break;
+      lastError = new Error(`HTTP ${res.status}: ${text.slice(0, 300)}`);
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < 4) {
+      const waitMs = attempt * 2500;
+      console.warn(`  upload retry ${attempt}/4 after ${waitMs}ms: ${lastError?.message || String(lastError)}`);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+  if (!res) throw lastError || new Error('upload host failed');
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = null;
+  }
+  if (!res.ok || payload?.success === false) {
+    throw new Error(`upload host failed ${res.status}: ${String(payload?.error || text).slice(0, 800)}`);
+  }
+  const candidates = [
+    payload?.links?.download,
+    payload?.data?.links?.download,
+    payload?.download,
+    payload?.download_url,
+    payload?.downloadUrl,
+    payload?.data?.download,
+    payload?.data?.download_url,
+    payload?.data?.downloadUrl,
+    payload?.data?.url,
+    payload?.data?.file?.url,
+    payload?.file?.links?.download,
+    payload?.file?.download,
+    payload?.file?.download_url,
+    payload?.file?.downloadUrl,
+    payload?.file?.url,
+    payload?.url
+  ].map((value) => typeof value === 'string' ? value.trim() : '').find(Boolean);
+  const id = payload?.file?.id || payload?.id || payload?.data?.file?.id || payload?.data?.id || '';
+  const remoteUrl = candidates || (id ? `https://image.bacon159.pp.ua/api/v1/file/${encodeURIComponent(id)}` : '');
+  if (!remoteUrl) throw new Error(`upload host response has no url: ${text.slice(0, 800)}`);
+  return remoteUrl;
+}
+
+async function selectTargets() {
+  let items = 结构化物品库.map((item) => ({ ...item, filename: `${item.名称}.png` }));
+  if (ONLY) {
+    const terms = ONLY.split(',').map((item) => item.trim()).filter(Boolean);
+    items = items.filter((item) => terms.includes(item.名称) || terms.includes(item.filename));
+  }
+  if (MISSING_ONLY) {
+    const filtered = [];
+    for (const item of items) {
+      if (!(await localPresetExists(item))) filtered.push(item);
+    }
+    items = filtered;
+  }
+  if (MISSING_REMOTE_ONLY) {
+    const registry = await fs.readFile(presetRegistryPath, 'utf8').catch(() => '');
+    items = items.filter((item) => {
+      const idx = registry.indexOf(`名称: '${item.名称}'`);
+      if (idx < 0) return true;
+      const lineEnd = registry.indexOf('\n', idx);
+      const line = registry.slice(idx, lineEnd >= 0 ? lineEnd : undefined);
+      return !line.includes('https://image.bacon159.pp.ua');
+    });
+  }
+  if (LOCAL_ONLY) {
+    const filtered = [];
+    for (const item of items) {
+      if (await localPresetExists(item)) filtered.push(item);
+    }
+    items = filtered;
+  }
+  if (START) items = items.slice(START);
+  if (LIMIT) items = items.slice(0, LIMIT);
+  return items;
+}
+
+async function syncPresetRegistry(generatedItems) {
+  if (SKIP_REGISTRY || generatedItems.length === 0) return;
+  let source = await fs.readFile(presetRegistryPath, 'utf8');
+  const existing = new Set([...source.matchAll(/名称:\s*'([^']+)'/g)].map((match) => match[1]));
+  let updateCount = 0;
+  for (const item of generatedItems) {
+    if (!existing.has(item.名称)) continue;
+    const escapedName = item.名称.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`(\\{\\s*名称:\\s*'${escapedName}',\\s*类型:\\s*'[^']+',\\s*品质:\\s*'[^']+',\\s*图片URL:\\s*')[^']+('\\s*\\},)`);
+    const next = source.replace(pattern, `$1${item.图片URL}$2`);
+    if (next !== source) {
+      source = next;
+      updateCount += 1;
+    }
+  }
+  const newLines = generatedItems
+    .filter((item) => !existing.has(item.名称))
+    .map((item) => `    { 名称: '${item.名称}', 类型: '${item.类型}', 品质: '${item.品质}', 图片URL: '${item.图片URL}' },`);
+  if (newLines.length === 0) {
+    if (updateCount > 0) {
+      await fs.writeFile(presetRegistryPath, source, 'utf8');
+      console.log(`  registry +0, updated=${updateCount}: data/presetItemImages.ts`);
+    }
+    return;
+  }
+  const marker = '    // ─── 杂物/通用 ─────────────────────────────────────────────────────';
+  const block = [
+    '    // ─── 结构化物品库自动生成 ─────────────────────────────────────────',
+    ...newLines,
+    ''
+  ].join('\n');
+  if (!source.includes(marker)) throw new Error('presetItemImages.ts marker not found');
+  source = source.replace(marker, `${block}${marker}`);
+  await fs.writeFile(presetRegistryPath, source, 'utf8');
+  console.log(`  registry +${newLines.length}, updated=${updateCount}: data/presetItemImages.ts`);
+}
+
+await fs.mkdir(outDir, { recursive: true });
+if (!DRY_RUN) {
+  const statsText = await fetch(`${COMFY_URL}/system_stats`).then((r) => r.text());
+  const stats = JSON.parse(statsText.replace(/^\uFEFF/, ''));
+  console.log(`ComfyUI ${stats.system?.comfyui_version || 'unknown'} ready`);
+}
+
+const targets = await selectTargets();
+console.log(`targets=${targets.length} workflow=${WORKFLOW} size=${WIDTH}x${HEIGHT} steps=${STEPS} sampler=${SAMPLER}/${SCHEDULER}`);
+const generated = [];
+
+for (const item of targets) {
+  const localPath = path.join(outDir, item.filename);
+  console.log(`[${item.名称}] ${DRY_RUN ? 'dry-run' : 'generating'}...`);
+  if (DRY_RUN) {
+    console.log(buildPrompt(item).slice(0, 360));
+    continue;
+  }
+  let buf = null;
+  if (REUSE_EXISTING && await localPresetExists(item)) {
+    buf = await readLocalPreset(item);
+    console.log(`  reused ${localPath} ${(buf.length / 1024).toFixed(1)}KB`);
+  } else {
+    const promptId = await submitPrompt(buildWorkflow(item));
+    console.log(`  prompt_id=${promptId}`);
+    const history = await waitForHistory(promptId);
+    const fileRef = extractOutputFile(history);
+    if (!fileRef) throw new Error('No output image');
+    buf = await downloadView(fileRef);
+    await fs.writeFile(localPath, buf);
+    console.log(`  saved ${localPath} ${(buf.length / 1024).toFixed(1)}KB`);
+  }
+  const imageUrl = await uploadImageToHost(item, buf);
+  if (UPLOAD_HOST) console.log(`  uploaded ${imageUrl}`);
+  const completed = { ...item, 图片URL: imageUrl };
+  generated.push(completed);
+  await syncPresetRegistry([completed]);
+}
+
+await syncPresetRegistry(generated);
