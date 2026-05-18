@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>墨色江湖多端同步教程</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c0b09;
+      --panel: rgba(28, 22, 16, 0.94);
+      --panel-soft: rgba(255, 255, 255, 0.04);
+      --line: rgba(215, 170, 86, 0.24);
+      --gold: #d7aa56;
+      --gold-soft: rgba(215, 170, 86, 0.14);
+      --text: #f8eedc;
+      --muted: #cab897;
+      --cyan: #80e4d8;
+      --danger: #ffb4a8;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 0%, rgba(128, 228, 216, 0.14), transparent 30%),
+        radial-gradient(circle at 82% 6%, rgba(215, 170, 86, 0.18), transparent 34%),
+        linear-gradient(180deg, #17120d 0%, #080706 100%);
+    }
+
+    .wrap {
+      width: min(980px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 42px 0 64px;
+    }
+
+    .hero, .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+      backdrop-filter: blur(8px);
+    }
+
+    .hero {
+      border-radius: 28px;
+      padding: 30px;
+    }
+
+    .badge {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      background: var(--gold-soft);
+      color: var(--gold);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.2em;
+    }
+
+    h1 {
+      margin: 18px 0 10px;
+      font-size: clamp(30px, 6vw, 48px);
+      line-height: 1.16;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      color: #ffe2a0;
+      font-size: 24px;
+    }
+
+    h3 {
+      margin: 22px 0 10px;
+      color: var(--cyan);
+      font-size: 18px;
+    }
+
+    p, li {
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.85;
+    }
+
+    a {
+      color: #9ff4e9;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 760px;
+      font-size: 17px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      background: rgba(215, 170, 86, 0.12);
+      color: #ffe2a0;
+      padding: 10px 16px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .card {
+      border-radius: 22px;
+      padding: 22px;
+    }
+
+    .wide { grid-column: 1 / -1; }
+
+    .steps {
+      margin: 0;
+      padding-left: 1.3em;
+    }
+
+    .note {
+      border: 1px solid rgba(128, 228, 216, 0.25);
+      background: rgba(128, 228, 216, 0.08);
+      border-radius: 18px;
+      padding: 16px 18px;
+      color: #dffdf9;
+    }
+
+    .warn {
+      border-color: rgba(255, 180, 168, 0.3);
+      background: rgba(127, 29, 29, 0.28);
+      color: #ffe5df;
+    }
+
+    code {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.34);
+      border-radius: 7px;
+      padding: 2px 6px;
+      color: #fff0bd;
+      font-family: Consolas, "SFMono-Regular", monospace;
+    }
+
+    .checklist {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .checklist li {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--panel-soft);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    footer {
+      margin-top: 28px;
+      color: rgba(248, 238, 220, 0.52);
+      font-size: 13px;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 760px) {
+      .wrap { width: min(100vw - 20px, 980px); padding-top: 20px; }
+      .hero, .card { border-radius: 18px; padding: 18px; }
+      .grid { grid-template-columns: 1fr; }
+      .wide { grid-column: auto; }
+      h1 { font-size: 32px; }
+      p, li { font-size: 15px; }
+      .actions { flex-direction: column; }
+      .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <span class="badge">SAVE SYNC GUIDE</span>
+      <h1>多端同步教程</h1>
+      <p class="lead">这篇教程用于把手机 APK、电脑浏览器、平板或备用设备里的存档保持一致。推荐先在一台常用设备上完成云同步配置，再让其它设备登录同一个同步账号并拉取云端存档。</p>
+      <div class="actions">
+        <a class="btn" href="https://msjh.bacon159.pp.ua/">进入主站</a>
+        <a class="btn" href="https://msjh.bacon.de5.net/">进入备用站</a>
+        <a class="btn" href="https://download.bacon.de5.net/moranjianghu/latest.apk">下载最新版 APK</a>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card wide">
+        <h2>同步前先确认</h2>
+        <ul class="checklist">
+          <li>所有设备尽量更新到同一个版本。首页“发布信息”里应显示相同的 Web / APK 版本号。</li>
+          <li>第一次同步前，先在原设备手动保存一次，确认“读取进度”里能看到最新存档。</li>
+          <li>跨设备同步前不要同时在两台设备连续游玩同一个存档，避免后保存的一端覆盖另一端。</li>
+          <li>如果存档很大，首次上传和下载会比较慢。请保持页面在前台，不要锁屏或切到后台太久。</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>推荐方式：对象存储同步</h2>
+        <ol class="steps">
+          <li>在原设备进入游戏首页或游戏内菜单，打开“云端同步”。</li>
+          <li>选择“对象存储同步”。填写客户提供的用户名、Access Key、Secret Key、Endpoint、Bucket 和同步前缀。</li>
+          <li>点击连接测试。通过后，先执行“上传到云端”。</li>
+          <li>在另一台设备打开同一版本的游戏，填写同一套对象存储配置。</li>
+          <li>执行“从云端恢复”或“下载云端存档”，再进入“读取进度”选择最新存档。</li>
+        </ol>
+      </article>
+
+      <article class="card">
+        <h2>备用方式：GitHub 云同步</h2>
+        <ol class="steps">
+          <li>打开“云端同步”，选择 GitHub 同步。</li>
+          <li>按页面提示登录 GitHub 并完成授权。</li>
+          <li>在原设备点击上传云端存档。</li>
+          <li>在新设备登录同一个 GitHub 账号，然后从云端恢复。</li>
+        </ol>
+        <p class="note">GitHub 方式适合没有对象存储账号的玩家；对象存储方式更适合频繁同步和较大的存档。</p>
+      </article>
+
+      <article class="card wide">
+        <h2>日常使用建议</h2>
+        <h3>从 A 设备换到 B 设备</h3>
+        <ol class="steps">
+          <li>在 A 设备先保存游戏。</li>
+          <li>打开云端同步，上传最新存档。</li>
+          <li>在 B 设备打开云端同步，下载或恢复云端存档。</li>
+          <li>进入“读取进度”，选择刚同步过来的最新存档。</li>
+        </ol>
+
+        <h3>从 B 设备玩完再回 A 设备</h3>
+        <ol class="steps">
+          <li>在 B 设备保存并上传。</li>
+          <li>回到 A 设备后先下载或恢复云端存档，再读取。</li>
+          <li>确认当前剧情、角色、背包和图片都正确后再继续游玩。</li>
+        </ol>
+      </article>
+
+      <article class="card">
+        <h2>常见问题</h2>
+        <h3>云端没有看到最新存档</h3>
+        <p>先确认原设备已经手动保存，再重新上传。上传过程中不要关闭页面。</p>
+        <h3>恢复后头像或图片显示慢</h3>
+        <p>大型存档首次恢复后会陆续读取图片资源。等待一会儿，或重新打开对应界面让图片缓存加载。</p>
+        <h3>提示签名失败或 403</h3>
+        <p>检查对象存储的 Access Key、Secret Key、Endpoint、Bucket 是否完全一致。复制时不要带空格。</p>
+      </article>
+
+      <article class="card">
+        <h2>安全提醒</h2>
+        <p class="note warn">Access Key 和 Secret Key 只填写在自己的设备里，不要发到聊天群、截图、公开工单或仓库文件。需要客服协助时，可以只提供错误提示和同步方式，不要提供密钥。</p>
+        <p>如果怀疑密钥泄露，请先到对象存储控制台禁用或重置密钥，再在所有设备上更新新密钥。</p>
+      </article>
+    </section>
+
+    <footer>
+      本教程适用于墨色江湖 bacon159 二创版。遇到跨版本导入或同步异常时，请先备份本地存档。
+    </footer>
+  </main>
+</body>
+</html>
