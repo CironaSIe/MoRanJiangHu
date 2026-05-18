@@ -72,7 +72,7 @@ const 格式化命令展示路径 = (key: string): string => key.replace(/^gameS
 const 队列命令展示数量上限 = 120;
 const 队列命令展示单行上限 = 1800;
 const 主剧情首次响应超时毫秒 = 90_000;
-const 主剧情流式空闲超时毫秒 = 10_000;
+const 主剧情流式空闲超时毫秒 = 30_000;
 
 const 创建主剧情流式超时错误 = (stage: string, timeoutMs: number): Error => {
     const error = new Error(`主剧情乾坤推演${stage}（${Math.max(1, Math.ceil(timeoutMs / 1000))} 秒无流式输出）`);
