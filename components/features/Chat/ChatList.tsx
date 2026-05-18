@@ -105,6 +105,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
     const 回合容器Refs = React.useRef<Record<number, HTMLDivElement | null>>({});
     const 消息容器Refs = React.useRef<Record<number, HTMLDivElement | null>>({});
     const lastAutoScrolledTurnSignatureRef = React.useRef('');
+    const lastStreamingDraftScrollSignatureRef = React.useRef('');
     const lastRenderTraceSignatureRef = React.useRef('');
 
     const 清理隐藏按钮计时器 = React.useCallback(() => {
@@ -233,6 +234,21 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
         return Math.min(history.length, previousAnchor.index + 1);
     }, [history.length, normalizedRenderCount, turnAnchors]);
 
+    const 流式草稿索引 = React.useMemo(() => {
+        for (let index = history.length - 1; index >= sliceIndex; index -= 1) {
+            const item = history[index];
+            if (item?.role === 'assistant' && !item.structuredResponse) return index;
+            if (item?.role === 'assistant' && item.structuredResponse) break;
+        }
+        return -1;
+    }, [history, sliceIndex]);
+
+    const 流式回合定位签名 = React.useMemo(() => {
+        if (!loading || 流式草稿索引 < 0 || 流式草稿索引 >= history.length) return '';
+        const streamTurn = history[流式草稿索引];
+        return [流式草稿索引, streamTurn?.timestamp || 0, 'stream-start'].join(':');
+    }, [history, loading, 流式草稿索引]);
+
     const 获取本回合起点索引 = React.useCallback((assistantIndex: number): number => {
         for (let index = assistantIndex - 1; index >= sliceIndex; index -= 1) {
             if (history[index]?.role === 'user') return index;
@@ -262,16 +278,45 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
             });
             return;
         }
+        if (流式草稿索引 >= 0) {
+            return;
+        }
         if (接近底部 && (loading || latestTurnAnchorIndex < 0)) {
             el.scrollTop = el.scrollHeight;
         }
-    }, [history, loading, 接近底部, latestTurnAnchorIndex, scrollRef, 判断是否接近底部]);
+    }, [history, loading, 接近底部, latestTurnAnchorIndex, scrollRef, 判断是否接近底部, 流式草稿索引]);
 
     React.useEffect(() => {
         return () => {
             清理隐藏按钮计时器();
         };
     }, [清理隐藏按钮计时器]);
+
+    React.useEffect(() => {
+        if (!流式回合定位签名 || 待抑制自动滚动Ref.current) return;
+        if (lastStreamingDraftScrollSignatureRef.current === 流式回合定位签名) return;
+        const container = scrollRef.current;
+        const targetIndex = 获取本回合起点索引(流式草稿索引);
+        const targetEl = 消息容器Refs.current[targetIndex] || 消息容器Refs.current[流式草稿索引];
+        if (!container || !targetEl) return;
+        lastStreamingDraftScrollSignatureRef.current = 流式回合定位签名;
+        let raf1 = 0;
+        let raf2 = 0;
+        raf1 = window.requestAnimationFrame(() => {
+            raf2 = window.requestAnimationFrame(() => {
+                const nextTop = Math.max(0, targetEl.offsetTop - 12);
+                container.scrollTop = nextTop;
+                set接近底部(false);
+                清理隐藏按钮计时器();
+                set显示快速置底(false);
+            });
+        });
+        return () => {
+            if (raf1) window.cancelAnimationFrame(raf1);
+            if (raf2) window.cancelAnimationFrame(raf2);
+        };
+    }, [流式回合定位签名, 流式草稿索引, scrollRef, 获取本回合起点索引, 清理隐藏按钮计时器]);
+
 
     const visibleHistory = history.slice(sliceIndex);
     const hiddenCount = sliceIndex;
