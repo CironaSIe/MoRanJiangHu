@@ -1,0 +1,1668 @@
+[
+  {
+    "name": "百年何首乌",
+    "type": "材料",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%99%BE%E5%B9%B4%E4%BD%95%E9%A6%96%E4%B9%8C.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁矿",
+    "type": "材料",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E7%9F%BF.png",
+    "source": "本地"
+  },
+  {
+    "name": "千年灵芝",
+    "type": "材料",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E5%8D%83%E5%B9%B4%E7%81%B5%E8%8A%9D.png",
+    "source": "本地"
+  },
+  {
+    "name": "蛇胆",
+    "type": "材料",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E8%9B%87%E8%83%86.png",
+    "source": "本地"
+  },
+  {
+    "name": "兽皮",
+    "type": "材料",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E5%85%BD%E7%9A%AE.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁木",
+    "type": "材料",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E6%9C%A8.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄冰石",
+    "type": "材料",
+    "quality": "上品",
+    "src": "https://cdn.nodeimage.com/i/zVQpnWlzqC1rVEvT3YSMFqXomZPcOZ6h.png",
+    "source": "远程图"
+  },
+  {
+    "name": "布练功服",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E5%B8%83%E7%BB%83%E5%8A%9F%E6%9C%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "布鞋",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E5%B8%83%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "布衣",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "https://cdn.nodeimage.com/i/nmOqWbgYbQJ6B1tDdKTKZG88K7rtH83O.png",
+    "source": "远程图"
+  },
+  {
+    "name": "布长裤",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E5%B8%83%E9%95%BF%E8%A3%A4.png",
+    "source": "本地"
+  },
+  {
+    "name": "布长衫",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E5%B8%83%E9%95%BF%E8%A1%AB.png",
+    "source": "本地"
+  },
+  {
+    "name": "草鞋",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E8%8D%89%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "粗布练功服",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%B2%97%E5%B8%83%E7%BB%83%E5%8A%9F%E6%9C%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "粗布青衫",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "https://cdn.nodeimage.com/i/nmOqWbgYbQJ6B1tDdKTKZG88K7rtH83O.png",
+    "source": "远程图"
+  },
+  {
+    "name": "粗布鞋",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%B2%97%E5%B8%83%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "粗布长裤",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%B2%97%E5%B8%83%E9%95%BF%E8%A3%A4.png",
+    "source": "本地"
+  },
+  {
+    "name": "粗布长衫",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%B2%97%E5%B8%83%E9%95%BF%E8%A1%AB.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢发冠",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E5%8F%91%E5%86%A0.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢护甲",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E6%8A%A4%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢护腿",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E6%8A%A4%E8%85%BF.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢护腕",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E6%8A%A4%E8%85%95.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢护膝",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E6%8A%A4%E8%86%9D.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢盔甲",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E7%9B%94%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢软甲",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E8%BD%AF%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢头盔",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E5%A4%B4%E7%9B%94.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢鞋",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢靴",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E9%9D%B4.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁发冠",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E5%8F%91%E5%86%A0.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁护甲",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E6%8A%A4%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁护腿",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E6%8A%A4%E8%85%BF.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁护腕",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E6%8A%A4%E8%85%95.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁护膝",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E6%8A%A4%E8%86%9D.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁盔甲",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E7%9B%94%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁软甲",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E8%BD%AF%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁头盔",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E5%A4%B4%E7%9B%94.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁鞋",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁靴",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E9%9D%B4.png",
+    "source": "本地"
+  },
+  {
+    "name": "护腕",
+    "type": "防具",
+    "quality": "良品",
+    "src": "https://cdn.nodeimage.com/i/McIGnhhGKjpaL556ERyKIitHiF7SjxO6.png",
+    "source": "远程图"
+  },
+  {
+    "name": "精钢发冠",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E5%8F%91%E5%86%A0.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢护甲",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E6%8A%A4%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢护腿",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E6%8A%A4%E8%85%BF.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢护腕",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E6%8A%A4%E8%85%95.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢护膝",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E6%8A%A4%E8%86%9D.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢盔甲",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E7%9B%94%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢软甲",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E8%BD%AF%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢头盔",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E5%A4%B4%E7%9B%94.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢鞋",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢靴",
+    "type": "防具",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E9%9D%B4.png",
+    "source": "本地"
+  },
+  {
+    "name": "旧布鞋",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%97%A7%E5%B8%83%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "皮护甲",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%9A%AE%E6%8A%A4%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "皮护腿",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%9A%AE%E6%8A%A4%E8%85%BF.png",
+    "source": "本地"
+  },
+  {
+    "name": "皮护腕",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%9A%AE%E6%8A%A4%E8%85%95.png",
+    "source": "本地"
+  },
+  {
+    "name": "皮护膝",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%9A%AE%E6%8A%A4%E8%86%9D.png",
+    "source": "本地"
+  },
+  {
+    "name": "皮软甲",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%9A%AE%E8%BD%AF%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "皮鞋",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%9A%AE%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "皮靴",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%9A%AE%E9%9D%B4.png",
+    "source": "本地"
+  },
+  {
+    "name": "青色练功服",
+    "type": "防具",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%9D%92%E8%89%B2%E7%BB%83%E5%8A%9F%E6%9C%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "青衫",
+    "type": "防具",
+    "quality": "良品",
+    "src": "https://cdn.nodeimage.com/i/V80OIatPzWKYvVTlKGy5SkTOhEFcCYXX.png",
+    "source": "远程图"
+  },
+  {
+    "name": "软猬甲",
+    "type": "防具",
+    "quality": "绝世",
+    "src": "https://cdn.nodeimage.com/i/q8baHJP4UTg6KwfZT4j9RTr0hpCDNX1L.png",
+    "source": "远程图"
+  },
+  {
+    "name": "锁子甲",
+    "type": "防具",
+    "quality": "上品",
+    "src": "https://cdn.nodeimage.com/i/GfEnaQi5AGKSuorV2GwOZWXJepM9JHwb.png",
+    "source": "远程图"
+  },
+  {
+    "name": "铁发冠",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E5%8F%91%E5%86%A0.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁护甲",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E6%8A%A4%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁护腿",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E6%8A%A4%E8%85%BF.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁护腕",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E6%8A%A4%E8%85%95.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁护膝",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E6%8A%A4%E8%86%9D.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁盔甲",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E7%9B%94%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁软甲",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E8%BD%AF%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁头盔",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E5%A4%B4%E7%9B%94.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁鞋",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁靴",
+    "type": "防具",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%81%E9%9D%B4.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金发冠",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E5%8F%91%E5%86%A0.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金护甲",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E6%8A%A4%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金护腿",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E6%8A%A4%E8%85%BF.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金护腕",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E6%8A%A4%E8%85%95.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金护膝",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E6%8A%A4%E8%86%9D.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金盔甲",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E7%9B%94%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金软甲",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E8%BD%AF%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金头盔",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E5%A4%B4%E7%9B%94.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金鞋",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金靴",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E9%9D%B4.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁发冠",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E5%8F%91%E5%86%A0.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁护甲",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E6%8A%A4%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁护腿",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E6%8A%A4%E8%85%BF.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁护腕",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E6%8A%A4%E8%85%95.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁护膝",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E6%8A%A4%E8%86%9D.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁盔甲",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E7%9B%94%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁软甲",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E8%BD%AF%E7%94%B2.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁头盔",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E5%A4%B4%E7%9B%94.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁鞋",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E9%9E%8B.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁靴",
+    "type": "防具",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E9%9D%B4.png",
+    "source": "本地"
+  },
+  {
+    "name": "基础剑法残卷",
+    "type": "秘籍",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E5%9F%BA%E7%A1%80%E5%89%91%E6%B3%95%E6%AE%8B%E5%8D%B7.png",
+    "source": "本地"
+  },
+  {
+    "name": "金钟罩",
+    "type": "秘籍",
+    "quality": "上品",
+    "src": "https://cdn.nodeimage.com/i/tGZioa16KLGSYlEo6wWkuajp3qSglP3R.png",
+    "source": "远程图"
+  },
+  {
+    "name": "九阳真经",
+    "type": "秘籍",
+    "quality": "传说",
+    "src": "https://cdn.nodeimage.com/i/3qY5LZxAOcecBXu4CyvfouSOPVwPwt58.png",
+    "source": "远程图"
+  },
+  {
+    "name": "轻身术",
+    "type": "秘籍",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E8%BD%BB%E8%BA%AB%E6%9C%AF.png",
+    "source": "本地"
+  },
+  {
+    "name": "吐纳心法",
+    "type": "秘籍",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E5%90%90%E7%BA%B3%E5%BF%83%E6%B3%95.png",
+    "source": "本地"
+  },
+  {
+    "name": "护身符",
+    "type": "饰品",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E6%8A%A4%E8%BA%AB%E7%AC%A6.png",
+    "source": "本地"
+  },
+  {
+    "name": "夜明珠",
+    "type": "饰品",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E5%A4%9C%E6%98%8E%E7%8F%A0.png",
+    "source": "本地"
+  },
+  {
+    "name": "银簪",
+    "type": "饰品",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%93%B6%E7%B0%AA.png",
+    "source": "本地"
+  },
+  {
+    "name": "玉佩",
+    "type": "饰品",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%8E%89%E4%BD%A9.png",
+    "source": "本地"
+  },
+  {
+    "name": "霸王枪",
+    "type": "武器",
+    "quality": "极品",
+    "src": "https://cdn.nodeimage.com/i/7ScPOQHPG7GvvaW4fsPFgPsqZOcC0HXL.png",
+    "source": "远程图"
+  },
+  {
+    "name": "白蜡杆枪",
+    "type": "武器",
+    "quality": "良品",
+    "src": "https://cdn.nodeimage.com/i/SEhCFGFjS0MxTtgOc2TC1c3bNJIcX6Hz.png",
+    "source": "远程图"
+  },
+  {
+    "name": "碧水长剑",
+    "type": "武器",
+    "quality": "上品",
+    "src": "https://cdn.nodeimage.com/i/pDU6R0jYBwoFonwiEWV7Td5yLvwiPvGL.png",
+    "source": "远程图"
+  },
+  {
+    "name": "毒针",
+    "type": "武器",
+    "quality": "上品",
+    "src": "https://cdn.nodeimage.com/i/kn7jmenB71jYbHGxGKtyJGBXPbKe995X.png",
+    "source": "远程图"
+  },
+  {
+    "name": "断水剑",
+    "type": "武器",
+    "quality": "绝世",
+    "src": "https://cdn.nodeimage.com/i/Y7vrdCBQy3oXeCnAgpHAdmdKZdyBDkfb.png",
+    "source": "远程图"
+  },
+  {
+    "name": "钢匕首",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E5%8C%95%E9%A6%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢刀",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢短刀",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E7%9F%AD%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢短剑",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E7%9F%AD%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢飞刀",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E9%A3%9E%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢弓",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E5%BC%93.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢棍",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E6%A3%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢剑",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢矛",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E7%9F%9B.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢弩",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E5%BC%A9.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢枪",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E6%9E%AA.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢袖箭",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E8%A2%96%E7%AE%AD.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢长剑",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E9%95%BF%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "钢杖",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E9%92%A2%E6%9D%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "鬼头大刀",
+    "type": "武器",
+    "quality": "上品",
+    "src": "https://cdn.nodeimage.com/i/VffFYXVytB85MgZVxGpxqG2OL1ELKs4M.png",
+    "source": "远程图"
+  },
+  {
+    "name": "寒铁匕首",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E5%8C%95%E9%A6%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁刀",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁短刀",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E7%9F%AD%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁短剑",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E7%9F%AD%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁飞刀",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E9%A3%9E%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁弓",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E5%BC%93.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁棍",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E6%A3%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁剑",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁矛",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E7%9F%9B.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁弩",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E5%BC%A9.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁枪",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E6%9E%AA.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁袖箭",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E8%A2%96%E7%AE%AD.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁长剑",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E9%95%BF%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "寒铁杖",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E5%AF%92%E9%93%81%E6%9D%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢匕首",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E5%8C%95%E9%A6%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢刀",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢短刀",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E7%9F%AD%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢短剑",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E7%9F%AD%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢飞刀",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E9%A3%9E%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢弓",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E5%BC%93.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢棍",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E6%A3%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢剑",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢矛",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E7%9F%9B.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢弩",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E5%BC%A9.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢枪",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E6%9E%AA.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢袖箭",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E8%A2%96%E7%AE%AD.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢长剑",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E9%95%BF%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "精钢杖",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E7%B2%BE%E9%92%A2%E6%9D%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "柳叶刀",
+    "type": "武器",
+    "quality": "良品",
+    "src": "https://cdn.nodeimage.com/i/tMnXdMYUMBBZeiHPublznmeAHcB5Vqpu.png",
+    "source": "远程图"
+  },
+  {
+    "name": "木匕首",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E5%8C%95%E9%A6%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "木刀",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "木短刀",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E7%9F%AD%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "木短剑",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E7%9F%AD%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "木飞刀",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E9%A3%9E%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "木弓",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E5%BC%93.png",
+    "source": "本地"
+  },
+  {
+    "name": "木棍",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E6%A3%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "木剑",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "木矛",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E7%9F%9B.png",
+    "source": "本地"
+  },
+  {
+    "name": "木弩",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E5%BC%A9.png",
+    "source": "本地"
+  },
+  {
+    "name": "木枪",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E6%9E%AA.png",
+    "source": "本地"
+  },
+  {
+    "name": "木袖箭",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E8%A2%96%E7%AE%AD.png",
+    "source": "本地"
+  },
+  {
+    "name": "木长剑",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E9%95%BF%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "木杖",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E6%9C%A8%E6%9D%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "齐眉棍",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "https://cdn.nodeimage.com/i/Ds6c88DpSCFv6YCZ54AhzwEhMyEJDB7Z.png",
+    "source": "远程图"
+  },
+  {
+    "name": "青钢剑",
+    "type": "武器",
+    "quality": "良品",
+    "src": "https://cdn.nodeimage.com/i/MzHlups3ymlkKKeKdsWNYPR6BXM55aLG.png",
+    "source": "远程图"
+  },
+  {
+    "name": "铁匕首",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E5%8C%95%E9%A6%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁刀",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁短刀",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E7%9F%AD%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁短剑",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E7%9F%AD%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁飞刀",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E9%A3%9E%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁弓",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E5%BC%93.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁棍",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E6%A3%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁剑",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁矛",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E7%9F%9B.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁弩",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E5%BC%A9.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁枪",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E6%9E%AA.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁胎弓",
+    "type": "武器",
+    "quality": "上品",
+    "src": "./assets/item-presets/%E9%93%81%E8%83%8E%E5%BC%93.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁袖箭",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E8%A2%96%E7%AE%AD.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁长剑",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E9%95%BF%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "铁杖",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%81%E6%9D%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金匕首",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E5%8C%95%E9%A6%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金刀",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金短刀",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E7%9F%AD%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金短剑",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E7%9F%AD%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金飞刀",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E9%A3%9E%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金弓",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E5%BC%93.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金棍",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E6%A3%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金剑",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金矛",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E7%9F%9B.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金弩",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E5%BC%A9.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金枪",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E6%9E%AA.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金袖箭",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E8%A2%96%E7%AE%AD.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金长剑",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E9%95%BF%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "乌金杖",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E4%B9%8C%E9%87%91%E6%9D%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "袖箭",
+    "type": "武器",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E8%A2%96%E7%AE%AD.png",
+    "source": "本地"
+  },
+  {
+    "name": "锈铁剑",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "https://cdn.nodeimage.com/i/yZ6uz1DZqqt9x6CHmaneEdz60HmfRiyK.png",
+    "source": "远程图"
+  },
+  {
+    "name": "玄铁匕首",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E5%8C%95%E9%A6%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁刀",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁短刀",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E7%9F%AD%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁短剑",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E7%9F%AD%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁飞刀",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E9%A3%9E%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁弓",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E5%BC%93.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁棍",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E6%A3%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁剑",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁矛",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E7%9F%9B.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁弩",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E5%BC%A9.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁枪",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E6%9E%AA.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁袖箭",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E8%A2%96%E7%AE%AD.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁长剑",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E9%95%BF%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁杖",
+    "type": "武器",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%8E%84%E9%93%81%E6%9D%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "玄铁重剑",
+    "type": "武器",
+    "quality": "极品",
+    "src": "https://cdn.nodeimage.com/i/K2u7JlSJ2cahQCc3LwLslzVZpwQON28X.png",
+    "source": "远程图"
+  },
+  {
+    "name": "雪饮狂刀",
+    "type": "武器",
+    "quality": "绝世",
+    "src": "https://cdn.nodeimage.com/i/kKuGlRSNUKKMwacsJU0hlVJ6vxsjr99u.png",
+    "source": "远程图"
+  },
+  {
+    "name": "竹匕首",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E5%8C%95%E9%A6%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹刀",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹短刀",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E7%9F%AD%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹短剑",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E7%9F%AD%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹飞刀",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E9%A3%9E%E5%88%80.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹弓",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E5%BC%93.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹棍",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E6%A3%8D.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹剑",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹矛",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E7%9F%9B.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹弩",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E5%BC%A9.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹枪",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E6%9E%AA.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹袖箭",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E8%A2%96%E7%AE%AD.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹长剑",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E9%95%BF%E5%89%91.png",
+    "source": "本地"
+  },
+  {
+    "name": "竹杖",
+    "type": "武器",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%AB%B9%E6%9D%96.png",
+    "source": "本地"
+  },
+  {
+    "name": "大还丹",
+    "type": "消耗品",
+    "quality": "绝世",
+    "src": "./assets/item-presets/%E5%A4%A7%E8%BF%98%E4%B8%B9.png",
+    "source": "本地"
+  },
+  {
+    "name": "回气丹",
+    "type": "消耗品",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E5%9B%9E%E6%B0%94%E4%B8%B9.png",
+    "source": "本地"
+  },
+  {
+    "name": "解毒散",
+    "type": "消耗品",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E8%A7%A3%E6%AF%92%E6%95%A3.png",
+    "source": "本地"
+  },
+  {
+    "name": "金创药",
+    "type": "消耗品",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%87%91%E5%88%9B%E8%8D%AF.png",
+    "source": "本地"
+  },
+  {
+    "name": "凝元丹",
+    "type": "消耗品",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E5%87%9D%E5%85%83%E4%B8%B9.png",
+    "source": "本地"
+  },
+  {
+    "name": "辟谷丹",
+    "type": "消耗品",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E8%BE%9F%E8%B0%B7%E4%B8%B9.png",
+    "source": "本地"
+  },
+  {
+    "name": "破境丹",
+    "type": "消耗品",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%A0%B4%E5%A2%83%E4%B8%B9.png",
+    "source": "本地"
+  },
+  {
+    "name": "续命丹",
+    "type": "消耗品",
+    "quality": "极品",
+    "src": "./assets/item-presets/%E7%BB%AD%E5%91%BD%E4%B8%B9.png",
+    "source": "本地"
+  },
+  {
+    "name": "地图",
+    "type": "杂物",
+    "quality": "良品",
+    "src": "./assets/item-presets/%E5%9C%B0%E5%9B%BE.png",
+    "source": "本地"
+  },
+  {
+    "name": "火折子",
+    "type": "杂物",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%81%AB%E6%8A%98%E5%AD%90.png",
+    "source": "本地"
+  },
+  {
+    "name": "绳索",
+    "type": "杂物",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E7%BB%B3%E7%B4%A2.png",
+    "source": "本地"
+  },
+  {
+    "name": "银两",
+    "type": "杂物",
+    "quality": "凡品",
+    "src": "./assets/item-presets/%E9%93%B6%E4%B8%A4.png",
+    "source": "本地"
+  }
+]
