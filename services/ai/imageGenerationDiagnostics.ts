@@ -185,13 +185,22 @@ export const 规范化OpenAI图片基础地址 = (baseUrlRaw: string): string =>
     return trimmed;
 };
 
+const 判断可走OpenAI图片运行时代理 = (url: URL): boolean => {
+    if (!/^https:$/i.test(url.protocol)) return false;
+    if (!/^\/(?:v1\/)?images\/(?:generations|edits)$/i.test(url.pathname)) return false;
+    if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/i.test(url.hostname)) return false;
+    return true;
+};
+
 const 转换为运行时OpenAI图片代理端点 = (directEndpoint: string): string => {
     if (!directEndpoint) return directEndpoint;
     try {
         const url = new URL(directEndpoint);
-        if (!/(^|\.)pucoding\.com$/i.test(url.hostname)) return directEndpoint;
-        if (!/^\/v1\/images\/(?:generations|edits)$/i.test(url.pathname)) return directEndpoint;
-        return `${获取运行时代理基础地址()}/api/pucoding-image${url.pathname}${url.search}`;
+        if (!判断可走OpenAI图片运行时代理(url)) return directEndpoint;
+        const proxyUrl = new URL(`${获取运行时代理基础地址()}/api/image-backend/openai-image-proxy${url.pathname}`);
+        proxyUrl.search = url.search;
+        proxyUrl.searchParams.set('url', `${url.origin}${url.pathname.replace(/\/(?:v1\/)?images\/(?:generations|edits)$/i, '')}`.replace(/\/+$/, ''));
+        return proxyUrl.toString();
     } catch {
         return directEndpoint;
     }

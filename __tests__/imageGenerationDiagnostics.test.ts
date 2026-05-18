@@ -59,7 +59,7 @@ describe('imageGenerationDiagnostics', () => {
         expect(构建OpenAI图片生成端点('https://api.example.com', 'https://pucoding.com/playground/image')).toBe('https://pucoding.com/v1/images/generations');
     });
 
-    it('routes pucoding image endpoints through the runtime same-origin proxy when requested', () => {
+    it('routes OpenAI-compatible image endpoints through the runtime same-origin proxy when requested', () => {
         const originalWindow = (globalThis as any).window;
         (globalThis as any).window = {
             location: {
@@ -70,9 +70,11 @@ describe('imageGenerationDiagnostics', () => {
 
         try {
             expect(构建OpenAI图片生成端点('https://pucoding.com/playground/image', undefined, { useRuntimeProxy: true }))
-                .toBe('http://127.0.0.1:4173/api/pucoding-image/v1/images/generations');
+                .toBe('http://127.0.0.1:4173/api/image-backend/openai-image-proxy/v1/images/generations?url=https%3A%2F%2Fpucoding.com');
             expect(构建OpenAI图片生成端点('https://api.example.com/v1', undefined, { useRuntimeProxy: true }))
-                .toBe('https://api.example.com/v1/images/generations');
+                .toBe('http://127.0.0.1:4173/api/image-backend/openai-image-proxy/v1/images/generations?url=https%3A%2F%2Fapi.example.com');
+            expect(构建OpenAI图片生成端点('https://www.aicost.xyz/', undefined, { useRuntimeProxy: true }))
+                .toBe('http://127.0.0.1:4173/api/image-backend/openai-image-proxy/v1/images/generations?url=https%3A%2F%2Fwww.aicost.xyz');
         } finally {
             (globalThis as any).window = originalWindow;
         }
