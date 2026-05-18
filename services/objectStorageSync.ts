@@ -457,6 +457,9 @@ const objectStorageFetch = async (
     try {
         const methodUpper = method.toUpperCase();
         const directUrl = 构建直连对象存储地址(config, segments);
+        if (methodUpper === 'GET' || methodUpper === 'HEAD') {
+            directUrl.searchParams.set('_msjh_nocache', `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+        }
         const body = methodUpper === 'GET' || methodUpper === 'HEAD' ? undefined : init?.body ?? null;
         const bodyBuffer = await body转ArrayBuffer(body);
         const contentType = 读取文本(init?.headers?.['Content-Type']) || (body ? 'application/octet-stream' : '');
@@ -476,7 +479,7 @@ const objectStorageFetch = async (
             dateStamp,
             contentType
         }));
-        const response = await fetch(directUrl, { method: methodUpper, headers, body });
+        const response = await fetch(directUrl, { method: methodUpper, headers, body, cache: 'no-store' });
         记录对象存储日志('对象存储直连请求完成', {
             method: methodUpper,
             key: objectKey,
@@ -508,10 +511,14 @@ const objectStorageFetch = async (
                         'X-Object-Storage-Key': objectKey,
                         'X-Object-Storage-Access-Key': config.accessKey,
                         'X-Object-Storage-Secret-Key': config.secretKey,
+                        'Cache-Control': 'no-store',
+                        Pragma: 'no-cache',
+                        'X-MSJH-No-Cache': `${Date.now()}-${Math.random().toString(16).slice(2)}`,
                         ...(config.username ? { 'X-Object-Storage-Username': config.username } : {}),
                         ...init?.headers
                     },
-                    body: init?.body ?? null
+                    body: init?.body ?? null,
+                    cache: 'no-store'
                 });
             } catch (error) {
                 记录对象存储日志('对象存储代理请求网络失败，尝试下一个代理域名', {

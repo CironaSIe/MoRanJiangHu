@@ -70,6 +70,10 @@ export const ObjectStorageSyncPanel: React.FC = () => {
 
     const refreshCloud = async (nextConfig?: 对象存储同步配置) => {
         const active = nextConfig || await persistConfig();
+        setStatus('正在读取对象存储云端清单');
+        setSummary(null);
+        setCloudSaves([]);
+        setSelectedCloudSaveId('');
         const [nextSummary, list] = await Promise.all([
             读取对象存储同步摘要(active),
             列出对象存储云存档(active)
@@ -77,7 +81,7 @@ export const ObjectStorageSyncPanel: React.FC = () => {
         setSummary(nextSummary);
         setCloudSaves(list);
         setSelectedCloudSaveId((current) => current && list.some((item) => item.id === current) ? current : (list[0]?.id || ''));
-        setStatus(`已读取云端：${list.length} 个存档${nextSummary.settings ? '，有设置包' : '，暂无设置包'}`);
+        setStatus(`已读取云端：${list.length} 个存档${nextSummary.settings ? `，设置包 ${formatTime(nextSummary.settings.syncedAt)} · v${nextSummary.settings.appVersion}` : '，暂无设置包'}`);
     };
 
     const runTask = async (taskName: string, task: () => Promise<void>, failPrefix: string) => {
