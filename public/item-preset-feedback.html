@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>墨色江湖物品图反馈</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f8f1df;
+      --ink: #2b2118;
+      --muted: #746654;
+      --line: #d8c39d;
+      --ok: #198754;
+      --bad: #b42318;
+      --surface: #efe2c5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      background: var(--surface);
+      color: var(--ink);
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(248, 241, 223, .97);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 18px;
+      box-shadow: 0 2px 12px rgba(79, 53, 22, .08);
+    }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    input, select, button, textarea {
+      border: 1px solid var(--line);
+      background: #fffaf0;
+      color: var(--ink);
+      border-radius: 6px;
+      font: inherit;
+    }
+    input, select, button { height: 36px; padding: 0 10px; }
+    button { cursor: pointer; }
+    button:hover { border-color: #a98542; }
+    .primary { background: #5f3f18; color: #fffaf0; border-color: #5f3f18; }
+    .primary:disabled { opacity: .55; cursor: not-allowed; }
+    .stat { color: var(--muted); font-size: 14px; }
+    main { padding: 18px; }
+    .intro {
+      max-width: 980px;
+      margin-bottom: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .panel {
+      display: grid;
+      grid-template-columns: minmax(180px, 280px) minmax(240px, 1fr);
+      gap: 10px;
+      max-width: 980px;
+      margin-bottom: 16px;
+    }
+    .panel input, .panel textarea { width: 100%; padding: 8px 10px; }
+    .panel textarea { min-height: 76px; resize: vertical; grid-column: 1 / -1; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(79, 53, 22, .08);
+    }
+    .card.problem { outline: 3px solid rgba(180, 35, 24, .35); }
+    .imgbox {
+      aspect-ratio: 1 / 1;
+      background: #fff9ec;
+      display: grid;
+      place-items: center;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+    }
+    .imgbox img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .badge {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: #fff7e8;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .fail { color: #842029; font-size: 14px; padding: 8px; text-align: center; }
+    .meta { padding: 10px; display: grid; gap: 6px; }
+    .name { font-weight: 700; font-size: 16px; }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+    .tag { border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; background: #fff7e8; }
+    .note { width: 100%; min-height: 54px; resize: vertical; padding: 6px; }
+    .mark {
+      height: 32px;
+      font-size: 13px;
+    }
+    .mark.active { background: #fde2df; border-color: var(--bad); color: #842029; }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      max-width: min(680px, calc(100vw - 24px));
+      background: #fffaf0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 8px 28px rgba(79, 53, 22, .18);
+      padding: 10px 14px;
+      display: none;
+      white-space: pre-wrap;
+    }
+    @media (max-width: 640px) {
+      .panel { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>墨色江湖物品图反馈</h1>
+  <div class="toolbar">
+    <input id="q" placeholder="搜索名称，例如 精钢鞋 / 草鞋 / 钢刀" />
+    <select id="type"><option value="">全部类型</option></select>
+    <select id="filter"><option value="">全部</option><option value="problem">只看已标问题</option><option value="todo">只看未标</option></select>
+    <select id="source"><option value="">全部来源</option><option value="本地">本地</option><option value="远程图">远程图</option></select>
+    <button id="submitBtn" class="primary">提交反馈</button>
+    <button id="clearBtn">清空本机标记</button>
+    <span class="stat" id="stat">载入中...</span>
+  </div>
+</header>
+<main>
+  <div class="intro">
+    请只标记你认为“图像和物品名称对不上”的条目，并在备注里写清问题，例如“像盔甲不是鞋”“像整把剑不是残卷”“文字太明显”。提交后维护者会按反馈重新生成或替换。
+  </div>
+  <div class="panel">
+    <input id="reviewer" placeholder="称呼，可不填" />
+    <input id="contact" placeholder="联系方式，可不填" />
+    <textarea id="summary" placeholder="总体反馈，可不填"></textarea>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+const storageKey = 'msjh-public-item-preset-feedback-v1';
+let items = [];
+let marks = JSON.parse(localStorage.getItem(storageKey) || '{}');
+const grid = document.getElementById('grid');
+const q = document.getElementById('q');
+const type = document.getElementById('type');
+const filter = document.getElementById('filter');
+const source = document.getElementById('source');
+const stat = document.getElementById('stat');
+const toast = document.getElementById('toast');
+const submitBtn = document.getElementById('submitBtn');
+
+function save() { localStorage.setItem(storageKey, JSON.stringify(marks)); }
+function showToast(message) {
+  toast.textContent = message;
+  toast.style.display = 'block';
+  window.clearTimeout(showToast.timer);
+  showToast.timer = window.setTimeout(() => { toast.style.display = 'none'; }, 5000);
+}
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+}
+function currentProblemItems() {
+  return items
+    .filter(item => (marks[item.name] || {}).problem)
+    .map(item => ({
+      name: item.name,
+      type: item.type,
+      quality: item.quality,
+      source: item.source,
+      note: (marks[item.name] || {}).note || ''
+    }))
+    .filter(item => item.note.trim());
+}
+function render() {
+  const query = q.value.trim().toLowerCase();
+  const typeFilter = type.value;
+  const stateFilter = filter.value;
+  const sourceFilter = source.value;
+  grid.textContent = '';
+  let shown = 0;
+  for (const item of items) {
+    const mark = marks[item.name] || {};
+    if (query && !item.name.toLowerCase().includes(query)) continue;
+    if (typeFilter && item.type !== typeFilter) continue;
+    if (sourceFilter && item.source !== sourceFilter) continue;
+    if (stateFilter === 'problem' && !mark.problem) continue;
+    if (stateFilter === 'todo' && mark.problem) continue;
+    shown += 1;
+
+    const card = el('article', 'card ' + (mark.problem ? 'problem' : ''));
+    const imgbox = el('div', 'imgbox');
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.src = item.src;
+    img.alt = item.name;
+    img.onerror = () => {
+      img.remove();
+      if (!imgbox.querySelector('.fail')) imgbox.appendChild(el('div', 'fail', '图片加载失败'));
+      if (!imgbox.querySelector('.badge')) imgbox.appendChild(el('span', 'badge', item.source));
+    };
+    imgbox.appendChild(img);
+    if (item.source === '远程图') imgbox.appendChild(el('span', 'badge', '远程图'));
+
+    const meta = el('div', 'meta');
+    meta.appendChild(el('div', 'name', item.name));
+    const tags = el('div', 'tags');
+    tags.appendChild(el('span', 'tag', item.type));
+    tags.appendChild(el('span', 'tag', item.quality));
+    tags.appendChild(el('span', 'tag', item.source));
+    meta.appendChild(tags);
+
+    const note = document.createElement('textarea');
+    note.className = 'note';
+    note.placeholder = '这里写问题，例如：像盔甲不是鞋';
+    note.value = mark.note || '';
+    note.oninput = () => {
+      marks[item.name] = { ...(marks[item.name] || {}), note: note.value };
+      save();
+    };
+    meta.appendChild(note);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'mark ' + (mark.problem ? 'active' : '');
+    button.textContent = mark.problem ? '已标问题' : '标为有问题';
+    button.onclick = () => {
+      marks[item.name] = { ...(marks[item.name] || {}), problem: !mark.problem, note: note.value };
+      save();
+      render();
+    };
+    meta.appendChild(button);
+    card.appendChild(imgbox);
+    card.appendChild(meta);
+    grid.appendChild(card);
+  }
+  const problemCount = items.filter(item => (marks[item.name] || {}).problem).length;
+  const remoteCount = items.filter(item => item.source === '远程图').length;
+  stat.textContent = `显示 ${shown} / 共 ${items.length}；已标问题 ${problemCount}；远程图 ${remoteCount}`;
+}
+async function loadData() {
+  const response = await fetch('./assets/item-preset-feedback-data.json', { cache: 'no-store' });
+  if (!response.ok) throw new Error('反馈数据载入失败');
+  items = await response.json();
+  [...new Set(items.map(item => item.type))].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN')).forEach(value => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    type.appendChild(option);
+  });
+  render();
+}
+async function submitFeedback() {
+  const summary = document.getElementById('summary').value.trim();
+  const payload = {
+    reviewer: document.getElementById('reviewer').value.trim(),
+    contact: document.getElementById('contact').value.trim(),
+    summary,
+    pageUrl: location.href,
+    items: currentProblemItems()
+  };
+  if (!payload.summary && !payload.items.length) {
+    showToast('请先标记至少一项并填写备注，或填写总体反馈。');
+    return;
+  }
+  submitBtn.disabled = true;
+  submitBtn.textContent = '提交中...';
+  try {
+    const response = await fetch('/api/diagnostics/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        app: {
+          name: 'MoRanJiangHu',
+          feature: 'item-preset-feedback'
+        },
+        client: {
+          reviewer: payload.reviewer,
+          contact: payload.contact,
+          pageUrl: payload.pageUrl,
+          userAgent: navigator.userAgent,
+          language: navigator.language
+        },
+        summary: {
+          type: 'item-preset-feedback',
+          summary: payload.summary,
+          itemCount: payload.items.length
+        },
+        logs: payload.items.map(item => ({
+          id: item.name,
+          level: 'feedback',
+          time: new Date().toISOString(),
+          message: `${item.name}：${item.note}`,
+          detail: JSON.stringify(item)
+        }))
+      })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || '提交失败');
+    showToast(`提交成功，反馈编号：${result.id}\n已提交问题项：${payload.items.length}`);
+  } catch (error) {
+    showToast(error.message || '提交失败，请稍后再试。');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '提交反馈';
+  }
+}
+[q, type, filter, source].forEach(node => node.addEventListener('input', render));
+submitBtn.addEventListener('click', submitFeedback);
+document.getElementById('clearBtn').onclick = () => {
+  if (confirm('确定清空当前浏览器里的标记？')) {
+    marks = {};
+    localStorage.removeItem(storageKey);
+    render();
+  }
+};
+loadData().catch(error => {
+  stat.textContent = error.message || '载入失败';
+  showToast(stat.textContent);
+});
+</script>
+</body>
+</html>
