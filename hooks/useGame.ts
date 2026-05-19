@@ -1970,6 +1970,18 @@ export const useGame = () => {
         typeof npc?.[key] === 'string' ? npc[key].trim() : ''
     );
 
+    const NPC是否男性或男娘 = (npc: any): boolean => {
+        const gender = 读取NPC文本字段(npc, '性别');
+        return gender === '男'
+            || gender === '男性'
+            || gender.includes('男娘')
+            || Boolean(读取NPC文本字段(npc, '男娘设定'));
+    };
+
+    const NPC是否女性 = (npc: any): boolean => (
+        读取NPC文本字段(npc, '性别') === '女'
+    );
+
     const 构建NPC自动构图签名列表 = (npc: any, 构图: '头像' | '半身' | '立绘'): string[] => {
         const id = 读取NPC文本字段(npc, 'id');
         const name = 读取NPC文本字段(npc, '姓名');
@@ -2022,12 +2034,12 @@ export const useGame = () => {
 
     const NPC是否成人女性主要角色 = (npc: any): boolean => (
         npc?.是否主要角色 === true
-        && 读取NPC文本字段(npc, '性别') === '女'
+        && NPC是否女性(npc)
     );
 
     const NPC是否成人男性主要角色 = (npc: any): boolean => (
         npc?.是否主要角色 === true
-        && 读取NPC文本字段(npc, '性别') === '男'
+        && NPC是否男性或男娘(npc)
     );
 
     const NPC是否已有成功香闺秘档部位 = (npc: any, part: 香闺秘档部位类型): boolean => {
@@ -2094,7 +2106,7 @@ export const useGame = () => {
             try {
                 await 执行NPC自动香闺秘档部位任务(npc, part);
             } catch (error) {
-                console.warn('主要女角色香闺秘档自动补全失败', 读取NPC文本字段(npc, 'id') || 读取NPC文本字段(npc, '姓名'), part, error);
+                console.warn('主要角色香闺秘档自动补全失败', 读取NPC文本字段(npc, 'id') || 读取NPC文本字段(npc, '姓名'), part, error);
             }
         }
     };
@@ -2130,7 +2142,7 @@ export const useGame = () => {
                 if (!NPC是否已有成功构图(npc, ['头像'])) {
                     missingParts.push('avatar');
                 }
-                if (npc?.性别 === '女' && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
+                if ((NPC是否女性(npc) || NPC是否男性或男娘(npc)) && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
                     missingParts.push('portrait');
                 }
                 const missingSecretParts = 读取NPC香闺秘档缺失部位(npc);
@@ -2165,11 +2177,11 @@ export const useGame = () => {
                 }
             }
 
-            if (npc?.性别 === '女' && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
+            if ((NPC是否女性(npc) || NPC是否男性或男娘(npc)) && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
                 try {
                     await 执行NPC自动构图任务(npc, '半身', { force: true });
                 } catch (error) {
-                    console.warn('主要女角色展示图自动补全失败', npcId, error);
+                    console.warn('主要角色展示图自动补全失败', npcId, error);
                 }
             }
 

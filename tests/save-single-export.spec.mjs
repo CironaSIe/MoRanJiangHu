@@ -46,11 +46,42 @@ const makeSave = (id, name, timestamp) => ({
     },
 });
 
+const makeSummary = (save) => ({
+    id: save.id,
+    类型: save.类型,
+    时间戳: save.时间戳,
+    元数据: {
+        ...(save.元数据 || {}),
+        现实保存时间戳: save.时间戳,
+        现实保存时间ISO: new Date(save.时间戳).toISOString(),
+    },
+    游戏初始时间: save.游戏初始时间,
+    角色数据: {
+        姓名: save.角色数据?.姓名,
+        境界: save.角色数据?.境界,
+        境界层级: save.角色数据?.境界层级,
+    },
+    环境信息: save.环境信息
+        ? {
+            时间: save.环境信息.时间,
+            年: save.环境信息.年,
+            月: save.环境信息.月,
+            日: save.环境信息.日,
+            时: save.环境信息.时,
+            分: save.环境信息.分,
+            大地点: save.环境信息.大地点,
+            中地点: save.环境信息.中地点,
+            小地点: save.环境信息.小地点,
+            具体地点: save.环境信息.具体地点,
+        }
+        : undefined,
+});
+
 const injectSavesAndReload = async (page) => {
     await page.goto('http://127.0.0.1:4173', { waitUntil: 'networkidle' });
     await closeReleaseNotesIfOpen(page);
     await page.evaluate(async (payload) => {
-        const req = indexedDB.open('WuxiaGameDB', 2);
+        const req = indexedDB.open('WuxiaGameDB', 3);
         const db = await new Promise((resolve, reject) => {
             req.onerror = () => reject(req.error);
             req.onsuccess = () => resolve(req.result);
@@ -62,17 +93,22 @@ const injectSavesAndReload = async (page) => {
             };
         });
         await new Promise((resolve, reject) => {
-            const tx = db.transaction(['saves'], 'readwrite');
+            const tx = db.transaction(['saves', 'save_summaries'], 'readwrite');
             const store = tx.objectStore('saves');
+            const summaryStore = tx.objectStore('save_summaries');
             store.clear();
-            for (const save of payload) store.put(save);
+            summaryStore.clear();
+            for (const item of payload) {
+                store.put(item.save);
+                summaryStore.put(item.summary);
+            }
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error);
         });
     }, [
-        makeSave('single-export-e2e-1', '单档导出甲', 1713600000000),
-        makeSave('single-export-e2e-2', '单档导出乙', 1713686400000),
-    ]);
+        makeSave(9001, '单档导出甲', 1713600000000),
+        makeSave(9002, '单档导出乙', 1713686400000),
+    ].map((save) => ({ save, summary: makeSummary(save) })));
     await page.reload({ waitUntil: 'networkidle' });
 };
 

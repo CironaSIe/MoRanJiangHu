@@ -184,6 +184,14 @@ const 获取NPC构图文案 = (构图?: string, 部位?: string): string => {
     return '头像';
 };
 
+const NPC是否男性或男娘 = (npc?: any): boolean => {
+    const gender = String(npc?.性别 || '').trim();
+    return gender === '男'
+        || gender === '男性'
+        || gender.includes('男娘')
+        || Boolean(String(npc?.男娘设定 || '').trim());
+};
+
 const 格式化时间 = (timestamp?: number): string => {
     if (!timestamp || !Number.isFinite(timestamp)) return '未记录';
     return new Date(timestamp).toLocaleString();
@@ -489,7 +497,7 @@ const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEna
     );
     const secretPartRecords = React.useMemo(() => {
         const archive = selectedNpc?.图片档案?.香闺秘档部位档案;
-        if (selectedNpc?.性别 === '男') {
+        if (NPC是否男性或男娘(selectedNpc)) {
             return [
                 { part: '肉棒' as const, label: '肉棒特写', description: (selectedNpc as any)?.肉棒描述 || '暂无记录', result: archive?.肉棒 },
                 { part: '屁穴' as const, label: '屁穴特写', description: selectedNpc?.屁穴描述 || '暂无记录', result: archive?.屁穴 }
@@ -501,6 +509,12 @@ const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEna
             { part: '屁穴' as const, label: '屁穴特写', description: selectedNpc?.屁穴描述 || '暂无记录', result: archive?.屁穴 }
         ];
     }, [selectedNpc]);
+    const secretPartCountLabel = React.useMemo(() => {
+        const count = secretPartRecords.length;
+        if (count === 2) return '两处';
+        if (count === 3) return '三处';
+        return count > 0 ? `${count}处` : '全部';
+    }, [secretPartRecords.length]);
 
     const presetFeature = React.useMemo(() => 规范化接口设置(apiConfig).功能模型占位, [apiConfig]);
     const currentPngStylePresetId = (presetFeature?.当前PNG画风预设ID || '').trim();
@@ -683,7 +697,7 @@ const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEna
         const resolvedExtraRequirement = secretExtraRequirement.trim();
         setSecretSubmitAt(Date.now());
         setSecretStatusText(part === '全部'
-            ? '三处特写已提交，正在加入图片队列。'
+            ? `${secretPartCountLabel}特写已提交，正在加入图片队列。`
             : `${part}特写已提交，正在加入图片队列。`);
         setActionError('');
         await withBusyAction(`mobile_secret_${selectedNpcId}_${part}`, async () => {
@@ -697,11 +711,11 @@ const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEna
                     后台处理: backgroundMode
                 });
                 setSecretStatusText(part === '全部'
-                    ? (backgroundMode ? '三处特写已转入后台，可前往“队列”页查看进度。' : '三处特写生成完成，历史记录已更新。')
+                    ? (backgroundMode ? `${secretPartCountLabel}特写已转入后台，可前往“队列”页查看进度。` : `${secretPartCountLabel}特写生成完成，历史记录已更新。`)
                     : (backgroundMode ? `${part}特写已转入后台，可前往“队列”页查看进度。` : `${part}特写生成完成，历史记录已更新。`));
             } catch (error) {
                 setSecretStatusText(part === '全部'
-                    ? '三处特写提交后出现失败，请查看下方状态或队列。'
+                    ? `${secretPartCountLabel}特写提交后出现失败，请查看下方状态或队列。`
                     : `${part}特写提交后出现失败，请查看下方状态或队列。`);
                 throw error;
             }
@@ -918,7 +932,7 @@ const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEna
                     <div className='p-2 border-t border-wuxia-gold/10 leading-relaxed font-serif'>{selectedNpcSummary}</div>
                 </div>
             )}
-            {selectedNpc && !Boolean(selectedNpc?.性别 && selectedNpc.性别.includes('男')) && (
+            {selectedNpc && secretPartRecords.length > 0 && (
                 <div className={`${卡片样式} p-4 space-y-3 relative overflow-hidden group`}>
                     <div className="absolute -left-10 -top-10 w-32 h-32 bg-[radial-gradient(circle,_var(--tw-gradient-stops))] from-pink-900/20 to-transparent blur-xl pointer-events-none"></div>
                     <div className="flex items-center justify-between gap-3 relative z-10 border-b border-pink-900/30 pb-3">

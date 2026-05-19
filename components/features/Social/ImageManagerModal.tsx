@@ -187,6 +187,14 @@ const 获取NPC构图文案 = (构图?: NPC生图任务记录['构图'] | 场景
     return '1:1头像';
 };
 
+const NPC是否男性或男娘 = (npc?: any): boolean => {
+    const gender = String(npc?.性别 || '').trim();
+    return gender === '男'
+        || gender === '男性'
+        || gender.includes('男娘')
+        || Boolean(String(npc?.男娘设定 || '').trim());
+};
+
 const 格式化时间 = (timestamp?: number): string => {
     if (!timestamp || !Number.isFinite(timestamp)) return '未记录';
     return new Date(timestamp).toLocaleString();
@@ -618,7 +626,7 @@ const ImageManagerModal: React.FC<Props> = ({
     );
     const selectedNpcSecretPartRecords = React.useMemo(() => {
         const archive = selectedNpc?.图片档案?.香闺秘档部位档案;
-        if (selectedNpc?.性别 === '男') {
+        if (NPC是否男性或男娘(selectedNpc)) {
             return [
                 { part: '肉棒' as const, label: '肉棒特写', description: (selectedNpc as any)?.肉棒描述 || '暂无记录', result: archive?.肉棒 },
                 { part: '屁穴' as const, label: '屁穴特写', description: selectedNpc?.屁穴描述 || '暂无记录', result: archive?.屁穴 }
@@ -630,6 +638,12 @@ const ImageManagerModal: React.FC<Props> = ({
             { part: '屁穴' as const, label: '屁穴特写', description: selectedNpc?.屁穴描述 || '暂无记录', result: archive?.屁穴 }
         ];
     }, [selectedNpc]);
+    const selectedNpcSecretPartCountLabel = React.useMemo(() => {
+        const count = selectedNpcSecretPartRecords.length;
+        if (count === 2) return '两处';
+        if (count === 3) return '三处';
+        return count > 0 ? `${count}处` : '全部';
+    }, [selectedNpcSecretPartRecords.length]);
     const artistPresets = React.useMemo<画师串预设结构[]>(() => {
         const list = Array.isArray(presetFeature?.画师串预设列表) ? presetFeature.画师串预设列表 : [];
         return list.filter((item) => item && !String(item.id || '').startsWith('png_artist_') && (item.适用范围 === 'npc' || item.适用范围 === 'all'));
@@ -1185,7 +1199,7 @@ const ImageManagerModal: React.FC<Props> = ({
         const resolvedExtraRequirement = secretExtraRequirement.trim();
         setSecretSubmitAt(Date.now());
         setSecretStatusText(part === '全部'
-            ? '三处特写已提交，正在加入图片队列。'
+            ? `${selectedNpcSecretPartCountLabel}特写已提交，正在加入图片队列。`
             : `${part}特写已提交，正在加入图片队列。`);
         setActionError('');
         await withBusyAction(`secret_part_${selectedNpcId}_${part}`, async () => {
@@ -1199,11 +1213,11 @@ const ImageManagerModal: React.FC<Props> = ({
                     后台处理: manualBackgroundMode
                 });
                 setSecretStatusText(part === '全部'
-                    ? (manualBackgroundMode ? '三处特写已转入后台，可在图片队列查看进度。' : '三处特写生成完成，历史记录已更新。')
+                    ? (manualBackgroundMode ? `${selectedNpcSecretPartCountLabel}特写已转入后台，可在图片队列查看进度。` : `${selectedNpcSecretPartCountLabel}特写生成完成，历史记录已更新。`)
                     : (manualBackgroundMode ? `${part}特写已转入后台，可在图片队列查看进度。` : `${part}特写生成完成，历史记录已更新。`));
             } catch (error) {
                 setSecretStatusText(part === '全部'
-                    ? '三处特写提交后出现失败，请查看下方状态或队列。'
+                    ? `${selectedNpcSecretPartCountLabel}特写提交后出现失败，请查看下方状态或队列。`
                     : `${part}特写提交后出现失败，请查看下方状态或队列。`);
                 throw error;
             }
@@ -2364,7 +2378,7 @@ const ImageManagerModal: React.FC<Props> = ({
                     </div>
                 </div>
 
-                {selectedNpc && !Boolean(selectedNpc?.性别 && selectedNpc.性别.includes('男')) && (
+                {selectedNpc && selectedNpcSecretPartRecords.length > 0 && (
                     <div className="bg-[#0c0d0f]/90 border border-fuchsia-900/40 rounded shadow-[0_0_30px_rgba(192,38,211,0.05)] p-5 space-y-4 lg:col-span-2">
                         <div className="flex items-center justify-between border-b border-fuchsia-900/20 pb-3">
                             <div>
