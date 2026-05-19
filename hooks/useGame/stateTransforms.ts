@@ -1099,6 +1099,202 @@ const 归一化键 = (raw: unknown): string => {
     return raw.trim().replace(/\s+/g, '').toLowerCase();
 };
 
+const NPC占位身份词列表 = [
+    '掌事太监', '教引姑姑', '贴身侍卫', '带队侍卫', '随行护卫', '值守护卫', '掌事宫女',
+    '女人', '女子', '姑娘', '少女', '男子', '男人', '少年', '老者', '老人', '孩童',
+    '蒙面人', '黑衣人', '神秘人', '陌生人', '来人', '那人', '此人', '某人',
+    '太监', '内侍', '宫女', '侍卫', '守卫', '护卫', '姑姑', '嬷嬷', '管事',
+    '掌柜', '老板', '摊主', '店小二', '伙计', '车夫', '丫鬟', '仆妇', '小厮',
+    '僧人', '和尚', '道士', '道姑', '杀手', '刺客', '捕快', '官差',
+    '弟子', '门人', '同门', '师兄', '师姐', '师弟', '师妹', '随行者', '队友', '路人'
+];
+const NPC占位外观词列表 = [
+    '黑衣', '白衣', '青衣', '红衣', '灰衣', '紫衣', '锦衣', '素衣', '蓝衣',
+    '蒙面', '遮面', '覆面', '戴斗笠', '斗笠', '面纱', '年轻', '年老', '中年',
+    '高瘦', '矮胖', '清瘦', '魁梧', '冷面', '带刀', '执剑', '持伞', '红裙',
+    '青衫', '白发', '陌生', '神秘', '无名'
+];
+const NPC占位身份词集合 = new Set(NPC占位身份词列表);
+const NPC泛性别身份词集合 = new Set(['女人', '女子', '姑娘', '少女', '男子', '男人', '少年', '老者', '老人', '孩童']);
+const NPC弱占位身份词集合 = new Set(['弟子', '门人', '同门', '师兄', '师姐', '师弟', '师妹', '随行者', '队友', '路人']);
+
+const 提取NPC角色身份词 = (...values: unknown[]): string[] => {
+    const text = values
+        .map((value) => 规范化文本(value))
+        .join(' ')
+        .replace(/\s+/g, '');
+    if (!text) return [];
+    const tokens = NPC占位身份词列表.filter((token) => text.includes(token));
+    return tokens.filter((token) => !tokens.some((other) => other !== token && other.includes(token)));
+};
+
+const 提取NPC外观线索词 = (...values: unknown[]): string[] => {
+    const text = values
+        .map((value) => 规范化文本(value))
+        .join(' ')
+        .replace(/\s+/g, '');
+    if (!text) return [];
+    return NPC占位外观词列表.filter((token) => text.includes(token));
+};
+
+const 判断NPC性别线索 = (npc: any): '男' | '女' | '' => {
+    const gender = 规范化文本(npc?.性别);
+    if (gender === '男' || gender === '女') return gender;
+    const text = [npc?.姓名, npc?.身份, npc?.简介].map((value) => 规范化文本(value)).join(' ');
+    if (/女人|女子|姑娘|少女|宫女|丫鬟|仆妇|姑姑|嬷嬷|道姑|师姐|师妹/.test(text)) return '女';
+    if (/男子|男人|少年|老者|老人|太监|内侍|侍卫|守卫|护卫|小厮|车夫|僧人|和尚|道士|师兄|师弟/.test(text)) return '男';
+    return '';
+};
+
+const 判断NPC姓名疑似占位 = (raw: unknown): boolean => {
+    const name = 规范化文本(raw).replace(/\s+/g, '');
+    if (!name) return false;
+    if (/^(?:npc|NPC|角色|人物|路人|队友|随行者|护卫|弟子|同门)\d*$/u.test(name)) return true;
+    if (/^[甲乙丙丁戊己庚辛壬癸]号?(?:护卫|侍卫|弟子|随行者|队友)$/u.test(name)) return true;
+    if (NPC占位外观词列表.some((token) => name.startsWith(token)) && 提取NPC角色身份词(name).length > 0) return true;
+    if (提取NPC角色身份词(name).some((token) => NPC占位身份词集合.has(token))) {
+        if (name.length <= 12) return true;
+        if (/(?:掌事|教引|管事|值守|带队|随行|贴身|门房|巡夜|永安宫|宫中|府中|门内|堂中).{0,8}(?:太监|内侍|宫女|侍卫|护卫|弟子|姑姑|嬷嬷|管事)$/u.test(name)) return true;
+    }
+    if (/(?:姑姑|嬷嬷|管事|掌柜|捕快|侍卫|护卫|宫女|丫鬟|小厮)[\u4e00-\u9fa5]?氏$/u.test(name)) return true;
+    return false;
+};
+
+const 提取NPC地点线索词 = (npc: any, nameRoles: string[] = []): string[] => {
+    const rawValues: unknown[] = [
+        npc?.当前位置,
+        npc?.当前地点,
+        npc?.所在地点,
+        npc?.所在位置,
+        npc?.具体地点,
+        npc?.地点,
+        npc?.位置,
+        npc?.位置路径,
+        npc?.所属势力,
+        npc?.归属?.具体地点,
+        npc?.归属?.小地点,
+        npc?.归属?.中地点,
+        npc?.归属?.大地点
+    ];
+    const profileValues: unknown[] = [
+        npc?.姓名,
+        npc?.身份,
+        npc?.简介,
+        npc?.所属势力,
+        npc?.当前位置,
+        npc?.当前地点,
+        npc?.具体地点,
+        npc?.位置路径
+    ];
+    const fromPath = rawValues
+        .flatMap((value) => 规范化文本(value).split(/[>＞/｜|、，,。\s]+/u))
+        .map((part) => part.trim())
+        .filter((part) => part.length >= 2 && part.length <= 12 && !/^(未知|不详|暂无|无|当前位置|当前地点)$/u.test(part));
+    const fromProfile = profileValues
+        .flatMap((value) => {
+            const text = 规范化文本(value).replace(/\s+/g, '');
+            if (!text) return [];
+            const placeMatches = Array.from(text.matchAll(/[\u4e00-\u9fa5]{1,8}(?:宫|殿|府|楼|阁|堂|院|寺|观|门|城|村|镇|寨|庄|司|营|坊|巷|街)/gu))
+                .map((match) => match[0]);
+            const rolePrefixes = nameRoles.map((role) => {
+                const index = text.indexOf(role);
+                if (index <= 0) return '';
+                return text.slice(Math.max(0, index - 8), index).replace(/^(?:一名|一个|一位|那名|那位|这名|这位)/u, '');
+            });
+            return [...placeMatches, ...rolePrefixes];
+        })
+        .filter((part) => part.length >= 2 && part.length <= 8 && /(?:宫|殿|府|楼|阁|堂|院|寺|观|门|城|村|镇|寨|庄|司|营|坊|巷|街)$/u.test(part));
+    return Array.from(new Set([...fromPath, ...fromProfile]));
+};
+
+const 构建NPC占位身份线索 = (npc: any) => {
+    const name = 规范化文本(npc?.姓名);
+    const nameKey = 归一化键(name);
+    const roleTokens = 提取NPC角色身份词(npc?.姓名, npc?.身份, npc?.简介);
+    const descriptorTokens = 提取NPC外观线索词(npc?.姓名, npc?.外貌描写, npc?.衣着风格, npc?.简介, npc?.身份);
+    const locationTokens = 提取NPC地点线索词(npc, roleTokens);
+    const memoryText = [
+        ...(Array.isArray(npc?.记忆) ? npc.记忆.map((item: any) => item?.内容 || item?.摘要 || item?.描述) : []),
+        ...(Array.isArray(npc?.总结记忆) ? npc.总结记忆.map((item: any) => item?.内容 || item?.摘要 || item?.描述) : [])
+    ];
+    const profileKey = [
+        npc?.姓名,
+        npc?.身份,
+        npc?.简介,
+        npc?.关系状态,
+        npc?.当前位置,
+        npc?.当前地点,
+        npc?.所在地点,
+        npc?.所在位置,
+        npc?.具体地点,
+        npc?.位置,
+        npc?.位置路径,
+        npc?.所属势力,
+        npc?.外貌描写,
+        npc?.衣着风格,
+        ...memoryText
+    ].map(归一化键).join('|');
+    return {
+        name,
+        nameKey,
+        placeholder: 判断NPC姓名疑似占位(name),
+        roleTokens,
+        descriptorTokens,
+        locationTokens,
+        gender: 判断NPC性别线索(npc),
+        profileKey
+    };
+};
+
+const 集合存在交集 = (left: string[], right: string[]): boolean => {
+    const rightSet = new Set(right.filter(Boolean));
+    return left.some((item) => rightSet.has(item));
+};
+
+const NPC占位身份角色匹配 = (
+    placeholder: ReturnType<typeof 构建NPC占位身份线索>,
+    other: ReturnType<typeof 构建NPC占位身份线索>
+): boolean => {
+    if (集合存在交集(placeholder.roleTokens, other.roleTokens)) return true;
+    const placeholderHasFemaleRole = placeholder.roleTokens.some((token) => ['女人', '女子', '姑娘', '少女'].includes(token));
+    const placeholderHasMaleRole = placeholder.roleTokens.some((token) => ['男子', '男人', '少年', '老者', '老人', '太监', '内侍'].includes(token));
+    return (placeholderHasFemaleRole && other.gender === '女') || (placeholderHasMaleRole && other.gender === '男');
+};
+
+const NPC占位身份疑似同一人 = (leftRaw: any, rightRaw: any): boolean => {
+    const left = 构建NPC占位身份线索(leftRaw);
+    const right = 构建NPC占位身份线索(rightRaw);
+    if (!left.placeholder && !right.placeholder) return false;
+    if (left.nameKey && right.nameKey && left.nameKey === right.nameKey) return true;
+
+    const placeholder = left.placeholder ? left : right;
+    const other = left.placeholder ? right : left;
+    if (!placeholder.nameKey || !other.nameKey) return false;
+
+    if (other.profileKey.includes(placeholder.nameKey)) return true;
+    if (!other.placeholder && placeholder.profileKey.includes(other.nameKey)) return true;
+
+    const roleMatched = NPC占位身份角色匹配(placeholder, other);
+    if (!roleMatched) return false;
+    const descriptorMatched = 集合存在交集(placeholder.descriptorTokens, other.descriptorTokens);
+    if (descriptorMatched) return true;
+
+    const locationMatched = 集合存在交集(placeholder.locationTokens, other.locationTokens);
+    const hasSpecificRole = placeholder.roleTokens.some((token) => !NPC泛性别身份词集合.has(token) && !NPC弱占位身份词集合.has(token));
+    return locationMatched && hasSpecificRole;
+};
+
+const 选择合并后NPC姓名 = (leftRaw: any, rightRaw: any): string => {
+    const leftName = 规范化文本(leftRaw?.姓名);
+    const rightName = 规范化文本(rightRaw?.姓名);
+    const leftPlaceholder = 判断NPC姓名疑似占位(leftName);
+    const rightPlaceholder = 判断NPC姓名疑似占位(rightName);
+    if (leftPlaceholder && !rightPlaceholder && rightName) return rightName;
+    if (rightPlaceholder && !leftPlaceholder && leftName) return leftName;
+    if (leftPlaceholder && rightPlaceholder) return 取更优文本(leftName, rightName) || leftName || rightName;
+    return 取首个非空文本(rightName, leftName) || leftName || rightName;
+};
+
 const 解析记忆时间排序值 = (raw?: string): number => {
     if (!raw) return Number.MAX_SAFE_INTEGER;
     const canonical = normalizeCanonicalGameTime(raw);
@@ -2060,6 +2256,7 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
 const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): any => {
     const left = 标准化单个NPC(leftRaw, fallbackIndex);
     const right = 标准化单个NPC(rightRaw, fallbackIndex);
+    const shouldPreserveLeftId = NPC占位身份疑似同一人(left, right);
     const mergedMemory = 标准化NPC记忆([...(left.记忆 || []), ...(right.记忆 || [])]);
     const mergedSummaryMemory = 标准化NPC总结记忆([...(left.总结记忆 || []), ...(right.总结记忆 || [])]);
 
@@ -2139,19 +2336,35 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
     };
     const mergedCombat = 标准化NPC战斗数值(mergedBaseForCombat);
     const mergedBag = mergedRawBag.length > 0 ? mergedRawBag : 生成NPC默认背包({ ...left, ...right });
+    const mergedName = 选择合并后NPC姓名(left, right) || `角色${fallbackIndex}`;
+    const legacyPlaceholderName = (() => {
+        const leftName = 规范化文本(left?.姓名);
+        const rightName = 规范化文本(right?.姓名);
+        if (leftName && leftName !== mergedName && 判断NPC姓名疑似占位(leftName)) return leftName;
+        if (rightName && rightName !== mergedName && 判断NPC姓名疑似占位(rightName)) return rightName;
+        return '';
+    })();
+    const mergedIdentity = 取更优文本(取字段文本(left, '身份'), 取字段文本(right, '身份')) || '未知身份';
+    const mergedIntroBase = 取更优文本(取字段文本(left, '简介'), 取字段文本(right, '简介')) || '暂无简介';
+    const mergedIntro = legacyPlaceholderName
+        && ![mergedIdentity, mergedIntroBase].some((text) => 归一化键(text).includes(归一化键(legacyPlaceholderName)))
+        ? `${mergedIntroBase}（曾以“${legacyPlaceholderName}”指称。）`
+        : mergedIntroBase;
 
     return {
         ...left,
         ...right,
-        id: 取首个非空文本(right.id, left.id, `npc_${fallbackIndex}`) || `npc_${fallbackIndex}`,
-        姓名: 取首个非空文本(right.姓名, left.姓名, `角色${fallbackIndex}`) || `角色${fallbackIndex}`,
+        id: shouldPreserveLeftId
+            ? (取首个非空文本(left.id, right.id, `npc_${fallbackIndex}`) || `npc_${fallbackIndex}`)
+            : (取首个非空文本(right.id, left.id, `npc_${fallbackIndex}`) || `npc_${fallbackIndex}`),
+        姓名: mergedName,
         性别: 取更优文本(取字段文本(left, '性别'), 取字段文本(right, '性别')) || '未知',
         年龄: Number.isFinite(Number(right?.年龄))
             ? Number(right.年龄)
             : (Number.isFinite(Number(left?.年龄)) ? Number(left.年龄) : undefined),
         生日: 取更优文本(取字段文本(left, '生日'), 取字段文本(right, '生日')),
         境界: 规范化境界显示文本(取更优文本(取字段文本(left, '境界'), 取字段文本(right, '境界')), '未知境界'),
-        身份: 取更优文本(取字段文本(left, '身份'), 取字段文本(right, '身份')) || '未知身份',
+        身份: mergedIdentity,
         是否在场: typeof right?.是否在场 === 'boolean'
             ? right.是否在场
             : (typeof left?.是否在场 === 'boolean' ? left.是否在场 : true),
@@ -2164,7 +2377,7 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
             : (Number.isFinite(Number(left?.好感度)) ? Number(left.好感度) : 0),
         关系状态: 取更优文本(取字段文本(left, '关系状态'), 取字段文本(right, '关系状态')) || '未知',
         对主角称呼: 取更优文本(取字段文本(left, '对主角称呼'), 取字段文本(right, '对主角称呼')),
-        简介: 取更优文本(取字段文本(left, '简介'), 取字段文本(right, '简介')) || '暂无简介',
+        简介: mergedIntro,
         力量: mergedBaseAttrs.力量,
         敏捷: mergedBaseAttrs.敏捷,
         体质: mergedBaseAttrs.体质,
@@ -2252,12 +2465,46 @@ const 合并同名NPC列表 = (list: any[]): any[] => {
     return merged;
 };
 
+const 合并占位NPC列表 = (list: any[], options?: { 合并精确同名?: boolean }): any[] => {
+    if (!Array.isArray(list)) return [];
+    const merged: any[] = [];
+    const nameIndexMap = new Map<string, number>();
+
+    list.filter((rawNpc) => !是否应丢弃NPC条目(rawNpc)).forEach((rawNpc, index) => {
+        const normalized = 标准化单个NPC(rawNpc, index);
+        const nameKey = 归一化键(normalized?.姓名);
+        const exactMatchedIndex = nameKey && options?.合并精确同名 !== false ? nameIndexMap.get(nameKey) : undefined;
+        const placeholderMatchedIndex = typeof exactMatchedIndex === 'number'
+            ? exactMatchedIndex
+            : merged.findIndex((candidate) => NPC占位身份疑似同一人(candidate, normalized));
+        const targetIndex = typeof placeholderMatchedIndex === 'number' ? placeholderMatchedIndex : -1;
+
+        if (targetIndex < 0) {
+            const pushIndex = merged.length;
+            merged.push(normalized);
+            const newNameKey = 归一化键(normalized?.姓名);
+            if (newNameKey) nameIndexMap.set(newNameKey, pushIndex);
+            return;
+        }
+
+        const previousNameKey = 归一化键(merged[targetIndex]?.姓名);
+        merged[targetIndex] = 合并NPC对象(merged[targetIndex], normalized, targetIndex);
+        if (previousNameKey && nameIndexMap.get(previousNameKey) === targetIndex) {
+            nameIndexMap.delete(previousNameKey);
+        }
+        const mergedNameKey = 归一化键(merged[targetIndex]?.姓名);
+        if (mergedNameKey) nameIndexMap.set(mergedNameKey, targetIndex);
+    });
+
+    return merged;
+};
+
 const 规范化社交列表 = (list: any[], options?: { 合并同名?: boolean }): any[] => {
     if (!Array.isArray(list)) return [];
     const filtered = list.filter((npc) => !是否应丢弃NPC条目(npc));
     const normalized = filtered.map((npc, index) => 标准化单个NPC(npc, index));
-    if (options?.合并同名 === false) return normalized;
-    return 合并同名NPC列表(normalized);
+    if (options?.合并同名 === false) return 合并占位NPC列表(normalized, { 合并精确同名: false });
+    return 合并占位NPC列表(合并同名NPC列表(normalized));
 };
 
 export {
