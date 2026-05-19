@@ -1,7 +1,7 @@
 {
   "name": "墨色江湖---无尽武林",
   "private": true,
-  "version": "1.0.248",
+  "version": "1.0.249",
   "type": "module",
   "scripts": {
     "cnb:sync": "node scripts/cnb-image-backend-sync.mjs",
@@ -13,6 +13,7 @@
     "release:sync": "node scripts/sync-release.mjs",
     "release:bump": "node scripts/bump-release.mjs",
     "release:r2": "node scripts/publish-release-r2.mjs",
+    "release:s3": "node scripts/publish-release-s3.mjs",
     "dev": "npm run release:sync && vite",
     "build": "npm run release:sync && vite build",
     "build:apk": "npm run release:sync && vite build --base=/",
