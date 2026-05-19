@@ -477,3 +477,27 @@
 - 手机地图布局调整后，`npm.cmd run build` 已通过。
 - 地图设置提示移动/改文案、回忆解析改为清旧重建后，`npm.cmd run build` 已通过。
 - 每次构建都会因 `release:sync` 修改 release 元数据；由于本次不是发布，已恢复 `data/releaseInfo.ts` 与 `public/release-info.json`。
+
+## 2026-05-19 繁体模式、DeepSeek 兼容与 AI 模式教程
+
+- 在游戏设置中新增繁体模式开关。
+- 开启后，游戏内 AI 生成内容需要通过各功能提示词注入“使用繁体中文”的要求，不能只依赖输出后的 UI 转换。
+- 从参考 APK 迁移 DeepSeek 兼容能力，并在游戏设置中提供可选择的主剧情消息模式。
+- 主剧情消息兼容模式应保持放在游戏设置最顶端，并使用玩家容易理解的标签：
+  - `Gemini模式`：默认/原始行为，适合 Gemini 模型。
+  - `GPT兼容`：对 GPT/OpenAI 兼容接口生效的真实兼容模式，不是只能看的占位项。
+  - `DeepSeek标准续聊`：DeepSeek 类接口优先尝试的安全默认模式。
+  - `DeepSeek锁格式`：更严格的 DeepSeek 模式，在接口支持时会尝试使用 Prefix/Prefill 锁住输出格式。
+- DeepSeek 专用提示词逻辑保存在 `prompts/runtime/deepseekMode.ts`。
+- DeepSeek 设置 UI 主要位于 `components/features/Settings/GameSettings.tsx`。
+- DeepSeek 稳定救场模型/API 设置位于 `components/features/Settings/ApiSettings.tsx`。
+- 主页教程中心（`public/tutorials.html`）新增 `AI模型模式` 标签页。
+- AI 模式教程用面向玩家的中文详细解释：
+  - Gemini/GPT/DeepSeek 标准续聊/DeepSeek 锁格式分别什么时候选择；
+  - Prefix 能力探测，以及第三方 DeepSeek 兼容站可能不支持 Prefix/Prefill 的原因；
+  - 输出健康度检测是检查回复能否被游戏稳定解析，不是评价文笔；
+  - 锁格式阈值与救场阈值的含义和调节方式；
+  - 开局策略、接管摘要、Thinking 选项、稳定救场模型的用途。
+- 教程中心支持直接通过 `#aimode` hash 打开 AI 模型模式教程。
+- 验证：AI 模式教程更新后，`npm.cmd run build` 已通过。
+- 构建会因 `release:sync` 触碰 release 元数据；`data/releaseInfo.ts` 与 `public/release-info.json` 忽略行尾后无内容差异，除非正式发布，否则不应作为 release 变更提交。

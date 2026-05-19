@@ -193,6 +193,10 @@ export interface StoryRequestOptions {
     requireActionOptionsTag?: boolean;
     requireDynamicWorldTag?: boolean;
     errorDetailLimit?: number;
+    includeReasoning?: boolean;
+    disableThinking?: boolean;
+    stripReasoning?: boolean;
+    prefixMode?: boolean;
 }
 
 interface WorldStreamOptions {
@@ -301,12 +305,13 @@ export const generatePolishedBody = async (
         '3) 系统只会提取 <正文> 内容用于最终渲染。'
     ].join('\n');
     const systemPrompt = normalizedPrompt || fallbackPrompt;
-    const userPrompt = [
-        '【待润色正文】',
-        normalizedBody
-    ].join('\n');
     const normalizedExtraPrompt = (extraPrompt || '').trim();
     const normalizedCotPseudoPrompt = (cotPseudoHistoryPrompt || '').trim();
+    const userPrompt = [
+        '【待润色正文】',
+        normalizedBody,
+        normalizedExtraPrompt ? `\n【最终输出附加要求】\n${normalizedExtraPrompt}` : ''
+    ].filter(Boolean).join('\n');
 
     const messagesRaw: 通用消息[] = [
         { role: 'system', content: systemPrompt }
@@ -343,10 +348,13 @@ export const generateWorldData = async (
 ): Promise<string> => {
     if (!apiConfig.apiKey) throw new Error('Missing API Key');
 
-    const genSystemPrompt = 获取世界观生成系统提示词(config);
-    const genUserPrompt = 构建世界观生成用户提示词(worldContext, charData, config);
     const normalizedExtraPrompt = (extraPrompt || '').trim();
     const normalizedCotPseudoPrompt = (cotPseudoHistoryPrompt || '').trim();
+    const genSystemPrompt = 获取世界观生成系统提示词(config);
+    const genUserPrompt = [
+        构建世界观生成用户提示词(worldContext, charData, config),
+        normalizedExtraPrompt ? `【最终输出附加要求】\n${normalizedExtraPrompt}` : ''
+    ].filter(Boolean).join('\n\n');
 
     const messagesRaw: 通用消息[] = [
         { role: 'system', content: genSystemPrompt }
@@ -642,11 +650,14 @@ export const generateWorldEvolutionUpdate = async (
 ): Promise<WorldEvolutionResult> => {
     if (!apiConfig.apiKey) throw new Error('Missing API Key');
 
-    const systemPrompt = 构建世界演变系统提示词({ fandom: fandomEnabled === true });
-    const userPrompt = 构建世界演变用户提示词(worldContext, { fandom: fandomEnabled === true });
     const normalizedExtraPrompt = (extraPrompt || '').trim();
     const normalizedCotPseudoPrompt = (cotPseudoHistoryPrompt || '').trim();
     const normalizedCotPrompt = (cotPrompt || '').trim();
+    const systemPrompt = 构建世界演变系统提示词({ fandom: fandomEnabled === true });
+    const userPrompt = [
+        构建世界演变用户提示词(worldContext, { fandom: fandomEnabled === true }),
+        normalizedExtraPrompt ? `【最终输出附加要求】\n${normalizedExtraPrompt}` : ''
+    ].filter(Boolean).join('\n\n');
     const fandomSystemPrompt = fandomEnabled ? 同人世界演变附加系统提示词 : '';
     const fandomCotPrompt = fandomEnabled ? 同人世界演变附加COT提示词 : '';
     const messagesRaw: 通用消息[] = [
@@ -757,13 +768,17 @@ export const generateVariableCalibrationUpdate = async (
             : 世界书本体槽位.变量模型用户_常规,
         fallback: 构建变量模型用户附加规则提示词()
     });
-    const taskPrompt = 构建变量模型任务提示词({
-        stateJson: params.stateJson,
-        response: params.response,
-        extraPrompt,
-        isOpeningRound: params.isOpeningRound === true,
-        openingTaskContext: params.openingTaskContext
-    });
+    const normalizedVariableExtraPrompt = (extraPrompt || '').trim();
+    const taskPrompt = [
+        构建变量模型任务提示词({
+            stateJson: params.stateJson,
+            response: params.response,
+            extraPrompt,
+            isOpeningRound: params.isOpeningRound === true,
+            openingTaskContext: params.openingTaskContext
+        }),
+        normalizedVariableExtraPrompt ? `【最终输出附加要求】\n${normalizedVariableExtraPrompt}` : ''
+    ].filter(Boolean).join('\n\n');
     const variableCotPrompt = 获取内置提示词槽位内容({
         entries: params.builtinPromptEntries,
         slotId: 世界书本体槽位.变量模型COT,
@@ -1554,17 +1569,20 @@ const 构建规划分析消息链 = (
     const normalizedExtraPrompt = typeof params.extraPrompt === 'string' ? params.extraPrompt.trim() : '';
     const fandomSystemPrompt = params.fandomEnabled ? 同人规划分析附加系统提示词 : '';
     const fandomCotPrompt = params.fandomEnabled ? 同人规划分析附加COT提示词 : '';
-    const taskPrompt = `【本次任务】\n${构建统一规划分析用户提示词({
-        currentStoryJson: params.currentStoryJson,
-        currentHeroinePlanJson: params.currentHeroinePlanJson,
-        worldJson: params.worldJson,
-        socialJson: params.socialJson,
-        envJson: params.envJson,
-        recentBodiesText: params.recentBodiesText,
-        currentPlanText: params.currentPlanText,
-        auditFocusText: params.auditFocusText,
-        heroineEnabled: params.heroineEnabled === true
-    })}`;
+    const taskPrompt = [
+        `【本次任务】\n${构建统一规划分析用户提示词({
+            currentStoryJson: params.currentStoryJson,
+            currentHeroinePlanJson: params.currentHeroinePlanJson,
+            worldJson: params.worldJson,
+            socialJson: params.socialJson,
+            envJson: params.envJson,
+            recentBodiesText: params.recentBodiesText,
+            currentPlanText: params.currentPlanText,
+            auditFocusText: params.auditFocusText,
+            heroineEnabled: params.heroineEnabled === true
+        })}`,
+        normalizedExtraPrompt ? `【最终输出附加要求】\n${normalizedExtraPrompt}` : ''
+    ].filter(Boolean).join('\n\n');
     const useUserTrigger = params.gptMode === true || options?.forceUserTrigger === true;
     return 规范化文本补全消息链([
         { role: 'system', content: `【AI角色】\n${aiRolePrompt}` },
@@ -1706,10 +1724,16 @@ export const generateStoryResponse = async (
 
     const orderedMessagesRaw = Array.isArray(requestOptions?.orderedMessages)
         ? requestOptions.orderedMessages
-            .map((item) => ({
-                role: item?.role,
-                content: typeof item?.content === 'string' ? item.content.trim() : ''
-            }))
+            .map((item) => {
+                const isPrefix = item?.prefix === true;
+                return {
+                    role: item?.role,
+                    content: typeof item?.content === 'string'
+                        ? (isPrefix ? item.content : item.content.trim())
+                        : '',
+                    ...(isPrefix ? { prefix: true } : {})
+                };
+            })
             .filter((item): item is 通用消息 =>
                 (item.role === 'system' || item.role === 'user' || item.role === 'assistant') && item.content.length > 0
             )
@@ -1724,7 +1748,11 @@ export const generateStoryResponse = async (
             temperature: 0.7,
             signal,
             streamOptions,
-            errorDetailLimit: requestOptions?.errorDetailLimit
+            errorDetailLimit: requestOptions?.errorDetailLimit,
+            includeReasoning: requestOptions?.includeReasoning,
+            disableThinking: requestOptions?.disableThinking,
+            stripReasoning: requestOptions?.stripReasoning,
+            prefixMode: requestOptions?.prefixMode
         });
         return 解析故事响应(rawText, requestOptions);
     }
@@ -1800,7 +1828,11 @@ export const generateStoryResponse = async (
         temperature: 0.7,
         signal,
         streamOptions,
-        errorDetailLimit: requestOptions?.errorDetailLimit
+        errorDetailLimit: requestOptions?.errorDetailLimit,
+        includeReasoning: requestOptions?.includeReasoning,
+        disableThinking: requestOptions?.disableThinking,
+        stripReasoning: requestOptions?.stripReasoning,
+        prefixMode: requestOptions?.prefixMode
     });
 
     return 解析故事响应(rawText, requestOptions);

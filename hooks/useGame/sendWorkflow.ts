@@ -784,6 +784,7 @@ export const 执行主剧情发送工作流 = async (
         const {
             runtimeGameConfig,
             runtimeCotPseudoEnabled,
+            deepSeekPrefixMode,
             lengthRequirementPrompt,
             disclaimerRequirementPrompt,
             outputProtocolPrompt,
@@ -861,7 +862,11 @@ export const 执行主剧情发送工作流 = async (
                             validateTagCompleteness: runtimeGameConfig.启用标签检测完整性 === true,
                             enableTagRepair: runtimeGameConfig.启用标签修复 !== false,
                             requireActionOptionsTag: runtimeGameConfig.启用行动选项 !== false,
-                            errorDetailLimit: Number.POSITIVE_INFINITY
+                            errorDetailLimit: Number.POSITIVE_INFINITY,
+                            prefixMode: deepSeekPrefixMode,
+                            disableThinking: runtimeGameConfig.DeepSeek策略?.续聊Thinking !== true,
+                            stripReasoning: runtimeGameConfig.DeepSeek策略?.续聊Thinking !== true,
+                            includeReasoning: runtimeGameConfig.DeepSeek策略?.续聊Thinking === true
                         }
                     );
 
@@ -1468,6 +1473,7 @@ export const 执行主剧情发送工作流 = async (
                                 世界: simulatedState.世界,
                                 社交: simulatedState.社交,
                                 角色: simulatedState.角色,
+                                gameConfig: currentState.gameConfig,
                                 worldbooks: currentState.世界书列表,
                                 currentResponse: mapContextResponse,
                                 stateBase: simulatedState,

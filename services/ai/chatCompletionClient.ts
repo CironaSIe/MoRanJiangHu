@@ -7,6 +7,7 @@ export type 通用消息角色 = 'system' | 'user' | 'assistant';
 export type 通用消息 = {
     role: 通用消息角色;
     content: string;
+    prefix?: boolean;
 };
 
 export type 响应格式类型 = 'json_object';
@@ -15,6 +16,13 @@ export type 通用流式选项 = {
     stream?: boolean;
     onDelta?: (delta: string, accumulated: string) => void;
 } | undefined;
+
+export type 模型请求附加选项 = {
+    includeReasoning?: boolean;
+    disableThinking?: boolean;
+    stripReasoning?: boolean;
+    prefixMode?: boolean;
+};
 
 type 请求协议类型 = 'openai' | 'deepseek';
 
@@ -73,12 +81,18 @@ export const 规范化文本补全消息链 = (
     const keepSystem = options?.保留System !== false;
     const mergeSameRole = options?.合并同角色 !== false;
     const normalized: 通用消息[] = messages
-        .map((msg) => ({
-            role: msg.role === 'assistant'
-                ? 'assistant' as const
-                : (msg.role === 'system' && keepSystem ? 'system' as const : 'user' as const),
-            content: typeof msg.content === 'string' ? msg.content.trim() : ''
-        }))
+        .map((msg) => {
+            const isPrefix = msg.prefix === true;
+            return {
+                role: msg.role === 'assistant'
+                    ? 'assistant' as const
+                    : (msg.role === 'system' && keepSystem ? 'system' as const : 'user' as const),
+                content: typeof msg.content === 'string'
+                    ? (isPrefix ? msg.content : msg.content.trim())
+                    : '',
+                prefix: isPrefix ? true : undefined
+            };
+        })
         .filter(msg => msg.content.length > 0);
 
     if (!mergeSameRole) return normalized;
@@ -86,7 +100,7 @@ export const 规范化文本补全消息链 = (
     const merged: 通用消息[] = [];
     for (const msg of normalized) {
         const last = merged[merged.length - 1];
-        if (last && last.role === msg.role) {
+        if (last && last.role === msg.role && last.prefix !== true && msg.prefix !== true) {
             last.content = `${last.content}\n\n${msg.content}`.trim();
         } else {
             merged.push({ ...msg });
@@ -103,18 +117,50 @@ const 标准化模型名 = (value: string): string => {
     return afterSlash.replace(/^models\//, '');
 };
 
-export const 是否DeepSeek接口配置 = (apiConfig: 当前可用接口结构): boolean => {
+export const 是否DeepSeek原生接口配置 = (apiConfig: 当前可用接口结构): boolean => {
     if (apiConfig.供应商 === 'deepseek') return true;
 
     const baseUrl = (apiConfig.baseUrl || '').trim().toLowerCase();
     if (baseUrl.includes('deepseek')) return true;
+    return false;
+};
 
+const 错误疑似不支持Prefix = (error: unknown): boolean => {
+    const message = 读取错误消息(error).toLowerCase();
+    if (!message) return false;
+    if (message.includes('prefix')) return true;
+    if (message.includes('/beta')) return true;
+    if (message.includes('invalid') && message.includes('assistant')) return true;
+    if (message.includes('unsupported') && message.includes('prefill')) return true;
+    if (message.includes('not support') && message.includes('prefill')) return true;
+    return false;
+};
+
+const 响应详情疑似不支持Prefix = (text: string): boolean => {
+    const message = (text || '').toLowerCase();
+    if (!message) return false;
+    if (message.includes('prefix')) return true;
+    if (message.includes('/beta')) return true;
+    if (message.includes('invalid') && message.includes('assistant')) return true;
+    if (message.includes('unsupported') && message.includes('prefill')) return true;
+    if (message.includes('not support') && message.includes('prefill')) return true;
+    return false;
+};
+
+export const 是否DeepSeek模型配置 = (apiConfig: 当前可用接口结构): boolean => {
+    if (是否DeepSeek原生接口配置(apiConfig)) return true;
     const model = 标准化模型名(apiConfig.model || '');
     if (!model) return false;
     if (model === 'deepseek-chat' || model === 'deepseek-reasoner') return true;
     if (model.startsWith('deepseek-')) return true;
     if (model.includes('deepseek')) return true;
     return false;
+};
+
+export const 是否DeepSeek接口配置 = 是否DeepSeek模型配置;
+
+const 解析请求协议类型 = (apiConfig: 当前可用接口结构): 请求协议类型 => {
+    return 是否DeepSeek原生接口配置(apiConfig) ? 'deepseek' : 'openai';
 };
 
 const 读取自定义最大输出Token = (apiConfig: 当前可用接口结构): number | undefined => {
@@ -159,9 +205,22 @@ export const 替换COT伪装身份占位 = (cotPrompt: string, aiRoleDeclaration
     return source.replace(/<AI身份名称占位>/g, aiIdentity);
 };
 
+const 读取模型最大输出上限 = (apiConfig: 当前可用接口结构): number => {
+    const model = 标准化模型名(apiConfig.model || '');
+    const baseUrl = (apiConfig.baseUrl || '').toLowerCase();
+
+    if (model === 'deepseek-chat') return 8_192;
+    if (model === 'deepseek-reasoner') return 65_536;
+    if (model.includes('deepseek-v4') || model.includes('deepseek-v3') || baseUrl.includes('deepseek')) return 393_216;
+    if (model.startsWith('gpt-4.1')) return 32_768;
+    if (model.startsWith('gpt-4o')) return 16_384;
+    if (model.includes('claude') || model.startsWith('gemini-2.5')) return 65_536;
+    return 128_000;
+};
+
 const 计算最大输出Token = (apiConfig: 当前可用接口结构): number => {
     const requested = 读取自定义最大输出Token(apiConfig) ?? 8_192;
-    return Math.max(256, Math.floor(requested));
+    return 约束数值范围(Math.floor(requested), 256, 读取模型最大输出上限(apiConfig));
 };
 
 const 计算请求温度 = (apiConfig: 当前可用接口结构, fallback: number): number => {
@@ -249,7 +308,70 @@ const 应用DeepSeek消息兼容修正 = (
     protocol: 请求协议类型
 ): 通用消息[] => {
     if (protocol !== 'deepseek') return messages;
-    return 规范化文本补全消息链(messages, { 保留System: true, 合并同角色: true });
+    const normalized = 规范化文本补全消息链(messages, { 保留System: true, 合并同角色: true });
+
+    while (normalized.length > 0) {
+        const tail = normalized[normalized.length - 1];
+        if (tail.role === 'assistant' && tail.prefix !== true) {
+            normalized.pop();
+            continue;
+        }
+        break;
+    }
+
+    const firstNonSystemIndex = normalized.findIndex(msg => msg.role !== 'system');
+    if (firstNonSystemIndex >= 0) {
+        const firstNonSystem = normalized[firstNonSystemIndex];
+        const hasUserAfter = normalized.slice(firstNonSystemIndex + 1).some(msg => msg.role === 'user');
+        if (firstNonSystem.role === 'assistant' && firstNonSystem.prefix !== true && !hasUserAfter) {
+            normalized[firstNonSystemIndex] = {
+                role: 'user',
+                content: firstNonSystem.content
+            };
+        }
+    }
+
+    const nonSystemMessages = normalized.filter(msg => msg.role !== 'system');
+    const userIndexes = normalized
+        .map((msg, index) => ({ msg, index }))
+        .filter(item => item.msg.role === 'user')
+        .map(item => item.index);
+    const assistantBeforeOnlyUser = nonSystemMessages
+        .filter(msg => msg.role === 'assistant' && msg.prefix !== true)
+        .map(msg => msg.content)
+        .filter(Boolean);
+
+    if (userIndexes.length === 1 && assistantBeforeOnlyUser.length > 0) {
+        const userIndex = userIndexes[0];
+        const userMessage = normalized[userIndex];
+        normalized[userIndex] = {
+            ...userMessage,
+            content: [
+                '【前置任务说明】',
+                assistantBeforeOnlyUser.join('\n\n'),
+                '',
+                '【当前用户触发】',
+                userMessage.content
+            ].join('\n').trim()
+        };
+        for (let index = normalized.length - 1; index >= 0; index--) {
+            if (index !== userIndex && normalized[index].role === 'assistant' && normalized[index].prefix !== true) {
+                normalized.splice(index, 1);
+            }
+        }
+    }
+
+    const last = normalized[normalized.length - 1];
+    if (last?.role === 'assistant' && last.prefix === true) return normalized;
+    const lastNonSystem = [...normalized].reverse().find(msg => msg.role !== 'system');
+    if (lastNonSystem && lastNonSystem.role !== 'user') {
+        normalized.push({
+            role: 'user',
+            content: '请继续执行上一条任务，并严格按既定输出协议完成回复。'
+        });
+    }
+
+    return normalized;
 };
 
 const 读取错误消息 = (error: unknown): string => {
@@ -357,7 +479,8 @@ type 增量提取器 = ((payload: any) => string) & {
     finalize?: () => string;
 };
 
-const 创建OpenAI流增量提取器 = (): 增量提取器 => {
+const 创建OpenAI流增量提取器 = (options?: { includeReasoning?: boolean }): 增量提取器 => {
+    const includeReasoning = options?.includeReasoning === true;
     let inReasoningPhase = false;
     let needsClosingTag = false;
 
@@ -369,6 +492,7 @@ const 创建OpenAI流增量提取器 = (): 增量提取器 => {
 
         if (hasReasoningContent) {
             const reasoningText = typeof reasoningContent === 'string' ? reasoningContent : '';
+            if (!includeReasoning) return '';
             if (!inReasoningPhase && reasoningText) {
                 inReasoningPhase = true;
                 needsClosingTag = true;
@@ -383,7 +507,7 @@ const 创建OpenAI流增量提取器 = (): 增量提取器 => {
         if (inReasoningPhase && hasActualContent) {
             inReasoningPhase = false;
             needsClosingTag = false;
-            return `</think>${delta.content}`;
+            return includeReasoning ? `</think>${delta.content}` : delta.content;
         }
 
         if (hasActualContent) {
@@ -395,7 +519,7 @@ const 创建OpenAI流增量提取器 = (): 增量提取器 => {
             if (inReasoningPhase) {
                 inReasoningPhase = false;
                 needsClosingTag = false;
-                return `</think>${messageContent}`;
+                return includeReasoning ? `</think>${messageContent}` : messageContent;
             }
             return messageContent;
         }
@@ -404,7 +528,7 @@ const 创建OpenAI流增量提取器 = (): 增量提取器 => {
     }) as 增量提取器;
 
     extract.finalize = () => {
-        if (needsClosingTag) {
+        if (includeReasoning && needsClosingTag) {
             needsClosingTag = false;
             inReasoningPhase = false;
             return '</think>';
@@ -868,10 +992,18 @@ const 解析可能是JSON字符串 = (text: string): any | null => {
 const 构建OpenAI端点 = (
     baseUrlRaw: string,
     supplier: 当前可用接口结构['供应商'],
-    modelRaw?: string
+    modelRaw?: string,
+    options?: { prefixMode?: boolean; protocol?: 请求协议类型 }
 ): string => {
     const base = 清理末尾斜杠(baseUrlRaw || '');
     if (!base) return '';
+
+    if (options?.prefixMode === true && options.protocol === 'deepseek') {
+        if (/\/beta\/chat\/completions$/i.test(base) || /\/chat\/completions$/i.test(base)) return base;
+        if (/\/v1$/i.test(base)) return `${base.replace(/\/v1$/i, '')}/beta/chat/completions`;
+        if (/\/beta$/i.test(base)) return `${base}/chat/completions`;
+        return `${base}/beta/chat/completions`;
+    }
 
     const lowerBase = base.toLowerCase();
     const lowerModel = (modelRaw || '').toLowerCase();
@@ -902,26 +1034,35 @@ const 请求OpenAI家族文本 = async (
     signal?: AbortSignal,
     streamOptions?: 通用流式选项,
     responseFormat?: 响应格式类型,
-    errorDetailLimit?: number
+    errorDetailLimit?: number,
+    requestOptions?: 模型请求附加选项
 ): Promise<string> => {
     if (!apiConfig.apiKey) throw new Error('Missing API Key');
-    const endpoint = 构建OpenAI端点(apiConfig.baseUrl, apiConfig.供应商, apiConfig.model);
-    if (!endpoint) throw new Error('Missing API Base URL');
     const enableStream = !!streamOptions?.stream;
     let useStream = enableStream;
     let downgradedFromStream = false;
+    let usePrefixMode = requestOptions?.prefixMode === true && protocol === 'deepseek';
+    let requestMessages = messages;
 
-    for (let pass = 0; pass < 2; pass++) {
+    for (let pass = 0; pass < 3; pass++) {
+        const endpoint = 构建OpenAI端点(apiConfig.baseUrl, apiConfig.供应商, apiConfig.model, {
+            protocol,
+            prefixMode: usePrefixMode
+        });
+        if (!endpoint) throw new Error('Missing API Base URL');
         const maxOutputTokens = 计算最大输出Token(apiConfig);
         const body: Record<string, unknown> = {
             model: apiConfig.model,
-            messages,
+            messages: requestMessages,
             temperature,
             stream: useStream,
             max_tokens: maxOutputTokens
         };
         if (responseFormat === 'json_object') {
             body.response_format = { type: 'json_object' };
+        }
+        if (requestOptions?.disableThinking === true) {
+            body.disable_thinking = true;
         }
         const requestHeaders: Record<string, string> = {
             'Content-Type': 'application/json',
@@ -941,7 +1082,7 @@ const 请求OpenAI家族文本 = async (
                     requestHeaders,
                     requestBody,
                     signal,
-                    创建OpenAI流增量提取器(),
+                    创建OpenAI流增量提取器({ includeReasoning: requestOptions?.includeReasoning }),
                     streamOptions?.onDelta
                 );
             } catch (error) {
@@ -951,6 +1092,11 @@ const 请求OpenAI家族文本 = async (
                 if (!downgradedFromStream && 错误疑似不支持流式(error)) {
                     useStream = false;
                     downgradedFromStream = true;
+                    continue;
+                }
+                if (usePrefixMode && 错误疑似不支持Prefix(error)) {
+                    usePrefixMode = false;
+                    requestMessages = requestMessages.map(msg => msg.prefix ? { role: msg.role, content: msg.content } : msg);
                     continue;
                 }
                 throw error;
@@ -969,7 +1115,7 @@ const 请求OpenAI家族文本 = async (
                     requestHeaders,
                     requestBody,
                     signal,
-                    创建OpenAI流增量提取器(),
+                    创建OpenAI流增量提取器({ includeReasoning: requestOptions?.includeReasoning }),
                     streamOptions?.onDelta
                 );
             } catch (error) {
@@ -979,6 +1125,11 @@ const 请求OpenAI家族文本 = async (
                 if (!downgradedFromStream && 错误疑似不支持流式(error)) {
                     useStream = false;
                     downgradedFromStream = true;
+                    continue;
+                }
+                if (usePrefixMode && 错误疑似不支持Prefix(error)) {
+                    usePrefixMode = false;
+                    requestMessages = requestMessages.map(msg => msg.prefix ? { role: msg.role, content: msg.content } : msg);
                     continue;
                 }
                 throw error;
@@ -997,6 +1148,11 @@ const 请求OpenAI家族文本 = async (
             if (useStream && 响应详情疑似不支持流式(detail) && !downgradedFromStream) {
                 useStream = false;
                 downgradedFromStream = true;
+                continue;
+            }
+            if (usePrefixMode && 响应详情疑似不支持Prefix(detail)) {
+                usePrefixMode = false;
+                requestMessages = requestMessages.map(msg => msg.prefix ? { role: msg.role, content: msg.content } : msg);
                 continue;
             }
             throw new 协议请求错误(`API Error: ${response.status}${detail ? ` - ${detail}` : ''}`, response.status, detail);
@@ -1028,11 +1184,16 @@ const 请求OpenAI家族文本 = async (
                 supplier: apiConfig.供应商,
                 contentType
             });
-            return await 解析SSE文本(response, 创建OpenAI流增量提取器(), streamOptions?.onDelta, 'Stream body is empty');
+            return await 解析SSE文本(response, 创建OpenAI流增量提取器({ includeReasoning: requestOptions?.includeReasoning }), streamOptions?.onDelta, 'Stream body is empty');
         } catch (error) {
             if (!downgradedFromStream && 错误疑似不支持流式(error)) {
                 useStream = false;
                 downgradedFromStream = true;
+                continue;
+            }
+            if (usePrefixMode && 错误疑似不支持Prefix(error)) {
+                usePrefixMode = false;
+                requestMessages = requestMessages.map(msg => msg.prefix ? { role: msg.role, content: msg.content } : msg);
                 continue;
             }
             throw error;
@@ -1051,9 +1212,13 @@ export const 请求模型文本 = async (
         streamOptions?: 通用流式选项;
         responseFormat?: 响应格式类型;
         errorDetailLimit?: number;
+        includeReasoning?: boolean;
+        disableThinking?: boolean;
+        stripReasoning?: boolean;
+        prefixMode?: boolean;
     }
 ): Promise<string> => {
-    const protocol: 请求协议类型 = 是否DeepSeek接口配置(apiConfig) ? 'deepseek' : 'openai';
+    const protocol = 解析请求协议类型(apiConfig);
     const resolvedTemperature = 计算请求温度(apiConfig, options.temperature);
     const requestedResponseFormat = options.responseFormat;
     const shouldSkipResponseFormat = 是否Reasoner模型(apiConfig.model)
@@ -1079,7 +1244,13 @@ export const 请求模型文本 = async (
             options.signal,
             options.streamOptions,
             effectiveResponseFormat,
-            options.errorDetailLimit
+            options.errorDetailLimit,
+            {
+                includeReasoning: options.includeReasoning,
+                disableThinking: options.disableThinking,
+                stripReasoning: options.stripReasoning,
+                prefixMode: options.prefixMode
+            }
         );
     }, {
         signal: options.signal,

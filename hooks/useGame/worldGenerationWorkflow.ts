@@ -9,6 +9,7 @@ import { 构建同人运行时提示词包 } from '../../prompts/runtime/fandom'
 import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 设置键 } from '../../utils/settingsSchema';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
+import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { 按功能开关过滤提示词内容 } from '../../utils/promptFeatureToggles';
 
 type 世界生成选项 = {
@@ -354,7 +355,8 @@ export const 执行世界生成工作流 = async (
                     realmPromptContent
                 ].join('\n')
                 : '',
-            normalizedWorldExtraRequirement ? `【世界观额外要求】\n${normalizedWorldExtraRequirement}` : ''
+            normalizedWorldExtraRequirement ? `【世界观额外要求】\n${normalizedWorldExtraRequirement}` : '',
+            获取繁体输出指令(normalizedGameConfig)
         ]
             .filter(Boolean)
             .join('\n\n')

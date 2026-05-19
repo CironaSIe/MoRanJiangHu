@@ -17,11 +17,13 @@ import {
 import { 构建剧情风格助手提示词 } from '../../prompts/runtime/storyStyles';
 import { 构建真实世界模式提示词 } from '../../prompts/runtime/realWorldMode';
 import { 构建运行时额外提示词 } from '../../prompts/runtime/nsfw';
+import { 获取DeepSeek主剧情兼容提示词 } from '../../prompts/runtime/deepseekMode';
 import {
     世界书本体槽位
 } from '../../utils/worldbook';
 import { 获取剧情风格内置槽位, 获取内置提示词槽位内容 } from '../../utils/builtinPrompts';
 import { 按功能开关过滤提示词内容 } from '../../utils/promptFeatureToggles';
+import { 包装繁体任务提示, 获取繁体输出指令 } from '../../utils/traditionalChinese';
 
 export type 有序消息角色 = 'system' | 'user' | 'assistant';
 
@@ -71,6 +73,7 @@ export type 主剧情消息条目 = {
     category: string;
     role: 有序消息角色;
     content: string;
+    prefix?: boolean;
 };
 
 export type 主剧情请求构建结果 = {
@@ -78,6 +81,8 @@ export type 主剧情请求构建结果 = {
     tavernPresetModeEnabled: boolean;
     runtimeGptMode: boolean;
     runtimeCotPseudoEnabled: boolean;
+    deepSeekMode: 游戏设置结构['主剧情消息模式'];
+    deepSeekPrefixMode: boolean;
     lengthRequirementPrompt: string;
     disclaimerRequirementPrompt?: string;
     outputProtocolPrompt: string;
@@ -118,8 +123,11 @@ export const 构建主剧情请求参数 = (
 ): 主剧情请求构建结果 => {
     const runtimeGameConfig = 规范化游戏设置(params.gameConfig);
     const tavernPresetModeEnabled = 酒馆预设模式可用(runtimeGameConfig);
-    const runtimeGptMode = runtimeGameConfig.启用GPT模式 === true;
-    const runtimeCotPseudoEnabled = runtimeGameConfig.启用COT伪装注入 !== false;
+    const deepSeekMode = runtimeGameConfig.主剧情消息模式;
+    const deepSeekMainModeEnabled = deepSeekMode === 'DeepSeek标准' || deepSeekMode === 'DeepSeek锁格式';
+    const runtimeGptMode = runtimeGameConfig.启用GPT模式 === true || runtimeGameConfig.主剧情消息模式 === 'GPT' || deepSeekMainModeEnabled;
+    const runtimeCotPseudoEnabled = deepSeekMainModeEnabled ? false : runtimeGameConfig.启用COT伪装注入 !== false;
+    const deepSeekPrefixMode = deepSeekMode === 'DeepSeek锁格式' && runtimeGameConfig.DeepSeek策略?.启用Prefix能力探测 !== false;
     const lengthRequirementPrompt = params.builtContext.contextPieces.字数要求提示词;
     const disclaimerRequirementPrompt = params.builtContext.contextPieces.免责声明输出提示词 || undefined;
     const outputProtocolPrompt = params.builtContext.contextPieces.输出协议提示词;
@@ -142,6 +150,8 @@ export const 构建主剧情请求参数 = (
             fallback: 构建真实世界模式提示词(runtimeGameConfig)
         })
         : '';
+    const deepSeekModePrompt = 获取DeepSeek主剧情兼容提示词(runtimeGameConfig);
+    const traditionalChinesePrompt = 获取繁体输出指令(runtimeGameConfig);
     const cotPseudoPrompt = runtimeCotPseudoEnabled
         ? 构建COT伪装提示词(
             runtimeGameConfig,
@@ -154,13 +164,16 @@ export const 构建主剧情请求参数 = (
     const tavernRuntimeExtraPrompt = 构建运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig);
     const recallScriptAppend = params.recallTag ? `\n\n【剧情回忆】\n${params.recallTag}` : '';
     const scriptSectionText = `【即时剧情回顾】\n${formatHistoryToScript(params.updatedContextHistory) || '暂无'}${recallScriptAppend}`;
-    const latestUserInputAsModel = [
+    const latestUserInputAsModel = 包装繁体任务提示([
         '以下是用户最新输入内容：',
         `<用户输入>${params.sendInput}</用户输入>`
-    ].join('\n');
-    const latestUserInputForTavern = params.recallTag
-        ? `${params.sendInput}\n\n<剧情回忆>\n${params.recallTag}\n</剧情回忆>`
-        : params.sendInput;
+    ].join('\n'), runtimeGameConfig);
+    const latestUserInputForTavern = 包装繁体任务提示(
+        params.recallTag
+            ? `${params.sendInput}\n\n<剧情回忆>\n${params.recallTag}\n</剧情回忆>`
+            : params.sendInput,
+        runtimeGameConfig
+    );
     const novelDecompositionPrompt = (params.novelDecompositionPrompt || '').trim();
     const messageEntries: 主剧情消息条目[] = [];
 
@@ -186,6 +199,8 @@ export const 构建主剧情请求参数 = (
             worldbookExtraTexts: [
                 styleAssistantPrompt,
                 realWorldModePrompt,
+                deepSeekModePrompt,
+                traditionalChinesePrompt,
                 tavernRuntimeExtraPrompt,
                 disclaimerRequirementPrompt || '',
                 tavernOutputProtocolPrompt
@@ -212,17 +227,19 @@ export const 构建主剧情请求参数 = (
             category: string,
             role: 有序消息角色,
             content: string,
-            options?: { userInput?: boolean }
+            options?: { userInput?: boolean; prefix?: boolean }
         ) => {
-            const trimmed = (content || '').trim();
-            if (!trimmed) return;
+            const raw = content || '';
+            const normalizedContent = options?.prefix === true ? raw : raw.trim();
+            if (normalizedContent.length === 0) return;
             const normalizedRole: 有序消息角色 = role;
             messageEntries.push({
                 id,
                 title,
                 category,
                 role: normalizedRole,
-                content: trimmed
+                content: normalizedContent,
+                ...(options?.prefix === true ? { prefix: true } : {})
             });
         };
 
@@ -254,6 +271,8 @@ export const 构建主剧情请求参数 = (
         pushEntry('script', '即时剧情回顾', '历史', 'system', scriptSectionText);
         pushEntry('style_assistant', '剧情风格助手消息', '系统', 'system', styleAssistantPrompt);
         pushEntry('real_world_mode', '真实世界模式消息', '系统', 'system', realWorldModePrompt);
+        pushEntry('deepseek_mode', 'DeepSeek兼容模式', '系统', 'system', deepSeekModePrompt);
+        pushEntry('traditional_chinese', '繁体中文输出要求', '系统', 'system', traditionalChinesePrompt);
         pushEntry('extra_prompt', '额外要求提示词', '用户', 'user', normalizedRuntimeExtraPrompt);
         pushEntry('disclaimer_requirement', '免责声明输出要求', '用户', 'user', disclaimerRequirementPrompt || '');
         pushEntry('format_prompt', '输出格式提示词', '系统', 'system', params.builtContext.contextPieces.格式提示词);
@@ -273,7 +292,7 @@ export const 构建主剧情请求参数 = (
             runtimeGptMode ? '本回合用户输入' : '开始任务',
             '用户',
             'user',
-            runtimeGptMode ? params.sendInput : '开始任务'
+            runtimeGptMode ? 包装繁体任务提示(params.sendInput, runtimeGameConfig) : 包装繁体任务提示('开始任务', runtimeGameConfig)
         );
         if (runtimeCotPseudoEnabled) {
             pushEntry(
@@ -284,15 +303,31 @@ export const 构建主剧情请求参数 = (
                 cotPseudoPrompt
             );
         }
+        if (deepSeekPrefixMode) {
+            pushEntry(
+                'deepseek_prefix',
+                'DeepSeek锁格式Prefix',
+                '助手',
+                'assistant',
+                '<thinking>\n',
+                { prefix: true }
+            );
+        }
     }
 
-    const orderedMessages = messageEntries.map(({ role, content }) => ({ role, content }));
+    const orderedMessages = messageEntries.map((entry) => ({
+        role: entry.role,
+        content: entry.content,
+        ...(entry.prefix === true ? { prefix: true } : {})
+    }));
 
     return {
         runtimeGameConfig,
         tavernPresetModeEnabled,
         runtimeGptMode,
         runtimeCotPseudoEnabled,
+        deepSeekMode,
+        deepSeekPrefixMode,
         lengthRequirementPrompt,
         disclaimerRequirementPrompt,
         outputProtocolPrompt,

@@ -32,6 +32,8 @@ import { 构建字数要求提示词 } from '../../prompts/runtime/protocolDirec
 import { 构建剧情风格助手提示词 } from '../../prompts/runtime/storyStyles';
 import { 构建真实世界模式提示词 } from '../../prompts/runtime/realWorldMode';
 import { 构建运行时额外提示词 } from '../../prompts/runtime/nsfw';
+import { 获取DeepSeek主剧情兼容提示词 } from '../../prompts/runtime/deepseekMode';
+import { 包装繁体任务提示, 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { 构建世界演变COT提示词, 世界演变COT伪装历史消息提示词 } from '../../prompts/runtime/worldEvolutionCot';
 import { 构建开局世界演变初始化上下文, 开局世界演变初始化附加提示词 } from '../../prompts/runtime/openingWorldEvolutionInit';
 import {
@@ -540,8 +542,17 @@ export const 执行开场剧情生成工作流 = async (
             }
             return p;
         });
-        const openingRuntimeGptMode = openingGameConfig.启用GPT模式 === true;
         const openingTavernPresetModeEnabled = 酒馆预设模式可用(openingGameConfig);
+        const openingDeepSeekMode = openingGameConfig.主剧情消息模式;
+        const openingDeepSeekModeEnabled = openingDeepSeekMode === 'DeepSeek标准' || openingDeepSeekMode === 'DeepSeek锁格式';
+        const openingRuntimeGptMode = (
+            openingGameConfig.启用GPT模式 === true
+            || openingDeepSeekMode === 'GPT'
+            || openingDeepSeekModeEnabled
+        );
+        const openingDeepSeekPrefixMode = openingDeepSeekMode === 'DeepSeek锁格式'
+            && openingGameConfig.DeepSeek策略?.开局策略 === '锁头开局'
+            && openingGameConfig.DeepSeek策略?.启用Prefix能力探测 !== false;
         const openingRealmPromptRaw = 启用修炼体系
             ? (openingPromptSnapshot.find((item) => item.id === 'core_realm')?.内容 || '').trim()
             : '';
@@ -676,7 +687,7 @@ export const 执行开场剧情生成工作流 = async (
             }, 420);
         }
 
-        const openingCotPseudoEnabled = openingGameConfig.启用COT伪装注入 !== false;
+        const openingCotPseudoEnabled = openingDeepSeekModeEnabled ? false : openingGameConfig.启用COT伪装注入 !== false;
         const openingLengthRequirementPrompt = openingContext.contextPieces.字数要求提示词
             || 构建字数要求提示词(1000);
         const openingDisclaimerRequirementPrompt = openingContext.contextPieces.免责声明输出提示词 || undefined;
@@ -701,6 +712,8 @@ export const 执行开场剧情生成工作流 = async (
                 fallback: 构建真实世界模式提示词(openingGameConfig)
             })
             : '';
+        const openingDeepSeekModePrompt = 获取DeepSeek主剧情兼容提示词(openingGameConfig);
+        const openingTraditionalChinesePrompt = 获取繁体输出指令(openingGameConfig);
         const openingCotPseudoPrompt = openingCotPseudoEnabled
             ? 构建COT伪装提示词(
                 openingGameConfig,
@@ -737,6 +750,7 @@ export const 执行开场剧情生成工作流 = async (
         const openingLatestUserInputRole: 'assistant' | 'user' = (
             openingTavernPresetModeEnabled
             || openingRuntimeGptMode
+            || openingDeepSeekModeEnabled
         ) ? 'user' : 'assistant';
 
         const playerSetupContext = [
@@ -756,18 +770,18 @@ export const 执行开场剧情生成工作流 = async (
             '- 第0回合 `<变量规划>` 不是摘要，而是第1回合直接使用的完整前台初始化稿；就算某部分主要承接建档，也要把当前终态、成立依据、新增对象或字段、本回合已发生变化写清。',
             '- `<变量规划>` 一律用自然语言写成说明稿，不要写命令语法或伪 JSON。'
         ].join('\n');
-        const openingLatestUserInputAsModel = [
+        const openingLatestUserInputAsModel = 包装繁体任务提示([
             playerSetupContext,
             '\n以下为最新任务要求：',
             `<用户输入>${openingTaskPrompt}</用户输入>`
-        ].join('\n');
-        const openingLatestUserInputForTavern = [
+        ].join('\n'), openingGameConfig);
+        const openingLatestUserInputForTavern = 包装繁体任务提示([
             openingLatestUserInputAsModel,
             openingCustomExtraPrompt ? `【开局额外要求】\n${openingCustomExtraPrompt}` : ''
         ]
             .filter(Boolean)
             .join('\n\n')
-            .trim();
+            .trim(), openingGameConfig);
         const openingCotPromptForTavern = (() => {
             const source = openingCotPrompt || (openingPromptSnapshot.find((p) => p.id === 'core_cot')?.内容 || 核心_开局思维链.内容 || '').trim();
             if (!source) return '';
@@ -785,7 +799,13 @@ export const 执行开场剧情生成工作流 = async (
                 overrideCotPrompt: openingCotPromptForTavern,
                 overrideStoryAppendPrompt: openingNovelDecompositionSystemPrompt,
                 worldbookExtraTexts: [
-                    openingPerspectivePrompt
+                    openingPerspectivePrompt,
+                    openingStyleAssistantPrompt,
+                    openingRealWorldModePrompt,
+                    openingDeepSeekModePrompt,
+                    openingTraditionalChinesePrompt,
+                    openingCombinedExtraPrompt,
+                    openingDisclaimerRequirementPrompt || ''
                 ]
             });
         } else {
@@ -810,15 +830,20 @@ export const 执行开场剧情生成工作流 = async (
             pushOpening('system', openingContext.contextPieces.字数设置提示词);
             pushOpening('system', openingStyleAssistantPrompt);
             pushOpening('system', openingRealWorldModePrompt);
+            pushOpening('system', openingDeepSeekModePrompt);
+            pushOpening('system', openingTraditionalChinesePrompt);
             pushOpening('user', openingCombinedExtraPrompt);
             pushOpening('user', openingDisclaimerRequirementPrompt || '');
             pushOpening('system', openingCotPrompt);
             pushOpening(openingLatestUserInputRole, openingLatestUserInputAsModel, { openingUserInput: true });
             if (!openingRuntimeGptMode) {
-                pushOpening('user', '开始任务');
+                pushOpening('user', 包装繁体任务提示('开始任务', openingGameConfig));
             }
             if (openingCotPseudoEnabled) {
                 pushOpening('assistant', openingCotPseudoPrompt);
+            }
+            if (openingDeepSeekPrefixMode) {
+                openingOrderedMessages.push({ role: 'assistant', content: '<thinking>\n', prefix: true } as any);
             }
         }
 
@@ -875,7 +900,11 @@ export const 执行开场剧情生成工作流 = async (
                             disclaimerRequirementPrompt: openingDisclaimerRequirementPrompt,
                             validateTagCompleteness: openingGameConfig.启用标签检测完整性 === true,
                             enableTagRepair: openingGameConfig.启用标签修复 !== false,
-                            requireActionOptionsTag: openingGameConfig.启用行动选项 !== false
+                            requireActionOptionsTag: openingGameConfig.启用行动选项 !== false,
+                            prefixMode: openingDeepSeekPrefixMode,
+                            disableThinking: openingGameConfig.DeepSeek策略?.开局Thinking !== true,
+                            stripReasoning: openingGameConfig.DeepSeek策略?.开局Thinking !== true,
+                            includeReasoning: openingGameConfig.DeepSeek策略?.开局Thinking === true
                         }
                     );
                 if (!useStreaming) {
@@ -1160,7 +1189,8 @@ export const 执行开场剧情生成工作流 = async (
                         worldbookExtra,
                         按功能开关过滤提示词内容(worldNovelDecompositionPrompt, openingGameConfig),
                         按功能开关过滤提示词内容(openingRuntimeFandomBundle.同人设定摘要, openingGameConfig),
-                        启用修炼体系 ? openingRuntimeFandomBundle.境界母板补丁 : ''
+                        启用修炼体系 ? openingRuntimeFandomBundle.境界母板补丁 : '',
+                        openingTraditionalChinesePrompt
                     ]
                         .filter(Boolean)
                         .join('\n\n');
@@ -1339,7 +1369,8 @@ export const 执行开场剧情生成工作流 = async (
                         planningWorldbookExtra,
                         按功能开关过滤提示词内容(planningNovelDecompositionPrompt, openingGameConfig),
                         按功能开关过滤提示词内容(openingRuntimeFandomBundle.同人设定摘要, openingGameConfig),
-                        启用修炼体系 ? openingRuntimeFandomBundle.境界母板补丁 : ''
+                        启用修炼体系 ? openingRuntimeFandomBundle.境界母板补丁 : '',
+                        openingTraditionalChinesePrompt
                     ]
                         .filter(Boolean)
                         .join('\n\n');

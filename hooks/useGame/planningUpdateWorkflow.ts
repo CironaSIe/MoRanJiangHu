@@ -13,6 +13,7 @@ import type {
 import * as textAIService from '../../services/ai/text';
 import { 获取规划分析接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
+import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { applyStateCommand } from '../../utils/stateHelpers';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
 import { 提取响应规划文本 } from './thinkingContext';
@@ -445,7 +446,8 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             worldbookExtra,
             novelDecompositionPrompt,
             按功能开关过滤提示词内容(fandomPromptBundle.同人设定摘要, normalizedGameConfig),
-            启用修炼体系 ? fandomPromptBundle.境界母板补丁 : ''
+            启用修炼体系 ? fandomPromptBundle.境界母板补丁 : '',
+            获取繁体输出指令(normalizedGameConfig)
         ]
             .filter(Boolean)
             .join('\n\n');

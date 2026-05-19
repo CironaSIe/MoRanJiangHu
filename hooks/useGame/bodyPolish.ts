@@ -10,6 +10,7 @@ import type {
 import * as textAIService from '../../services/ai/text';
 import { 获取文章优化接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
+import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { 默认文章优化提示词 } from '../../prompts/runtime/defaults';
 import { 核心_文章优化思维链 } from '../../prompts/core/cotPolish';
 import { 构建COT伪装提示词 } from './promptRuntime';
@@ -259,7 +260,8 @@ export const 执行正文润色 = async (
         polishLengthRule,
         polishActionRule,
         polishPlayerInputRule,
-        polishBracketRule
+        polishBracketRule,
+        获取繁体输出指令(runtimeGameConfig)
     ].join('\n');
     const effectivePolishPrompt = [
         promptText,

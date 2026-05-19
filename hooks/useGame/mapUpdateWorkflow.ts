@@ -5,6 +5,7 @@ import { 获取内置世界书槽位内容 } from '../../utils/worldbook';
 import { 地图重生成系统提示词 } from '../../prompts/runtime/mapRegenerate';
 import { 地图重生成COT提示词 } from '../../prompts/runtime/mapRegenerateCot';
 import { 请求模型文本, 规范化文本补全消息链 } from '../../services/ai/chatCompletionClient';
+import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 
 export type 地图更新模式 = 'memory_regenerate' | 'auto_incremental';
 
@@ -31,6 +32,7 @@ type 地图更新请求参数 = {
     世界: 世界数据结构;
     社交?: any[];
     角色?: any;
+    gameConfig?: any;
     记忆系统?: 记忆系统结构;
     worldbooks?: 世界书结构[];
     currentResponse?: GameResponse;
@@ -123,6 +125,7 @@ export const 构建地图更新用户提示词 = (params: {
     世界?: any;
     社交?: any[];
     角色?: any;
+    gameConfig?: any;
     记忆系统?: 记忆系统结构;
     currentResponse?: GameResponse;
 }): string => {
@@ -152,6 +155,7 @@ export const 构建地图更新用户提示词 = (params: {
         .join('\n') || '暂无';
     const body = 提取响应正文(params.currentResponse) || '暂无';
     const currentName = 取文本(params.角色?.姓名) || '主角';
+    const traditionalChinesePrompt = 获取繁体输出指令(params.gameConfig);
 
     if (params.mode === 'memory_regenerate') {
         const memoryText = 构建回忆库地图线索(params.记忆系统);
@@ -173,6 +177,7 @@ export const 构建地图更新用户提示词 = (params: {
             '2. 地图层级只能是：寰宇、大地点、中地点、小地点、区地点、子地点。',
             '3. 大地点=世界/大陆/秘境大世界；中地点=大洲/区域；小地点=城镇/山门/村庄；区地点=建筑/地标/街区；子地点=房间/院落/室内空间。',
             '4. 这是全量重建任务：旧地图会在写入前被删除，绝对不要为了保留旧数据而复制旧层级；只写回忆库和当前状态能支持的地点。',
+            traditionalChinesePrompt,
             '5. 不要生成坐标、道路、建筑列表、地图人物等旧字段。',
             '6. 只输出 JSON，格式为 {"地点树":[{"名称":"...","层级":"...","父级ID":"父级名称或ID","描述":"..."}]}，不要输出命令。'
         ].join('\n');
@@ -201,6 +206,7 @@ export const 构建地图更新用户提示词 = (params: {
         '5. 父级ID优先填写已有节点 ID；若只能确定父级名称，也可以填写父级名称，系统会自动解析。',
         '6. 禁止输出旧地图坐标字段：世界.地图、世界.建筑、世界.地图建筑、世界.地图道路、世界.地图人物。',
         '7. 若无新增或修复需求，<命令> 输出“无”。',
+        traditionalChinesePrompt,
         '',
         '【输出格式】',
         '<thinking>简短审计是否有新地点</thinking>',
@@ -356,6 +362,7 @@ export const 生成地图更新 = async (
         世界: world,
         社交: social,
         角色: role,
+        gameConfig: params.gameConfig,
         记忆系统: params.记忆系统,
         currentResponse: params.currentResponse
     });

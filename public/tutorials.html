@@ -96,9 +96,10 @@
     <section class="hero">
       <span class="badge">MO RAN JIANG HU GUIDE</span>
       <h1>墨色江湖教程中心</h1>
-      <p class="lead">常用教程都放在这里。遇到“世界书导入后没反应”“多端同步怎么配”“ComfyUI 后端怎么启动”等问题，可以直接切换下面的选项卡查看。</p>
+      <p class="lead">常用教程都放在这里。遇到“世界书导入后没反应”“多端同步怎么配”“ComfyUI 后端怎么启动”“DeepSeek 模式怎么选”等问题，可以直接切换下面的选项卡查看。</p>
       <div class="tabs" role="tablist" aria-label="教程分类">
         <button class="tab" type="button" data-tab="worldbook" aria-selected="true">世界书导入</button>
+        <button class="tab" type="button" data-tab="aimode" aria-selected="false">AI模型模式</button>
         <button class="tab" type="button" data-tab="sync" aria-selected="false">多端同步</button>
         <button class="tab" type="button" data-tab="comfy" aria-selected="false">CNB ComfyUI</button>
       </div>
@@ -127,6 +128,178 @@
           <p>支持本项目导出的 <code>extra-worldbooks.json</code>，也兼容 SillyTavern / 酒馆 World Info JSON。标准格式通常是顶层 <code>entries</code> 对象，条目里包含 <code>key</code>、<code>comment</code>、<code>content</code>、<code>constant</code>、<code>disable</code> 等字段。</p>
           <p class="note">注意：常见 SillyTavern 角色卡是 PNG 图片或角色 JSON，不等同于世界书。当前入口用于导入世界书 JSON；如果拿到的是角色卡 PNG，请先在酒馆里导出/整理对应 World Info JSON。</p>
           <p class="note warn">世界书不会直接改存档变量，也不会马上改变当前画面。它是在下一次生成正文、开局、变量生成、世界演变等请求时，作为提示词补充交给模型。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="aimode" class="panel">
+      <div class="grid">
+        <article class="card wide">
+          <h2>主剧情消息模式怎么选</h2>
+          <p>主剧情消息模式决定“玩家本回合输入”和“游戏提示词”用什么方式发给 AI。不同模型的习惯不一样：Gemini 更适合原本的组包方式，GPT 系列更喜欢最后一条是真实 <code>user</code>，DeepSeek 则更容易遇到 reasoning 泄漏、格式漂移或标签缺失，所以有专门的稳定策略。</p>
+          <p class="note">如果你不知道该选什么：Gemini 选 <code>Gemini模式</code>，OpenAI/GPT 兼容站选 <code>GPT兼容</code>，DeepSeek 先选 <code>DeepSeek标准续聊</code>，格式老坏再试 <code>DeepSeek锁格式</code>。</p>
+        </article>
+
+        <article class="card">
+          <h2>Gemini模式</h2>
+          <p>这是项目原本的默认组包方式，最适合 Gemini 系列模型。它会按游戏原有提示词结构组织上下文，不启用 DeepSeek 的 Prefix、锁格式和健康度策略。</p>
+          <h3>什么时候用</h3>
+          <ol class="steps">
+            <li>你使用 Gemini、Gemini Flash、Gemini Pro 等模型。</li>
+            <li>你刚开始玩，不确定要选哪个模式。</li>
+            <li>当前生成正常，没有标签缺失、正文跑偏等问题。</li>
+          </ol>
+          <p class="note">普通玩家首选这个。不是 DeepSeek 模型时，不建议为了“看起来高级”去开 DeepSeek 模式。</p>
+        </article>
+
+        <article class="card">
+          <h2>GPT兼容</h2>
+          <p>GPT兼容不是摆设，它会真正改变主剧情请求方式：最后一条消息会直接使用玩家本回合输入，让请求更接近常见 Chat Completions 对话格式。</p>
+          <h3>什么时候用</h3>
+          <ol class="steps">
+            <li>你使用 OpenAI、GPT、GPT 兼容接口或某些第三方 OpenAI 兼容站。</li>
+            <li>Gemini模式下模型不理解“开始任务”，或者经常忽略本回合玩家输入。</li>
+            <li>接口要求最后一条消息必须是 <code>user</code>。</li>
+          </ol>
+          <p class="note">GPT兼容没有 DeepSeek 专属 Prefix 或锁格式策略。它只是把主剧情消息结构改得更适合 GPT 类接口。</p>
+        </article>
+
+        <article class="card">
+          <h2>DeepSeek标准续聊</h2>
+          <p>这是 DeepSeek 推荐优先尝试的模式。它会使用真实玩家输入作为最后一条 <code>user</code>，默认关闭 COT 伪装注入，并注入 DeepSeek 专用稳定提示词，减少续聊污染和 reasoning 泄漏。</p>
+          <h3>什么时候用</h3>
+          <ol class="steps">
+            <li>你使用 DeepSeek Chat、DeepSeek Reasoner 或 DeepSeek 兼容接口。</li>
+            <li>你不确定当前接口是否支持 Prefix/Prefill。</li>
+            <li>你希望先保证兼容性，不想一上来就用实验性锁格式。</li>
+          </ol>
+          <p class="note">DeepSeek 玩家建议先用标准续聊。如果正文正常、标签完整，就不用切锁格式。</p>
+        </article>
+
+        <article class="card">
+          <h2>DeepSeek锁格式</h2>
+          <p>锁格式是 DeepSeek 的强约束模式。它会尝试用 Prefix/Prefill 让模型从固定标签开头继续写，从而减少“忘记输出标签”“乱加说明”“Markdown 包裹结果”等问题。</p>
+          <h3>什么时候用</h3>
+          <ol class="steps">
+            <li>DeepSeek标准续聊经常缺少 <code>&lt;正文&gt;</code>、<code>&lt;短期记忆&gt;</code> 或 <code>&lt;命令&gt;</code>。</li>
+            <li>模型内容能写好，但格式经常漂移。</li>
+            <li>你使用 DeepSeek 原生接口，或确认第三方兼容站支持 Prefix/Prefill。</li>
+          </ol>
+          <p class="note warn">锁格式不是“更聪明”模式，而是“更守格式”模式。如果接口不支持 Prefix，会自动降级为标准续聊；如果文风变硬或接口报错，可以切回标准续聊。</p>
+        </article>
+
+        <article class="card wide">
+          <h2>DeepSeek 主线稳定性策略详解</h2>
+          <p>这些选项只在 <code>DeepSeek标准续聊</code> 或 <code>DeepSeek锁格式</code> 下显示。新手可以保持默认；遇到格式问题时，再按下面说明调整。</p>
+        </article>
+
+        <article class="card">
+          <h2>开局策略</h2>
+          <p>开局策略控制第 0 回合，也就是新存档第一段剧情，是否直接使用 DeepSeek 的稳定模式。</p>
+          <h3>选项解释</h3>
+          <ol class="steps">
+            <li><code>禁止开局，稳定模型起盘后接管</code>：不让 DeepSeek 负责最复杂的开局起盘，适合追求稳定的新手。</li>
+            <li><code>标准开局</code>：开局也使用 DeepSeek 标准续聊方式。</li>
+            <li><code>锁头开局（实验）</code>：开局也尝试锁格式 Prefix，适合排查开局格式老坏的问题。</li>
+          </ol>
+          <p class="note">推荐默认使用“禁止开局”。开局要初始化角色、世界、第一幕，任务比普通续聊更复杂，稳定优先。</p>
+        </article>
+
+        <article class="card">
+          <h2>接管摘要</h2>
+          <p>接管摘要可以理解为“给后续救场和上下文清理准备一份干净摘要”。当 DeepSeek 输出被 reasoning、格式错误或多余解释污染时，系统可以用摘要帮助后续继续剧情，而不是把脏内容一直带下去。</p>
+          <h3>什么时候开</h3>
+          <ol class="steps">
+            <li>默认建议开启。</li>
+            <li>长存档、长上下文、剧情很多时尤其建议开启。</li>
+            <li>如果你发现后续回合总被前一轮坏格式影响，也建议开启。</li>
+          </ol>
+        </article>
+
+        <article class="card">
+          <h2>Prefix能力探测</h2>
+          <p>Prefix/Prefill 是“先帮 AI 写好回复开头，让 AI 接着往下写”的能力。锁格式会依赖它来固定输出结构，例如先给模型一个 <code>&lt;thinking&gt;</code> 或固定标签开头，让它不要乱起头。</p>
+          <h3>为什么需要探测</h3>
+          <ol class="steps">
+            <li>DeepSeek 原生接口通常支持 Prefix，但需要走专门的 beta 接口。</li>
+            <li>很多第三方兼容站虽然模型名叫 DeepSeek，但不支持 Prefix 字段。</li>
+            <li>如果不探测就强行使用，接口可能直接报错。</li>
+          </ol>
+          <p class="note">建议一直开启。开启后，系统会尝试判断当前接口能不能用 Prefix；不能用时自动降级成标准续聊，避免玩家手动试错。</p>
+        </article>
+
+        <article class="card">
+          <h2>输出健康度检测</h2>
+          <p>输出健康度检测就是给 AI 本轮回复打一个“格式健康分”。它不是评价文笔好不好，而是检查这次输出能不能被游戏稳定解析。</p>
+          <h3>主要检查什么</h3>
+          <ol class="steps">
+            <li>有没有必需标签，例如 <code>&lt;正文&gt;</code>、<code>&lt;短期记忆&gt;</code>、<code>&lt;命令&gt;</code>。</li>
+            <li>正文是不是为空、太短或被说明文字污染。</li>
+            <li>有没有 Markdown 代码块、道歉、接口说明等不该出现的内容。</li>
+            <li>有没有 reasoning/thinking 思考内容泄漏到玩家可见文本里。</li>
+            <li>命令段是否明显无法解析。</li>
+          </ol>
+          <p class="note">建议 DeepSeek 用户开启。它可以帮助后续决定是否需要锁格式、重试或救场。</p>
+        </article>
+
+        <article class="card">
+          <h2>锁格式阈值</h2>
+          <p>锁格式阈值可以理解成“低于多少分就认为格式不够稳，需要更严格”。默认值通常是 <code>85</code>。</p>
+          <h3>怎么调</h3>
+          <ol class="steps">
+            <li>默认 <code>85</code>：适合大多数玩家。</li>
+            <li>调高：更严格，更容易触发锁格式，适合经常缺标签的情况。</li>
+            <li>调低：更宽松，适合只是偶尔小问题、不想频繁触发锁格式的情况。</li>
+          </ol>
+          <p class="note warn">不要一上来调到 100。太严格可能让系统把本来能用的回复也判成不稳定。</p>
+        </article>
+
+        <article class="card">
+          <h2>救场阈值</h2>
+          <p>救场阈值是“低于多少分就认为这次输出坏得比较严重，需要救场模型或更强修复”。默认值通常是 <code>60</code>。</p>
+          <h3>怎么调</h3>
+          <ol class="steps">
+            <li>默认 <code>60</code>：只在明显坏格式时救场。</li>
+            <li>调高：更容易救场，适合 DeepSeek 经常空回复、缺大段标签、命令段无法解析时。</li>
+            <li>调低：更少救场，适合想节省 API 调用次数的玩家。</li>
+          </ol>
+          <p class="note">救场通常会多消耗一次模型请求。如果只是偶尔缺一个小标签，优先调整锁格式阈值，不一定要频繁救场。</p>
+        </article>
+
+        <article class="card">
+          <h2>续聊Thinking / 开局Thinking</h2>
+          <p>DeepSeek Reasoner 这类模型可能输出 reasoning/thinking。Thinking 有时能增强推理，但也可能污染正文、让玩家看到思考过程，或者增加延迟。</p>
+          <h3>推荐设置</h3>
+          <ol class="steps">
+            <li>普通玩家建议关闭。</li>
+            <li>如果出现“思考内容混进正文”，必须关闭。</li>
+            <li>如果你使用 Reasoner，且想让开局或复杂剧情推理更充分，可以尝试开启，但要观察格式是否变差。</li>
+          </ol>
+          <p class="note">开局Thinking只影响第 0 回合；续聊Thinking影响后续正常游玩回合。</p>
+        </article>
+
+        <article class="card">
+          <h2>DeepSeek稳定救场模型</h2>
+          <p>稳定救场模型在“接口配置中心”里设置。它是备用模型：当 DeepSeek 主模型输出健康度太低时，用另一个模型帮忙修复或重写格式。</p>
+          <h3>怎么填</h3>
+          <ol class="steps">
+            <li>如果只填“稳定救场使用模型”，API 地址和密钥留空，会复用当前主接口。</li>
+            <li>如果你有另一个更稳定的接口，可以单独填写 API 地址和 API 密钥。</li>
+            <li>主模型用 <code>deepseek-reasoner</code> 时，救场模型可以先试 <code>deepseek-chat</code>。</li>
+          </ol>
+          <p class="note warn">救场模型不是必填。只有你经常遇到坏格式、空回复、标签缺失时，再开启它。</p>
+        </article>
+
+        <article class="card wide">
+          <h2>玩家快速决策表</h2>
+          <ol class="steps">
+            <li>用 Gemini：选择 <code>Gemini模式</code>。</li>
+            <li>用 GPT 或普通 OpenAI 兼容站：选择 <code>GPT兼容</code>。</li>
+            <li>用 DeepSeek：先选择 <code>DeepSeek标准续聊</code>。</li>
+            <li>DeepSeek 经常缺标签或乱加说明：改成 <code>DeepSeek锁格式</code>，保持 <code>Prefix能力探测</code> 开启。</li>
+            <li>DeepSeek 输出经常坏到不能解析：开启 <code>输出健康度检测</code>，必要时配置 <code>稳定救场模型</code>。</li>
+            <li>看到思考过程混进正文：关闭 <code>续聊Thinking</code> 和 <code>开局Thinking</code>。</li>
+          </ol>
         </article>
       </div>
     </section>
@@ -209,7 +382,7 @@ npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-
     };
     tabs.forEach((tab) => tab.addEventListener('click', () => activate(tab.dataset.tab)));
     const initial = (location.hash || '#worldbook').slice(1);
-    activate(['worldbook', 'sync', 'comfy'].includes(initial) ? initial : 'worldbook');
+    activate(['worldbook', 'aimode', 'sync', 'comfy'].includes(initial) ? initial : 'worldbook');
   </script>
 </body>
 </html>

@@ -527,6 +527,10 @@ const 默认模型词组转化器预设列表: 模型词组转化器预设结构
 
 export const 默认功能模型占位: 功能模型占位配置结构 = {
     主剧情使用模型: '',
+    DeepSeek稳定模型救场开关: false,
+    DeepSeek稳定模型使用模型: '',
+    DeepSeek稳定模型API地址: '',
+    DeepSeek稳定模型API密钥: '',
     剧情回忆独立模型开关: false,
     剧情回忆静默确认: false,
     剧情回忆完整原文条数N: 20,
@@ -1214,6 +1218,11 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
             : 'comfyui';
     return {
         主剧情使用模型: 读取字符串(raw?.主剧情使用模型),
+        DeepSeek稳定模型救场开关: raw?.DeepSeek稳定模型救场开关 === true
+            || String(raw?.DeepSeek稳定模型救场开关).trim().toLowerCase() === 'true',
+        DeepSeek稳定模型使用模型: 读取字符串(raw?.DeepSeek稳定模型使用模型),
+        DeepSeek稳定模型API地址: 读取字符串(raw?.DeepSeek稳定模型API地址),
+        DeepSeek稳定模型API密钥: 读取字符串(raw?.DeepSeek稳定模型API密钥),
         剧情回忆独立模型开关: Boolean(raw?.剧情回忆独立模型开关),
         剧情回忆静默确认: Boolean(raw?.剧情回忆静默确认),
         剧情回忆完整原文条数N: Math.max(1, Number(raw?.剧情回忆完整原文条数N) || 20),

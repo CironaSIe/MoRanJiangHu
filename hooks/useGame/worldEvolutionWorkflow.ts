@@ -3,6 +3,7 @@ import type { GameResponse, OpeningConfig, 接口设置结构, 提示词结构, 
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取世界演变接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
+import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
 import { 数值_世界演化 } from '../../prompts/stats/world';
 import { 规范化记忆系统 } from './memoryUtils';
@@ -328,7 +329,8 @@ export const 执行世界演变更新工作流 = async (
             worldbookExtraPrompt,
             novelDecompositionPrompt,
             按功能开关过滤提示词内容(fandomPromptBundle.同人设定摘要, worldRuntimeGameConfig),
-            启用修炼体系 ? fandomPromptBundle.境界母板补丁 : ''
+            启用修炼体系 ? fandomPromptBundle.境界母板补丁 : '',
+            获取繁体输出指令(worldRuntimeGameConfig)
         ]
             .filter(Boolean)
             .join('\n\n');

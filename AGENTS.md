@@ -484,3 +484,27 @@ If the task is "confirm this UI works" and the opening flow depends on external 
 - `npm.cmd run build` passed after mobile map layout adjustments.
 - `npm.cmd run build` passed after moving/rewording map tips and making memory parse a full clear-and-rebuild path.
 - Each build touched release metadata via `release:sync`; generated `data/releaseInfo.ts` and `public/release-info.json` were restored because this was not a release.
+
+## 2026-05-19 Traditional Chinese Mode, DeepSeek Compatibility, And AI Mode Tutorial
+
+- Added a Traditional Chinese mode switch in game settings.
+- When enabled, generated in-game AI content should be instructed through task prompts to use Traditional Chinese, not only converted in the UI after output.
+- DeepSeek compatibility was migrated from the reference APK with a selectable main-story message mode in game settings.
+- Main-story message mode should remain at the top of game settings and use clear player-facing labels:
+  - `Gemini模式`: default/original behavior for Gemini models.
+  - `GPT兼容`: real compatibility behavior for GPT/OpenAI-compatible endpoints; it is not display-only.
+  - `DeepSeek标准续聊`: safer default for DeepSeek-style endpoints.
+  - `DeepSeek锁格式`: stricter DeepSeek mode that attempts Prefix/Prefill-based format anchoring when supported.
+- DeepSeek-specific prompt logic is kept in `prompts/runtime/deepseekMode.ts`.
+- DeepSeek settings UI lives mainly in `components/features/Settings/GameSettings.tsx`.
+- DeepSeek stable rescue model/API settings live in `components/features/Settings/ApiSettings.tsx`.
+- The homepage tutorial center (`public/tutorials.html`) now includes an `AI模型模式` tab.
+- The AI mode tutorial explains, in player-facing Chinese:
+  - when to choose Gemini/GPT/DeepSeek standard/DeepSeek locked-format modes;
+  - Prefix capability detection and why third-party DeepSeek-compatible endpoints may not support Prefix/Prefill;
+  - output health checks as format parseability checks rather than writing-quality checks;
+  - locked-format threshold and rescue threshold tuning;
+  - opening strategy, takeover summary, Thinking options, and stable rescue model usage.
+- Direct `#aimode` hash navigation in the tutorial center is supported.
+- Verification: `npm.cmd run build` passed after the AI mode tutorial update.
+- The build touched release metadata via `release:sync`; `data/releaseInfo.ts` and `public/release-info.json` had no content diff ignoring EOL and should not be included as release changes unless publishing.

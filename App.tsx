@@ -1977,6 +1977,7 @@ const App: React.FC = () => {
                 世界: state.世界,
                 社交: state.社交,
                 角色: safeCharacter,
+                gameConfig: state.gameConfig,
                 记忆系统: memory,
                 worldbooks: meta.worldbooks,
                 onDelta: (delta: string) => {
@@ -2004,7 +2005,7 @@ const App: React.FC = () => {
             const errorMsg = error?.message || '未知错误';
             return { ok: false, message: errorMsg };
         }
-    }, [actions, meta.worldbooks, safeCharacter, setters, state.世界, state.环境, state.社交, state.记忆系统]);
+    }, [actions, meta.worldbooks, safeCharacter, setters, state.世界, state.环境, state.社交, state.记忆系统, state.gameConfig]);
     const handleRegenerateMap = React.useCallback(async (): Promise<boolean> => {
         actions.pushNotification({ title: '开始回忆解析', message: '正在从回忆库重建新版地图。', tone: 'info' });
         const result = await handleRegenerateMapFromMemory(() => undefined);
