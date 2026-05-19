@@ -1,13 +1,14 @@
 {
-  "versionCode": 248,
-  "versionName": "1.0.247",
+  "versionCode": 249,
+  "versionName": "1.0.248",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复 NPC 重复增殖问题：黑衣女人、蒙面人、掌事太监等临时称呼在后续得知真名时，会优先更新原人物档案，不再重复新建人物。",
-    "变量生成已明确支持“占位姓名改名”：正文只是身份揭示或称呼转换时，会更新姓名、身份、简介和记忆，而不是新增第二个 NPC。",
-    "江湖谱会自动吸收这类占位人物重复档案，减少同一 NPC 在社交列表中越堆越多。",
+    "新增繁体模式：开启后，正文、回忆、规划、地图描述等 AI 新生成的游戏内容会优先按繁体中文输出。",
+    "新增主剧情消息模式：Gemini、GPT兼容、DeepSeek标准续聊、DeepSeek锁格式可按所用模型选择，提升不同接口的兼容性。",
+    "优化 DeepSeek 使用体验：支持 Prefix/Prefill 锁格式、Thinking 控制、输出健康度阈值和稳定救场模型配置，减少标签缺失和格式漂移。",
+    "教程中心新增“AI模型模式”说明页，帮助玩家快速理解 Gemini/GPT/DeepSeek 模式怎么选、参数怎么调。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.247。"
+    "同步更新 Web、APK 与更新清单到 v1.0.248。"
   ],
   "releaseHistory": [
     {
@@ -2610,7 +2611,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-19T19:25:22+08:00",
+  "releasePublishedAt": "2026-05-19T20:59:21+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
