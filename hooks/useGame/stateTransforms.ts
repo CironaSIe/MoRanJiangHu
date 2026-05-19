@@ -1060,6 +1060,14 @@ const 读取屁穴描述 = (obj: any): string | undefined => {
     return 取字段文本(obj, '屁穴描述');
 };
 
+const 读取肉棒描述 = (obj: any): string | undefined => {
+    return 取字段文本(obj, '肉棒描述');
+};
+
+const 读取男娘设定 = (obj: any): string | undefined => {
+    return 取字段文本(obj, '男娘设定');
+};
+
 const 读取性癖 = (obj: any): string | undefined => {
     return 取字段文本(obj, '性癖');
 };
@@ -1715,7 +1723,7 @@ const 合并子宫档案 = (a: any, b: any): any | undefined => {
     };
 };
 
-const 标准化香闺秘档部位结果 = (raw: any, part: '胸部' | '小穴' | '屁穴'): any | undefined => {
+const 标准化香闺秘档部位结果 = (raw: any, part: '胸部' | '小穴' | '屁穴' | '肉棒'): any | undefined => {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
     const normalizedAsset = 压缩图片资源字段(raw);
     const 图片URL = typeof normalizedAsset?.图片URL === 'string' ? normalizedAsset.图片URL.trim() : undefined;
@@ -1761,11 +1769,13 @@ const 标准化香闺秘档部位档案 = (raw: any): any | undefined => {
     const 胸部 = 标准化香闺秘档部位结果(raw?.胸部, '胸部');
     const 小穴 = 标准化香闺秘档部位结果(raw?.小穴, '小穴');
     const 屁穴 = 标准化香闺秘档部位结果(raw?.屁穴, '屁穴');
-    if (!胸部 && !小穴 && !屁穴) return undefined;
+    const 肉棒 = 标准化香闺秘档部位结果(raw?.肉棒, '肉棒');
+    if (!胸部 && !小穴 && !屁穴 && !肉棒) return undefined;
     return {
         ...(胸部 ? { 胸部 } : {}),
         ...(小穴 ? { 小穴 } : {}),
-        ...(屁穴 ? { 屁穴 } : {})
+        ...(屁穴 ? { 屁穴 } : {}),
+        ...(肉棒 ? { 肉棒 } : {})
     };
 };
 
@@ -1969,6 +1979,8 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
     const 胸部描述 = 读取胸部描述(npc);
     const 小穴描述 = 读取小穴描述(npc);
     const 屁穴描述 = 读取屁穴描述(npc);
+    const 肉棒描述 = 读取肉棒描述(npc);
+    const 男娘设定 = 读取男娘设定(npc);
     const 性癖 = 读取性癖(npc);
     const 敏感点 = 读取敏感点(npc);
     const 子宫 = 标准化子宫档案对象(npc?.子宫 ?? npc?.子宫档案);
@@ -2035,6 +2047,8 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
         ...(胸部描述 ? { 胸部描述 } : {}),
         ...(小穴描述 ? { 小穴描述 } : {}),
         ...(屁穴描述 ? { 屁穴描述 } : {}),
+        ...(肉棒描述 ? { 肉棒描述 } : {}),
+        ...(男娘设定 ? { 男娘设定 } : {}),
         ...(性癖 ? { 性癖 } : {}),
         ...(敏感点 ? { 敏感点 } : {}),
         ...(子宫 ? { 子宫 } : {}),
@@ -2168,6 +2182,8 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
         胸部描述: 取更优文本(读取胸部描述(left), 读取胸部描述(right)),
         小穴描述: 取更优文本(读取小穴描述(left), 读取小穴描述(right)),
         屁穴描述: 取更优文本(读取屁穴描述(left), 读取屁穴描述(right)),
+        肉棒描述: 取更优文本(读取肉棒描述(left), 读取肉棒描述(right)),
+        男娘设定: 取更优文本(读取男娘设定(left), 读取男娘设定(right)),
         性癖: 取更优文本(读取性癖(left), 读取性癖(right)),
         敏感点: 取更优文本(读取敏感点(left), 读取敏感点(right)),
         子宫: mergedWomb,

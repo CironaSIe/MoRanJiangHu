@@ -95,7 +95,7 @@ interface Props {
     onSaveNpc: (npcId: string, npc: NPC结构) => void;
     onDeleteNpc: (npcId: string) => void;
     onStartNpcMemorySummary?: (npcId: string) => void;
-    onUploadNpcImage: (npcId: string, slot: '头像' | '立绘' | '背景' | '胸部' | '小穴' | '屁穴', payload: { dataUrl: string; fileName?: string }) => Promise<unknown> | unknown;
+    onUploadNpcImage: (npcId: string, slot: '头像' | '立绘' | '背景' | '胸部' | '小穴' | '屁穴' | '肉棒', payload: { dataUrl: string; fileName?: string }) => Promise<unknown> | unknown;
     onReplaceVariableSection: (section: keyof RuntimeStateSections, value: unknown) => void;
     onApplyVariableCommand: (command: TavernCommand) => void;
     

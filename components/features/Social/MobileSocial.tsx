@@ -109,9 +109,11 @@ const MobileSocial: React.FC<Props> = ({
         [currentNPC]
     );
     const 当前角色是女性 = 是女性角色(currentNPC);
+    const 当前角色是男性 = currentNPC?.性别 === '男';
     const 当前角色已死亡 = NPC是否死亡(currentNPC);
     const 展示女性扩展 = 当前角色是女性 && Boolean(currentNPC?.是否主要角色);
     const 展示女性私密档案 = 展示女性扩展 && nsfwEnabled;
+    const 展示男性私密档案 = 当前角色是男性 && Boolean(currentNPC?.是否主要角色) && nsfwEnabled;
     const 取首个非空文本 = (...values: unknown[]): string => {
         for (const value of values) {
             if (typeof value === 'string' && value.trim().length > 0) return value.trim();
@@ -154,6 +156,12 @@ const MobileSocial: React.FC<Props> = ({
     };
     const 读取屁穴描述 = (npc: NPC结构): string => {
         return 取首个非空文本((npc as any).屁穴描述);
+    };
+    const 读取肉棒描述 = (npc: NPC结构): string => {
+        return 取首个非空文本((npc as any).肉棒描述);
+    };
+    const 读取男娘设定 = (npc: NPC结构): string => {
+        return 取首个非空文本((npc as any).男娘设定);
     };
     const 读取性癖 = (npc: NPC结构): string => 取首个非空文本(
         (npc as any).性癖
@@ -303,11 +311,18 @@ const MobileSocial: React.FC<Props> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [imageViewer]);
 
-    const 香闺部位列表: Array<{ key: 香闺秘档部位类型; label: string; text: string }> = currentNPC ? [
-        { key: '胸部', label: '胸部描述', text: 读取胸部描述(currentNPC) || '暂无记录' },
-        { key: '小穴', label: '小穴描述', text: 读取小穴描述(currentNPC) || '暂无记录' },
-        { key: '屁穴', label: '屁穴描述', text: 读取屁穴描述(currentNPC) || '暂无记录' }
-    ] : [];
+    const 香闺部位列表: Array<{ key: 香闺秘档部位类型; label: string; text: string }> = currentNPC
+        ? (当前角色是男性
+            ? [
+                { key: '肉棒', label: '肉棒描述', text: 读取肉棒描述(currentNPC) || '暂无记录' },
+                { key: '屁穴', label: '屁穴描述', text: 读取屁穴描述(currentNPC) || '暂无记录' }
+            ]
+            : [
+                { key: '胸部', label: '胸部描述', text: 读取胸部描述(currentNPC) || '暂无记录' },
+                { key: '小穴', label: '小穴描述', text: 读取小穴描述(currentNPC) || '暂无记录' },
+                { key: '屁穴', label: '屁穴描述', text: 读取屁穴描述(currentNPC) || '暂无记录' }
+            ])
+        : [];
     const 生成香闺部位键 = (npcId: string, part: 香闺秘档部位类型) => `${npcId}_${part}`;
 
     // Helper for Privacy Tags
@@ -939,6 +954,57 @@ const MobileSocial: React.FC<Props> = ({
                                             </div>
                                         </div>
                                         )}
+                                    </div>
+                                ) : 展示男性私密档案 ? (
+                                    <div className="space-y-4 animate-fadeIn">
+                                        <div className="bg-gradient-to-br from-indigo-950/20 to-black/60 p-4 border border-indigo-700/30 rounded-xl relative overflow-hidden shadow-lg">
+                                            <h4 className="flex items-center gap-1.5 text-indigo-200 font-serif font-bold mb-2.5 uppercase tracking-widest text-xs">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-300/60"></span>
+                                                男性秘档
+                                            </h4>
+                                            <div className="space-y-3">
+                                                <PrivateTag label="男娘设定" value={读取男娘设定(currentNPC) || '暂无记录'} color="text-indigo-200" />
+                                                <div className="flex flex-col gap-2">
+                                                    {香闺部位列表.map((item) => {
+                                                        const result = 读取香闺秘档图片结果(currentNPC, item.key);
+                                                        const imageUrl = 获取图片展示地址(result);
+                                                        const modeKey = 生成香闺部位键(currentNPC.id, item.key);
+                                                        const mode = 香闺展示模式[modeKey] || 'text';
+                                                        const canShowImage = Boolean(imageUrl);
+                                                        return (
+                                                            <div key={item.key} className="p-2.5 rounded-lg border bg-black/60 border-indigo-800/40 flex gap-3">
+                                                                <div className="flex flex-col items-center gap-1.5 shrink-0 justify-center min-w-[3.5rem] border-r border-indigo-800/40 pr-3 mr-1">
+                                                                    <div className="text-[10px] text-indigo-200 tracking-widest font-bold whitespace-nowrap">{item.label}</div>
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={!canShowImage}
+                                                                        onClick={() => canShowImage && set香闺展示模式(prev => ({ ...prev, [modeKey]: mode === 'image' ? 'text' : 'image' }))}
+                                                                        className={`text-[9px] px-1.5 py-0.5 rounded border whitespace-nowrap ${canShowImage ? 'border-indigo-400/50 text-indigo-200 active:bg-indigo-500/20' : 'border-gray-800 text-gray-600'}`}
+                                                                    >
+                                                                        {canShowImage ? (mode === 'image' ? '看文' : '看图') : '无图'}
+                                                                    </button>
+                                                                </div>
+                                                                <div className={`flex-1 overflow-hidden rounded bg-black/40 border border-white/5 relative ${mode === 'image' && canShowImage ? 'aspect-[4/3]' : ''}`}>
+                                                                    {mode === 'image' && canShowImage ? (
+                                                                        <button type="button" className="absolute inset-0 block w-full h-full" onClick={() => 打开图片查看器(imageUrl, `${currentNPC.姓名}${item.label}特写`)}>
+                                                                            <img src={imageUrl} alt={`${currentNPC.姓名}${item.label}特写`} className="absolute inset-0 w-full h-full object-cover" />
+                                                                        </button>
+                                                                    ) : (
+                                                                        <div className="p-2 py-1 max-h-24 overflow-y-auto no-scrollbar">
+                                                                            <p className="font-serif leading-relaxed text-[11px] text-indigo-100/90 italic">{item.text}</p>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <PrivateTag label="性癖" value={读取性癖(currentNPC) || '暂无记录'} color="text-pink-400" />
+                                                    <PrivateTag label="敏感点" value={读取敏感点(currentNPC) || '暂无记录'} color="text-red-400" />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="h-full flex flex-col items-center justify-center opacity-55 bg-black/20 rounded-xl border border-dashed border-white/10 p-6 text-center mt-4">

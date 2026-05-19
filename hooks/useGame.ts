@@ -2017,11 +2017,17 @@ export const useGame = () => {
         }
     };
 
-    const 香闺秘档自动部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴'];
+    const 女性香闺秘档自动部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴'];
+    const 男性香闺秘档自动部位列表: 香闺秘档部位类型[] = ['肉棒', '屁穴'];
 
     const NPC是否成人女性主要角色 = (npc: any): boolean => (
         npc?.是否主要角色 === true
         && 读取NPC文本字段(npc, '性别') === '女'
+    );
+
+    const NPC是否成人男性主要角色 = (npc: any): boolean => (
+        npc?.是否主要角色 === true
+        && 读取NPC文本字段(npc, '性别') === '男'
     );
 
     const NPC是否已有成功香闺秘档部位 = (npc: any, part: 香闺秘档部位类型): boolean => {
@@ -2030,9 +2036,14 @@ export const useGame = () => {
     };
 
     const 读取NPC香闺秘档缺失部位 = (npc: any): 香闺秘档部位类型[] => {
-        if (gameConfig?.启用NSFW模式 !== true || !NPC是否成人女性主要角色(npc)) return [];
-        return 香闺秘档自动部位列表.filter((part) => {
-            const field = part === '胸部' ? '胸部描述' : part === '小穴' ? '小穴描述' : '屁穴描述';
+        if (gameConfig?.启用NSFW模式 !== true) return [];
+        const parts = NPC是否成人女性主要角色(npc)
+            ? 女性香闺秘档自动部位列表
+            : NPC是否成人男性主要角色(npc)
+                ? 男性香闺秘档自动部位列表
+                : [];
+        return parts.filter((part) => {
+            const field = part === '胸部' ? '胸部描述' : part === '小穴' ? '小穴描述' : part === '肉棒' ? '肉棒描述' : '屁穴描述';
             return Boolean(读取NPC文本字段(npc, field)) && !NPC是否已有成功香闺秘档部位(npc, part);
         });
     };

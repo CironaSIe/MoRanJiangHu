@@ -176,7 +176,7 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
         }
 
         baseData = deps.提取NPC香闺秘档部位生图数据(npc, part);
-        const partDescriptionField = part === '胸部' ? '胸部描述' : part === '小穴' ? '小穴描述' : '屁穴描述';
+        const partDescriptionField = part === '胸部' ? '胸部描述' : part === '小穴' ? '小穴描述' : part === '肉棒' ? '肉棒描述' : '屁穴描述';
         partDescription = typeof baseData?.[partDescriptionField] === 'string' ? baseData[partDescriptionField].trim() : '';
         if (!partDescription) {
             throw new Error(`${part}描述为空，无法生成${part}特写。`);

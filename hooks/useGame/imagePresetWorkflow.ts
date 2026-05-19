@@ -75,19 +75,23 @@ export const 提取NPC生图基础数据附带私密描述 = (
     const baseData = 提取NPC生图基础数据(npc, options);
     const gender = typeof npc?.性别 === 'string' ? npc.性别.trim() : '';
     const isMajor = npc?.是否主要角色 === true;
-    if (gender !== '女' || !isMajor) return baseData;
+    if (!isMajor || (gender !== '女' && gender !== '男')) return baseData;
     const 读取描述 = (key: string): string => (
         typeof npc?.[key] === 'string' ? npc[key].trim() : ''
     );
     const chest = 读取描述('胸部描述');
     const vulva = 读取描述('小穴描述');
     const anus = 读取描述('屁穴描述');
-    if (!chest && !vulva && !anus) return baseData;
+    const penis = 读取描述('肉棒描述');
+    const femboy = 读取描述('男娘设定');
+    if (!chest && !vulva && !anus && !penis && !femboy) return baseData;
     return {
         ...baseData,
         ...(chest ? { 胸部描述: chest } : {}),
         ...(vulva ? { 小穴描述: vulva } : {}),
-        ...(anus ? { 屁穴描述: anus } : {})
+        ...(anus ? { 屁穴描述: anus } : {}),
+        ...(penis ? { 肉棒描述: penis } : {}),
+        ...(femboy ? { 男娘设定: femboy } : {})
     };
 };
 

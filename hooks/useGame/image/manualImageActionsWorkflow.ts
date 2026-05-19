@@ -40,7 +40,13 @@ const 获取NPC名称 = (npc: any): string => (
     typeof npc?.姓名 === 'string' && npc.姓名.trim() ? npc.姓名.trim() : '未命名NPC'
 );
 
-const 香闺秘档部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴'];
+const 女性香闺秘档部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴'];
+const 男性香闺秘档部位列表: 香闺秘档部位类型[] = ['肉棒', '屁穴'];
+const 全部香闺秘档部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴', '肉棒'];
+
+const 读取NPC香闺秘档部位列表 = (npc: any): 香闺秘档部位类型[] => (
+    String(npc?.性别 || '').trim() === '男' ? 男性香闺秘档部位列表 : 女性香闺秘档部位列表
+);
 
 const 香闺秘档部位是否已生成 = (npc: any, part: 香闺秘档部位类型): boolean => {
     const result = npc?.图片档案?.香闺秘档部位档案?.[part];
@@ -74,7 +80,7 @@ const 收集香闺秘档生成任务 = (
             npc,
             npcId,
             npcName: 获取NPC名称(npc),
-            parts: 香闺秘档部位列表.filter((part) => mergedParts.includes(part))
+            parts: 全部香闺秘档部位列表.filter((part) => mergedParts.includes(part))
         });
     };
 
@@ -83,7 +89,7 @@ const 收集香闺秘档生成任务 = (
     (Array.isArray(npcList) ? npcList : [])
         .filter((npc) => npc?.性别 === '女' && npc?.是否主要角色 === true)
         .forEach((npc) => {
-            const missingParts = 香闺秘档部位列表.filter((currentPart) => !香闺秘档部位是否已生成(npc, currentPart));
+            const missingParts = 读取NPC香闺秘档部位列表(npc).filter((currentPart) => !香闺秘档部位是否已生成(npc, currentPart));
             addTask(npc, missingParts);
         });
 
@@ -157,7 +163,7 @@ export const 创建手动图片动作工作流 = (deps: 手动图片动作工作
         const targetNpc = socialList.find((npc: any) => npc && npc.id === npcId);
         if (!targetNpc) return;
 
-        const targetParts: 香闺秘档部位类型[] = part === '全部' ? [...香闺秘档部位列表] : [part];
+        const targetParts: 香闺秘档部位类型[] = part === '全部' ? 读取NPC香闺秘档部位列表(targetNpc) : [part];
         const taskQueue = 收集香闺秘档生成任务(socialList, targetNpc, targetParts);
         if (taskQueue.length <= 0) return;
         const npcName = 获取NPC名称(targetNpc);

@@ -67,6 +67,20 @@ describe('variableRegistry', () => {
         expect(prompt).toContain('- 社交[0].记忆');
     });
 
+    it('allows important male NSFW profile fields to be added to social records', () => {
+        expect(校验变量命令是否登记({
+            action: 'set',
+            key: '社交[0].男娘设定',
+            value: '男娘设定：女性化气质明确，常以柔雅衣饰示人。'
+        }, baseState).allowed).toBe(true);
+
+        expect(校验变量命令是否登记({
+            action: 'set',
+            key: '社交[0].肉棒描述',
+            value: '稳定私密档案描述'
+        }, baseState).allowed).toBe(true);
+    });
+
     it('blocks writes to deprecated coordinate map fields', () => {
         const result = 校验变量命令是否登记({
             action: 'push',

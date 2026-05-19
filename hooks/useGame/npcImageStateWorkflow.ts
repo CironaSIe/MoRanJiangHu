@@ -61,11 +61,13 @@ export const 标准化香闺秘档部位档案 = (raw?: any) => {
     const 胸部 = 标准化香闺秘档部位结果(raw?.胸部, '胸部');
     const 小穴 = 标准化香闺秘档部位结果(raw?.小穴, '小穴');
     const 屁穴 = 标准化香闺秘档部位结果(raw?.屁穴, '屁穴');
-    if (!胸部 && !小穴 && !屁穴) return undefined;
+    const 肉棒 = 标准化香闺秘档部位结果(raw?.肉棒, '肉棒');
+    if (!胸部 && !小穴 && !屁穴 && !肉棒) return undefined;
     return {
         ...(胸部 ? { 胸部 } : {}),
         ...(小穴 ? { 小穴 } : {}),
-        ...(屁穴 ? { 屁穴 } : {})
+        ...(屁穴 ? { 屁穴 } : {}),
+        ...(肉棒 ? { 肉棒 } : {})
     };
 };
 
@@ -104,7 +106,8 @@ export const 合并香闺秘档部位档案 = (currentRaw?: any, incomingRaw?: a
     return 标准化香闺秘档部位档案({
         胸部: incoming.胸部 || current.胸部,
         小穴: incoming.小穴 || current.小穴,
-        屁穴: incoming.屁穴 || current.屁穴
+        屁穴: incoming.屁穴 || current.屁穴,
+        肉棒: incoming.肉棒 || current.肉棒
     });
 };
 
@@ -152,7 +155,7 @@ export const 合并NPC图片档案 = (currentNpc: any, payload: any) => {
         ? payload.图片档案.已选背景图片ID.trim()
         : (typeof payload?.已选背景图片ID === 'string' ? payload.已选背景图片ID.trim() : '');
     const fallbackAvatarId = mergedHistory.find((item) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
-        || mergedHistory.find((item) => !['部位特写', '胸部', '小穴', '屁穴'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
+        || mergedHistory.find((item) => !['部位特写', '胸部', '小穴', '屁穴', '肉棒'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
         || '';
     const fallbackPortraitId = mergedHistory.find((item) => (item?.构图 === '半身' || item?.构图 === '立绘') && item?.状态 === 'success' && item?.id)?.id
         || '';
@@ -268,7 +271,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                 const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId)
                     ? currentSelectedAvatarImageId
                     : (nextHistory.find((item: any) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
-                        || nextHistory.find((item: any) => !['部位特写', '胸部', '小穴', '屁穴'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
+                        || nextHistory.find((item: any) => !['部位特写', '胸部', '小穴', '屁穴', '肉棒'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
                         || undefined);
                 return {
                     ...npc,
@@ -391,7 +394,8 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                 const nextSecretArchive = 标准化香闺秘档部位档案({
                     胸部: currentSecretArchive?.胸部?.id === imageId ? undefined : currentSecretArchive?.胸部,
                     小穴: currentSecretArchive?.小穴?.id === imageId ? undefined : currentSecretArchive?.小穴,
-                    屁穴: currentSecretArchive?.屁穴?.id === imageId ? undefined : currentSecretArchive?.屁穴
+                    屁穴: currentSecretArchive?.屁穴?.id === imageId ? undefined : currentSecretArchive?.屁穴,
+                    肉棒: currentSecretArchive?.肉棒?.id === imageId ? undefined : currentSecretArchive?.肉棒
                 });
                 const nextRecent = nextHistory[0];
                 const currentSelectedAvatarImageId = typeof archive?.已选头像图片ID === 'string' ? archive.已选头像图片ID.trim() : '';
@@ -400,7 +404,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                 const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId)
                     ? currentSelectedAvatarImageId
                     : (nextHistory.find((item: any) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
-                        || nextHistory.find((item: any) => !['部位特写', '胸部', '小穴', '屁穴'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
+                        || nextHistory.find((item: any) => !['部位特写', '胸部', '小穴', '屁穴', '肉棒'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
                         || undefined);
                 return {
                     ...npc,
@@ -540,7 +544,10 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                         : currentSecretArchive?.小穴,
                     屁穴: currentSecretArchive?.屁穴?.id === imageId
                         ? { ...currentSecretArchive.屁穴, 图片URL: localized.图片URL || currentSecretArchive.屁穴?.图片URL, 本地路径: localized.本地路径 }
-                        : currentSecretArchive?.屁穴
+                        : currentSecretArchive?.屁穴,
+                    肉棒: currentSecretArchive?.肉棒?.id === imageId
+                        ? { ...currentSecretArchive.肉棒, 图片URL: localized.图片URL || currentSecretArchive.肉棒?.图片URL, 本地路径: localized.本地路径 }
+                        : currentSecretArchive?.肉棒
                 });
                 changed = true;
                 const nextRecent = archive?.最近生图结果?.id === imageId

@@ -21,7 +21,8 @@ const 图片槽位列表: Array<{ key: 图片槽位类型; label: string }> = [
     { key: '背景', label: '背景' },
     { key: '胸部', label: '胸部' },
     { key: '小穴', label: '小穴' },
-    { key: '屁穴', label: '屁穴' }
+    { key: '屁穴', label: '屁穴' },
+    { key: '肉棒', label: '肉棒' }
 ];
 
 const 卡片样式 = 'rounded-2xl border border-gray-800/80 bg-black/25 p-4 md:p-5';
@@ -59,11 +60,7 @@ const NpcManager: React.FC<Props> = ({
         () => list.find((npc) => npc?.id === selectedNpcId) || list[0] || null,
         [list, selectedNpcId]
     );
-    const 是否男性NPC = selectedNpc?.性别 === '男';
-    const 可见图片槽位列表 = React.useMemo(
-        () => 图片槽位列表.filter((slot) => !是否男性NPC || (slot.key !== '胸部' && slot.key !== '小穴' && slot.key !== '屁穴')),
-        [是否男性NPC]
-    );
+    const 可见图片槽位列表 = 图片槽位列表;
     const 记忆展示结果 = React.useMemo(
         () => 构建NPC记忆展示结果(selectedNpc?.总结记忆, memoryDraftList),
         [memoryDraftList, selectedNpc?.总结记忆]
@@ -97,13 +94,6 @@ const NpcManager: React.FC<Props> = ({
         setCollapsedMemoryIndexes(Array.isArray(selectedNpc.记忆) ? selectedNpc.记忆.map((_, index) => index) : []);
         setError('');
     }, [selectedNpc]);
-
-    React.useEffect(() => {
-        if (!是否男性NPC) return;
-        if (uploadSlot === '胸部' || uploadSlot === '小穴' || uploadSlot === '屁穴') {
-            setUploadSlot('头像');
-        }
-    }, [uploadSlot, 是否男性NPC]);
 
     const updateDraftField = (field: string, value: unknown) => {
         const parsed = 读取JSON<Record<string, unknown>>(draftText, selectedNpc ? { ...selectedNpc } as Record<string, unknown> : {});
@@ -310,7 +300,7 @@ const NpcManager: React.FC<Props> = ({
                                 <div className="text-sm font-bold text-paper-white">图片槽位</div>
                                 <div className="mt-1 text-xs text-gray-500">
                                     上传后的图片会直接写入 NPC 图片档案并绑定对应槽位。
-                                    {是否男性NPC ? '男性 NPC 默认隐藏私密部位上传槽。' : ''}
+                                    男性主要角色也可维护 NSFW 档案；可在完整 JSON 中填写“男娘设定 / 肉棒描述 / 屁穴描述”等字段。
                                 </div>
                             </div>
                             <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={handleUploadFile} />

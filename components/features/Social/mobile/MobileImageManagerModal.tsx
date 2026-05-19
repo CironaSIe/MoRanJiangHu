@@ -489,6 +489,12 @@ const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEna
     );
     const secretPartRecords = React.useMemo(() => {
         const archive = selectedNpc?.图片档案?.香闺秘档部位档案;
+        if (selectedNpc?.性别 === '男') {
+            return [
+                { part: '肉棒' as const, label: '肉棒特写', description: (selectedNpc as any)?.肉棒描述 || '暂无记录', result: archive?.肉棒 },
+                { part: '屁穴' as const, label: '屁穴特写', description: selectedNpc?.屁穴描述 || '暂无记录', result: archive?.屁穴 }
+            ];
+        }
         return [
             { part: '胸部' as const, label: '胸部特写', description: selectedNpc?.胸部描述 || '暂无记录', result: archive?.胸部 },
             { part: '小穴' as const, label: '小穴特写', description: selectedNpc?.小穴描述 || '暂无记录', result: archive?.小穴 },
