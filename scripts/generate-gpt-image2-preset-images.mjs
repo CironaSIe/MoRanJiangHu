@@ -44,6 +44,7 @@ const uploadBase = getArg('upload-base', 'https://msjh.bacon159.pp.ua').replace(
 const uploadStorage = getArg('upload-storage', 'telegram');
 const requestTimeoutMs = Math.max(30000, Number(getArg('request-timeout-ms', '180000')) || 180000);
 const batchCandidates = hasFlag('batch-candidates');
+const singleCandidate = hasFlag('single-candidate');
 const imageRetries = Math.max(1, Number(getArg('image-retries', '3')) || 3);
 
 if (!apiKey && !dryRun) {
@@ -163,6 +164,10 @@ const decodeImageData = async (entry) => {
 
 async function callImageApi(item) {
   const prompt = buildPrompt(item);
+  if (singleCandidate) {
+    const first = await callSingleImageApi(item, prompt);
+    return [first, first];
+  }
   if (!batchCandidates) {
     const first = await callSingleImageApi(item, prompt);
     const second = await callSingleImageApi(item, `${prompt}\nUse a clearly different angle and lighting while preserving exact item semantics.`);
@@ -242,9 +247,9 @@ async function retryImageRequest(fn) {
     } catch (error) {
       lastError = error;
       const message = String(error?.message || error);
-      const retryable = /fetch failed|timed out|AbortError|single image API 5\d\d|upstream_error|token_revoked/i.test(message);
+      const retryable = /fetch failed|timed out|AbortError|single image API 429|Concurrency limit exceeded|rate_limit|single image API 5\d\d|upstream_error|token_revoked/i.test(message);
       if (!retryable || attempt >= imageRetries) break;
-      const waitMs = attempt * 12000;
+      const waitMs = /429|Concurrency limit exceeded|rate_limit/i.test(message) ? attempt * 90000 : attempt * 12000;
       console.warn(`  image retry ${attempt}/${imageRetries} after ${waitMs}ms: ${message.slice(0, 180)}`);
       await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
