@@ -542,10 +542,14 @@ export const 执行开场剧情生成工作流 = async (
             }
             return p;
         });
-        const openingRuntimeGptMode = openingGameConfig.启用GPT模式 === true;
         const openingTavernPresetModeEnabled = 酒馆预设模式可用(openingGameConfig);
         const openingDeepSeekMode = openingGameConfig.主剧情消息模式;
         const openingDeepSeekModeEnabled = openingDeepSeekMode === 'DeepSeek标准' || openingDeepSeekMode === 'DeepSeek锁格式';
+        const openingRuntimeGptMode = (
+            openingGameConfig.启用GPT模式 === true
+            || openingDeepSeekMode === 'GPT'
+            || openingDeepSeekModeEnabled
+        );
         const openingDeepSeekPrefixMode = openingDeepSeekMode === 'DeepSeek锁格式'
             && openingGameConfig.DeepSeek策略?.开局策略 === '锁头开局'
             && openingGameConfig.DeepSeek策略?.启用Prefix能力探测 !== false;

@@ -51,6 +51,11 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
         开局Thinking: false
     };
     const 当前为DeepSeek模式 = 当前主剧情消息模式 === 'DeepSeek标准' || 当前主剧情消息模式 === 'DeepSeek锁格式';
+    const 解析百分比输入 = (value: string, fallback: number): number => {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return fallback;
+        return Math.max(0, Math.min(100, parsed));
+    };
     useEffect(() => {
         setForm(settings);
         setWordCountDraft(String(settings.字数要求 ?? ''));
@@ -182,10 +187,7 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
                             const nextMode = value as 游戏设置结构['主剧情消息模式'];
                             实时应用更新({
                                 主剧情消息模式: nextMode,
-                                启用GPT模式: nextMode === 'GPT' || nextMode === 'DeepSeek标准' || nextMode === 'DeepSeek锁格式',
-                                启用COT伪装注入: nextMode === 'DeepSeek标准' || nextMode === 'DeepSeek锁格式'
-                                    ? false
-                                    : form.启用COT伪装注入
+                                启用GPT模式: nextMode === 'GPT' || nextMode === 'DeepSeek标准' || nextMode === 'DeepSeek锁格式'
                             });
                         }
                     })}
@@ -251,7 +253,7 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 onChange={(event) => 实时应用更新({
                                     DeepSeek策略: {
                                         ...当前DeepSeek策略,
-                                        健康度锁格式阈值: Math.max(0, Math.min(100, Number(event.target.value) || 85))
+                                        健康度锁格式阈值: 解析百分比输入(event.target.value, 85)
                                     }
                                 })}
                                 className="w-full bg-black/50 border border-cyan-400/30 p-2 text-white outline-none rounded-md"
@@ -267,7 +269,7 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 onChange={(event) => 实时应用更新({
                                     DeepSeek策略: {
                                         ...当前DeepSeek策略,
-                                        健康度救场阈值: Math.max(0, Math.min(100, Number(event.target.value) || 60))
+                                        健康度救场阈值: 解析百分比输入(event.target.value, 60)
                                     }
                                 })}
                                 className="w-full bg-black/50 border border-cyan-400/30 p-2 text-white outline-none rounded-md"

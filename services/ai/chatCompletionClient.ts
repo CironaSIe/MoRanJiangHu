@@ -81,13 +81,18 @@ export const 规范化文本补全消息链 = (
     const keepSystem = options?.保留System !== false;
     const mergeSameRole = options?.合并同角色 !== false;
     const normalized: 通用消息[] = messages
-        .map((msg) => ({
-            role: msg.role === 'assistant'
-                ? 'assistant' as const
-                : (msg.role === 'system' && keepSystem ? 'system' as const : 'user' as const),
-            content: typeof msg.content === 'string' ? msg.content.trim() : '',
-            prefix: msg.prefix === true ? true : undefined
-        }))
+        .map((msg) => {
+            const isPrefix = msg.prefix === true;
+            return {
+                role: msg.role === 'assistant'
+                    ? 'assistant' as const
+                    : (msg.role === 'system' && keepSystem ? 'system' as const : 'user' as const),
+                content: typeof msg.content === 'string'
+                    ? (isPrefix ? msg.content : msg.content.trim())
+                    : '',
+                prefix: isPrefix ? true : undefined
+            };
+        })
         .filter(msg => msg.content.length > 0);
 
     if (!mergeSameRole) return normalized;

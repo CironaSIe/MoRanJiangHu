@@ -1724,10 +1724,16 @@ export const generateStoryResponse = async (
 
     const orderedMessagesRaw = Array.isArray(requestOptions?.orderedMessages)
         ? requestOptions.orderedMessages
-            .map((item) => ({
-                role: item?.role,
-                content: typeof item?.content === 'string' ? item.content.trim() : ''
-            }))
+            .map((item) => {
+                const isPrefix = item?.prefix === true;
+                return {
+                    role: item?.role,
+                    content: typeof item?.content === 'string'
+                        ? (isPrefix ? item.content : item.content.trim())
+                        : '',
+                    ...(isPrefix ? { prefix: true } : {})
+                };
+            })
             .filter((item): item is 通用消息 =>
                 (item.role === 'system' || item.role === 'user' || item.role === 'assistant') && item.content.length > 0
             )

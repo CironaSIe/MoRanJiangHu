@@ -1218,7 +1218,8 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
             : 'comfyui';
     return {
         主剧情使用模型: 读取字符串(raw?.主剧情使用模型),
-        DeepSeek稳定模型救场开关: Boolean(raw?.DeepSeek稳定模型救场开关),
+        DeepSeek稳定模型救场开关: raw?.DeepSeek稳定模型救场开关 === true
+            || String(raw?.DeepSeek稳定模型救场开关).trim().toLowerCase() === 'true',
         DeepSeek稳定模型使用模型: 读取字符串(raw?.DeepSeek稳定模型使用模型),
         DeepSeek稳定模型API地址: 读取字符串(raw?.DeepSeek稳定模型API地址),
         DeepSeek稳定模型API密钥: 读取字符串(raw?.DeepSeek稳定模型API密钥),

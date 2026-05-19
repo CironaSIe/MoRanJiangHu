@@ -229,15 +229,16 @@ export const 构建主剧情请求参数 = (
             content: string,
             options?: { userInput?: boolean; prefix?: boolean }
         ) => {
-            const trimmed = (content || '').trim();
-            if (!trimmed) return;
+            const raw = content || '';
+            const normalizedContent = options?.prefix === true ? raw : raw.trim();
+            if (normalizedContent.length === 0) return;
             const normalizedRole: 有序消息角色 = role;
             messageEntries.push({
                 id,
                 title,
                 category,
                 role: normalizedRole,
-                content: trimmed,
+                content: normalizedContent,
                 ...(options?.prefix === true ? { prefix: true } : {})
             });
         };
