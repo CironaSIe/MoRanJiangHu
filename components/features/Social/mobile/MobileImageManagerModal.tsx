@@ -31,6 +31,7 @@ interface Props {
     socialList: NPC结构[];
     playerCharacter?: 角色数据结构 | null;
     cultivationSystemEnabled?: boolean;
+    femboyNsfwEnabled?: boolean;
     queue: NPC生图任务记录[];
     sceneArchive: 场景图片档案;
     sceneQueue: 场景生图任务记录[];
@@ -279,6 +280,7 @@ const 空状态: React.FC<{ title: string; desc?: string }> = ({ title, desc }) 
 const MobileImageManagerModal: React.FC<Props> = ({
     socialList,
     cultivationSystemEnabled = true,
+    femboyNsfwEnabled = true,
     queue,
     sceneArchive,
     sceneQueue,
@@ -383,6 +385,7 @@ const MobileImageManagerModal: React.FC<Props> = ({
     const propsForTabs: TabProps = {
         socialList,
         cultivationSystemEnabled,
+        femboyNsfwEnabled,
         queue,
         sceneArchive,
         sceneQueue,
@@ -464,7 +467,7 @@ interface PresetEditorProps {
     busyActionKey: string;
 }
 
-const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEnabled, queue, apiConfig, onGenerateImage, onGenerateSecretPartImage, withBusyAction, busyActionKey, setActionError, setActiveTab }) => {
+const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEnabled, femboyNsfwEnabled = true, queue, apiConfig, onGenerateImage, onGenerateSecretPartImage, withBusyAction, busyActionKey, setActionError, setActiveTab }) => {
     const [selectedNpcId, setSelectedNpcId] = React.useState('');
     const [composition, setComposition] = React.useState<'头像' | '半身' | '立绘' | '自定义'>('头像');
     const [customComposition, setCustomComposition] = React.useState('');
@@ -498,6 +501,9 @@ const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEna
     const secretPartRecords = React.useMemo(() => {
         const archive = selectedNpc?.图片档案?.香闺秘档部位档案;
         if (NPC是否男性或男娘(selectedNpc)) {
+            if (!femboyNsfwEnabled) {
+                return [];
+            }
             return [
                 { part: '肉棒' as const, label: '肉棒特写', description: (selectedNpc as any)?.肉棒描述 || '暂无记录', result: archive?.肉棒 },
                 { part: '屁穴' as const, label: '屁穴特写', description: selectedNpc?.屁穴描述 || '暂无记录', result: archive?.屁穴 }
@@ -508,7 +514,7 @@ const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEna
             { part: '小穴' as const, label: '小穴特写', description: selectedNpc?.小穴描述 || '暂无记录', result: archive?.小穴 },
             { part: '屁穴' as const, label: '屁穴特写', description: selectedNpc?.屁穴描述 || '暂无记录', result: archive?.屁穴 }
         ];
-    }, [selectedNpc]);
+    }, [femboyNsfwEnabled, selectedNpc]);
     const secretPartCountLabel = React.useMemo(() => {
         const count = secretPartRecords.length;
         if (count === 2) return '两处';
@@ -689,7 +695,7 @@ const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEna
         });
     };
     const handleSecretPartSubmit = async (part: 香闺秘档部位类型 | '全部') => {
-        if (!onGenerateSecretPartImage || !selectedNpcId) return;
+        if (!onGenerateSecretPartImage || !selectedNpcId || secretPartRecords.length <= 0) return;
         const resolvedStyle = secretStyle === '二次元' || secretStyle === '写实' || secretStyle === '国风'
             ? secretStyle
             : undefined;

@@ -181,12 +181,18 @@ const 判断是否主要女性NPC = (npc: any): boolean => (
     读取文本(npc?.性别) === '女' && npc?.是否主要角色 === true
 );
 
-const 判断是否主要男性NPC = (npc: any): boolean => (
-    读取文本(npc?.性别) === '男' && npc?.是否主要角色 === true
+const 判断是否主要男性NPC = (npc: any, options?: { femboyNsfwEnabled?: boolean }): boolean => (
+    options?.femboyNsfwEnabled === true
+    && 读取文本(npc?.性别) === '男'
+    && npc?.是否主要角色 === true
 );
 
-const 构建社交档案完整性审计提示 = (socialRaw: unknown): string => {
+const 构建社交档案完整性审计提示 = (
+    socialRaw: unknown,
+    options?: { femboyNsfwEnabled?: boolean }
+): string => {
     if (!Array.isArray(socialRaw) || socialRaw.length <= 0) return '';
+    const femboyNsfwEnabled = options?.femboyNsfwEnabled === true;
 
     const auditLines: string[] = [];
     socialRaw.forEach((npc: any, index: number) => {
@@ -222,7 +228,7 @@ const 构建社交档案完整性审计提示 = (socialRaw: unknown): string => 
             }
             if (typeof npc?.是否处女 !== 'boolean') 重要女性缺口.push('是否处女');
         }
-        if (判断是否主要男性NPC(npc)) {
+        if (判断是否主要男性NPC(npc, { femboyNsfwEnabled })) {
             if (文本疑似占位(npc?.生日)) 重要男性缺口.push('生日');
             if (文本疑似占位(npc?.对主角称呼)) 重要男性缺口.push('对主角称呼');
             if (文本疑似占位(npc?.核心性格特征)) 重要男性缺口.push('核心性格特征');
@@ -242,7 +248,7 @@ const 构建社交档案完整性审计提示 = (socialRaw: unknown): string => 
             auditLines.push(`- 社交[${index}] ${名称}：命中“女性 + 主要角色”，当前需补齐/修正：${allMissing.join('、')}。`);
             return;
         }
-        if (判断是否主要男性NPC(npc)) {
+        if (判断是否主要男性NPC(npc, { femboyNsfwEnabled })) {
             auditLines.push(`- 社交[${index}] ${名称}：命中“男性 + 主要角色”，当前需补齐/修正：${allMissing.join('、')}。`);
             return;
         }
@@ -264,7 +270,9 @@ const 构建社交档案完整性审计提示 = (socialRaw: unknown): string => 
         '- 对“女性 + 主要角色”的 NPC，每回合都要检查并补齐生日、对主角称呼、身材描写、衣着风格、胸部描述、小穴描述、屁穴描述、性癖、敏感点与子宫档案；`胸部描述 / 小穴描述 / 屁穴描述`必须分别写成“名器名称或无名器结论：具体档案描述”；不要只写泛化形容词，也不要把名器判定只放在正文或记忆里。',
         '- `小穴描述`优先使用名器录的小穴名器名称，`屁穴描述`优先使用后庭篇名器名称，`胸部描述`若无胸乳类名器条目则写“无对应名器：...”并补足常态档案。',
         '- 同步维护 `名器档案`：至少胸部/小穴/屁穴三条，名称和三处描述一致；若已启用名器世界书，效果字段必须从对应“固定机制效果表”复制，AI 只负责选择名器，不自行生成品质、修正、标签或说明。',
-        '- 对“男性 + 主要角色”的 NPC，在 NSFW 模式下也要维护长期私密档案：`男娘设定 / 肉棒描述 / 屁穴描述 / 性癖 / 敏感点`。若角色被设定为男娘，`男娘设定`要写清女性化气质、服饰取向、身体表达与身份边界；若不是男娘，也要写明“无男娘设定”或普通男性设定，避免空字段。',
+        femboyNsfwEnabled
+            ? '- 对“男性 + 主要角色”的 NPC，在 NSFW 模式与“男娘相关 NSFW 内容”总开关同时开启时，也要维护长期私密档案：`男娘设定 / 肉棒描述 / 屁穴描述 / 性癖 / 敏感点`。若角色被设定为男娘，`男娘设定`要写清女性化气质、服饰取向、身体表达与身份边界；若不是男娘，也要写明“无男娘设定”或普通男性设定，避免空字段。'
+            : '',
         '',
         ...visibleLines
     ].join('\n');
@@ -320,6 +328,7 @@ export const 执行变量模型校准工作流 = async (
     const runtimeGameConfig = 规范化游戏设置(deps.gameConfig);
     const 启用饱腹口渴系统 = runtimeGameConfig.启用饱腹口渴系统 !== false;
     const 启用修炼体系 = runtimeGameConfig.启用修炼体系 !== false;
+    const 启用男娘NSFW内容 = runtimeGameConfig.启用NSFW模式 === true && runtimeGameConfig.启用男娘NSFW内容 !== false;
     if (!变量校准功能已启用(deps.apiConfig)) return null;
 
     const variableApi = 获取变量计算接口配置(deps.apiConfig);
@@ -344,7 +353,9 @@ export const 执行变量模型校准工作流 = async (
         worldPrompt,
         realmPrompt
     });
-    const socialCompletenessAuditPrompt = 构建社交档案完整性审计提示(params.baseState.社交);
+    const socialCompletenessAuditPrompt = 构建社交档案完整性审计提示(params.baseState.社交, {
+        femboyNsfwEnabled: 启用男娘NSFW内容
+    });
     const variableRegistryPrompt = 构建变量路径登记提示(params.baseState as any);
     const mergedExtraPrompt = [
         runtimeExtraPrompt,

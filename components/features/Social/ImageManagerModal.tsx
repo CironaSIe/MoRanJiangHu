@@ -30,6 +30,7 @@ interface Props {
     socialList: NPC结构[];
     playerCharacter?: 角色数据结构 | null;
     cultivationSystemEnabled?: boolean;
+    femboyNsfwEnabled?: boolean;
     itemImageSequence?: Array<{
         id: string;
         物品名称: string;
@@ -318,6 +319,7 @@ const ImageManagerModal: React.FC<Props> = ({
     socialList,
     playerCharacter,
     cultivationSystemEnabled = true,
+    femboyNsfwEnabled = true,
     itemImageSequence = [],
     queue,
     sceneArchive,
@@ -627,6 +629,9 @@ const ImageManagerModal: React.FC<Props> = ({
     const selectedNpcSecretPartRecords = React.useMemo(() => {
         const archive = selectedNpc?.图片档案?.香闺秘档部位档案;
         if (NPC是否男性或男娘(selectedNpc)) {
+            if (!femboyNsfwEnabled) {
+                return [];
+            }
             return [
                 { part: '肉棒' as const, label: '肉棒特写', description: (selectedNpc as any)?.肉棒描述 || '暂无记录', result: archive?.肉棒 },
                 { part: '屁穴' as const, label: '屁穴特写', description: selectedNpc?.屁穴描述 || '暂无记录', result: archive?.屁穴 }
@@ -637,7 +642,7 @@ const ImageManagerModal: React.FC<Props> = ({
             { part: '小穴' as const, label: '小穴特写', description: selectedNpc?.小穴描述 || '暂无记录', result: archive?.小穴 },
             { part: '屁穴' as const, label: '屁穴特写', description: selectedNpc?.屁穴描述 || '暂无记录', result: archive?.屁穴 }
         ];
-    }, [selectedNpc]);
+    }, [femboyNsfwEnabled, selectedNpc]);
     const selectedNpcSecretPartCountLabel = React.useMemo(() => {
         const count = selectedNpcSecretPartRecords.length;
         if (count === 2) return '两处';
@@ -1191,7 +1196,7 @@ const ImageManagerModal: React.FC<Props> = ({
         }
     };
     const handleSubmitSecretPart = async (part: 香闺秘档部位类型 | '全部') => {
-        if (!onGenerateSecretPartImage || !selectedNpcId) return;
+        if (!onGenerateSecretPartImage || !selectedNpcId || selectedNpcSecretPartRecords.length <= 0) return;
         const resolvedStyle = secretStyle === '二次元' || secretStyle === '写实' || secretStyle === '国风'
             ? secretStyle
             : undefined;

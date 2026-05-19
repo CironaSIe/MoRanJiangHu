@@ -540,6 +540,7 @@ export interface 游戏设置结构 {
     启用标签修复: boolean; // Auto repair malformed labels before parsing
     启用自动重试: boolean; // Auto retry failed generation/parsing up to the built-in max attempts
     启用NSFW模式: boolean; // Gate NSFW prompt and heroine privacy UI
+    启用男娘NSFW内容: boolean; // Gate femboy/male NSFW archive prompts, UI, and auto secret image generation
     启用饱腹口渴系统: boolean; // Toggle hunger/thirst prompt injection and UI visibility
     启用修炼体系: boolean; // Toggle cultivation/realm/kungfu prompt injection and related UI visibility
     剧情风格: 剧情风格类型; // Story style injected as assistant context before COT

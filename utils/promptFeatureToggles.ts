@@ -44,6 +44,8 @@ const 功能附加块是否启用 = (
             return config?.启用修炼体系 !== false;
         case 'survival':
             return config?.启用饱腹口渴系统 !== false;
+        case 'femboy_nsfw':
+            return config?.启用NSFW模式 === true && config?.启用男娘NSFW内容 !== false;
         default:
             return true;
     }
@@ -62,6 +64,10 @@ export const 构建功能附加块 = (featureId: string, content: string): strin
 
 export const 构建修炼体系附加块 = (content: string): string => (
     构建功能附加块('cultivation', content)
+);
+
+export const 构建男娘NSFW附加块 = (content: string): string => (
+    构建功能附加块('femboy_nsfw', content)
 );
 
 const 解析功能附加块 = (

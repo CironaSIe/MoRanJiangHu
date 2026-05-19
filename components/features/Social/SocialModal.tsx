@@ -17,6 +17,7 @@ interface Props {
     onSelectedNpcIdChange?: (npcId: string | null) => void;
     playerName?: string; // Add playerName prop to check for first time taker
     nsfwEnabled?: boolean;
+    femboyNsfwEnabled?: boolean;
     onToggleMajorRole?: (npcId: string, nextIsMajor: boolean) => void;
     onTogglePresence?: (npcId: string, nextIsPresent: boolean) => void;
     onDeleteNpc?: (npcId: string) => void;
@@ -54,6 +55,7 @@ const SocialModal: React.FC<Props> = ({
     onSelectedNpcIdChange,
     playerName = "少侠",
     nsfwEnabled = false,
+    femboyNsfwEnabled = true,
     onToggleMajorRole,
     onTogglePresence,
     onDeleteNpc,
@@ -113,7 +115,7 @@ const SocialModal: React.FC<Props> = ({
     const 当前角色已死亡 = NPC是否死亡(currentNPC);
     const 展示女性扩展 = 当前角色是女性 && Boolean(currentNPC?.是否主要角色);
     const 展示女性私密档案 = 展示女性扩展 && nsfwEnabled;
-    const 展示男性私密档案 = 当前角色是男性 && Boolean(currentNPC?.是否主要角色) && nsfwEnabled;
+    const 展示男性私密档案 = 当前角色是男性 && Boolean(currentNPC?.是否主要角色) && nsfwEnabled && femboyNsfwEnabled;
     const 取首个非空文本 = (...values: unknown[]): string => {
         for (const value of values) {
             if (typeof value === 'string' && value.trim().length > 0) return value.trim();

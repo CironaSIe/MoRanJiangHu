@@ -8,6 +8,7 @@ type 右下角提示参数 = {
 
 type 手动图片动作工作流依赖 = {
     获取社交列表: () => any[];
+    男娘NSFW内容已启用?: () => boolean;
     记录后台手动生图监控: (payload: { npcId: string; since: number; npcName: string; 构图: '头像' | '半身' | '立绘' }) => void;
     记录后台私密生图监控: (payload: { npcId: string; since: number; npcName: string; 部位: 香闺秘档部位类型 }) => void;
     推送右下角提示: (toast: 右下角提示参数) => void;
@@ -61,6 +62,14 @@ const 读取NPC香闺秘档部位列表 = (npc: any): 香闺秘档部位类型[]
     NPC是否男性或男娘(npc) ? 男性香闺秘档部位列表 : 女性香闺秘档部位列表
 );
 
+const NPC是否允许私密部位生图 = (
+    npc: any,
+    options?: { femboyNsfwEnabled?: boolean }
+): boolean => (
+    NPC是否女性(npc)
+    || (options?.femboyNsfwEnabled === true && NPC是否男性或男娘(npc))
+);
+
 const 格式化香闺秘档部位数量 = (parts: 香闺秘档部位类型[]): string => {
     const count = Array.isArray(parts) ? parts.length : 0;
     if (count === 2) return '两处';
@@ -89,10 +98,12 @@ type 香闺秘档生成任务 = {
 const 收集香闺秘档生成任务 = (
     npcList: any[],
     targetNpc: any,
-    requestedParts: 香闺秘档部位类型[]
+    requestedParts: 香闺秘档部位类型[],
+    options?: { femboyNsfwEnabled?: boolean }
 ): 香闺秘档生成任务[] => {
     const taskMap = new Map<string, 香闺秘档生成任务>();
     const addTask = (npc: any, parts: 香闺秘档部位类型[]) => {
+        if (!NPC是否允许私密部位生图(npc, options)) return;
         const npcId = typeof npc?.id === 'string' ? npc.id.trim() : '';
         if (!npcId || parts.length <= 0) return;
         const existing = taskMap.get(npcId);
@@ -108,7 +119,7 @@ const 收集香闺秘档生成任务 = (
     addTask(targetNpc, requestedParts);
 
     (Array.isArray(npcList) ? npcList : [])
-        .filter((npc) => npc?.是否主要角色 === true && (NPC是否女性(npc) || NPC是否男性或男娘(npc)))
+        .filter((npc) => npc?.是否主要角色 === true && NPC是否允许私密部位生图(npc, options))
         .forEach((npc) => {
             const missingParts = 读取NPC香闺秘档部位列表(npc).filter((currentPart) => !香闺秘档部位是否已生成(npc, currentPart));
             addTask(npc, missingParts);
@@ -184,9 +195,18 @@ export const 创建手动图片动作工作流 = (deps: 手动图片动作工作
         const socialList = Array.isArray(deps.获取社交列表()) ? deps.获取社交列表() : [];
         const targetNpc = socialList.find((npc: any) => npc && npc.id === npcId);
         if (!targetNpc) return;
+        const femboyNsfwEnabled = deps.男娘NSFW内容已启用?.() === true;
+        if (!NPC是否允许私密部位生图(targetNpc, { femboyNsfwEnabled })) {
+            deps.推送右下角提示({
+                title: '私密特写未启用',
+                message: '当前已关闭男娘相关 NSFW 内容，男性/男娘角色不会生成私密部位特写。',
+                tone: 'info'
+            });
+            return;
+        }
 
         const targetParts: 香闺秘档部位类型[] = part === '全部' ? 读取NPC香闺秘档部位列表(targetNpc) : [part];
-        const taskQueue = 收集香闺秘档生成任务(socialList, targetNpc, targetParts);
+        const taskQueue = 收集香闺秘档生成任务(socialList, targetNpc, targetParts, { femboyNsfwEnabled });
         if (taskQueue.length <= 0) return;
         const npcName = 获取NPC名称(targetNpc);
 

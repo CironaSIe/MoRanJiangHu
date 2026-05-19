@@ -1902,6 +1902,9 @@ export const useGame = () => {
         part: 香闺秘档部位类型,
         options?: { source?: 生图任务来源类型; 画风?: 当前可用接口结构['画风']; 画师串?: string; 画师串预设ID?: string; PNG画风预设ID?: string; 额外要求?: string; 尺寸?: string }
     ) => {
+        if ((part === '肉棒' || (part === '屁穴' && NPC是否男性或男娘(npc))) && !男娘NSFW内容已启用()) {
+            throw new Error('男娘相关 NSFW 内容未启用，已阻止男性/男娘私密特写生成。');
+        }
         await 确保NPC生图前角色锚点(npc);
         const { 执行NPC香闺秘档部位生图工作流 } = await 加载NPC香闺秘档生图工作流();
         return 执行NPC香闺秘档部位生图工作流(npc, part, {
@@ -1982,6 +1985,11 @@ export const useGame = () => {
         读取NPC文本字段(npc, '性别') === '女'
     );
 
+    const 男娘NSFW内容已启用 = (): boolean => (
+        gameConfig?.启用NSFW模式 === true
+        && gameConfig?.启用男娘NSFW内容 !== false
+    );
+
     const 构建NPC自动构图签名列表 = (npc: any, 构图: '头像' | '半身' | '立绘'): string[] => {
         const id = 读取NPC文本字段(npc, 'id');
         const name = 读取NPC文本字段(npc, '姓名');
@@ -2038,7 +2046,8 @@ export const useGame = () => {
     );
 
     const NPC是否成人男性主要角色 = (npc: any): boolean => (
-        npc?.是否主要角色 === true
+        男娘NSFW内容已启用()
+        && npc?.是否主要角色 === true
         && NPC是否男性或男娘(npc)
     );
 
@@ -2142,7 +2151,7 @@ export const useGame = () => {
                 if (!NPC是否已有成功构图(npc, ['头像'])) {
                     missingParts.push('avatar');
                 }
-                if ((NPC是否女性(npc) || NPC是否男性或男娘(npc)) && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
+                if ((NPC是否女性(npc) || (男娘NSFW内容已启用() && NPC是否男性或男娘(npc))) && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
                     missingParts.push('portrait');
                 }
                 const missingSecretParts = 读取NPC香闺秘档缺失部位(npc);
@@ -2177,7 +2186,7 @@ export const useGame = () => {
                 }
             }
 
-            if ((NPC是否女性(npc) || NPC是否男性或男娘(npc)) && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
+            if ((NPC是否女性(npc) || (男娘NSFW内容已启用() && NPC是否男性或男娘(npc))) && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
                 try {
                     await 执行NPC自动构图任务(npc, '半身', { force: true });
                 } catch (error) {
@@ -2196,6 +2205,7 @@ export const useGame = () => {
         const feature = apiConfig?.功能模型占位 as any;
         const resourceSignature = [
             gameConfig?.启用NSFW模式 === true ? 'nsfw:on' : 'nsfw:off',
+            gameConfig?.启用男娘NSFW内容 !== false ? 'femboy:on' : 'femboy:off',
             feature?.文生图功能启用 === true ? 'image:on' : 'image:off',
             feature?.NSFW生图独立接口启用 === true ? 'nsfw-api:on' : 'nsfw-api:shared',
             feature?.NSFW生图后端类型 || feature?.图片后端类型 || '',
@@ -2210,7 +2220,7 @@ export const useGame = () => {
             void 自动补全主要角色图片与锚点(社交);
         }, 300);
         return () => window.clearTimeout(timerId);
-    }, [社交, gameConfig?.启用NSFW模式, apiConfig]);
+    }, [社交, gameConfig?.启用NSFW模式, gameConfig?.启用男娘NSFW内容, apiConfig]);
 
     const 世界演变功能已开启 = (): boolean => {
         const feature = apiConfig?.功能模型占位 as any;
@@ -3360,6 +3370,7 @@ export const useGame = () => {
         retryNpcImageGeneration
     } = 创建手动图片动作工作流({
         获取社交列表: () => 社交,
+        男娘NSFW内容已启用,
         记录后台手动生图监控: (payload) => {
             后台手动生图监控Ref.current.push(payload);
         },

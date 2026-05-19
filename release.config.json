@@ -1,14 +1,26 @@
 {
-  "versionCode": 246,
-  "versionName": "1.0.245",
+  "versionCode": 247,
+  "versionName": "1.0.246",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "新增教程中心：世界书导入、多端同步、CNB ComfyUI 教程整合到一个页面，可用选项卡快速切换。",
-    "附加世界书导入支持 SillyTavern / 酒馆 World Info JSON，自己的世界书更容易直接导入。",
-    "世界书管理新增生效检查提示，说明保存、启用、作用域、关键词命中等常见原因，减少“添加了没反应”的困惑。",
-    "同步更新 Web、APK 与更新清单到 v1.0.245。"
+    "新增“男娘相关 NSFW 内容”总开关，可在设置中单独关闭男性/男娘相关私密档案与特写入口。",
+    "修复新建档主要男性/男娘角色不稳定生成 NSFW 档案的问题；开关开启时，开局和变量生成会补齐男娘设定、肉棒描述、屁穴描述、性癖与敏感点。",
+    "关闭该开关后，提示词、社交详情、图片工作台、自动补图和手动私密特写生成都会同步停用相关内容。",
+    "官网：https://msjh.bacon159.pp.ua/",
+    "同步更新 Web、APK 与更新清单到 v1.0.246。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.245",
+      "versionCode": 246,
+      "publishedAt": "2026-05-19T13:27:42+08:00",
+      "changes": [
+        "新增教程中心：世界书导入、多端同步、CNB ComfyUI 教程整合到一个页面，可用选项卡快速切换。",
+        "附加世界书导入支持 SillyTavern / 酒馆 World Info JSON，自己的世界书更容易直接导入。",
+        "世界书管理新增生效检查提示，说明保存、启用、作用域、关键词命中等常见原因，减少“添加了没反应”的困惑。",
+        "同步更新 Web、APK 与更新清单到 v1.0.245。"
+      ]
+    },
     {
       "versionName": "1.0.243",
       "versionCode": 244,
@@ -2586,7 +2598,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-19T13:27:42+08:00",
+  "releasePublishedAt": "2026-05-19T18:41:20+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

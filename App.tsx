@@ -3182,6 +3182,7 @@ const App: React.FC = () => {
                             sceneQueue={meta.sceneImageQueue || []}
                             apiConfig={state.apiConfig}
                             imageManagerConfig={state.imageManagerConfig}
+                            femboyNsfwEnabled={safeGameConfig?.启用NSFW模式 === true && safeGameConfig?.启用男娘NSFW内容 !== false}
                             currentPersistentWallpaper={state.visualConfig?.常驻壁纸 || ''}
                             onSaveApiConfig={actions.saveSettings}
                             onSaveImageManagerConfig={actions.saveImageManagerSettings}
@@ -3246,6 +3247,7 @@ const App: React.FC = () => {
                             sceneQueue={meta.sceneImageQueue || []}
                             apiConfig={state.apiConfig}
                             imageManagerConfig={state.imageManagerConfig}
+                            femboyNsfwEnabled={safeGameConfig?.启用NSFW模式 === true && safeGameConfig?.启用男娘NSFW内容 !== false}
                             currentPersistentWallpaper={state.visualConfig?.常驻壁纸 || ''}
                             onSaveApiConfig={actions.saveSettings}
                             onSaveImageManagerConfig={actions.saveImageManagerSettings}
@@ -3451,6 +3453,7 @@ const App: React.FC = () => {
                                     onSelectedNpcIdChange={setSelectedSocialNpcId}
                                     playerName={safeCharacter?.姓名 || ''}
                                     nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
+                                    femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
                                     onToggleMajorRole={actions.updateNpcMajorRole}
                                     onTogglePresence={actions.updateNpcPresence}
                                     onDeleteNpc={actions.removeNpc}
@@ -3465,6 +3468,7 @@ const App: React.FC = () => {
                                     onSelectedNpcIdChange={setSelectedSocialNpcId}
                                     playerName={safeCharacter?.姓名 || ''}
                                     nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
+                                    femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
                                     onToggleMajorRole={actions.updateNpcMajorRole}
                                     onTogglePresence={actions.updateNpcPresence}
                                     onDeleteNpc={actions.removeNpc}
