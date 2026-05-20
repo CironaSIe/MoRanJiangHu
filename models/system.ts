@@ -560,6 +560,7 @@ export interface 游戏设置结构 {
     启用标签检测完整性: boolean; // Validate required label protocol completeness before accepting response
     启用标签修复: boolean; // Auto repair malformed labels before parsing
     启用自动重试: boolean; // Auto retry failed generation/parsing up to the built-in max attempts
+    启用回合结束自动存档: boolean; // Auto save after each completed story turn
     启用繁体模式: boolean; // Require AI-generated in-game text to use Traditional Chinese
     启用NSFW模式: boolean; // Gate NSFW prompt and heroine privacy UI
     启用男娘NSFW内容: boolean; // Gate femboy/male NSFW archive prompts, UI, and auto secret image generation

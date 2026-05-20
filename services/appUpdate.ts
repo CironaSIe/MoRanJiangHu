@@ -283,6 +283,24 @@ const installUpdateInNativeApp = async (manifest: UpdateManifest) => {
     }
 };
 
+export const downloadLatestApkPackage = async (): Promise<void> => {
+    const manifest = await fetchLatestUpdateManifest();
+    const targetManifest: UpdateManifest = manifest || {
+        versionCode: RELEASE_INFO.versionCode,
+        versionName: RELEASE_INFO.versionName,
+        apkUrl: RELEASE_INFO.apkDownloadUrl,
+        apkSha256: RELEASE_INFO.apkSha256,
+        apkSize: RELEASE_INFO.apkSize
+    };
+
+    if (isNativeCapacitorEnvironment()) {
+        await installUpdateInNativeApp(targetManifest);
+        return;
+    }
+
+    await openExternalUrl(targetManifest.apkUrl || RELEASE_INFO.apkDownloadUrl);
+};
+
 export const checkForAppUpdate = async (options?: { silentNoUpdate?: boolean; auto?: boolean }) => {
     const currentRelease = await getCurrentAppRelease();
     const currentFingerprint = await getCurrentInstalledApkFingerprint();

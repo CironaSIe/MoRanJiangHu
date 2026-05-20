@@ -16,6 +16,21 @@ const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig }) => {
         fontStyle: areaStyle.fontStyle,
     };
     const 总气血 = useMemo(() => 计算角色总气血(character), [character]);
+    const 部位状态列表 = useMemo(() => ([
+        { 名称: '头部', 当前: character.头部当前血量, 最大: character.头部最大血量, 状态: character.头部状态 },
+        { 名称: '胸部', 当前: character.胸部当前血量, 最大: character.胸部最大血量, 状态: character.胸部状态 },
+        { 名称: '腹部', 当前: character.腹部当前血量, 最大: character.腹部最大血量, 状态: character.腹部状态 },
+        { 名称: '左手', 当前: character.左手当前血量, 最大: character.左手最大血量, 状态: character.左手状态 },
+        { 名称: '右手', 当前: character.右手当前血量, 最大: character.右手最大血量, 状态: character.右手状态 },
+        { 名称: '左腿', 当前: character.左腿当前血量, 最大: character.左腿最大血量, 状态: character.左腿状态 },
+        { 名称: '右腿', 当前: character.右腿当前血量, 最大: character.右腿最大血量, 状态: character.右腿状态 },
+    ]).map((part) => {
+        const current = Number(part.当前 || 0);
+        const max = Math.max(0, Number(part.最大 || 0));
+        const ratio = max > 0 ? Math.max(0, Math.min(100, Math.round((current / max) * 100))) : 0;
+        const status = String(part.状态 || '未知').trim() || '未知';
+        return { ...part, 当前: current, 最大: max, 比例: ratio, 状态: status };
+    }), [character]);
 
     const 六维说明: Record<string, string> = {
         力: '力量：影响攻势、近战伤害、负重与破防压力。',
@@ -124,6 +139,30 @@ const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig }) => {
                                     <div className="mt-1 text-lg font-mono font-bold text-[#7a3f12]">{attr.val}</div>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+
+                    <div className="border border-[#c7a56a]/35 bg-[#fffdf6] p-4">
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                            <div className="text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]">部位状态</div>
+                            <div className={`text-[10px] ${总气血.已死亡 ? 'text-[#b42318]' : 'text-[#8a5a2f]'}`}>总气血 {总气血.当前}/{总气血.最大}</div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            {部位状态列表.map((part) => {
+                                const danger = part.状态 !== '正常' || (part.最大 > 0 && part.比例 <= 35);
+                                return (
+                                    <div key={part.名称} className="border border-[#d8c4a2] bg-[#fffaf0] px-3 py-2">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-xs font-semibold tracking-[0.16em] text-[#7a3f12]">{part.名称}</span>
+                                            <span className={`text-[11px] ${danger ? 'text-[#b42318]' : 'text-[#198754]'}`}>{part.状态}</span>
+                                        </div>
+                                        <div className="mt-2 h-2 overflow-hidden rounded-full border border-[#d8c4a2] bg-[#f3e7cf]">
+                                            <div className={`h-full ${danger ? 'bg-[#b42318]' : 'bg-[#198754]'}`} style={{ width: `${part.比例}%` }} />
+                                        </div>
+                                        <div className="mt-1 font-mono text-[11px] text-[#8a5a2f]">{part.当前}/{part.最大}</div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 

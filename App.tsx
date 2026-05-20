@@ -26,7 +26,7 @@ import { MusicProvider } from './components/features/Music/MusicProvider';
 import { isNativeCapacitorEnvironment } from './utils/nativeRuntime';
 import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImportWithReload';
 import { 小说拆分后台调度服务 } from './services/novelDecompositionScheduler';
-import { checkForAppUpdate, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
+import { checkForAppUpdate, downloadLatestApkPackage, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
@@ -2086,7 +2086,7 @@ const App: React.FC = () => {
     const handleReleaseNotesPrimaryAction = React.useCallback(() => {
         setShowReleaseNotes(false);
         if (isNativeCapacitorEnvironment()) {
-            void runAppUpdateCheck();
+            void downloadLatestApkPackage();
             return;
         }
         void window.open(RELEASE_INFO.apkDownloadUrl, '_blank', 'noopener,noreferrer');

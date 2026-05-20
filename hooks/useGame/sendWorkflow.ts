@@ -1060,24 +1060,27 @@ export const 执行主剧情发送工作流 = async (
             });
         }
 
-        void deps.performAutoSave({
-            history: [...updatedDisplayHistory, newAiMsg],
-            role: immediateState.角色,
-            env: immediateState.环境,
-            social: immediateState.社交,
-            world: immediateState.世界,
-            battle: immediateState.战斗,
-            sect: immediateState.玩家门派,
-            tasks: immediateState.任务列表,
-            agreements: immediateState.约定列表,
-            story: immediateState.剧情,
-            storyPlan: immediateState.剧情规划,
-            heroinePlan: immediateState.女主剧情规划,
-            fandomStoryPlan: immediateState.同人剧情规划,
-            fandomHeroinePlan: immediateState.同人女主剧情规划,
-            memory: nextMemory,
-            force: true
-        });
+        const 回合结束自动存档已开启 = 规范化游戏设置(immediateState.gameConfig || currentState.gameConfig).启用回合结束自动存档 !== false;
+        if (回合结束自动存档已开启) {
+            void deps.performAutoSave({
+                history: [...updatedDisplayHistory, newAiMsg],
+                role: immediateState.角色,
+                env: immediateState.环境,
+                social: immediateState.社交,
+                world: immediateState.世界,
+                battle: immediateState.战斗,
+                sect: immediateState.玩家门派,
+                tasks: immediateState.任务列表,
+                agreements: immediateState.约定列表,
+                story: immediateState.剧情,
+                storyPlan: immediateState.剧情规划,
+                heroinePlan: immediateState.女主剧情规划,
+                fandomStoryPlan: immediateState.同人剧情规划,
+                fandomHeroinePlan: immediateState.同人女主剧情规划,
+                memory: nextMemory,
+                force: true
+            });
+        }
 
         deps.set后台队列处理中(true);
         后台队列已启动 = true;
@@ -1611,24 +1614,26 @@ export const 执行主剧情发送工作流 = async (
                 deps.触发对白NPC头像补全(finalState.社交);
                 deps.检查主角每回合生图(finalState.角色);
 
-                void deps.performAutoSave({
-                    history: [...updatedDisplayHistory, queuedAiMsg],
-                    role: finalState.角色,
-                    env: finalState.环境,
-                    social: finalState.社交,
-                    world: finalState.世界,
-                    battle: finalState.战斗,
-                    sect: finalState.玩家门派,
-                    tasks: finalState.任务列表,
-                    agreements: finalState.约定列表,
-                    story: finalState.剧情,
-                    storyPlan: finalState.剧情规划,
-                    heroinePlan: finalState.女主剧情规划,
-                    fandomStoryPlan: finalState.同人剧情规划,
-                    fandomHeroinePlan: finalState.同人女主剧情规划,
-                    memory: nextMemory,
-                    force: true
-                });
+                if (回合结束自动存档已开启) {
+                    void deps.performAutoSave({
+                        history: [...updatedDisplayHistory, queuedAiMsg],
+                        role: finalState.角色,
+                        env: finalState.环境,
+                        social: finalState.社交,
+                        world: finalState.世界,
+                        battle: finalState.战斗,
+                        sect: finalState.玩家门派,
+                        tasks: finalState.任务列表,
+                        agreements: finalState.约定列表,
+                        story: finalState.剧情,
+                        storyPlan: finalState.剧情规划,
+                        heroinePlan: finalState.女主剧情规划,
+                        fandomStoryPlan: finalState.同人剧情规划,
+                        fandomHeroinePlan: finalState.同人女主剧情规划,
+                        memory: nextMemory,
+                        force: true
+                    });
+                }
             } catch (backgroundError: any) {
                 if (backgroundError?.name === "AbortError") {
                     options?.onPolishProgress?.({

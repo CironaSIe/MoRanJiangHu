@@ -165,3 +165,31 @@ export const startOnlinePresenceHeartbeat = (): (() => void) => {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
 };
+
+export interface OnlinePresencePublicStats {
+    onlineCount: number;
+    totalRecentCount: number;
+    onlineSessionCount: number;
+    ttlSeconds: number;
+    serverTime: string;
+}
+
+export const fetchOnlinePresencePublicStats = async (): Promise<OnlinePresencePublicStats | null> => {
+    try {
+        const response = await fetch(`${buildOnlineHttpUrl()}?public=1`, {
+            method: 'GET',
+            cache: 'no-store'
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.success) return null;
+        return {
+            onlineCount: Math.max(0, Number(payload.onlineCount) || 0),
+            totalRecentCount: Math.max(0, Number(payload.totalRecentCount) || 0),
+            onlineSessionCount: Math.max(0, Number(payload.onlineSessionCount) || 0),
+            ttlSeconds: Math.max(0, Number(payload.ttlSeconds) || 0),
+            serverTime: typeof payload.serverTime === 'string' ? payload.serverTime : ''
+        };
+    } catch {
+        return null;
+    }
+};

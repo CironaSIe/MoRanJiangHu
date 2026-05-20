@@ -33,6 +33,16 @@
     }
     h1 { margin: 0 0 8px; font-size: 22px; }
     .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; }
+    .tab {
+      height: 34px;
+      border-radius: 999px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      background: #fff7e8;
+      color: var(--muted);
+    }
+    .tab.active { background: #5f3f18; border-color: #5f3f18; color: #fffaf0; }
     input, select, button, textarea {
       border: 1px solid var(--line);
       background: #fffaf0;
@@ -195,6 +205,10 @@
     <button id="clearBtn">清空本机标记</button>
     <span class="stat" id="stat">载入中...</span>
   </div>
+  <div class="tabs" role="tablist" aria-label="预设图分类">
+    <button id="tabWuxia" class="tab active" type="button" role="tab" aria-selected="true">武侠预设</button>
+    <button id="tabXianxia" class="tab" type="button" role="tab" aria-selected="false">仙侠预设</button>
+  </div>
 </header>
 <main>
   <div class="intro">
@@ -222,6 +236,7 @@
 <script>
 const storageKey = 'msjh-public-item-preset-feedback-v1';
 let items = [];
+let activeCategory = '武侠';
 let marks = JSON.parse(localStorage.getItem(storageKey) || '{}');
 const grid = document.getElementById('grid');
 const q = document.getElementById('q');
@@ -231,6 +246,8 @@ const source = document.getElementById('source');
 const stat = document.getElementById('stat');
 const toast = document.getElementById('toast');
 const submitBtn = document.getElementById('submitBtn');
+const tabWuxia = document.getElementById('tabWuxia');
+const tabXianxia = document.getElementById('tabXianxia');
 const viewer = document.getElementById('viewer');
 const viewerTitle = document.getElementById('viewerTitle');
 const viewerImg = document.getElementById('viewerImg');
@@ -263,6 +280,7 @@ function closeViewer() {
 }
 function currentProblemItems() {
   return items
+    .filter(item => (item.category || '武侠') === activeCategory)
     .filter(item => (marks[item.name] || {}).problem)
     .map(item => ({
       name: item.name,
@@ -280,7 +298,8 @@ function render() {
   const sourceFilter = source.value;
   grid.textContent = '';
   let shown = 0;
-  for (const item of items) {
+  const scopedItems = items.filter(item => (item.category || '武侠') === activeCategory);
+  for (const item of scopedItems) {
     const mark = marks[item.name] || {};
     if (query && !item.name.toLowerCase().includes(query)) continue;
     if (typeFilter && item.type !== typeFilter) continue;
@@ -338,9 +357,9 @@ function render() {
     card.appendChild(meta);
     grid.appendChild(card);
   }
-  const problemCount = items.filter(item => (marks[item.name] || {}).problem).length;
-  const remoteCount = items.filter(item => item.source === '远程图').length;
-  stat.textContent = `显示 ${shown} / 共 ${items.length}；已标问题 ${problemCount}；远程图 ${remoteCount}`;
+  const problemCount = scopedItems.filter(item => (marks[item.name] || {}).problem).length;
+  const remoteCount = scopedItems.filter(item => item.source === '远程图').length;
+  stat.textContent = `${activeCategory}：显示 ${shown} / 共 ${scopedItems.length}；已标问题 ${problemCount}；远程图 ${remoteCount}`;
 }
 async function loadData() {
   const response = await fetch('./assets/item-preset-feedback-data.json', { cache: 'no-store' });
@@ -352,6 +371,14 @@ async function loadData() {
     option.textContent = value;
     type.appendChild(option);
   });
+  render();
+}
+function setCategory(category) {
+  activeCategory = category;
+  tabWuxia.classList.toggle('active', category === '武侠');
+  tabXianxia.classList.toggle('active', category === '仙侠');
+  tabWuxia.setAttribute('aria-selected', category === '武侠' ? 'true' : 'false');
+  tabXianxia.setAttribute('aria-selected', category === '仙侠' ? 'true' : 'false');
   render();
 }
 async function submitFeedback() {
@@ -410,6 +437,8 @@ async function submitFeedback() {
   }
 }
 [q, type, filter, source].forEach(node => node.addEventListener('input', render));
+tabWuxia.addEventListener('click', () => setCategory('武侠'));
+tabXianxia.addEventListener('click', () => setCategory('仙侠'));
 submitBtn.addEventListener('click', submitFeedback);
 document.getElementById('clearBtn').onclick = () => {
   if (confirm('确定清空当前浏览器里的标记？')) {

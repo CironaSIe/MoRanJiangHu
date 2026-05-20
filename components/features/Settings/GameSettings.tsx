@@ -482,6 +482,20 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
             <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
                 <div className="flex items-center justify-between gap-4">
                     <div>
+                        <div className="text-sm text-wuxia-cyan font-bold">每回合结束自动存档</div>
+                        <div className="text-xs text-gray-400 mt-1">默认开启。正文落地和后台队列收尾时都会写入最近自动存档，减少刷新或更新页面后丢失新进度、图片绑定和角色状态的情况。</div>
+                    </div>
+                    <ToggleSwitch
+                        checked={form.启用回合结束自动存档 !== false}
+                        onChange={(next) => 实时应用更新({ 启用回合结束自动存档: next })}
+                        ariaLabel="切换每回合结束自动存档"
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div>
                         <div className="text-sm text-wuxia-cyan font-bold">繁体模式</div>
                         <div className="text-xs text-gray-400 mt-1">开启后，会向各个 AI 生成功能注入繁体中文输出指令，要求新生成的正文、回忆、规划、地图等游戏内容使用繁体中文；不会强制转换界面按钮或已有存档旧文本。</div>
                     </div>

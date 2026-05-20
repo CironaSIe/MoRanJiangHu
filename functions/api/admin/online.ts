@@ -431,6 +431,29 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
         return handleOnlineWebSocket(request, env);
     }
 
+    const url = new URL(request.url);
+    const publicStats = url.searchParams.get('public') === '1' || url.searchParams.get('summary') === '1';
+    if (publicStats) {
+        const nowMs = Date.now();
+        const ttlMs = getSessionTtlMs(env);
+        const registry = await readRegistry(env);
+        const sessions = cleanupSessions(registry.sessions, nowMs);
+        const onlineSessions = sessions.filter((item) => {
+            const lastSeenMs = Date.parse(item.lastSeenAt || '');
+            return Number.isFinite(lastSeenMs) && nowMs - lastSeenMs <= ttlMs;
+        });
+        const users = aggregateUsersByIp(sessions, nowMs, ttlMs);
+        const onlineUsers = users.filter((item) => item.online);
+        return buildJsonResponse({
+            success: true,
+            serverTime: new Date(nowMs).toISOString(),
+            onlineCount: onlineUsers.length,
+            totalRecentCount: users.length,
+            onlineSessionCount: onlineSessions.length,
+            ttlSeconds: Math.round(ttlMs / 1000)
+        });
+    }
+
     if (!isAdminRequest(request, env)) {
         return buildJsonResponse({ success: false, error: 'Unauthorized' }, 401);
     }

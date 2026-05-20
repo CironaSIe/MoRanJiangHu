@@ -1,14 +1,15 @@
 {
-  "versionCode": 258,
-  "versionName": "1.0.257",
+  "versionCode": 259,
+  "versionName": "1.0.258",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复正文生成后的后台阶段无法及时中断的问题：世界演变、规划分析、地图更新等阶段现在会响应停止操作，方便重新 roll。",
-    "修复新版对白中“动作描写 + 引号台词”被误当旁白的问题，角色对话头像和人物气泡显示更稳定。",
-    "仙侠模式补齐专属境界兜底、同门名录、丹药/法宝/装备等预设物品清单，并优化玉骨扇等法宝图标提示词。",
-    "优化社交缩略图与角色图片回填：头像缺失时可回退使用半身/立绘，减少生成成功但界面看不到的情况。",
+    "修复 APK 版本首页“APK 下载”按钮只刷新页面、不触发下载的问题；APK 内现在会直接走原生下载/安装流程，网页端打开最新 APK 下载地址。",
+    "新增每回合结束自动存档开关，默认开启；正文落地和后台队列收尾都会写入自动存档，减少刷新或更新页面后丢失进度和图片绑定。",
+    "新生成图片会优先上传到图床并保留本地兜底；图床暂时失败时仍会保存本地图片并稍后重试。",
+    "首页新增当前在线人数和最近游玩人数展示；角色档案新增头部、胸部、腹部、左右手、左右腿等部位状态显示。",
+    "仙侠预设图已补齐 65 张，并在预设图反馈页按武侠/仙侠两个选项卡分开查看。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.257。"
+    "同步更新 Web、APK 与更新清单到 v1.0.258。"
   ],
   "releaseHistory": [
     {
@@ -2710,7 +2711,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-20T21:43:21+08:00",
+  "releasePublishedAt": "2026-05-20T23:08:57+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

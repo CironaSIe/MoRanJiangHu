@@ -2,7 +2,8 @@ import React from 'react';
 import GameButton from '../ui/GameButton';
 import { GitHubSyncButton } from '../features/Auth/GitHubSyncButton';
 import { RELEASE_INFO } from '../../data/releaseInfo';
-import { checkForAppUpdate, openExternalUrl } from '../../services/appUpdate';
+import { checkForAppUpdate, downloadLatestApkPackage, openExternalUrl } from '../../services/appUpdate';
+import { fetchOnlinePresencePublicStats, type OnlinePresencePublicStats } from '../../services/onlinePresence';
 import { isNativeCapacitorEnvironment, setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
 import { ThemePreset } from '../../types';
 
@@ -91,6 +92,7 @@ const LandingPage: React.FC<Props> = ({
 }) => {
     const isNativeApp = React.useMemo(() => isNativeCapacitorEnvironment(), []);
     const [isCheckingUpdate, setIsCheckingUpdate] = React.useState(false);
+    const [presenceStats, setPresenceStats] = React.useState<OnlinePresencePublicStats | null>(null);
 
     React.useEffect(() => {
         const syncSystemBars = () => {
@@ -104,12 +106,37 @@ const LandingPage: React.FC<Props> = ({
         };
     }, []);
 
+    React.useEffect(() => {
+        let cancelled = false;
+        const refresh = async () => {
+            const stats = await fetchOnlinePresencePublicStats();
+            if (!cancelled && stats) setPresenceStats(stats);
+        };
+        void refresh();
+        const timer = window.setInterval(() => { void refresh(); }, 30000);
+        return () => {
+            cancelled = true;
+            window.clearInterval(timer);
+        };
+    }, []);
+
     const handleCheckUpdate = async () => {
         setIsCheckingUpdate(true);
         try {
             await checkForAppUpdate();
         } catch (error: any) {
             window.alert(`开始更新失败：${error?.message || '未知错误'}`);
+        } finally {
+            setIsCheckingUpdate(false);
+        }
+    };
+
+    const handleDownloadApk = async () => {
+        setIsCheckingUpdate(true);
+        try {
+            await downloadLatestApkPackage();
+        } catch (error: any) {
+            window.alert(`下载 APK 失败：${error?.message || '未知错误'}`);
         } finally {
             setIsCheckingUpdate(false);
         }
@@ -230,6 +257,17 @@ const LandingPage: React.FC<Props> = ({
                 </GameButton>
             </div>
 
+            <div className="relative z-10 mt-7 grid w-full max-w-xl grid-cols-2 gap-3 animate-fadeIn">
+                <div className="border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-center shadow-[0_12px_28px_rgba(0,0,0,0.3)]">
+                    <div className="text-[10px] tracking-[0.24em] text-emerald-200/80">当前在线</div>
+                    <div className="mt-1 font-mono text-2xl font-bold text-emerald-100">{presenceStats ? presenceStats.onlineCount : '--'}</div>
+                </div>
+                <div className="border border-sky-400/25 bg-sky-500/10 px-4 py-3 text-center shadow-[0_12px_28px_rgba(0,0,0,0.3)]">
+                    <div className="text-[10px] tracking-[0.24em] text-sky-200/80">最近游玩</div>
+                    <div className="mt-1 font-mono text-2xl font-bold text-sky-100">{presenceStats ? presenceStats.totalRecentCount : '--'}</div>
+                </div>
+            </div>
+
             <div className="relative z-10 mt-8 w-full max-w-xl animate-fadeIn rounded-2xl border border-wuxia-gold/15 bg-black/45 px-4 py-4 shadow-[0_12px_36px_rgba(0,0,0,0.45)] backdrop-blur-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-wuxia-gold/10 pb-3">
                     <div>
@@ -254,15 +292,11 @@ const LandingPage: React.FC<Props> = ({
                     <button
                         type="button"
                         onClick={() => {
-                            if (isNativeApp) {
-                                void handleCheckUpdate();
-                                return;
-                            }
-                            void openExternalUrl(RELEASE_INFO.apkDownloadUrl);
+                            void handleDownloadApk();
                         }}
                         className="min-h-[40px] border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-xs tracking-[0.16em] text-emerald-300 transition-colors hover:bg-emerald-500/15"
                     >
-                        {isNativeApp ? '立即更新' : 'APK 下载'}
+                        {isNativeApp ? (isCheckingUpdate ? '准备中...' : '下载 APK') : 'APK 下载'}
                     </button>
                     <button
                         type="button"

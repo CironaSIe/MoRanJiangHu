@@ -661,6 +661,23 @@ export const 保存图片资源 = async (dataUrl: string, preferredId?: string):
     if (signature) {
         图片资源签名缓存.set(signature, ref);
     }
+    if (是DataUrl图片(normalized) && (!signature || !是否跳过图床上传(signature))) {
+        try {
+            const uploaded = await 上传DataUrl到图床(normalized, { fileName: `${id}.png` });
+            if (uploaded?.url) {
+                注册远程图片兜底引用(uploaded.url, id);
+                if (signature) 图片资源签名缓存.set(signature, uploaded.url);
+                return uploaded.url;
+            }
+        } catch (error: any) {
+            const message = error?.message || String(error);
+            if (signature) 标记图床上传失败跳过(signature, id, message);
+            recordDiagnosticLog('warn', '图片资源已保存本地，图床上传稍后重试', {
+                id,
+                error: message
+            });
+        }
+    }
     return ref;
 };
 
