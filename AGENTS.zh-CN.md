@@ -49,9 +49,11 @@
 ## 旧版 APK 更新清单规则
 
 - 只要还有已安装的旧版 APK 读取 `https://download.bacon.de5.net/moranjianghu/latest.json`，每次发布 APK 新版本时都必须同步旧 R2/对象存储更新清单。
-- 当前发布流程应继续运行 `npm run release:r2`；该脚本会向 `download.bacon.de5.net/moranjianghu` 发布旧通道的 `latest.apk`、带版本号 APK 和 `latest.json`。
+- APK 二进制的首选存放位置是 hi168 S3 兼容对象存储。只要同一个 APK 已经上传到 hi168，并且公开下载 URL 可用，就不要再把 APK 二进制重复上传到 Cloudflare R2。
+- 旧 R2/download 通道应尽量只发布或同步更新清单（`latest.json`），并让清单里的 `apkUrl` / 带版本号 APK URL 指向 hi168 上的 APK。不要为了让旧 JSON 生效而在 R2 里重复保存 `latest.apk` 或带版本号 APK 二进制。
+- 如果某些已安装旧 APK 只能从 `https://download.bacon.de5.net/moranjianghu/latest.apk` 下载，不能跟随 `latest.json` 里的 hi168 地址，必须先明确报告这个兼容阻塞，再决定是否临时把 APK 二进制上传到 R2。
 - 即使大多数用户已经升级到读取新版官方清单的 APK，也建议长期保留旧通道作为低成本兜底。除非用户明确要求废弃旧更新通道，否则发布时不要移除或跳过它。
-- 发布验证必须包含 `https://download.bacon.de5.net/moranjianghu/latest.json` 及其中的带版本号 APK URL，同时也要验证主站和备用站的新更新清单。
+- 发布验证必须包含 `https://download.bacon.de5.net/moranjianghu/latest.json` 以及该清单指向的 hi168 APK URL，同时也要验证主站和备用站的新更新清单。
 
 ## 禁止自动部署规则
 

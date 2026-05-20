@@ -49,9 +49,11 @@
 ## Legacy APK Update Manifest Rule
 
 - As long as any installed legacy APK still reads `https://download.bacon.de5.net/moranjianghu/latest.json`, every APK release must also sync the old R2/object-storage update manifest.
-- The current release flow should keep running `npm run release:r2`; that script publishes the legacy `latest.apk`, versioned APK, and `latest.json` under `download.bacon.de5.net/moranjianghu`.
+- Preferred APK binary host is hi168 S3-compatible object storage. Do not upload the APK binary to Cloudflare R2 again when the same APK has already been uploaded to hi168 and the public download URL is available.
+- The legacy R2/download channel should publish or sync only the update manifest (`latest.json`) when possible, and that manifest should point `apkUrl`/versioned APK URLs at the hi168-hosted APK. Avoid duplicating `latest.apk` or versioned APK binaries in R2 just to make the legacy JSON work.
+- If an old installed APK can only download from `https://download.bacon.de5.net/moranjianghu/latest.apk` and cannot follow a hi168 URL from `latest.json`, report that compatibility blocker explicitly before deciding to upload an APK binary to R2 as a temporary fallback.
 - Keep the legacy channel available as a low-cost fallback even after most users upgrade to APKs that read the newer official manifest. Do not remove or skip it during releases unless the user explicitly retires the legacy update channel.
-- Release verification must include `https://download.bacon.de5.net/moranjianghu/latest.json` and its versioned APK URL, in addition to the primary and backup website update manifests.
+- Release verification must include `https://download.bacon.de5.net/moranjianghu/latest.json` and the hi168 APK URL referenced by that manifest, in addition to the primary and backup website update manifests.
 
 ## No Auto-Deploy Rule
 

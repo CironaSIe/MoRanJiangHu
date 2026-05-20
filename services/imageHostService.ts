@@ -277,3 +277,72 @@ export const 上传DataUrl到图床 = async (dataUrl: string, options?: { fileNa
         storage: 读取文本(payload?.file?.storage) || undefined
     };
 };
+
+export const 上传Blob到图床 = async (blob: Blob, options?: { fileName?: string }): Promise<图床上传结果> => {
+    if (!(blob instanceof Blob) || blob.size <= 0) {
+        throw new Error('上传文件失败：文件内容为空');
+    }
+    const fileName = 读取文本(options?.fileName) || `moranjianghu-file-${Date.now()}.bin`;
+    const form = new FormData();
+    form.append('file', blob, fileName);
+    const uploadUrl = buildImageHostProxyUrl(IMAGE_HOST_UPLOAD_PROXY_PATH);
+    const uploadStartedAt = Date.now();
+
+    recordDiagnosticLog('info', '图床上传文件开始', {
+        fileName,
+        uploadBytes: blob.size,
+        mimeType: blob.type || 'application/octet-stream',
+        proxyUrl: uploadUrl
+    });
+
+    const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: form
+    });
+    const text = await response.text();
+    const elapsedMs = Date.now() - uploadStartedAt;
+    let payload: any = null;
+    try {
+        payload = text ? JSON.parse(text) : null;
+    } catch {
+        payload = null;
+    }
+    if (!response.ok || payload?.success === false) {
+        const message = 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response.status}`;
+        recordDiagnosticLog('error', '图床上传文件失败', {
+            status: response.status,
+            statusText: response.statusText,
+            elapsedMs,
+            fileName,
+            uploadBytes: blob.size,
+            proxyRequestId: response.headers.get('X-Moran-Image-Proxy-Request-Id') || '',
+            upstreamStatus: response.headers.get('X-Moran-Image-Upstream-Status') || '',
+            responseSnippet: 截断诊断文本(text)
+        });
+        throw new Error(`图床上传文件失败：${message}（HTTP ${response.status}，上传 ${Math.round(blob.size / 1024)}KB，耗时 ${elapsedMs}ms）`);
+    }
+
+    const url = 构建稳定下载链接(payload);
+    if (!url) {
+        recordDiagnosticLog('error', '图床上传文件响应缺少下载链接', {
+            status: response.status,
+            elapsedMs,
+            fileName,
+            responseSnippet: 截断诊断文本(text)
+        });
+        throw new Error('图床上传文件失败：响应中没有下载链接');
+    }
+    recordDiagnosticLog('info', '图床上传文件成功', {
+        elapsedMs,
+        fileName,
+        uploadBytes: blob.size,
+        id: 读取文件ID(payload) || '',
+        storage: 读取文本(payload?.file?.storage) || ''
+    });
+    return {
+        url,
+        id: 读取文件ID(payload) || undefined,
+        size: typeof payload?.file?.size === 'number' ? payload.file.size : blob.size,
+        storage: 读取文本(payload?.file?.storage) || undefined
+    };
+};

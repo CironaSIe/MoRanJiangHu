@@ -62,6 +62,7 @@ const requestBrowserFullscreen = async () => {
 interface Props {
     onStart: () => void;
     onLoad: () => void;
+    onCloudPlay: () => void;
     onImageManager: () => void;
     onWorldbookManager: () => void;
     onNovelDecomposition: () => void;
@@ -81,6 +82,7 @@ const actionButtonStyle: React.CSSProperties = {
 const LandingPage: React.FC<Props> = ({
     onStart,
     onLoad,
+    onCloudPlay,
     onImageManager,
     onWorldbookManager,
     onNovelDecomposition,
@@ -238,6 +240,10 @@ const LandingPage: React.FC<Props> = ({
                     disabled={!hasSave}
                 >
                     重入江湖
+                </GameButton>
+
+                <GameButton onClick={onCloudPlay} variant="secondary" className="border-opacity-50 py-4 text-lg opacity-95 shadow-lg hover:opacity-100">
+                    云端游玩
                 </GameButton>
 
                 <GameButton onClick={onImageManager} variant="secondary" className="border-opacity-50 py-4 text-lg opacity-90 shadow-lg hover:opacity-100">
