@@ -1,7 +1,7 @@
 {
   "name": "墨色江湖---无尽武林",
   "private": true,
-  "version": "1.0.259",
+  "version": "1.0.260",
   "type": "module",
   "scripts": {
     "cnb:sync": "node scripts/cnb-image-backend-sync.mjs",
@@ -20,6 +20,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
+    "e2e:apk-download": "node scripts/e2e-apk-download.mjs",
     "apk:sync": "npm run build:apk && npx cap sync android",
     "apk:debug": "npm run apk:sync && cd android && gradlew.bat assembleDebug",
     "apk:release": "npm run apk:sync && cd android && gradlew.bat assembleRelease",

@@ -135,6 +135,31 @@ export const openExternalUrl = async (url: string): Promise<void> => {
     window.open(url, '_blank', 'noopener,noreferrer');
 };
 
+const triggerBrowserFileDownload = (url: string, filename: string): void => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.rel = 'noopener';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    window.setTimeout(() => {
+        link.remove();
+    }, 0);
+};
+
+const resolveBrowserApkDownloadUrl = (rawUrl: string): string => {
+    const base = typeof window !== 'undefined' ? window.location.href : 'https://msjh.bacon.de5.net';
+    const target = new URL(rawUrl, base);
+    const current = new URL(base);
+    if (/^(msjh\.bacon159\.pp\.ua|msjh\.bacon\.de5\.net)$/i.test(target.hostname)) {
+        target.protocol = current.protocol;
+        target.host = current.host;
+    }
+    target.searchParams.set('downloadAt', String(Date.now()));
+    return target.toString();
+};
+
 export const getCurrentAppRelease = async (): Promise<{ versionCode: number; versionName: string }> => {
     if (!isNativeCapacitorEnvironment()) {
         return {
@@ -284,6 +309,13 @@ const installUpdateInNativeApp = async (manifest: UpdateManifest) => {
 };
 
 export const downloadLatestApkPackage = async (): Promise<void> => {
+    if (!isNativeCapacitorEnvironment()) {
+        const rawUrl = RELEASE_INFO.apkDownloadUrl;
+        if (!rawUrl) throw new Error('缺少 APK 下载地址。');
+        triggerBrowserFileDownload(resolveBrowserApkDownloadUrl(rawUrl), `MoRanJiangHu-v${RELEASE_INFO.versionName}.apk`);
+        return;
+    }
+
     const manifest = await fetchLatestUpdateManifest();
     const targetManifest: UpdateManifest = manifest || {
         versionCode: RELEASE_INFO.versionCode,
@@ -293,12 +325,7 @@ export const downloadLatestApkPackage = async (): Promise<void> => {
         apkSize: RELEASE_INFO.apkSize
     };
 
-    if (isNativeCapacitorEnvironment()) {
-        await installUpdateInNativeApp(targetManifest);
-        return;
-    }
-
-    await openExternalUrl(targetManifest.apkUrl || RELEASE_INFO.apkDownloadUrl);
+    await installUpdateInNativeApp(targetManifest);
 };
 
 export const checkForAppUpdate = async (options?: { silentNoUpdate?: boolean; auto?: boolean }) => {
@@ -338,7 +365,10 @@ export const checkForAppUpdate = async (options?: { silentNoUpdate?: boolean; au
         if (isNativeCapacitorEnvironment()) {
             await installUpdateInNativeApp(manifest);
         } else {
-            await openExternalUrl(manifest.apkUrl || RELEASE_INFO.apkDownloadUrl);
+            const rawUrl = manifest.apkUrl || RELEASE_INFO.apkDownloadUrl;
+            if (rawUrl) {
+                triggerBrowserFileDownload(resolveBrowserApkDownloadUrl(rawUrl), `MoRanJiangHu-v${manifest.versionName || RELEASE_INFO.versionName}.apk`);
+            }
         }
     }
 

@@ -168,7 +168,7 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
             status: 200,
             headers: {
                 'Content-Type': outputContentType,
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
                 ...CORS_HEADERS
             }
         });

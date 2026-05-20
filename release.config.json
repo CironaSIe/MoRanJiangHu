@@ -1,10 +1,12 @@
 {
-  "versionCode": 260,
-  "versionName": "1.0.259",
+  "versionCode": 261,
+  "versionName": "1.0.260",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复 APK 内点击下载后跳转 latest.apk 却回到首页的问题，现在会稳定走原生下载/安装流程。",
-    "确认 APK 下载地址继续返回安装包附件响应，避免浏览器把安装包当作普通页面处理。",
+    "修复首页 APK 下载按钮：网页端点击会直接触发同源 APK 下载，不再跳转到 latest.apk 后回首页。",
+    "首页新增“预设图反馈”入口，反馈页新增贡献图片功能，可提交物品名、类型、品质和图片并获得贡献编号。",
+    "新增预设图贡献后台，贡献图片先进入临时审核区，支持查看、审核、标记已送图床和清理临时图片；每人每天最多贡献 100 张。",
+    "优化图床下载代理缓存，减少切换页面后重复加载同一图床图片的情况。",
     "官网：https://msjh.bacon159.pp.ua/"
   ],
   "releaseHistory": [
@@ -2707,7 +2709,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-20T23:31:39+08:00",
+  "releasePublishedAt": "2026-05-21T00:03:25+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
