@@ -96,12 +96,13 @@
     <section class="hero">
       <span class="badge">MO RAN JIANG HU GUIDE</span>
       <h1>墨色江湖教程中心</h1>
-      <p class="lead">常用教程都放在这里。遇到“世界书导入后没反应”“多端同步怎么配”“ComfyUI 后端怎么启动”“GPT Image2 怎么用 API Key 生图”“DeepSeek 模式怎么选”等问题，可以直接切换下面的选项卡查看。</p>
+      <p class="lead">常用教程都放在这里。遇到“世界书导入后没反应”“多端同步怎么配”“ComfyUI 后端怎么启动”“GPT Image2 怎么用 API Key 生图”“预设图怎么反馈”“DeepSeek 模式怎么选”等问题，可以直接切换下面的选项卡查看。</p>
       <div class="tabs" role="tablist" aria-label="教程分类">
         <button class="tab" type="button" data-tab="worldbook" aria-selected="true">世界书导入</button>
         <button class="tab" type="button" data-tab="aimode" aria-selected="false">AI模型模式</button>
         <button class="tab" type="button" data-tab="sync" aria-selected="false">多端同步</button>
         <button class="tab" type="button" data-tab="gptimage2" aria-selected="false">GPT Image2生图</button>
+        <button class="tab" type="button" data-tab="presetfeedback" aria-selected="false">预设图反馈</button>
         <button class="tab" type="button" data-tab="comfy" aria-selected="false">CNB ComfyUI</button>
       </div>
     </section>
@@ -336,6 +337,37 @@
       </div>
     </section>
 
+    <section id="presetfeedback" class="panel">
+      <div class="grid">
+        <article class="card wide">
+          <h2>物品预设图反馈</h2>
+          <p>如果你发现某个物品预设图不贴合名称、类型或品质，可以打开反馈页面快速查看全量物品图，并把需要重做的条目记录下来。</p>
+          <div class="actions">
+            <a class="btn" href="https://msjh.bacon159.pp.ua/item-preset-feedback" target="_blank" rel="noreferrer">打开预设图反馈页</a>
+          </div>
+          <p class="note">反馈页会展示当前线上物品预设图，适合集中检查“图像是否像这个物品”“是否有文字水印”“是否人物入镜”“同类装备是否风格统一”等问题。</p>
+        </article>
+        <article class="card">
+          <h2>怎么反馈更有效</h2>
+          <ol class="steps">
+            <li>打开反馈页后，先按物品类型或名称找到有问题的图。</li>
+            <li>记录物品名称，并简单说明问题，例如“不像靴子”“有文字”“像武器不是材料”。</li>
+            <li>如果有多个问题图，可以按类型分组反馈，方便下一批集中重做。</li>
+            <li>反馈时尽量保留物品名称原文，避免同名简称导致定位错误。</li>
+          </ol>
+        </article>
+        <article class="card">
+          <h2>适合检查什么</h2>
+          <ol class="steps">
+            <li>武器、防具、秘籍、材料、饰品、杂物是否和名称一致。</li>
+            <li>图片是否出现人物、手、界面边框、文字、水印或多物品拼图。</li>
+            <li>同一系列物品是否明显跑偏，例如鞋子生成成护腿、地图生成成卷轴以外的杂物。</li>
+          </ol>
+          <p class="note warn">反馈页只用于查看和整理问题，不会直接修改你的存档。预设图修正会随后续版本统一发布。</p>
+        </article>
+      </div>
+    </section>
+
     <section id="sync" class="panel">
       <div class="grid">
         <article class="card wide">
@@ -414,7 +446,7 @@ npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-
     };
     tabs.forEach((tab) => tab.addEventListener('click', () => activate(tab.dataset.tab)));
     const initial = (location.hash || '#worldbook').slice(1);
-    activate(['worldbook', 'aimode', 'sync', 'gptimage2', 'comfy'].includes(initial) ? initial : 'worldbook');
+    activate(['worldbook', 'aimode', 'sync', 'gptimage2', 'presetfeedback', 'comfy'].includes(initial) ? initial : 'worldbook');
   </script>
 </body>
 </html>
