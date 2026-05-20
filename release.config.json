@@ -1,15 +1,26 @@
 {
-  "versionCode": 252,
-  "versionName": "1.0.251",
+  "versionCode": 253,
+  "versionName": "1.0.252",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "补齐全部 GPT Image2 物品预设图，238 个预设物品已完成新图替换，装备、材料、秘籍和杂物图标更统一。",
-    "同步更新物品预设图反馈数据，玩家可以在反馈页集中查看并标记后续需要优化的图片。",
-    "教程中心新增“预设图反馈”入口和简单说明，方便玩家从教程页直接进入反馈页面。",
+    "修复旧 APK 检查更新仍读取旧下载通道的问题，旧版本安装包也能检测到最新版本。",
+    "同步修复官网更新通道、备用下载通道和 APK 更新清单，减少网页版与手机 APK 版本不同步的情况。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.251。"
+    "同步更新 Web、APK 与更新清单到 v1.0.252。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.251",
+      "versionCode": 252,
+      "publishedAt": "2026-05-20T08:11:46+08:00",
+      "changes": [
+        "补齐全部 GPT Image2 物品预设图，238 个预设物品已完成新图替换，装备、材料、秘籍和杂物图标更统一。",
+        "同步更新物品预设图反馈数据，玩家可以在反馈页集中查看并标记后续需要优化的图片。",
+        "教程中心新增“预设图反馈”入口和简单说明，方便玩家从教程页直接进入反馈页面。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.251。"
+      ]
+    },
     {
       "versionName": "1.0.250",
       "versionCode": 251,
@@ -2647,7 +2658,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-20T08:11:46+08:00",
+  "releasePublishedAt": "2026-05-20T12:05:06+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

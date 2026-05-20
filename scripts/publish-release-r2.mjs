@@ -27,9 +27,11 @@ const latestKey = `${bucket}/${prefix}/latest.apk`;
 const versionedKey = `${bucket}/${prefix}/MoRanJiangHu-v${releaseInfo.versionName}.apk`;
 const manifestKey = `${bucket}/${prefix}/latest.json`;
 const keepVersionedApkCount = Math.max(1, Number(process.env.MORAN_R2_KEEP_VERSIONED_APKS || 5));
-const versionedApkUrl = String(releaseInfo.apkDownloadUrl || '')
-  .replace(/\/latest\.apk(?:\?.*)?$/i, `/MoRanJiangHu-v${releaseInfo.versionName}.apk`)
-  || `https://download.bacon.de5.net/${prefix}/MoRanJiangHu-v${releaseInfo.versionName}.apk`;
+const legacyDownloadBaseUrl = String(process.env.MORAN_R2_PUBLIC_BASE_URL || `https://download.bacon.de5.net/${prefix}`)
+  .replace(/\/+$/, '');
+const versionedApkUrl = `${legacyDownloadBaseUrl}/MoRanJiangHu-v${releaseInfo.versionName}.apk`;
+const legacyLatestApkUrl = `${legacyDownloadBaseUrl}/latest.apk`;
+const legacyManifestUrl = `${legacyDownloadBaseUrl}/latest.json`;
 const apkBuffer = fs.readFileSync(apkPath);
 const apkSha256 = crypto.createHash('sha256').update(apkBuffer).digest('hex');
 const apkSize = apkBuffer.byteLength;
@@ -45,7 +47,8 @@ const manifest = {
     githubRepoUrl: releaseInfo.githubRepoUrl,
     releaseNotesUrl: releaseInfo.releaseNotesUrl,
     apkUrl: `${versionedApkUrl}?v=${encodeURIComponent(releaseInfo.versionName)}-${encodeURIComponent(String(releaseInfo.versionCode))}`,
-    manifestUrl: releaseInfo.updateManifestUrl,
+    latestApkUrl: legacyLatestApkUrl,
+    manifestUrl: legacyManifestUrl,
     publishedAt: releaseInfo.releasePublishedAt || new Date().toISOString(),
     changes: Array.isArray(releaseInfo.releaseNotes) ? releaseInfo.releaseNotes : []
   },
