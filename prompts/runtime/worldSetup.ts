@@ -1,5 +1,6 @@
-import { WorldGenConfig, 角色数据结构 } from '../../types';
+import { WorldGenConfig, 角色数据结构, OpeningConfig } from '../../types';
 import { 构建修炼体系附加块 } from '../../utils/promptFeatureToggles';
+import { 构建题材模式提示词, 是否仙侠开局模式 } from './openingConfig';
 
 const 世界锚点难度说明表 = {
     relaxed: {
@@ -48,7 +49,7 @@ const 获取世界锚点难度说明 = (difficulty?: string) => (
     世界锚点难度说明表[(difficulty || 'normal') as keyof typeof 世界锚点难度说明表] || 世界锚点难度说明表.normal
 );
 
-export const 构建世界观锚点提示词 = (worldConfig: WorldGenConfig, charData: 角色数据结构): string => {
+export const 构建世界观锚点提示词 = (worldConfig: WorldGenConfig, charData: 角色数据结构, openingConfig?: OpeningConfig | null): string => {
     const 难度设定 = 获取世界锚点难度说明(worldConfig.difficulty);
     const 判定修正 = 难度设定.判定修正 > 0 ? `+${难度设定.判定修正}` : String(难度设定.判定修正);
     return `
@@ -63,11 +64,12 @@ export const 构建世界观锚点提示词 = (worldConfig: WorldGenConfig, char
 - 世界观额外要求: ${worldConfig.worldExtraRequirement?.trim() || '无'}
 
 【世界母本硬边界】
-- 本存档世界观必须兼容武侠成长主轴。
+- 本存档世界观必须兼容${是否仙侠开局模式(openingConfig) ? '仙侠修真成长主轴' : '武侠成长主轴'}。
 - 世界应是长期母本，不是开场剧情、任务提纲或玩家专属设定。
 - 高手、秘籍、名器、传承、危险区域必须有合理稀缺度与风险代价。
 - 世界保持风险与回报匹配，不写成低风险高回报的福利场。
-${构建修炼体系附加块('- 本存档世界观必须兼容“累计境界值”的武侠成长主轴，并保持高境界强者的合理稀缺度与风险代价。')}
+${构建题材模式提示词(openingConfig)}
+${构建修炼体系附加块(`- 本存档世界观必须兼容“累计境界值”的${是否仙侠开局模式(openingConfig) ? '仙侠修真' : '武侠'}成长主轴，并保持高境界强者的合理稀缺度与风险代价。`)}
 
 【主角建档锚点（仅用于避冲突，不反向定制世界）】
 - 姓名/性别/年龄: ${charData.姓名}/${charData.性别}/${charData.年龄}
@@ -83,8 +85,8 @@ ${构建修炼体系附加块(`- 初始境界: ${charData.境界}`)}
 `.trim();
 };
 
-export const 构建世界观种子提示词 = (worldConfig: WorldGenConfig, charData: 角色数据结构): string => {
-    const anchor = 构建世界观锚点提示词(worldConfig, charData);
+export const 构建世界观种子提示词 = (worldConfig: WorldGenConfig, charData: 角色数据结构, openingConfig?: OpeningConfig | null): string => {
+    const anchor = 构建世界观锚点提示词(worldConfig, charData, openingConfig);
     return `
 【世界观设定（存档绑定）】
 此字段是当前存档唯一世界观母本，必须长期一致；后续叙事、判定、事件演化均以此为依据。
@@ -97,11 +99,11 @@ ${构建修炼体系附加块('   - 境界边界必须与本母本一致。')}
 ${构建修炼体系附加块('   - 世界观必须能长期支撑修炼系统，而非只服务一次开场。')}
 
 2. 成长体系一致性
-   - 本存档世界必须兼容当前项目的武侠成长体系。
+   - 本存档世界必须兼容当前项目的${是否仙侠开局模式(openingConfig) ? '仙侠修真成长体系' : '武侠成长体系'}。
    - 高手应稀缺，高阶传承应稀缺，高收益应对应高风险、高代价或高势力门槛。
    - 设定与现有数值哲学保持一致，例如低风险地区不泛滥神功神装、宗师密度受控、越境碾压伴随代价。
 ${构建修炼体系附加块([
-'   - 本存档世界必须兼容当前项目“累计境界值”武侠成长体系。',
+`   - 本存档世界必须兼容当前项目“累计境界值”${是否仙侠开局模式(openingConfig) ? '仙侠修真' : '武侠'}成长体系。`,
 '   - 境界部分只需交代整体境界分配与不同年龄段的大致境界划分，不展开详细境界设定。',
 '   - 世界母本中的境界内容只保留概述级信息，不写完整境界母板、逐层映射、阶段推进表或大境突破表。',
 '   - 高境界强者应稀缺。'
@@ -139,7 +141,8 @@ export const 构建世界生成任务上下文提示词 = (
     worldPromptSeed: string,
     difficulty: string,
     enabledDifficultyPrompts: string,
-    worldExtraRequirement: string = ''
+    worldExtraRequirement: string = '',
+    openingConfig?: OpeningConfig | null
 ): string => `
 ${worldPromptSeed}
 
@@ -148,6 +151,7 @@ ${worldPromptSeed}
 - 难度: ${difficulty}
 - 生成目标: 仅生成 world_prompt（世界观提示词文本）
 - 当前阶段定位: 世界母本生成，不是开场初始化，不是剧情正文生成，不是变量落地阶段
+${构建题材模式提示词(openingConfig)}
 
 【启用难度规则】
 ${enabledDifficultyPrompts || '未提供'}

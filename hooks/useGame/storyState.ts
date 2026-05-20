@@ -140,6 +140,17 @@ export const 创建开场空白角色 = (): 角色数据结构 => ({
     称号: '',
     境界: '',
     境界层级: 1,
+    灵根: '',
+    灵根资质: '',
+    当前灵力: 0,
+    最大灵力: 0,
+    当前神识: 0,
+    最大神识: 0,
+    丹田状态: '',
+    道基状态: '',
+    心魔值: 0,
+    功德: 0,
+    业力: 0,
     天赋列表: [],
     出身背景: { 名称: '', 描述: '', 效果: '' },
     所属门派ID: 'none',
@@ -401,6 +412,27 @@ const 主角开局应有基础功法 = (charData: 角色数据结构): boolean =
         || 取数字((charData as any)?.最大内力) > 0
         || 取数字((charData as any)?.境界层级) > 0
         || Boolean(realmText && !/无|未知|凡人|未入境/u.test(realmText));
+};
+
+const 补齐开局仙侠字段 = (charData: 角色数据结构, openingConfig?: OpeningConfig): 角色数据结构 => {
+    if (openingConfig?.题材模式 !== '仙侠') return charData;
+    const role = { ...(charData as any) };
+    const rank = Math.max(1, 取数字(role.境界层级, 1));
+    const rootText = `${取文本(role.灵根)} ${取文本(role.灵根资质)}`.trim();
+    return {
+        ...role,
+        灵根: 取文本(role.灵根, '未鉴定灵根'),
+        灵根资质: rootText ? 取文本(role.灵根资质, '普通') : '未鉴定',
+        最大灵力: Math.max(0, 取数字(role.最大灵力, Math.ceil(24 + 取数字(role.根骨, 0) * 4 + 取数字(role.悟性, 0) * 3 + rank * 12))),
+        当前灵力: Math.max(0, 取数字(role.当前灵力, Math.ceil(24 + 取数字(role.根骨, 0) * 4 + 取数字(role.悟性, 0) * 3 + rank * 12))),
+        最大神识: Math.max(0, 取数字(role.最大神识, Math.ceil(12 + 取数字(role.悟性, 0) * 4 + rank * 8))),
+        当前神识: Math.max(0, 取数字(role.当前神识, Math.ceil(12 + 取数字(role.悟性, 0) * 4 + rank * 8))),
+        丹田状态: 取文本(role.丹田状态, '稳定'),
+        道基状态: 取文本(role.道基状态, rank > 1 ? '已筑基痕迹' : '未筑道基'),
+        心魔值: Math.max(0, 取数字(role.心魔值, 0)),
+        功德: 取数字(role.功德, 0),
+        业力: 取数字(role.业力, 0)
+    } as 角色数据结构;
 };
 
 const 补齐开局角色功法 = (charData: 角色数据结构, sect: 详细门派结构): 角色数据结构 => {
@@ -1265,7 +1297,7 @@ export const 规范化同人女主剧情规划状态 = (raw?: any): 同人女主
 
 export const 创建开场基础状态 = (charData: 角色数据结构, _worldConfig: WorldGenConfig, openingConfig?: OpeningConfig) => {
     const 玩家门派 = 创建开局门派状态(charData, openingConfig);
-    const 角色 = 补齐开局角色功法(深拷贝(charData), 玩家门派);
+    const 角色 = 补齐开局仙侠字段(补齐开局角色功法(深拷贝(charData), 玩家门派), openingConfig);
     return {
         角色,
         环境: 创建开场空白环境(),

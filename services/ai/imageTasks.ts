@@ -1401,10 +1401,18 @@ export const 提取角色锚点提示词 = async (
 const 构建后置正向提示词 = (
     options?: { 构图?: '头像' | '半身' | '立绘' | '场景' | '部位特写'; 场景类型?: 场景生成类型; 尺寸?: string; 后端类型?: string }
 ): string => {
+    const 单人角色构图增强 = options?.构图 === '头像'
+        ? 'single character only, solo portrait, one face, one head, centered headshot, no other people'
+        : options?.构图 === '半身'
+            ? 'single character only, solo upper body portrait, one person, no other people'
+            : options?.构图 === '立绘'
+                ? 'single character only, solo full body character, one person, no other people'
+                : '';
     const 场景类型增强 = options?.构图 === '场景' && options?.场景类型 === '剧照场景'
         ? 'cinematic still, film still composition, characters and environment both clearly visible, foreground midground background, dramatic natural lighting, readable location context'
         : '';
     return 合并正向提示词片段(
+        单人角色构图增强,
         全局无文字正向提示词,
         options?.后端类型 === 'comfyui' && options?.构图 !== '部位特写' ? ZImageTurbo叙事构图增强提示词 : '',
         场景类型增强,
@@ -1414,6 +1422,9 @@ const 构建后置正向提示词 = (
 };
 
 const 构图附加负面提示词映射: Partial<Record<'头像' | '半身' | '立绘' | '场景' | '部位特写', string>> = {
+    头像: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate face, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views',
+    半身: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate body, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views',
+    立绘: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate body, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views',
     部位特写: 部位特写反拼贴负面提示词
 };
 

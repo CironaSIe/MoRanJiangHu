@@ -62,6 +62,7 @@ import { 构建同人运行时提示词包, 应用境界体系区块替换 } fro
 import { 构建女主剧情规划协议 } from '../../prompts/core/heroinePlan';
 import { 构建女主规划专项提示词 } from '../../prompts/core/heroinePlanCot';
 import { 核心_境界体系 } from '../../prompts/core/realm';
+import { 构建题材模式提示词 } from '../../prompts/runtime/openingConfig';
 
 export type 运行时提示词状态 = {
     当前启用: boolean;
@@ -1398,6 +1399,7 @@ export const 构建系统提示词 = ({
     );
     const difficultyPrompts = difficultyPromptSummary.trim();
     const fandomSummaryPrompt = 按当前设置过滤提示词(fandomPromptBundle.同人设定摘要 || '');
+    const genreModePrompt = 按当前设置过滤提示词(构建题材模式提示词(openingConfig));
     const realmTemplatePrompt = 启用修炼体系
         ? 按当前设置过滤提示词(渲染提示词文本(核心_境界体系.内容))
         : '';
@@ -1503,6 +1505,7 @@ export const 构建系统提示词 = ({
         contextMapAndBuilding,
         npcContext.离场数据块,
         fandomSummaryPrompt,
+        genreModePrompt,
         realmTemplatePrompt,
         otherPrompts.trim()
     ].filter(Boolean).join('\n\n');

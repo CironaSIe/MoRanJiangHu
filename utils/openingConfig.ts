@@ -5,6 +5,7 @@ import type {
     初始关系模板类型,
     关系侧重类型,
     开局切入偏好类型,
+    题材模式类型,
     同人来源类型,
     同人融合强度类型
 } from '../types';
@@ -136,6 +137,11 @@ export const 开局切入偏好选项: Array<{ value: 开局切入偏好类型; 
     { value: '风波前夜', label: '风波前夜', hint: '允许有将起未起的异动，但仍保持第一幕克制。' }
 ];
 
+export const 题材模式选项: Array<{ value: 题材模式类型; label: string; hint: string }> = [
+    { value: '武侠', label: '武侠模式', hint: '江湖、门派、内力、武学与凡俗尺度成长。' },
+    { value: '仙侠', label: '仙侠模式', hint: '灵根、灵力、神识、法宝、术法、秘境与宗门修真。' }
+];
+
 export const 同人来源类型选项: Array<{ value: 同人来源类型; label: string }> = [
     { value: '小说', label: '小说' },
     { value: '动漫', label: '动漫' },
@@ -150,6 +156,7 @@ export const 同人融合强度选项: Array<{ value: 同人融合强度类型; 
 ];
 
 export const 默认开局配置 = (): OpeningConfig => ({
+    题材模式: '武侠',
     初始关系模板: '师门牵引',
     关系侧重: ['师门', '友情'],
     开局切入偏好: '日常低压',
@@ -250,6 +257,9 @@ export const 创建默认属性分配 = () => ({
 
 export const 规范化开局配置 = (raw?: any): OpeningConfig => {
     const fallback = 默认开局配置();
+    const 题材模式 = 题材模式选项.some((item) => item.value === raw?.题材模式)
+        ? raw.题材模式
+        : fallback.题材模式;
     const 初始关系模板 = 初始关系模板选项.some((item) => item.value === raw?.初始关系模板)
         ? raw.初始关系模板
         : fallback.初始关系模板;
@@ -270,6 +280,7 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
         : fallback.同人融合.融合强度;
 
     return {
+        题材模式,
         初始关系模板,
         关系侧重: 关系侧重.length > 0 ? 关系侧重 : fallback.关系侧重,
         开局切入偏好,

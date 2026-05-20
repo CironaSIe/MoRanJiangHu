@@ -344,15 +344,15 @@ export const generateWorldData = async (
     streamOptions?: WorldStreamOptions,
     extraPrompt?: string,
     cotPseudoHistoryPrompt?: string,
-    config?: { 启用修炼体系?: boolean; signal?: AbortSignal }
+    config?: { 启用修炼体系?: boolean; signal?: AbortSignal; openingConfig?: any }
 ): Promise<string> => {
     if (!apiConfig.apiKey) throw new Error('Missing API Key');
 
     const normalizedExtraPrompt = (extraPrompt || '').trim();
     const normalizedCotPseudoPrompt = (cotPseudoHistoryPrompt || '').trim();
-    const genSystemPrompt = 获取世界观生成系统提示词(config);
+    const genSystemPrompt = 获取世界观生成系统提示词(config, config?.openingConfig);
     const genUserPrompt = [
-        构建世界观生成用户提示词(worldContext, charData, config),
+        构建世界观生成用户提示词(worldContext, charData, config, config?.openingConfig),
         normalizedExtraPrompt ? `【最终输出附加要求】\n${normalizedExtraPrompt}` : ''
     ].filter(Boolean).join('\n\n');
 

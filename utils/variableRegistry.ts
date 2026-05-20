@@ -109,7 +109,61 @@ const 社交NPC可新增字段 = new Set([
     '名器档案',
     '当前位置',
     '当前地点',
-    '位置路径'
+    '位置路径',
+    '攻击力',
+    '防御力',
+    '当前血量',
+    '最大血量',
+    '当前精力',
+    '最大精力',
+    '当前内力',
+    '最大内力',
+    '灵根',
+    '灵根资质',
+    '当前灵力',
+    '最大灵力',
+    '当前神识',
+    '最大神识',
+    '丹田状态',
+    '道基状态',
+    '心魔值',
+    '功德',
+    '业力',
+    '头部当前血量',
+    '头部最大血量',
+    '头部状态',
+    '胸部当前血量',
+    '胸部最大血量',
+    '胸部状态',
+    '腹部当前血量',
+    '腹部最大血量',
+    '腹部状态',
+    '左手当前血量',
+    '左手最大血量',
+    '左手状态',
+    '右手当前血量',
+    '右手最大血量',
+    '右手状态',
+    '左腿当前血量',
+    '左腿最大血量',
+    '左腿状态',
+    '右腿当前血量',
+    '右腿最大血量',
+    '右腿状态'
+]);
+
+const 角色可新增字段 = new Set([
+    '灵根',
+    '灵根资质',
+    '当前灵力',
+    '最大灵力',
+    '当前神识',
+    '最大神识',
+    '丹田状态',
+    '道基状态',
+    '心魔值',
+    '功德',
+    '业力'
 ]);
 
 const 是允许新增社交NPC字段 = (root: string, tokens: 路径片段[]): boolean => {
@@ -118,6 +172,13 @@ const 是允许新增社交NPC字段 = (root: string, tokens: 路径片段[]): b
     if (typeof tokens[0] !== 'number') return false;
     const field = tokens[1];
     return typeof field === 'string' && 社交NPC可新增字段.has(field);
+};
+
+const 是允许新增角色字段 = (root: string, tokens: 路径片段[]): boolean => {
+    if (root !== '角色') return false;
+    if (tokens.length !== 1) return false;
+    const field = tokens[0];
+    return typeof field === 'string' && 角色可新增字段.has(field);
 };
 
 const 收集变量路径 = (value: any, prefix: string, result: string[], depth: number) => {
@@ -199,7 +260,7 @@ export const 校验变量命令是否登记 = (
         return { allowed: true, normalizedKey };
     }
 
-    if ((cmd.action === 'set' || cmd.action === 'add') && (在同数组对象中存在字段(rootValue, tokens) || 是允许新增社交NPC字段(parsed.root, tokens))) {
+    if ((cmd.action === 'set' || cmd.action === 'add') && (在同数组对象中存在字段(rootValue, tokens) || 是允许新增社交NPC字段(parsed.root, tokens) || 是允许新增角色字段(parsed.root, tokens))) {
         return { allowed: true, normalizedKey };
     }
 

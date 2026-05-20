@@ -178,6 +178,29 @@ const 名器档案不完整 = (value: unknown): boolean => {
     });
 };
 
+const NPC七部位键列表 = ['头部', '胸部', '腹部', '左手', '右手', '左腿', '右腿'];
+
+const NPC缺少七部位状态 = (npc: any): boolean => (
+    NPC七部位键列表.some((part) => {
+        const cur = Number(npc?.[`${part}当前血量`]);
+        const max = Number(npc?.[`${part}最大血量`]);
+        const status = 读取文本(npc?.[`${part}状态`]);
+        return !Number.isFinite(cur) || !Number.isFinite(max) || max <= 0 || !status;
+    })
+);
+
+const 仙侠字段列表 = ['灵根', '灵根资质', '当前灵力', '最大灵力', '当前神识', '最大神识', '丹田状态', '道基状态', '心魔值', '功德', '业力'];
+
+const 缺少仙侠字段 = (target: any): boolean => (
+    仙侠字段列表.some((key) => {
+        const value = target?.[key];
+        if (['当前灵力', '最大灵力', '当前神识', '最大神识', '心魔值', '功德', '业力'].includes(key)) {
+            return !Number.isFinite(Number(value));
+        }
+        return 文本疑似占位(value);
+    })
+);
+
 const 判断是否主要女性NPC = (npc: any): boolean => (
     读取文本(npc?.性别) === '女' && npc?.是否主要角色 === true
 );
@@ -190,7 +213,7 @@ const 判断是否主要男性NPC = (npc: any, options?: { femboyNsfwEnabled?: b
 
 const 构建社交档案完整性审计提示 = (
     socialRaw: unknown,
-    options?: { femboyNsfwEnabled?: boolean }
+    options?: { femboyNsfwEnabled?: boolean; xianxiaMode?: boolean }
 ): string => {
     if (!Array.isArray(socialRaw) || socialRaw.length <= 0) return '';
     const femboyNsfwEnabled = options?.femboyNsfwEnabled === true;
@@ -205,6 +228,8 @@ const 构建社交档案完整性审计提示 = (
         if (文本疑似占位(npc?.简介)) 通用缺口.push('简介');
         if (文本疑似占位(npc?.关系状态)) 通用缺口.push('关系状态');
         if (!Array.isArray(npc?.记忆) || npc.记忆.length <= 0) 通用缺口.push('记忆');
+        if (NPC缺少七部位状态(npc)) 通用缺口.push('七部位血量与状态');
+        if (options?.xianxiaMode === true && 缺少仙侠字段(npc)) 通用缺口.push('仙侠修真字段(灵根/灵力/神识/丹田/道基/心魔/功德/业力)');
 
         const 重要女性缺口: string[] = [];
         const 重要男性缺口: string[] = [];
@@ -355,11 +380,16 @@ export const 执行变量模型校准工作流 = async (
         realmPrompt
     });
     const socialCompletenessAuditPrompt = 构建社交档案完整性审计提示(params.baseState.社交, {
-        femboyNsfwEnabled: 启用男娘NSFW内容
+        femboyNsfwEnabled: 启用男娘NSFW内容,
+        xianxiaMode: params.openingConfig?.题材模式 === '仙侠'
     });
+    const playerXianxiaAuditPrompt = params.openingConfig?.题材模式 === '仙侠' && 缺少仙侠字段((params.baseState as any)?.角色)
+        ? '【当前主角仙侠字段审计】\n- 当前存档为仙侠模式，角色档案需要补齐/修正：灵根、灵根资质、当前灵力、最大灵力、当前神识、最大神识、丹田状态、道基状态、心魔值、功德、业力。'
+        : '';
     const variableRegistryPrompt = 构建变量路径登记提示(params.baseState as any);
     const mergedExtraPrompt = [
         runtimeExtraPrompt,
+        playerXianxiaAuditPrompt,
         按功能开关过滤提示词内容(构建世界书注入文本({
             books: Array.isArray(params.worldbooks) ? params.worldbooks : [],
             scopes: ['variable_calibration'],

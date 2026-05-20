@@ -109,8 +109,9 @@ const 创建开局流式历史更新器 = (
     return { 更新, 停止 };
 };
 
-const 创建阶段超时错误 = (stageLabel: string, timeoutMs: number): Error => {
-    const error = new Error(`${stageLabel}超时（${Math.max(1, Math.ceil(timeoutMs / 1000))} 秒），请检查模型服务或稍后重试。`);
+const 创建阶段超时错误 = (stageLabel: string, timeoutMs: number, idleTimeout = false): Error => {
+    const timeoutLabel = idleTimeout ? `无新输出超时` : `超时`;
+    const error = new Error(`${stageLabel}${timeoutLabel}（${Math.max(1, Math.ceil(timeoutMs / 1000))} 秒），请检查模型服务或稍后重试。`);
     error.name = 'TimeoutError';
     return error;
 };
@@ -118,21 +119,35 @@ const 创建阶段超时错误 = (stageLabel: string, timeoutMs: number): Error 
 const 执行带超时 = async <T,>(
     stageLabel: string,
     timeoutMs: number,
-    task: (signal: AbortSignal) => Promise<T>
+    task: (signal: AbortSignal, 标记活动: () => void) => Promise<T>,
+    options?: { idleTimeout?: boolean }
 ): Promise<T> => {
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const timeoutError = 创建阶段超时错误(stageLabel, timeoutMs);
+    const timeoutError = 创建阶段超时错误(stageLabel, timeoutMs, options?.idleTimeout === true);
+    const 启动计时 = (reject: (reason?: any) => void) => {
+        if (timer) {
+            clearTimeout(timer);
+        }
+        timer = setTimeout(() => {
+            if (!controller.signal.aborted) {
+                controller.abort(timeoutError);
+            }
+            reject(timeoutError);
+        }, timeoutMs);
+    };
     try {
+        let rejectTimeout: ((reason?: any) => void) | null = null;
+        const 标记活动 = () => {
+            if (options?.idleTimeout && rejectTimeout) {
+                启动计时(rejectTimeout);
+            }
+        };
         return await Promise.race([
-            task(controller.signal),
+            task(controller.signal, 标记活动),
             new Promise<T>((_, reject) => {
-                timer = setTimeout(() => {
-                    if (!controller.signal.aborted) {
-                        controller.abort(timeoutError);
-                    }
-                    reject(timeoutError);
-                }, timeoutMs);
+                rejectTimeout = reject;
+                启动计时(reject);
             })
         ]);
     } catch (error: any) {
@@ -236,7 +251,7 @@ export const 执行世界生成工作流 = async (
         : null;
     try {
         const worldPromptSeed = 按功能开关过滤提示词内容(
-            构建世界观种子提示词(worldConfig, charData),
+            构建世界观种子提示词(worldConfig, charData, openingConfig),
             normalizedGameConfig
         );
         const difficulty = worldConfig.difficulty || 'normal';
@@ -295,7 +310,7 @@ export const 执行世界生成工作流 = async (
                 }, 420);
             }
 
-            realmPromptContent = await 执行带超时('同人境界体系生成', 境界阶段超时毫秒, (signal) => textAIService.generateFandomRealmData(
+            realmPromptContent = await 执行带超时('同人境界体系生成', 境界阶段超时毫秒, (signal, 标记活动) => textAIService.generateFandomRealmData(
                 {
                     openingConfig
                 },
@@ -304,6 +319,7 @@ export const 执行世界生成工作流 = async (
                     ? {
                         stream: true,
                         onDelta: (_delta, accumulated) => {
+                            标记活动();
                             realmDeltaReceived = true;
                             const normalized = (accumulated || '').replace(/\r/g, '');
                             const tail = normalized.length > 420
@@ -318,7 +334,7 @@ export const 执行世界生成工作流 = async (
                     ? `【世界观额外要求】\n${normalizedWorldExtraRequirement}`
                     : '',
                 signal
-            ));
+            ), { idleTimeout: openingStreaming });
             if (realmStreamHeartbeat) clearInterval(realmStreamHeartbeat);
             开局流式历史更新器?.停止();
         }
@@ -338,7 +354,8 @@ export const 执行世界生成工作流 = async (
             worldPromptSeed,
             difficulty,
             enabledDifficultyPrompts,
-            normalizedWorldExtraRequirement
+            normalizedWorldExtraRequirement,
+            openingConfig
         ), normalizedGameConfig);
         const fandomPromptBundle = 构建同人运行时提示词包({
             openingConfig,
@@ -380,7 +397,7 @@ export const 执行世界生成工作流 = async (
 
         const generatedWorldPrompt = useManualWorldPrompt
             ? textAIService.解析世界观提示词内容(normalizedManualWorldPrompt)
-            : await 执行带超时('世界观生成', 世界观阶段超时毫秒, (signal) => textAIService.generateWorldData(
+            : await 执行带超时('世界观生成', 世界观阶段超时毫秒, (signal, 标记活动) => textAIService.generateWorldData(
                 worldGenerationContext,
                 charData,
                 currentApi,
@@ -388,6 +405,7 @@ export const 执行世界生成工作流 = async (
                     ? {
                         stream: true,
                         onDelta: (_delta, accumulated) => {
+                            标记活动();
                             worldDeltaReceived = true;
                             const normalized = (accumulated || '').replace(/\r/g, '');
                             const tail = normalized.length > 480
@@ -402,9 +420,10 @@ export const 执行世界生成工作流 = async (
                 worldGenerationCotPseudoPrompt,
                 {
                     启用修炼体系,
+                    openingConfig,
                     signal
                 }
-            ));
+            ), { idleTimeout: openingStreaming });
         if (worldStreamHeartbeat) clearInterval(worldStreamHeartbeat);
         开局流式历史更新器?.停止();
 

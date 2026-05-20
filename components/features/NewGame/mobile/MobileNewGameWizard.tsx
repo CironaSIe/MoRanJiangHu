@@ -14,6 +14,7 @@ import {
     同人来源类型选项,
     同人融合强度选项,
     开局切入偏好选项,
+    题材模式选项,
     属性最大值,
     属性最小值,
     创建默认属性分配,
@@ -1837,10 +1838,22 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
                                 <div className="border-b border-wuxia-gold/30 pb-3 mb-4">
                                     <div className="text-[10px] uppercase tracking-[0.32em] text-wuxia-cyan/70 font-mono">Opening Structure</div>
                                     <h3 className="text-xl font-serif font-bold text-wuxia-gold mt-2">开局配置</h3>
-                                    <p className="text-[11px] text-gray-400 mt-2 leading-6">这里决定初始关系侧重、第一幕切入方式，以及是否让世界观带上同人融合倾向。</p>
+                                    <p className="text-[11px] text-gray-400 mt-2 leading-6">这里决定题材模式、初始关系侧重、第一幕切入方式，以及是否让世界观带上同人融合倾向。</p>
                                 </div>
 
                                 <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-wuxia-cyan font-bold">题材模式</label>
+                                        <InlineSelect
+                                            value={openingConfig.题材模式}
+                                            options={题材模式选项.map((item) => ({ value: item.value, label: item.label }))}
+                                            onChange={(题材模式) => setOpeningConfig((prev) => ({ ...prev, 题材模式 }))}
+                                        />
+                                        <div className="text-[11px] text-gray-500 leading-6">
+                                            {题材模式选项.find((item) => item.value === openingConfig.题材模式)?.hint}
+                                            {openingConfig.题材模式 === '仙侠' ? ' 仙侠模式会维护灵根、灵力、神识、法宝与术法等修真变量。' : ''}
+                                        </div>
+                                    </div>
                                     <div className="space-y-2">
                                         <label className="text-sm text-wuxia-cyan font-bold">开局切入偏好</label>
                                         <InlineSelect
@@ -2171,6 +2184,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
                                     <p>身份: <span className="text-white">{selectedBackground.名称}</span></p>
                                     <p>天赋: <span className="text-white">{selectedTalents.map(t => t.名称).join(', ') || '无'}</span></p>
                                     <p>开局配置: <span className="text-white">{openingConfigEnabled ? '已启用' : '未启用'}</span></p>
+                                    <p>题材模式: <span className="text-white">{openingConfigEnabled ? openingConfig.题材模式 : '未设置'}</span></p>
                                     <p>关系侧重: <span className="text-white">{openingConfigEnabled ? (openingConfig.关系侧重.join('、') || '无') : '未设置'}</span></p>
                                     <p>开局切入: <span className="text-white">{openingConfigEnabled ? openingConfig.开局切入偏好 : '未设置'}</span></p>
                                     <p>同人融合: <span className="text-white">{openingConfigEnabled ? (openingConfig.同人融合.enabled ? `${openingConfig.同人融合.作品名 || '未命名作品'} / ${openingConfig.同人融合.融合强度}` : '关闭') : '未设置'}</span></p>
