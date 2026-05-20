@@ -46,6 +46,13 @@
 - 部署后必须通过 HTTPS 验证线上站点和 manifest，不能只看本地构建输出。
 - 每次部署并推送 release backup 后，都要显式检查 `ypq123456789/MoRanJiangHu` 的 GitHub Actions CI，而不是 upstream 仓库。确认最新推送 commit 的 `CI` run 成功；如果失败，要拉取日志，能修则修，不能修要在结束前报告阻塞。
 
+## 旧版 APK 更新清单规则
+
+- 只要还有已安装的旧版 APK 读取 `https://download.bacon.de5.net/moranjianghu/latest.json`，每次发布 APK 新版本时都必须同步旧 R2/对象存储更新清单。
+- 当前发布流程应继续运行 `npm run release:r2`；该脚本会向 `download.bacon.de5.net/moranjianghu` 发布旧通道的 `latest.apk`、带版本号 APK 和 `latest.json`。
+- 即使大多数用户已经升级到读取新版官方清单的 APK，也建议长期保留旧通道作为低成本兜底。除非用户明确要求废弃旧更新通道，否则发布时不要移除或跳过它。
+- 发布验证必须包含 `https://download.bacon.de5.net/moranjianghu/latest.json` 及其中的带版本号 APK URL，同时也要验证主站和备用站的新更新清单。
+
 ## 禁止自动部署规则
 
 - 没有用户明确指令时，绝不部署。

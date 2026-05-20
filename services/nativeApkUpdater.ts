@@ -3,6 +3,8 @@ import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 type DownloadAndInstallOptions = {
     url: string;
     versionName: string;
+    apkSha256?: string;
+    apkSize?: number;
 };
 
 type InstalledApkInfo = {

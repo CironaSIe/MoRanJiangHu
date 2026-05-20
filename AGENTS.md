@@ -46,6 +46,13 @@
 - After deployment, verify the live site and manifest over HTTPS instead of assuming local build output is live.
 - After every deployment and release backup push, check GitHub Actions CI for `ypq123456789/MoRanJiangHu` explicitly, not the upstream repository. Confirm the latest `CI` run for the pushed commit succeeds; if it fails, fetch the logs, fix when possible, and report the blocker before ending.
 
+## Legacy APK Update Manifest Rule
+
+- As long as any installed legacy APK still reads `https://download.bacon.de5.net/moranjianghu/latest.json`, every APK release must also sync the old R2/object-storage update manifest.
+- The current release flow should keep running `npm run release:r2`; that script publishes the legacy `latest.apk`, versioned APK, and `latest.json` under `download.bacon.de5.net/moranjianghu`.
+- Keep the legacy channel available as a low-cost fallback even after most users upgrade to APKs that read the newer official manifest. Do not remove or skip it during releases unless the user explicitly retires the legacy update channel.
+- Release verification must include `https://download.bacon.de5.net/moranjianghu/latest.json` and its versioned APK URL, in addition to the primary and backup website update manifests.
+
 ## No Auto-Deploy Rule
 
 - **NEVER deploy without explicit user instruction.**
