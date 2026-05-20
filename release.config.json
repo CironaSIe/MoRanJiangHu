@@ -1,15 +1,27 @@
 {
-  "versionCode": 251,
-  "versionName": "1.0.250",
+  "versionCode": 252,
+  "versionName": "1.0.251",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "更新首批 GPT Image2 物品预设图，武器、防具、秘籍、材料、饰品等物品图标整体更清晰统一。",
-    "预设物品图库已同步到官网资源，进入游戏或查看物品时可获得更稳定的图片显示体验。",
-    "教程中心新增 GPT Image2 生图说明，方便玩家了解 API Key 生图的配置方式与适用场景。",
+    "补齐全部 GPT Image2 物品预设图，238 个预设物品已完成新图替换，装备、材料、秘籍和杂物图标更统一。",
+    "同步更新物品预设图反馈数据，玩家可以在反馈页集中查看并标记后续需要优化的图片。",
+    "教程中心新增“预设图反馈”入口和简单说明，方便玩家从教程页直接进入反馈页面。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.250。"
+    "同步更新 Web、APK 与更新清单到 v1.0.251。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.250",
+      "versionCode": 251,
+      "publishedAt": "2026-05-20T01:58:59+08:00",
+      "changes": [
+        "更新首批 GPT Image2 物品预设图，武器、防具、秘籍、材料、饰品等物品图标整体更清晰统一。",
+        "预设物品图库已同步到官网资源，进入游戏或查看物品时可获得更稳定的图片显示体验。",
+        "教程中心新增 GPT Image2 生图说明，方便玩家了解 API Key 生图的配置方式与适用场景。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.250。"
+      ]
+    },
     {
       "versionName": "1.0.249",
       "versionCode": 250,
@@ -2635,7 +2647,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-20T01:58:59+08:00",
+  "releasePublishedAt": "2026-05-20T08:11:46+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
