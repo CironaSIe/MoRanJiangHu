@@ -23,15 +23,28 @@ if (!fs.existsSync(apkPath)) {
 
 const bucket = releaseInfo.r2Bucket;
 const prefix = String(releaseInfo.r2Prefix || '').replace(/^\/+|\/+$/g, '');
-const latestKey = `${bucket}/${prefix}/latest.apk`;
-const versionedKey = `${bucket}/${prefix}/MoRanJiangHu-v${releaseInfo.versionName}.apk`;
 const manifestKey = `${bucket}/${prefix}/latest.json`;
 const keepVersionedApkCount = Math.max(1, Number(process.env.MORAN_R2_KEEP_VERSIONED_APKS || 5));
 const legacyDownloadBaseUrl = String(process.env.MORAN_R2_PUBLIC_BASE_URL || `https://download.bacon.de5.net/${prefix}`)
   .replace(/\/+$/, '');
-const versionedApkUrl = `${legacyDownloadBaseUrl}/MoRanJiangHu-v${releaseInfo.versionName}.apk`;
-const legacyLatestApkUrl = `${legacyDownloadBaseUrl}/latest.apk`;
 const legacyManifestUrl = `${legacyDownloadBaseUrl}/latest.json`;
+const readEnv = (name, fallback = '') => String(process.env[name] || fallback).trim();
+const s3Endpoint = readEnv('MORAN_OSS_ENDPOINT', 'https://s3.hi168.com').replace(/\/+$/, '');
+const s3Bucket = readEnv('MORAN_OSS_BUCKET');
+const s3Prefix = readEnv('MORAN_OSS_RELEASE_PREFIX', releaseInfo.r2Prefix || 'moranjianghu').replace(/^\/+|\/+$/g, '');
+const normalizeKey = (key) => key.replace(/^\/+/, '').replace(/\/+/g, '/');
+const encodeKey = (key) => normalizeKey(key)
+  .split('/')
+  .map((part) => encodeURIComponent(part))
+  .join('/');
+const s3PublicUrl = (key) => {
+  if (!s3Bucket) return '';
+  return `${s3Endpoint}/${encodeURIComponent(s3Bucket)}/${encodeKey(key)}`;
+};
+const hi168VersionedApkUrl = s3PublicUrl(`${s3Prefix}/MoRanJiangHu-v${releaseInfo.versionName}.apk`);
+const hi168LatestApkUrl = s3PublicUrl(`${s3Prefix}/latest.apk`);
+const versionedApkUrl = readEnv('MORAN_RELEASE_VERSIONED_APK_URL', releaseInfo.apkDownloadUrl || hi168VersionedApkUrl);
+const legacyLatestApkUrl = readEnv('MORAN_RELEASE_LATEST_APK_URL', releaseInfo.apkDownloadUrl || hi168LatestApkUrl);
 const apkBuffer = fs.readFileSync(apkPath);
 const apkSha256 = crypto.createHash('sha256').update(apkBuffer).digest('hex');
 const apkSize = apkBuffer.byteLength;
@@ -187,20 +200,10 @@ const deleteR2ObjectByApi = async (key) => {
   );
 };
 
-runWrangler([
-  'r2', 'object', 'put', latestKey,
-  '--file', apkPath,
-  '--content-type', 'application/vnd.android.package-archive',
-  '--cache-control', 'no-store,no-cache,max-age=0,must-revalidate',
-  '--remote'
-]);
-runWrangler([
-  'r2', 'object', 'put', versionedKey,
-  '--file', apkPath,
-  '--content-type', 'application/vnd.android.package-archive',
-  '--cache-control', 'no-store,no-cache,max-age=0,must-revalidate',
-  '--remote'
-]);
+if (!versionedApkUrl) {
+  throw new Error('Missing hi168/versioned APK URL. Run release:s3 first or set MORAN_RELEASE_VERSIONED_APK_URL.');
+}
+
 runWrangler([
   'r2', 'object', 'put', manifestKey,
   '--file', manifestPath,
@@ -254,10 +257,12 @@ for (const item of staleVersionedApks) {
 }
 
 console.log(`R2 publish complete:
-- ${releaseInfo.apkDownloadUrl}
+- latest APK URL: ${legacyLatestApkUrl}
+- versioned APK URL: ${versionedApkUrl}
 - ${releaseInfo.updateManifestUrl}
 - apkSha256=${apkSha256}
 - apkSize=${apkSize}
+- uploadedApkBinaryToR2=false
 - keptVersionedApks=${Array.from(keptVersionNames).join(', ')}
 - existingVersionedApks=${existingVersionedApks ? existingVersionedApks.length : 'unknown'}
 - staleVersionedApksDeleted=${deletedCount}`);

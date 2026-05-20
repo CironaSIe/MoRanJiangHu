@@ -149,12 +149,13 @@ const triggerBrowserFileDownload = (url: string, filename: string): void => {
 };
 
 const resolveBrowserApkDownloadUrl = (rawUrl: string): string => {
-    const base = typeof window !== 'undefined' ? window.location.href : 'https://msjh.bacon.de5.net';
-    const target = new URL(rawUrl, base);
-    if (/^(msjh\.bacon159\.pp\.ua|msjh\.bacon\.de5\.net)$/i.test(target.hostname)) {
-        target.protocol = 'https:';
-        target.host = 'download.bacon.de5.net';
-        target.pathname = '/moranjianghu/latest.apk';
+    const base = typeof window !== 'undefined' ? window.location.href : 'https://msjh.bacon159.pp.ua';
+    const current = new URL(base);
+    const target = new URL(rawUrl, current.href);
+    if (/^(msjh\.bacon159\.pp\.ua|msjh\.bacon\.de5\.net)$/i.test(current.hostname)) {
+        target.protocol = current.protocol;
+        target.host = current.host;
+        target.pathname = '/api/apk/latest.apk';
     }
     target.searchParams.set('downloadAt', String(Date.now()));
     return target.toString();

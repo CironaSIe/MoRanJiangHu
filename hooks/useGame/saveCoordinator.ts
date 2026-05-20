@@ -1,4 +1,5 @@
 import * as dbService from '../../services/dbService';
+import { 后台同步存档到云端 } from '../../services/cloudPlayService';
 import type {
     存档结构,
     聊天记录结构,
@@ -496,7 +497,8 @@ export const 执行手动存档 = async (
     deps: 存档协调依赖
 ): Promise<void> => {
     const save = 创建存档数据('manual', currentState, deps);
-    await dbService.保存存档(save);
+    const id = await dbService.保存存档(save);
+    后台同步存档到云端({ ...save, id } as 存档结构);
     deps.setHasSave(true);
 };
 
@@ -526,7 +528,8 @@ export const 执行自动存档 = async (
 
     try {
         const save = 创建存档数据('auto', currentState, deps, signature, snapshot);
-        await dbService.保存存档(save);
+        const id = await dbService.保存存档(save);
+        后台同步存档到云端({ ...save, id } as 存档结构);
         deps.最近自动存档签名Ref.current = signature;
         deps.最近自动存档时间戳Ref.current = now;
         deps.setHasSave(true);

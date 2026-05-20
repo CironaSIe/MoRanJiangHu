@@ -259,6 +259,7 @@ const MemorySummaryFlowMobileModal = 创建可预加载懒组件('mobile-memory-
 const NpcMemorySummaryFlowModal = 创建可预加载懒组件('npc-memory-summary-flow-modal', () => import('./components/features/Memory/NpcMemorySummaryFlowModal'));
 const NpcMemorySummaryFlowMobileModal = 创建可预加载懒组件('mobile-npc-memory-summary-flow-modal', () => import('./components/features/Memory/NpcMemorySummaryFlowMobileModal'));
 const SaveLoadModal = 创建可预加载懒组件('save-load-modal', () => import('./components/features/SaveLoad/SaveLoadModal'));
+const CloudPlayModal = 创建可预加载懒组件('cloud-play-modal', () => import('./components/features/Auth/CloudPlayModal'));
 const MobileMusicPlayer = 创建可预加载懒组件('mobile-music-player', () => import('./components/features/Music/mobile/MobileMusicPlayer'));
 const NovelDecompositionWorkbenchModal = 创建可预加载懒组件('novel-decomposition-workbench-modal', () => import('./components/features/NovelDecomposition/NovelDecompositionWorkbenchModal'));
 const AuctionHouseModal = 创建可预加载懒组件('auction-house-modal', () => import('./components/features/AuctionHouse/AuctionHouseModal'));
@@ -288,6 +289,7 @@ const 桌面轻量预热目标 = [
     HeroinePlanModal,
     MemoryModal,
     SaveLoadModal,
+    CloudPlayModal,
     AuctionHouseModal,
     NovelExportModal
 ] as const;
@@ -309,6 +311,7 @@ const 移动端轻量预热目标 = [
     MobileHeroinePlanModal,
     MobileMemory,
     SaveLoadModal,
+    CloudPlayModal,
     AuctionHouseModal
 ] as const;
 
@@ -416,6 +419,7 @@ const App: React.FC = () => {
     const [showNovelExport, setShowNovelExport] = React.useState(false);
     const [mapRegenerateRawText, setMapRegenerateRawText] = React.useState('');
     const [showAuctionHouse, setShowAuctionHouse] = React.useState(false);
+    const [showCloudPlay, setShowCloudPlay] = React.useState(false);
     const [auctionHouseState, setAuctionHouseState] = React.useState<拍卖行状态>(() => {
         try {
             return 读取拍卖行状态();
@@ -1343,6 +1347,7 @@ const App: React.FC = () => {
         state.showMemory ? '记忆' :
         showNovelExport ? '导出小说' :
         showAuctionHouse ? '拍卖行' :
+        showCloudPlay ? '云端游玩' :
         showImageManager ? '图册' :
         showNovelDecompositionWorkbench ? '小说分解' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? '保存' : '读取') :
@@ -1369,6 +1374,7 @@ const App: React.FC = () => {
         state.showMemory ? 'memory' :
         showNovelExport ? 'export_novel' :
         showAuctionHouse ? 'auction_house' :
+        showCloudPlay ? 'cloud_play' :
         showImageManager ? 'image_manager' :
         showNovelDecompositionWorkbench ? 'novel_decomposition' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? 'save' : 'load') :
@@ -1395,6 +1401,7 @@ const App: React.FC = () => {
         || state.showMemory
         || showNovelExport
         || showAuctionHouse
+        || showCloudPlay
         || showImageManager
         || showNovelDecompositionWorkbench
         || safeShowSaveLoad.show
@@ -1465,6 +1472,7 @@ const App: React.FC = () => {
         setters.setShowMemory(false);
         setShowNovelExport(false);
         setShowAuctionHouse(false);
+        setShowCloudPlay(false);
         setShowImageManager(false);
         setShowNovelDecompositionWorkbench(false);
         setters.setShowSaveLoad({ show: false, mode: 'save' });
@@ -2028,10 +2036,21 @@ const App: React.FC = () => {
         closeAllPanels();
         setters.setShowSaveLoad({ show: true, mode: 'load' });
     }, [closeAllPanels, setters]);
+    const openCloudPlay = React.useCallback(() => {
+        closeAllPanels();
+        setShowCloudPlay(true);
+    }, [closeAllPanels]);
     const closeSettings = React.useCallback(() => setters.setShowSettings(false), [setters]);
     const closeNovelDecompositionWorkbench = React.useCallback(() => setShowNovelDecompositionWorkbench(false), []);
     const closeNovelExport = React.useCallback(() => setShowNovelExport(false), []);
     const closeSaveLoad = React.useCallback(() => setters.setShowSaveLoad({ show: false, mode: 'save' }), [setters]);
+    const closeCloudPlay = React.useCallback(() => setShowCloudPlay(false), []);
+    const openObjectStorageSettingsFromCloudPlay = React.useCallback(() => {
+        setShowCloudPlay(false);
+        closeAllPanels();
+        setters.setActiveTab('storage');
+        setters.setShowSettings(true);
+    }, [closeAllPanels, setters]);
     const closeWorldbookManager = React.useCallback(() => setShowWorldbookManager(false), []);
     const closeMobileMusic = React.useCallback(() => setShowMobileMusic(false), []);
     const openWorldbookManager = React.useCallback(() => setShowWorldbookManager(true), []);
@@ -2458,6 +2477,7 @@ const App: React.FC = () => {
                 <LandingPage 
                     onStart={handleStartFromLanding}
                     onLoad={openLoad}
+                    onCloudPlay={openCloudPlay}
                     onImageManager={openImageManagerWithCheck}
                     onWorldbookManager={openWorldbookManager}
                     onNovelDecomposition={() => { void openNovelDecompositionWorkbench(); }}
@@ -2912,6 +2932,20 @@ const App: React.FC = () => {
                         mode={safeShowSaveLoad.mode}
                         requestConfirm={requestConfirm}
                     />
+                </懒加载边界>
+                </div>
+            )}
+
+            {showCloudPlay && (
+                <div className={desktopRightDetailClass || 'fixed inset-0 z-[300] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm'}>
+                <懒加载边界>
+                    <div className={desktopRightDetailClass ? 'h-full w-full' : 'h-[min(760px,92vh)] w-full max-w-5xl'}>
+                        <CloudPlayModal
+                            onClose={closeCloudPlay}
+                            onLoadGame={actions.handleLoadGame}
+                            onConfigureObjectStorage={openObjectStorageSettingsFromCloudPlay}
+                        />
+                    </div>
                 </懒加载边界>
                 </div>
             )}

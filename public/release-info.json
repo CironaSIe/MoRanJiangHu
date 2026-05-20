@@ -1,10 +1,11 @@
 {
-  "versionCode": 262,
-  "versionName": "1.0.261",
+  "versionCode": 263,
+  "versionName": "1.0.262",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复首页 APK 下载按钮：网页端点击现在直接走稳定静态下载通道，避免下载到 5.7KB 首页 HTML。",
-    "强化 APK 下载端到端测试：测试会真实保存下载文件并校验 APK 文件头和文件大小，防止只检测到下载事件却漏掉坏文件。",
+    "新增云端游玩入口，支持 TG 图床云端账号和用户自己的对象存储两种存储方式。",
+    "TG 图床云端账号登录态现在保留 7 天，短期内重新打开无需反复登录。",
+    "对象存储云端游玩会自动检测配置和连接状态，未配置时会引导到数据存储设置页。",
     "官网：https://msjh.bacon159.pp.ua/"
   ],
   "releaseHistory": [
@@ -2707,7 +2708,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-21T00:31:31+08:00",
+  "releasePublishedAt": "2026-05-21T01:21:20+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
