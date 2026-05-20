@@ -1,15 +1,28 @@
 {
-  "versionCode": 255,
-  "versionName": "1.0.254",
+  "versionCode": 256,
+  "versionName": "1.0.255",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "优化对象存储云同步：上传前会先用本地存档哈希对比云端清单，云端已有相同内容时不再打包大存档。",
-    "减少对象存储上传全部存档前的等待时间，大存档或多存档设备同步会更快进入实际上传阶段。",
-    "保留上传前二次哈希复核，避免边界情况下重复上传或误跳过。",
+    "新开局新增仙侠模式，可生成灵根、灵力、神识、法宝、术法、秘境、宗门修真等专属内容，并与武侠模式区分。",
+    "仙侠模式会在主角和所有社交角色上统一维护灵根、灵力、神识、丹田、道基、心魔、功德、业力等修真字段，减少角色属性不一致的问题。",
+    "优化移动端社交界面：新增人物搜索和全部/主要/在场/女性/男性筛选，角色卡信息展示更清晰。",
+    "优化角色图生成提示词，头像、半身和立绘更强调单人主体，减少生成多个人物或多张脸的情况。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.254。"
+    "同步更新 Web、APK 与更新清单到 v1.0.255。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.254",
+      "versionCode": 255,
+      "publishedAt": "2026-05-20T13:22:56+08:00",
+      "changes": [
+        "优化对象存储云同步：上传前会先用本地存档哈希对比云端清单，云端已有相同内容时不再打包大存档。",
+        "减少对象存储上传全部存档前的等待时间，大存档或多存档设备同步会更快进入实际上传阶段。",
+        "保留上传前二次哈希复核，避免边界情况下重复上传或误跳过。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.254。"
+      ]
+    },
     {
       "versionName": "1.0.253",
       "versionCode": 254,
@@ -2684,7 +2697,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-20T13:22:56+08:00",
+  "releasePublishedAt": "2026-05-20T20:06:48+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

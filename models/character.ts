@@ -68,6 +68,17 @@ export interface 角色数据结构 {
     称号: string;
     境界: string;
     境界层级: number;
+    灵根?: string;
+    灵根资质?: string;
+    当前灵力?: number;
+    最大灵力?: number;
+    当前神识?: number;
+    最大神识?: number;
+    丹田状态?: string;
+    道基状态?: string;
+    心魔值?: number;
+    功德?: number;
+    业力?: number;
     
     // New: Talents and Background
     天赋列表: 天赋结构[];

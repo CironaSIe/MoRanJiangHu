@@ -36,6 +36,17 @@
         if (logs.length > maxLogs) logs.splice(0, logs.length - maxLogs);
       }
 
+      function isExternalInjectedError(event) {
+        var filename = String(event && event.filename || '');
+        var message = String(event && event.message || '');
+        var stack = stringify(event && event.error || '');
+        var source = [filename, message, stack].join('\n');
+        if (/^(chrome|moz|safari-web)-extension:\/\//i.test(filename)) return true;
+        if (/chrome-extension:\/\//i.test(source)) return true;
+        if (/Failed to execute 'appendChild' on 'Node': Invalid regular expression/i.test(source)) return true;
+        return false;
+      }
+
       function showOverlay() {
         if (!document.body) return;
         if (!overlay) {
@@ -73,6 +84,7 @@
           event.filename ? event.filename + ':' + event.lineno + ':' + event.colno : '',
           event.error
         ]);
+        if (isExternalInjectedError(event)) return;
         showOverlay();
       });
 

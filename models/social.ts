@@ -112,6 +112,17 @@ export interface NPC结构 {
     年龄: number;
     生日?: string;
     境界: string;
+    灵根?: string;
+    灵根资质?: string;
+    当前灵力?: number;
+    最大灵力?: number;
+    当前神识?: number;
+    最大神识?: number;
+    丹田状态?: string;
+    道基状态?: string;
+    心魔值?: number;
+    功德?: number;
+    业力?: number;
     身份: string;
     当前位置?: string; // NPC 当前所在的短地点名，用于地图与再登场判断
     当前地点?: string; // 兼容别名，优先与当前位置保持一致
@@ -151,6 +162,15 @@ export interface NPC结构 {
     最大精力?: number;
     当前内力?: number;
     最大内力?: number;
+
+    // --- 身体部位状态（所有 NPC 与主角同口径；用于伤势、战斗和医治判定） ---
+    头部当前血量?: number; 头部最大血量?: number; 头部状态?: string;
+    胸部当前血量?: number; 胸部最大血量?: number; 胸部状态?: string;
+    腹部当前血量?: number; 腹部最大血量?: number; 腹部状态?: string;
+    左手当前血量?: number; 左手最大血量?: number; 左手状态?: string;
+    右手当前血量?: number; 右手最大血量?: number; 右手状态?: string;
+    左腿当前血量?: number; 左腿最大血量?: number; 左腿状态?: string;
+    右腿当前血量?: number; 右腿最大血量?: number; 右腿状态?: string;
 
     // --- 装备、物品与状态（运行时会为所有 NPC 补齐最小结构） ---
     当前装备?: NPC装备栏;
