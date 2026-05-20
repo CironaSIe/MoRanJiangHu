@@ -2084,6 +2084,7 @@ const App: React.FC = () => {
         setShowReleaseNotes(false);
     }, [suppressReleaseNotesForToday]);
     const handleReleaseNotesPrimaryAction = React.useCallback(() => {
+        setShowReleaseNotes(false);
         if (isNativeCapacitorEnvironment()) {
             void runAppUpdateCheck();
             return;

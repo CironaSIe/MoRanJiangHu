@@ -30,11 +30,42 @@ export type AppUpdateProgressState = NativeApkUpdateProgress & {
 };
 
 const appUpdateProgressListeners = new Set<(progress: AppUpdateProgressState | null) => void>();
+let lastAppUpdateProgress: AppUpdateProgressState | null = null;
+
+const normalizeProgress = (progress: AppUpdateProgressState | null): AppUpdateProgressState | null => {
+    if (!progress) {
+        lastAppUpdateProgress = null;
+        return null;
+    }
+
+    const previous = lastAppUpdateProgress;
+    if (!previous || previous.versionName !== progress.versionName) {
+        lastAppUpdateProgress = progress;
+        return progress;
+    }
+
+    const next = { ...progress };
+    const currentDownloaded = Number(next.downloadedBytes || 0);
+    const previousDownloaded = Number(previous.downloadedBytes || 0);
+    if (previousDownloaded > currentDownloaded && next.stage === 'downloading') {
+        next.downloadedBytes = previousDownloaded;
+    }
+
+    const currentPercent = Number(next.percent || 0);
+    const previousPercent = Number(previous.percent || 0);
+    if (previousPercent > currentPercent && next.stage === 'downloading') {
+        next.percent = previousPercent;
+    }
+
+    lastAppUpdateProgress = next;
+    return next;
+};
 
 const emitAppUpdateProgress = (progress: AppUpdateProgressState | null) => {
+    const normalizedProgress = normalizeProgress(progress);
     appUpdateProgressListeners.forEach((listener) => {
         try {
-            listener(progress);
+            listener(normalizedProgress);
         } catch (error) {
             console.warn('App update progress listener failed:', error);
         }
@@ -232,7 +263,9 @@ const installUpdateInNativeApp = async (manifest: UpdateManifest) => {
     try {
         await NativeApkUpdater.downloadAndInstall({
             url: targetUrl,
-            versionName
+            versionName,
+            apkSha256: manifest.apkSha256,
+            apkSize: manifest.apkSize
         });
     } catch (error) {
         emitAppUpdateProgress({

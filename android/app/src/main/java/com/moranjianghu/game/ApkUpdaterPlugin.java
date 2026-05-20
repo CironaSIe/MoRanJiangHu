@@ -48,6 +48,8 @@ public class ApkUpdaterPlugin extends Plugin {
     public void downloadAndInstall(PluginCall call) {
         String url = call.getString("url", "");
         String versionName = call.getString("versionName", "latest");
+        String expectedSha256 = call.getString("apkSha256", "");
+        Long expectedSize = call.getLong("apkSize");
 
         if (url == null || url.trim().isEmpty()) {
             call.reject("缺少 APK 下载地址。");
@@ -70,11 +72,21 @@ public class ApkUpdaterPlugin extends Plugin {
         new Thread(() -> {
             try {
                 notifyUpdateProgress("preparing", "正在准备下载更新包...", 0L, 0L, null, versionName);
-                File apkFile = downloadApk(url, versionName);
+                File apkFile = getCachedApkFile(versionName);
+                if (isCachedApkValid(apkFile, expectedSha256, expectedSize)) {
+                    notifyUpdateProgress("downloaded", "已找到下载好的更新包，准备安装。", apkFile.length(), apkFile.length(), apkFile.getAbsolutePath(), versionName);
+                } else {
+                    if (apkFile.exists() && !apkFile.delete()) {
+                        apkFile.deleteOnExit();
+                    }
+                    apkFile = downloadApk(url, versionName, expectedSha256, expectedSize);
+                }
+                cleanupOldUpdateApks(apkFile);
 
                 JSObject result = new JSObject();
                 result.put("filePath", apkFile.getAbsolutePath());
                 result.put("versionName", versionName);
+                final File finalApkFile = apkFile;
 
                 if (getActivity() == null) {
                     notifyErrorProgress("当前没有可用的 Activity。", versionName);
@@ -84,9 +96,9 @@ public class ApkUpdaterPlugin extends Plugin {
 
                 getActivity().runOnUiThread(() -> {
                     try {
-                        notifyUpdateProgress("installing", "下载完成，正在拉起安装界面...", apkFile.length(), apkFile.length(), apkFile.getAbsolutePath(), versionName);
-                        installApk(apkFile);
-                        notifyUpdateProgress("completed", "安装界面已打开，请按系统提示继续安装。", apkFile.length(), apkFile.length(), apkFile.getAbsolutePath(), versionName);
+                        notifyUpdateProgress("installing", "下载完成，正在拉起安装界面...", finalApkFile.length(), finalApkFile.length(), finalApkFile.getAbsolutePath(), versionName);
+                        installApk(finalApkFile);
+                        notifyUpdateProgress("completed", "安装界面已打开，请按系统提示继续安装。", finalApkFile.length(), finalApkFile.length(), finalApkFile.getAbsolutePath(), versionName);
                         call.resolve(result);
                     } catch (Exception installError) {
                         notifyErrorProgress(installError.getMessage(), versionName);
@@ -100,11 +112,7 @@ public class ApkUpdaterPlugin extends Plugin {
         }).start();
     }
 
-    private File downloadApk(String urlString, String versionName) throws Exception {
-        HttpURLConnection connection = null;
-        InputStream inputStream = null;
-        FileOutputStream outputStream = null;
-
+    private File getUpdatesDir() {
         File baseDir = getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
         if (baseDir == null) {
             throw new IllegalStateException("无法访问应用下载目录。");
@@ -114,9 +122,59 @@ public class ApkUpdaterPlugin extends Plugin {
         if (!updatesDir.exists() && !updatesDir.mkdirs()) {
             throw new IllegalStateException("无法创建更新目录。");
         }
+        return updatesDir;
+    }
 
+    private File getCachedApkFile(String versionName) {
         String safeVersion = versionName.replaceAll("[^a-zA-Z0-9._-]", "_");
-        File apkFile = new File(updatesDir, "MoRanJiangHu-" + safeVersion + ".apk");
+        return new File(getUpdatesDir(), "MoRanJiangHu-" + safeVersion + ".apk");
+    }
+
+    private boolean isCachedApkValid(File apkFile, String expectedSha256, Long expectedSize) throws Exception {
+        if (apkFile == null || !apkFile.exists() || !apkFile.isFile() || apkFile.length() <= 0L) {
+            return false;
+        }
+
+        if (expectedSize != null && expectedSize > 0L && apkFile.length() != expectedSize) {
+            return false;
+        }
+
+        String normalizedExpectedSha = expectedSha256 == null ? "" : expectedSha256.trim().toLowerCase(Locale.US);
+        if (!normalizedExpectedSha.isEmpty()) {
+            return normalizedExpectedSha.equals(computeSha256(apkFile));
+        }
+
+        return true;
+    }
+
+    private void verifyDownloadedApk(File apkFile, String expectedSha256, Long expectedSize) throws Exception {
+        if (!isCachedApkValid(apkFile, expectedSha256, expectedSize)) {
+            if (apkFile != null && apkFile.exists() && !apkFile.delete()) {
+                apkFile.deleteOnExit();
+            }
+            throw new IllegalStateException("下载的更新包校验失败，请重新下载。");
+        }
+    }
+
+    private void cleanupOldUpdateApks(File keepFile) {
+        File[] files = getUpdatesDir().listFiles();
+        if (files == null) return;
+
+        for (File file : files) {
+            if (file == null || !file.isFile()) continue;
+            if (keepFile != null && file.getAbsolutePath().equals(keepFile.getAbsolutePath())) continue;
+            if (!file.getName().toLowerCase(Locale.US).endsWith(".apk")) continue;
+            if (!file.delete()) {
+                file.deleteOnExit();
+            }
+        }
+    }
+
+    private File downloadApk(String urlString, String versionName, String expectedSha256, Long expectedSize) throws Exception {
+        HttpURLConnection connection = null;
+        InputStream inputStream = null;
+        FileOutputStream outputStream = null;
+        File apkFile = getCachedApkFile(versionName);
 
         try {
             URL url = new URL(urlString);
@@ -134,7 +192,8 @@ public class ApkUpdaterPlugin extends Plugin {
                 throw new IllegalStateException("下载更新失败，HTTP " + responseCode);
             }
 
-            long totalBytes = connection.getContentLengthLong();
+            long contentLength = connection.getContentLengthLong();
+            long totalBytes = contentLength > 0L ? contentLength : (expectedSize != null && expectedSize > 0L ? expectedSize : 0L);
             long downloadedBytes = 0L;
             long lastReportedAt = 0L;
 
@@ -154,6 +213,7 @@ public class ApkUpdaterPlugin extends Plugin {
                 }
             }
             outputStream.flush();
+            verifyDownloadedApk(apkFile, expectedSha256, expectedSize);
             notifyUpdateProgress("downloaded", "更新包下载完成。", downloadedBytes, totalBytes, apkFile.getAbsolutePath(), versionName);
             return apkFile;
         } finally {
@@ -233,7 +293,7 @@ public class ApkUpdaterPlugin extends Plugin {
         payload.put("filePath", filePath);
         payload.put("versionName", versionName);
         if (totalBytes > 0L) {
-            double percent = (downloadedBytes * 100.0d) / totalBytes;
+            double percent = Math.max(0.0d, Math.min(100.0d, (downloadedBytes * 100.0d) / totalBytes));
             payload.put("percent", Double.parseDouble(String.format(Locale.US, "%.2f", percent)));
         }
         notifyListeners("updateProgress", payload);
