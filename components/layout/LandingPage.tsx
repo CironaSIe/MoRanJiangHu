@@ -312,6 +312,13 @@ const LandingPage: React.FC<Props> = ({
                     >
                         教程中心
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => { void openExternalUrl('/item-preset-feedback.html'); }}
+                        className="min-h-[40px] border border-fuchsia-500/25 bg-fuchsia-500/10 px-4 py-2 text-xs tracking-[0.16em] text-fuchsia-200 transition-colors hover:bg-fuchsia-500/15"
+                    >
+                        预设图反馈
+                    </button>
                 </div>
             </div>
 

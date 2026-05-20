@@ -72,6 +72,25 @@
     }
     .panel input, .panel textarea { width: 100%; padding: 8px 10px; }
     .panel textarea { min-height: 76px; resize: vertical; grid-column: 1 / -1; }
+    .contribution {
+      max-width: 980px;
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff7e8;
+      padding: 12px;
+      display: none;
+    }
+    .contribution.open { display: block; }
+    .contribution h2 { margin: 0 0 10px; font-size: 18px; }
+    .contribution-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .contribution-grid input, .contribution-grid select, .contribution-grid textarea { width: 100%; }
+    .contribution-grid textarea { min-height: 72px; padding: 8px 10px; resize: vertical; }
+    .full { grid-column: 1 / -1; }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
@@ -190,6 +209,7 @@
     }
     @media (max-width: 640px) {
       .panel { grid-template-columns: 1fr; }
+      .contribution-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -202,6 +222,7 @@
     <select id="filter"><option value="">全部</option><option value="problem">只看已标问题</option><option value="todo">只看未标</option></select>
     <select id="source"><option value="">全部来源</option><option value="本地">本地</option><option value="远程图">远程图</option></select>
     <button id="submitBtn" class="primary">提交反馈</button>
+    <button id="toggleContributionBtn">贡献图片</button>
     <button id="clearBtn">清空本机标记</button>
     <span class="stat" id="stat">载入中...</span>
   </div>
@@ -219,6 +240,29 @@
     <input id="contact" placeholder="联系方式，可不填" />
     <textarea id="summary" placeholder="总体反馈，可不填"></textarea>
   </div>
+  <section id="contributionPanel" class="contribution" aria-label="贡献物品预设图">
+    <h2>贡献自己生成的物品图</h2>
+    <div class="intro">
+      上传后会先进入临时审核区，不会直接进入正式预设图库。每个浏览器/设备每天最多提交 100 张；提交成功后会返回贡献编号，维护者审核后再转入图床或清理。
+    </div>
+    <div class="contribution-grid">
+      <input id="contributionName" placeholder="物品名称，例如 玉骨扇" />
+      <select id="contributionType">
+        <option value="">选择类型</option>
+        <option>武器</option><option>防具</option><option>鞋履</option><option>饰品</option><option>秘籍</option><option>丹药</option><option>材料</option><option>杂物</option><option>法宝</option><option>符箓</option><option>阵盘</option>
+      </select>
+      <select id="contributionQuality">
+        <option value="">选择品质</option>
+        <option>普通</option><option>精良</option><option>稀有</option><option>史诗</option><option>传说</option><option>绝世</option><option>神话</option>
+      </select>
+      <input id="contributorName" placeholder="贡献者称呼，可不填" />
+      <input id="contributorContact" placeholder="联系方式，可不填" />
+      <input id="contributionFile" type="file" accept="image/png,image/jpeg,image/webp" />
+      <textarea id="contributionNote" class="full" placeholder="备注，可写生成模型、提示词重点或为什么适合这个物品"></textarea>
+      <button id="submitContributionBtn" class="primary" type="button">提交贡献图片</button>
+      <span class="stat" id="contributionStat"></span>
+    </div>
+  </section>
   <div class="grid" id="grid"></div>
 </main>
 <div class="toast" id="toast"></div>
@@ -246,6 +290,10 @@ const source = document.getElementById('source');
 const stat = document.getElementById('stat');
 const toast = document.getElementById('toast');
 const submitBtn = document.getElementById('submitBtn');
+const toggleContributionBtn = document.getElementById('toggleContributionBtn');
+const contributionPanel = document.getElementById('contributionPanel');
+const submitContributionBtn = document.getElementById('submitContributionBtn');
+const contributionStat = document.getElementById('contributionStat');
 const tabWuxia = document.getElementById('tabWuxia');
 const tabXianxia = document.getElementById('tabXianxia');
 const viewer = document.getElementById('viewer');
@@ -259,6 +307,23 @@ function showToast(message) {
   toast.style.display = 'block';
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => { toast.style.display = 'none'; }, 5000);
+}
+function getContributionDeviceId() {
+  const key = 'msjh-item-preset-contribution-device-id';
+  let value = localStorage.getItem(key);
+  if (!value) {
+    value = (crypto.randomUUID && crypto.randomUUID()) || `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    localStorage.setItem(key, value);
+  }
+  return value;
+}
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('读取图片失败'));
+    reader.readAsDataURL(file);
+  });
 }
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -436,10 +501,61 @@ async function submitFeedback() {
     submitBtn.textContent = '提交反馈';
   }
 }
+async function submitContribution() {
+  const file = document.getElementById('contributionFile').files[0];
+  const itemName = document.getElementById('contributionName').value.trim();
+  const itemType = document.getElementById('contributionType').value;
+  const quality = document.getElementById('contributionQuality').value;
+  if (!itemName || !itemType || !quality || !file) {
+    showToast('请填写名称、类型、品质，并选择一张图片。');
+    return;
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    showToast('图片太大，请压缩到 8MB 以内。');
+    return;
+  }
+  submitContributionBtn.disabled = true;
+  submitContributionBtn.textContent = '提交中...';
+  contributionStat.textContent = '';
+  try {
+    const imageDataUrl = await readFileAsDataUrl(file);
+    const response = await fetch('/api/item-preset-contributions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        itemName,
+        itemType,
+        quality,
+        contributor: document.getElementById('contributorName').value.trim(),
+        contact: document.getElementById('contributorContact').value.trim(),
+        note: document.getElementById('contributionNote').value.trim(),
+        imageDataUrl,
+        deviceId: getContributionDeviceId(),
+        language: navigator.language
+      })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || '贡献提交失败');
+    const message = `贡献成功，编号：${result.id}\n今日剩余可贡献：${result.remainingToday}`;
+    contributionStat.textContent = message;
+    showToast(message);
+    document.getElementById('contributionFile').value = '';
+    document.getElementById('contributionNote').value = '';
+  } catch (error) {
+    showToast(error.message || '贡献提交失败，请稍后再试。');
+  } finally {
+    submitContributionBtn.disabled = false;
+    submitContributionBtn.textContent = '提交贡献图片';
+  }
+}
 [q, type, filter, source].forEach(node => node.addEventListener('input', render));
 tabWuxia.addEventListener('click', () => setCategory('武侠'));
 tabXianxia.addEventListener('click', () => setCategory('仙侠'));
 submitBtn.addEventListener('click', submitFeedback);
+toggleContributionBtn.addEventListener('click', () => {
+  contributionPanel.classList.toggle('open');
+});
+submitContributionBtn.addEventListener('click', submitContribution);
 document.getElementById('clearBtn').onclick = () => {
   if (confirm('确定清空当前浏览器里的标记？')) {
     marks = {};
