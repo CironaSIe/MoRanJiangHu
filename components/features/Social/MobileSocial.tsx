@@ -45,6 +45,16 @@ const 计算社交排序权重 = (npc: NPC结构): number => {
     return 2;
 };
 
+type 社交筛选键 = 'all' | 'major' | 'present' | 'female' | 'male';
+
+const 移动社交筛选项: Array<{ key: 社交筛选键; label: string }> = [
+    { key: 'all', label: '全部' },
+    { key: 'major', label: '主要' },
+    { key: 'present', label: '在场' },
+    { key: 'female', label: '女性' },
+    { key: 'male', label: '男性' }
+];
+
 const MobileSocial: React.FC<Props> = ({
     socialList,
     cultivationSystemEnabled = true,
@@ -69,21 +79,61 @@ const MobileSocial: React.FC<Props> = ({
     const [selectedId, setSelectedId] = useState<string | null>(
         sortedSocialList.length > 0 ? sortedSocialList[0].id : null
     );
+    const searchInputRef = React.useRef<HTMLInputElement | null>(null);
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [activeFilter, setActiveFilter] = useState<社交筛选键>('all');
     const 显示境界 = cultivationSystemEnabled !== false;
     const [香闺展示模式, set香闺展示模式] = useState<Record<string, 'text' | 'image'>>({});
     const [showFullBackground, setShowFullBackground] = useState<boolean>(false);
     const [imageViewer, setImageViewer] = useState<{ src: string; alt: string } | null>(null);
     const [imageViewerZoom, setImageViewerZoom] = useState(1);
 
+    const filteredSocialList = React.useMemo(() => {
+        const keyword = searchKeyword.trim().toLowerCase();
+        return sortedSocialList.filter((npc) => {
+            const filterMatched = (() => {
+                switch (activeFilter) {
+                    case 'major':
+                        return Boolean(npc.是否主要角色);
+                    case 'present':
+                        return Boolean(npc.是否在场);
+                    case 'female':
+                        return npc.性别 === '女';
+                    case 'male':
+                        return npc.性别 === '男';
+                    case 'all':
+                    default:
+                        return true;
+                }
+            })();
+            if (!filterMatched) return false;
+            if (!keyword) return true;
+            const haystack = [
+                npc.姓名,
+                npc.身份,
+                npc.关系状态,
+                npc.境界,
+                npc.对主角称呼,
+                (npc as any).对主角称呼,
+                npc.当前位置,
+                npc.当前地点
+            ]
+                .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+                .join(' ')
+                .toLowerCase();
+            return haystack.includes(keyword);
+        });
+    }, [activeFilter, searchKeyword, sortedSocialList]);
+
     useEffect(() => {
-        if (sortedSocialList.length === 0) {
+        if (filteredSocialList.length === 0) {
             setSelectedId(null);
             return;
         }
-        if (!selectedId || !sortedSocialList.some(item => item.id === selectedId)) {
-            setSelectedId(sortedSocialList[0].id);
+        if (!selectedId || !filteredSocialList.some(item => item.id === selectedId)) {
+            setSelectedId(filteredSocialList[0].id);
         }
-    }, [selectedId, sortedSocialList]);
+    }, [filteredSocialList, selectedId]);
 
     useEffect(() => {
         if (!selectedNpcId) return;
@@ -286,7 +336,7 @@ const MobileSocial: React.FC<Props> = ({
 
     const 当前头像 = 提取头像图片地址(currentNPC);
     const 当前立绘 = 提取立绘图片地址(currentNPC);
-    const 当前详情主图 = 当前头像 || 当前立绘;
+    const 当前详情主图 = 当前立绘 || 当前头像;
     const 当前背景 = 提取背景图片地址(currentNPC) || 当前立绘 || 当前头像;
     const 打开图片查看器 = (src?: string, alt?: string) => {
         const normalizedSrc = typeof src === 'string' ? src.trim() : '';
@@ -341,43 +391,108 @@ const MobileSocial: React.FC<Props> = ({
         </div>
     );
     const 在场切换文案 = currentNPC
-        ? (当前角色已死亡 ? '已故不可调度' : currentNPC.是否在场 ? '设为离场' : '设为在场')
-        : '开关在场';
+        ? (当前角色已死亡 ? '已故不可调度' : currentNPC.是否在场 ? '暂时离场' : '召回到场')
+        : '调度状态';
+    const 当前状态文案 = currentNPC
+        ? (当前角色已死亡 ? '已故' : currentNPC.是否在场 ? '在场中' : '暂未在场')
+        : '暂无记录';
+    const 当前称呼文案 = currentNPC ? (读取对主角称呼(currentNPC) || '暂无记录') : '暂无记录';
+    const 当前生日文案 = currentNPC ? (读取生日(currentNPC) || '暂无记录') : '暂无记录';
+    const 当前主题 = typeof document !== 'undefined' ? document.documentElement.dataset.theme || '' : '';
+    const 当前是白天主题 = 当前主题 === 'day';
+    const 右侧信息卡样式: React.CSSProperties = {
+        background: 当前是白天主题 ? '#fffdf7' : 'rgba(18, 13, 9, 0.92)',
+        backgroundImage: 'none'
+    };
+    const 右侧首卡样式: React.CSSProperties = {
+        background: 当前是白天主题 ? '#fffdf7' : 'rgba(18, 13, 9, 0.92)',
+        backgroundImage: 'none',
+        borderColor: 当前是白天主题 ? 'rgba(181, 130, 66, 0.32)' : undefined
+    };
+    const 标题文字样式: React.CSSProperties = {
+        color: 当前是白天主题 ? '#7a4a18' : 'rgb(var(--c-wuxia-gold))',
+        textShadow: 'none',
+        filter: 'none'
+    };
 
     return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[200] flex items-center justify-center p-0 sm:p-4 md:hidden animate-fadeIn">
             <div className="bg-ink-black/95 w-full h-full sm:h-[90vh] sm:rounded-2xl border-0 sm:border border-wuxia-gold/20 shadow-[0_0_80px_rgba(0,0,0,0.9)] shadow-wuxia-gold/10 flex flex-col relative overflow-hidden">
                 
                 {/* Header */}
-                <div className="h-14 shrink-0 border-b border-white/10 bg-gradient-to-r from-black/80 to-black/40 flex items-center justify-between px-4 relative z-[100]">
-                    <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-wuxia-gold animate-pulse shadow-[0_0_10px_rgba(212,175,55,0.8)]"></div>
-                        <h3 className="text-wuxia-gold font-serif font-bold text-lg tracking-[0.2em] drop-shadow-md">江湖谱<span className="text-[8px] text-wuxia-gold/50 ml-1.5 font-mono tracking-widest border border-wuxia-gold/20 px-1 py-0.5 rounded-full">SOCIAL</span></h3>
+                <div className="h-16 shrink-0 border-b border-white/10 bg-gradient-to-r from-black/80 to-black/40 flex items-center justify-between px-4 relative z-[100]">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-wuxia-gold/25 bg-black/35 px-3 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
+                        <div className="w-2 h-2 rounded-full bg-wuxia-gold animate-pulse shadow-[0_0_10px_rgba(212,175,55,0.8)]"></div>
+                        <h3 className="text-wuxia-gold font-serif font-bold text-lg tracking-[0.12em] drop-shadow-md">江湖谱</h3>
+                        <span className="text-[9px] text-wuxia-gold/70 font-mono tracking-[0.22em] border border-wuxia-gold/20 px-2 py-0.5 rounded-full">卷宗</span>
                     </div>
                     <button 
                         onClick={onClose}
-                        className="w-7 h-7 flex items-center justify-center rounded-full bg-black/50 border border-gray-700 text-gray-400 active:text-red-400 active:border-red-400 active:bg-red-400/10 transition-all active:rotate-90"
+                        className="min-w-[3rem] h-12 px-3 inline-flex items-center justify-center rounded-[1.15rem] bg-black/55 border border-wuxia-gold/20 text-wuxia-gold/85 active:border-wuxia-gold/50 active:bg-wuxia-gold/10 transition-all"
                         title="关闭"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        <span className="text-base font-serif font-bold tracking-[0.2em]">返</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 ml-1">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                         </svg>
                     </button>
                 </div>
 
                 <div className="social-modal-body flex-1 flex flex-col overflow-hidden relative z-0">
-                    {/* Top: Horizontal Party Selection */}
-                    <div className="h-[100px] shrink-0 border-b border-white/5 bg-gradient-to-b from-black/80 to-black/90 relative z-[90] pt-1 pb-2 shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
-                        <div className="text-[9px] text-wuxia-gold/50 tracking-[0.2em] uppercase mb-1 px-3 flex items-center justify-between">
+                    <div className="shrink-0 border-b border-white/5 bg-gradient-to-b from-black/80 to-black/90 relative z-[90] px-3 pt-3 pb-4 shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+                        <div className="mb-3 flex items-center justify-between text-[10px] text-wuxia-gold/65 tracking-[0.22em]">
                             <div className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded bg-wuxia-gold/30 rotate-45"></span>
-                                Roster
+                                <span className="w-2 h-2 rounded-full border border-wuxia-gold/45 bg-black/50"></span>
+                                名册
                             </div>
-                            <span className="text-[9px] text-wuxia-cyan/80 bg-wuxia-cyan/10 px-1.5 py-0.5 rounded border border-wuxia-cyan/30">{sortedSocialList.length} 人</span>
+                            <span className="rounded-xl border border-wuxia-gold/25 bg-black/45 px-3 py-1 text-wuxia-gold/80 font-mono">
+                                {filteredSocialList.length}/{sortedSocialList.length}
+                            </span>
                         </div>
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar px-3 pb-2 h-full items-center">
-                            {sortedSocialList.map(npc => {
+                        <div className="mb-3 flex items-center gap-2 rounded-[1.45rem] border border-wuxia-gold/18 bg-black/35 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 shrink-0 text-wuxia-gold/60">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.4a7.25 7.25 0 1 1-14.5 0 7.25 7.25 0 0 1 14.5 0Z" />
+                            </svg>
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                value={searchKeyword}
+                                onChange={(event) => setSearchKeyword(event.target.value)}
+                                placeholder="搜索人物..."
+                                className="min-w-0 flex-1 bg-transparent text-sm text-gray-200 outline-none placeholder:text-gray-500"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    searchInputRef.current?.focus();
+                                    searchInputRef.current?.select();
+                                }}
+                                className="shrink-0 rounded-full border border-wuxia-gold/18 bg-black/45 px-3 py-1 text-[10px] tracking-[0.18em] text-wuxia-gold/75 transition-colors active:bg-wuxia-gold/10"
+                            >
+                                寻人
+                            </button>
+                        </div>
+                        <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar">
+                            {移动社交筛选项.map((filter) => (
+                                <button
+                                    key={filter.key}
+                                    type="button"
+                                    onClick={() => setActiveFilter(filter.key)}
+                                    className={`shrink-0 rounded-full border px-3 py-1.5 text-[10px] tracking-[0.18em] transition-all ${
+                                        activeFilter === filter.key
+                                            ? 'border-wuxia-gold/50 bg-wuxia-gold/10 text-wuxia-gold shadow-[0_0_14px_rgba(212,175,55,0.15)]'
+                                            : 'border-white/10 bg-black/35 text-gray-300'
+                                    }`}
+                                >
+                                    <span className="mr-1 text-wuxia-gold/60">●</span>
+                                    {filter.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+                            {filteredSocialList.map(npc => {
                                 const npcDead = NPC是否死亡(npc);
+                                const rosterMainImage = 提取头像图片地址(npc) || 提取立绘图片地址(npc);
                                 return (
                                 <button
                                     key={npc.id}
@@ -385,31 +500,31 @@ const MobileSocial: React.FC<Props> = ({
                                         setSelectedId(npc.id);
                                         onSelectedNpcIdChange?.(npc.id);
                                     }}
-                                    className={`w-[140px] shrink-0 p-1.5 rounded-xl transition-all relative group overflow-hidden flex items-center gap-2 ${
+                                    className={`w-[16rem] h-[10.2rem] shrink-0 snap-start rounded-[1.6rem] border p-2.5 transition-all relative group overflow-hidden text-left ${
                                         selectedId === npc.id 
-                                        ? 'bg-gradient-to-r from-wuxia-gold/20 to-wuxia-gold/5 border border-wuxia-gold/40 shadow-[0_0_15px_rgba(212,175,55,0.15)]' 
-                                        : 'border border-transparent bg-white/[0.03] active:bg-white/[0.05]'
+                                        ? 'border-wuxia-gold/40 bg-[linear-gradient(135deg,rgba(212,175,55,0.16),rgba(0,0,0,0.22)_45%,rgba(255,255,255,0.02))] shadow-[0_0_18px_rgba(212,175,55,0.12)]'
+                                        : 'border-white/10 bg-white/[0.03] active:bg-white/[0.05]'
                                     }`}
                                 >
                                     {selectedId === npc.id && (
-                                        <div className="absolute top-0 bottom-0 left-0 w-0.5 bg-wuxia-gold shadow-[0_0_10px_rgba(212,175,55,0.8)] z-10"></div>
+                                        <div className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-wuxia-gold shadow-[0_0_10px_rgba(212,175,55,0.8)] z-10"></div>
                                     )}
-                                    
-                                    <div className={`relative w-10 h-10 shrink-0 rounded-lg overflow-hidden border bg-black/50 ${npcDead ? 'border-gray-500/50' : 'border-white/10'}`}>
-                                        {提取头像图片地址(npc) ? (
+                                    <div className="flex h-full items-stretch gap-3">
+                                        <div className={`relative h-full w-[7rem] shrink-0 self-stretch rounded-[1.35rem] overflow-hidden border bg-black/50 shadow-[0_12px_28px_rgba(0,0,0,0.32)] ${npcDead ? 'border-gray-500/50' : 'border-white/10'}`}>
+                                        {rosterMainImage ? (
                                             <button
                                                 type="button"
                                                 className="block h-full w-full"
                                                 title="查看头像"
                                                 onClick={(event) => {
                                                     event.stopPropagation();
-                                                    打开图片查看器(提取头像图片地址(npc), `${npc.姓名} 头像`);
+                                                    打开图片查看器(rosterMainImage, `${npc.姓名} 头像`);
                                                 }}
                                             >
-                                                <img src={提取头像图片地址(npc)} alt={npc.姓名} className={`w-full h-full object-cover ${npcDead ? 'grayscale opacity-60' : ''}`} />
+                                                <img src={rosterMainImage} alt={npc.姓名} className={`w-full h-full object-cover ${npcDead ? 'grayscale opacity-60' : ''}`} />
                                             </button>
                                         ) : (
-                                            <div className={`w-full h-full flex items-center justify-center font-serif font-bold text-sm ${npcDead ? 'text-gray-500/60 grayscale' : 是女性角色(npc) ? 'text-pink-500/50' : 'text-blue-500/50'}`}>
+                                            <div className={`w-full h-full flex items-center justify-center font-serif font-bold text-3xl ${npcDead ? 'text-gray-500/60 grayscale' : 是女性角色(npc) ? 'text-pink-500/50' : 'text-blue-500/50'}`}>
                                                 {npc.姓名[0]}
                                             </div>
                                         )}
@@ -419,36 +534,55 @@ const MobileSocial: React.FC<Props> = ({
                                             </div>
                                         )}
                                     </div>
-
-                                    <div className="flex-1 min-w-0 text-left">
-                                        <div className={`font-serif font-bold text-sm truncate ${selectedId === npc.id ? 'text-wuxia-gold drop-shadow-sm' : 'text-gray-200'}`}>
+                                    <div className="min-w-0 flex-1 flex flex-col py-1">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className={`min-w-0 font-serif font-bold text-[1.12rem] leading-[1.1] truncate ${selectedId === npc.id ? 'text-wuxia-gold drop-shadow-sm' : 'text-gray-100'}`}>
                                             {npc.姓名}
                                         </div>
-                                        <div className="flex items-center mt-0.5 gap-2">
+                                            <div className="shrink-0 rounded-full border border-pink-500/25 bg-pink-500/8 px-2 py-0.5 text-[10px] leading-none font-mono text-pink-300/90">
+                                                <span className="inline-flex items-center gap-1"><IconHeart size={10} />{npc.好感度}</span>
+                                            </div>
+                                        </div>
+                                        <div className="mt-1.5 flex flex-wrap gap-1.5">
                                             {显示境界 && npc.境界 && (
-                                                <div className="text-[9px] text-gray-500 truncate flex-1">
+                                                <div className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5 text-[10px] text-gray-300 truncate">
                                                     {npc.境界}
                                                 </div>
                                             )}
-                                            <div className={`text-[9px] font-mono text-wuxia-red drop-shadow-[0_0_5px_rgba(220,38,38,0.3)] inline-flex items-center gap-1 ${显示境界 && npc.境界 ? 'shrink-0 ml-1' : 'ml-auto'}`}>
-                                                <IconHeart size={10} /> {npc.好感度}
+                                            <div className={`rounded-full border px-2 py-0.5 text-[10px] ${
+                                                npcDead
+                                                    ? 'border-gray-500/30 text-gray-400'
+                                                    : npc.是否在场
+                                                        ? 'border-emerald-500/30 text-emerald-300'
+                                                        : 'border-white/10 text-gray-400'
+                                            }`}>
+                                                {npcDead ? '已故' : npc.是否在场 ? '在场' : '离场'}
                                             </div>
+                                            {npc.是否主要角色 && (
+                                                <div className="rounded-full border border-wuxia-gold/35 bg-wuxia-gold/10 px-2 py-0.5 text-[10px] text-wuxia-gold">
+                                                    要角
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="text-[9px] text-pink-400/80 mt-0.5 truncate max-w-full">
+                                        <div className="mt-1.5 text-[10px] leading-none text-pink-300/85 truncate">
                                             {npc.关系状态 || '萍水相逢'}
                                         </div>
-                                    </div>
-                                    {npc.是否主要角色 && (
-                                        <div className="absolute top-0 right-0 w-0 h-0 border-t-[20px] border-t-wuxia-gold/60 border-l-[20px] border-l-transparent select-none shadow-[0_0_5px_rgba(212,175,55,0.5)]">
-                                            <span className="absolute -top-[18px] -left-[9px] text-[7px] font-bold text-black rotate-45 transform origin-center font-serif leading-none shadow-sm">主</span>
+                                        <div className="mt-auto flex items-center justify-between gap-2 pt-1.5">
+                                            <div className="text-[10px] text-gray-400 truncate">
+                                                {npc.身份 || '江湖散人'}
+                                            </div>
+                                            <div className="text-[10px] text-wuxia-gold/70">
+                                                {npc.是否在场 ? '在录' : '待录'}
+                                            </div>
                                         </div>
-                                    )}
+                                    </div>
+                                    </div>
                                 </button>
                             );})}
-                            {sortedSocialList.length === 0 && (
-                                 <div className="text-center text-gray-600 text-xs w-full py-4 font-serif flex flex-col items-center gap-1">
+                            {filteredSocialList.length === 0 && (
+                                 <div className="w-full rounded-[1.5rem] border border-dashed border-white/10 bg-black/20 py-8 text-center text-gray-500 text-xs font-serif flex flex-col items-center gap-2">
                                     <IconBeads size={20} className="opacity-50" />
-                                    暂无结识之人
+                                    {sortedSocialList.length > 0 ? '没有符合筛选的人物' : '暂无结识之人'}
                                  </div>
                             )}
                         </div>
@@ -467,7 +601,10 @@ const MobileSocial: React.FC<Props> = ({
                                     }}
                                     onClick={() => 打开图片查看器(当前背景, `${currentNPC?.姓名 || '角色'} 背景`)}
                                 >
-                                    <div className="social-background-image-dim absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/20 pointer-events-none"></div>
+                                    <div
+                                        className="social-background-image-dim absolute inset-0 pointer-events-none"
+                                        style={{ backgroundImage: 'linear-gradient(to top, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.18))' }}
+                                    ></div>
                                 </div>
                             ) : (
                                 <div className="w-full h-full bg-ink-wash/5 bg-cover bg-center opacity-70"></div>
@@ -483,7 +620,7 @@ const MobileSocial: React.FC<Props> = ({
                                 {(当前背景 || 当前详情主图) && (
                                     <button 
                                         onClick={() => setShowFullBackground(!showFullBackground)}
-                                        className="w-full py-2 bg-gradient-to-r from-transparent via-wuxia-gold/10 to-transparent border-y border-wuxia-gold/20 flex items-center justify-center gap-2 text-[10px] text-wuxia-gold/70 tracking-widest font-serif active:bg-wuxia-gold/20 transition-all mb-2"
+                                        className="w-full py-1.5 bg-gradient-to-r from-transparent via-wuxia-gold/10 to-transparent border-y border-wuxia-gold/20 flex items-center justify-center gap-2 text-[10px] text-wuxia-gold/70 tracking-widest font-serif active:bg-wuxia-gold/20 transition-all mb-2"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-3 h-3 transition-transform duration-300 ${showFullBackground ? 'rotate-180' : ''}`}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -496,78 +633,47 @@ const MobileSocial: React.FC<Props> = ({
                                 )}
 
                                 {/* Dossier Hero Card */}
-                                <div className="relative overflow-hidden rounded-[1.35rem] border border-wuxia-gold/20 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.14),transparent_34%),linear-gradient(180deg,rgba(31,22,15,0.96),rgba(13,10,8,0.98))] p-3.5 flex flex-col shadow-[0_14px_34px_rgba(0,0,0,0.5)] origin-top animate-fadeIn">
+                                <div className="relative overflow-hidden rounded-[1.7rem] border border-wuxia-gold/20 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.14),transparent_34%),linear-gradient(180deg,rgba(31,22,15,0.96),rgba(13,10,8,0.98))] p-4 shadow-[0_14px_34px_rgba(0,0,0,0.5)] origin-top animate-fadeIn">
                                     <div className="absolute inset-0 bg-[linear-gradient(125deg,rgba(255,255,255,0.025),transparent_28%,transparent_72%,rgba(212,175,55,0.05))] pointer-events-none"></div>
-                                    
-                                    <div className="flex gap-4 relative z-10 items-start">
-                                        {/* Portrait Thumbnail */}
-                                        <button
-                                            type="button"
-                                            className="w-24 h-32 rounded-[1.05rem] border border-wuxia-gold/30 overflow-hidden relative shadow-[0_0_18px_rgba(212,175,55,0.16)] bg-black/55 shrink-0"
-                                            onClick={() => 打开图片查看器(当前详情主图, `${currentNPC.姓名}${当前立绘 ? ' 立绘' : ' 头像'}`)}
-                                            title={当前详情主图 ? '点击查看图片大图' : ''}
-                                        >
-                                            {当前详情主图 ? (
-                                                <>
-                                                    <img src={当前详情主图} alt={currentNPC.姓名} className={`w-full h-full object-cover object-top ${当前角色已死亡 ? 'grayscale opacity-65' : ''}`} />
-                                                    {当前角色已死亡 && (
-                                                        <div className="absolute inset-x-0 bottom-0 bg-black/70 py-0.5 text-center text-[10px] tracking-[0.25em] text-gray-200">
-                                                            已故
-                                                        </div>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center font-serif text-2xl text-wuxia-gold/30">{currentNPC.姓名[0]}</div>
-                                            )}
-                                        </button>
-                                        
-                                        <div className="flex-1 flex flex-col min-w-0">
-                                            <div className="flex items-end justify-between gap-2 mb-1">
-                                                <h2 className="text-2xl font-black font-serif text-wuxia-gold drop-shadow-[0_0_8px_rgba(212,175,55,0.4)] tracking-wider truncate">{currentNPC.姓名}</h2>
-                                                <div className="text-right shrink-0 flex flex-col items-end">
-                                                    <div className="text-xl font-serif text-wuxia-red drop-shadow-[0_0_10px_rgba(220,38,38,0.5)] font-bold flex items-center gap-1">
-                                                        <IconHeart size={14} />{currentNPC.好感度}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="text-[10px] text-wuxia-gold/80 tracking-widest uppercase mb-2 bg-black/40 px-2 py-0.5 rounded border border-wuxia-gold/20 shadow-inner w-fit font-bold">
-                                                {currentNPC.关系状态}
-                                            </div>
-
-                                            <div className="flex flex-wrap gap-1.5 mb-2">
-                                                <span className={`text-[9px] px-1.5 py-0.5 rounded border border-white/10 font-serif tracking-widest ${当前角色是女性 ? 'bg-pink-900/20 text-pink-300' : 'bg-blue-900/20 text-blue-300'}`}>
-                                                    {currentNPC.性别} | {currentNPC.年龄}岁
-                                                </span>
-                                                {显示境界 && currentNPC.境界 && (
-                                                    <span className="text-[9px] bg-black/60 border border-wuxia-gold/20 px-1.5 py-0.5 rounded text-wuxia-gold/80 shadow-inner">LV.{currentNPC.境界}</span>
+                                    <div className="relative z-10 grid grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] gap-3 items-start">
+                                        <div className="flex min-w-0 flex-col gap-2.5">
+                                            <button
+                                                type="button"
+                                                className="relative w-full overflow-hidden rounded-[1.35rem] border border-wuxia-gold/25 bg-black/55 shadow-[0_18px_30px_rgba(0,0,0,0.42)] aspect-[3/4]"
+                                                onClick={() => 打开图片查看器(当前详情主图, `${currentNPC.姓名}${当前立绘 ? ' 立绘' : ' 头像'}`)}
+                                                title={当前详情主图 ? '点击查看图片大图' : ''}
+                                            >
+                                                {当前详情主图 ? (
+                                                    <>
+                                                        <img src={当前详情主图} alt={currentNPC.姓名} className={`absolute inset-0 h-full w-full object-cover object-top ${当前角色已死亡 ? 'grayscale opacity-65' : ''}`} />
+                                                        <div
+                                                            className="absolute inset-0 pointer-events-none"
+                                                            style={{ backgroundImage: 'linear-gradient(to top, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0))' }}
+                                                        ></div>
+                                                        {当前角色已死亡 && (
+                                                            <div className="absolute inset-x-0 bottom-0 bg-black/70 py-1 text-center text-[10px] tracking-[0.25em] text-gray-200">
+                                                                已故
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <div className="flex h-full w-full items-center justify-center font-serif text-5xl text-wuxia-gold/30">{currentNPC.姓名[0]}</div>
                                                 )}
-                                                <span className="text-[9px] bg-black/60 border border-white/10 px-1.5 py-0.5 rounded text-gray-300">{currentNPC.身份}</span>
-                                                <span className={`text-[9px] px-1.5 py-0.5 flex items-center gap-1 rounded border border-white/10 bg-black/60 ${当前角色已死亡 ? 'text-gray-300' : currentNPC.是否在场 ? 'text-emerald-400' : 'text-gray-500'}`}>
-                                                    <span className={`w-1 h-1 rounded-full ${当前角色已死亡 ? 'bg-gray-400' : currentNPC.是否在场 ? 'bg-emerald-400 animate-pulse' : 'bg-gray-600'}`}></span>
-                                                    {当前角色已死亡 ? '已故' : currentNPC.是否在场 ? '在场' : '离场'}
-                                                </span>
-                                                {currentNPC.是否队友 && (
-                                                    <span className="text-[9px] bg-wuxia-gold/10 border border-wuxia-gold/30 px-1.5 py-0.5 rounded text-wuxia-gold flex items-center gap-0.5 shadow-[0_0_8px_rgba(212,175,55,0.2)]">
-                                                        队友
-                                                    </span>
-                                                )}
-                                            </div>
-                                            
-                                            <div className="flex flex-wrap gap-1.5 mt-auto">
+                                            </button>
+                                            <div className="space-y-2">
                                                 <button
                                                     type="button"
                                                     onClick={() => 切换在场状态(currentNPC)}
                                                     disabled={当前角色已死亡}
-                                                    className={`inline-flex items-center gap-1 px-2 py-1 rounded border transition-all text-[9px] ${
+                                                    className={`flex h-[3rem] w-full items-center justify-center gap-2 rounded-[1.35rem] border px-4 text-sm font-serif tracking-[0.04em] transition-all ${
                                                         当前角色已死亡
                                                             ? 'cursor-not-allowed border-gray-800 bg-black/45 text-gray-600'
                                                             : currentNPC.是否在场
-                                                                ? 'border-emerald-900/50 bg-emerald-950/20 text-emerald-200 active:bg-emerald-900/30'
-                                                                : 'border-white/10 bg-black/50 text-gray-300 active:bg-emerald-500/10 active:border-emerald-500/30 active:text-emerald-400'
+                                                                ? 'border-emerald-900/50 bg-emerald-950/20 text-emerald-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:bg-emerald-900/30'
+                                                                : 'border-white/10 bg-black/50 text-gray-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:bg-emerald-500/10 active:border-emerald-500/30 active:text-emerald-300'
                                                     }`}
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-2.5 h-2.5">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor" className="w-4 h-4">
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                                                     </svg>
@@ -576,11 +682,13 @@ const MobileSocial: React.FC<Props> = ({
                                                 <button
                                                     type="button"
                                                     onClick={() => 切换重要角色状态(currentNPC)}
-                                                    className={`inline-flex items-center gap-1 px-2 py-1 rounded bg-black/50 border transition-all text-[9px] ${
-                                                        currentNPC.是否主要角色 ? 'border-wuxia-gold/50 text-wuxia-gold bg-wuxia-gold/10' : 'border-white/10 text-gray-300'
+                                                    className={`flex h-[3rem] w-full items-center justify-center gap-2 rounded-[1.35rem] border px-4 text-sm font-serif tracking-[0.04em] transition-all ${
+                                                        currentNPC.是否主要角色
+                                                            ? 'border-wuxia-gold/50 bg-wuxia-gold/10 text-wuxia-gold shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
+                                                            : 'border-white/10 bg-black/50 text-gray-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
                                                     }`}
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-2.5 h-2.5">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                                                         <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
                                                     </svg>
                                                     {currentNPC.是否主要角色 ? '已设重要' : '设为重要'}
@@ -589,14 +697,60 @@ const MobileSocial: React.FC<Props> = ({
                                                     type="button"
                                                     onClick={() => 删除角色(currentNPC)}
                                                     disabled={Boolean(currentNPC.是否主要角色)}
-                                                    className={`inline-flex items-center gap-1 px-2 py-1 rounded border transition-colors text-[9px] ${
+                                                    className={`flex h-[3rem] w-full items-center justify-center rounded-[1.35rem] border px-4 text-sm font-serif tracking-[0.04em] transition-colors ${
                                                         currentNPC.是否主要角色
                                                             ? 'border-gray-800 text-gray-700 cursor-not-allowed bg-black/50'
-                                                            : 'border-red-900/40 text-red-500/80 active:border-red-500 active:text-red-400 active:bg-red-500/10'
+                                                            : 'border-white/30 bg-black/35 text-gray-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:border-red-500 active:text-red-400 active:bg-red-500/10'
                                                     }`}
                                                 >
                                                     忘却此人
                                                 </button>
+                                            </div>
+                                        </div>
+                                        <div className="min-w-0 space-y-2.5">
+                                            <div className="rounded-[1.35rem] border border-wuxia-gold/18 p-3.5" style={右侧首卡样式}>
+                                                <div className="min-w-0 w-full">
+                                                    <h2 className="truncate font-serif text-[2.05rem] font-black leading-none tracking-[0.06em]" style={标题文字样式}>
+                                                        {currentNPC.姓名}
+                                                    </h2>
+                                                </div>
+                                                <div className="mt-2.5 flex items-start justify-between gap-2">
+                                                    <div className="inline-flex w-fit whitespace-nowrap items-center rounded-lg border border-wuxia-gold/20 bg-black/35 px-2.5 py-1 text-[11px] font-bold leading-none text-wuxia-gold/90">
+                                                        {currentNPC.关系状态 || '萍水相逢'}
+                                                    </div>
+                                                    <div className="shrink-0 rounded-2xl border border-pink-500/25 bg-pink-500/8 px-2.5 py-1.5 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                                                        <div className="inline-flex items-center gap-1 text-[11px] text-pink-300/80">
+                                                            <IconHeart size={12} />
+                                                            <span className="font-serif text-[1.2rem] font-bold text-pink-200">{currentNPC.好感度}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-1.5 flex flex-wrap gap-2">
+                                                    <span className={`rounded-lg border px-2.5 py-1 text-[11px] leading-none ${当前角色是女性 ? 'border-pink-500/25 bg-pink-500/8 text-pink-300' : 'border-blue-500/25 bg-blue-500/8 text-blue-300'}`}>
+                                                        {currentNPC.性别} | {currentNPC.年龄}岁
+                                                    </span>
+                                                    {显示境界 && currentNPC.境界 && (
+                                                        <span className="rounded-lg border border-wuxia-gold/20 bg-black/35 px-2.5 py-1 text-[11px] leading-none text-wuxia-gold/90">
+                                                            LV.{currentNPC.境界}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="rounded-[1.35rem] border border-white/10 p-3.5" style={右侧信息卡样式}>
+                                                <div className="mb-1.5 text-[10px] tracking-[0.18em] text-gray-500">身份</div>
+                                                <div className="text-[1.32rem] font-serif leading-tight text-gray-100">{currentNPC.身份 || '暂无记录'}</div>
+                                            </div>
+                                            <div className="rounded-[1.35rem] border border-white/10 p-3.5" style={右侧信息卡样式}>
+                                                <div className="mb-1.5 text-[10px] tracking-[0.18em] text-gray-500">状态</div>
+                                                <div className="text-[1.32rem] font-serif leading-tight text-gray-100">{当前状态文案}</div>
+                                            </div>
+                                            <div className="rounded-[1.35rem] border border-white/10 p-3.5" style={右侧信息卡样式}>
+                                                <div className="mb-1.5 text-[10px] tracking-[0.18em] text-gray-500">称呼</div>
+                                                <div className="text-[1.32rem] font-serif leading-tight text-gray-100">{当前称呼文案}</div>
+                                            </div>
+                                            <div className="rounded-[1.35rem] border border-white/10 p-3.5" style={右侧信息卡样式}>
+                                                <div className="mb-1.5 text-[10px] tracking-[0.18em] text-gray-500">生日</div>
+                                                <div className="text-[1.32rem] font-serif leading-tight text-gray-100">{当前生日文案}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -607,7 +761,7 @@ const MobileSocial: React.FC<Props> = ({
                                     <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full filter blur-xl pointer-events-none"></div>
                                     <h4 className="flex items-center gap-1.5 text-wuxia-gold/80 font-serif font-bold mb-2 uppercase tracking-[0.2em] text-xs">
                                         <span className="w-1.5 h-1.5 rotate-45 bg-wuxia-gold/50"></span>
-                                        人物生平
+                                        人设档案
                                     </h4>
                                     <p className="text-gray-300 font-serif leading-relaxed text-xs relative z-10">
                                         {currentNPC.简介 || "暂无详细生平记录。"}
