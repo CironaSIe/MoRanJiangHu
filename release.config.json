@@ -1,15 +1,14 @@
 {
-  "versionCode": 265,
-  "versionName": "1.0.264",
+  "versionCode": 266,
+  "versionName": "1.0.265",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复手机版打开功法页面时，部分旧存档或缺少附带效果字段的功法会导致界面加载失败的问题。",
-    "优化云端游玩入口：已选择 TG 图床或对象存储后，下次进入会默认沿用当前模式，并可随时切换。",
-    "云端游玩保存页会明确提示当前模式，保存会同时写入本地和云端。",
-    "TG 图床上传增加自动重试和更详细的进度显示，网络波动时会提示当前阶段、文件大小和重试次数。",
-    "TG 图床上传或刷新失败时，会保留上次成功读取的云端存档列表，不再让用户误以为云端存档消失。",
+    "修复 TG 图床云端游玩界面在刷新或下载过程中把其它存档按钮全部置灰的问题。",
+    "TG 图床云端存档新增差分包机制：后续存档会优先基于上一份云端存档保存变化内容，减少单次上传体积。",
+    "TG 图床下载失败时提示更明确，避免只显示 HTTP 500 而不知道是图床链路波动。",
+    "保留旧版整包云端存档兼容性，已有云端存档仍可继续读取。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.264。"
+    "同步更新 Web、APK 与更新清单到 v1.0.265。"
   ],
   "releaseHistory": [
     {
@@ -2711,7 +2710,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-21T08:03:24+08:00",
+  "releasePublishedAt": "2026-05-21T08:13:29+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

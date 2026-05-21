@@ -362,7 +362,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                             <button type="button" onClick={handleAcceptRisk} className="border border-amber-300/50 bg-amber-500/15 px-4 py-2 text-sm font-bold text-amber-100 hover:bg-amber-500/25">
                                 我已了解风险
                             </button>
-                            <button type="button" disabled={disabled} onClick={() => { void handleUseObjectStorage(); }} className="border border-sky-300/50 bg-sky-500/15 px-4 py-2 text-sm font-bold text-sky-100 hover:bg-sky-500/25 disabled:opacity-50">
+                            <button type="button" disabled={busy === 'object-storage-check'} onClick={() => { void handleUseObjectStorage(); }} className="border border-sky-300/50 bg-sky-500/15 px-4 py-2 text-sm font-bold text-sky-100 hover:bg-sky-500/25 disabled:opacity-50">
                                 {busy === 'object-storage-check' ? '检查中...' : '我不用TG图床存储，我要用自己的对象存储'}
                             </button>
                         </div>
@@ -375,16 +375,16 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                                 <div className="mt-1 text-xs text-sky-100/60">{objectStorageConfig?.bucket || '未配置'} · {objectStorageConfig?.prefix || 'MoRanJiangHu'}</div>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                                <button type="button" disabled={disabled} onClick={() => { void handleRefreshObjectStorage(); }} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
+                                <button type="button" disabled={busy === 'object-refresh'} onClick={() => { void handleRefreshObjectStorage(); }} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
                                     刷新云存档
                                 </button>
-                                <button type="button" disabled={disabled} onClick={() => { void handleCopyLocalToObjectStorage(); }} className="border border-emerald-400/35 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
+                                <button type="button" disabled={busy === 'object-copy'} onClick={() => { void handleCopyLocalToObjectStorage(); }} className="border border-emerald-400/35 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
                                     本地一键复制到对象存储
                                 </button>
-                                <button type="button" disabled={disabled} onClick={() => { 清除对象存储云端游玩模式(); onConfigureObjectStorage?.(); }} className="border border-gray-500/40 px-3 py-2 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-50">
+                                <button type="button" disabled={busy === 'object-storage-check'} onClick={() => { 清除对象存储云端游玩模式(); onConfigureObjectStorage?.(); }} className="border border-gray-500/40 px-3 py-2 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-50">
                                     修改对象存储配置
                                 </button>
-                                <button type="button" disabled={disabled} onClick={handleUseTgStorage} className="border border-amber-400/35 px-3 py-2 text-xs text-amber-100 hover:bg-amber-500/10 disabled:opacity-50">
+                                <button type="button" disabled={busy === 'object-storage-check'} onClick={handleUseTgStorage} className="border border-amber-400/35 px-3 py-2 text-xs text-amber-100 hover:bg-amber-500/10 disabled:opacity-50">
                                     切换到TG图床
                                 </button>
                             </div>
@@ -409,13 +409,13 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
-                                                <button type="button" disabled={disabled} onClick={() => { void handleLoadObjectStorageSave(item); }} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs text-wuxia-gold hover:bg-wuxia-gold/20 disabled:opacity-50">
+                                                <button type="button" disabled={busy === `object-load:${item.id}`} onClick={() => { void handleLoadObjectStorageSave(item); }} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs text-wuxia-gold hover:bg-wuxia-gold/20 disabled:opacity-50">
                                                     {busy === `object-load:${item.id}` ? '读取中...' : '选择游玩'}
                                                 </button>
-                                                <button type="button" disabled={disabled} onClick={() => { void handleImportObjectStorageSave(item); }} className="border border-emerald-400/30 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
+                                                <button type="button" disabled={busy === `object-import:${item.id}`} onClick={() => { void handleImportObjectStorageSave(item); }} className="border border-emerald-400/30 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
                                                     导入本地
                                                 </button>
-                                                <button type="button" disabled={disabled} onClick={() => { void handleExportObjectStorageSave(item); }} className="border border-sky-400/30 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
+                                                <button type="button" disabled={busy === `object-export:${item.id}`} onClick={() => { void handleExportObjectStorageSave(item); }} className="border border-sky-400/30 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
                                                     下载到本地
                                                 </button>
                                             </div>
@@ -442,7 +442,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                         <button type="button" disabled={disabled} onClick={() => { void handleAuth(); }} className="mt-5 w-full border border-wuxia-gold/40 bg-wuxia-gold/15 px-4 py-3 font-serif text-sm font-bold tracking-[0.18em] text-wuxia-gold hover:bg-wuxia-gold/25 disabled:opacity-50">
                             {busy === 'auth' ? '处理中...' : mode === 'register' ? '注册并进入' : '登录云端'}
                         </button>
-                        <button type="button" disabled={disabled} onClick={() => { void handleUseObjectStorage(); }} className="mt-3 w-full border border-sky-400/35 bg-sky-500/10 px-4 py-2 text-xs font-bold text-sky-100 hover:bg-sky-500/20 disabled:opacity-50">
+                        <button type="button" disabled={busy === 'object-storage-check'} onClick={() => { void handleUseObjectStorage(); }} className="mt-3 w-full border border-sky-400/35 bg-sky-500/10 px-4 py-2 text-xs font-bold text-sky-100 hover:bg-sky-500/20 disabled:opacity-50">
                             切换到自己的对象存储
                         </button>
                     </div>
@@ -454,16 +454,16 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                                 <div className="mt-1 text-xs text-gray-500">ID：{session.userId}</div>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                                <button type="button" disabled={disabled} onClick={() => { void refreshManifest(); }} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
+                                <button type="button" disabled={busy === 'refresh'} onClick={() => { void refreshManifest(); }} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
                                     刷新云存档
                                 </button>
-                                <button type="button" disabled={disabled} onClick={() => { void handleCopyLocal(); }} className="border border-emerald-400/35 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
+                                <button type="button" disabled={busy === 'copy'} onClick={() => { void handleCopyLocal(); }} className="border border-emerald-400/35 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
                                     本地一键复制到云端
                                 </button>
-                                <button type="button" disabled={disabled} onClick={handleLogout} className="border border-gray-500/40 px-3 py-2 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-50">
+                                <button type="button" onClick={handleLogout} className="border border-gray-500/40 px-3 py-2 text-xs text-gray-200 hover:bg-white/5">
                                     退出账号
                                 </button>
-                                <button type="button" disabled={disabled} onClick={() => { void handleUseObjectStorage(); }} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
+                                <button type="button" disabled={busy === 'object-storage-check'} onClick={() => { void handleUseObjectStorage(); }} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
                                     切换到对象存储
                                 </button>
                             </div>
@@ -507,13 +507,13 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
-                                                <button type="button" disabled={disabled} onClick={() => { void handleLoadCloudSave(item); }} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs text-wuxia-gold hover:bg-wuxia-gold/20 disabled:opacity-50">
+                                                <button type="button" disabled={busy === `load:${item.cloudId}`} onClick={() => { void handleLoadCloudSave(item); }} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs text-wuxia-gold hover:bg-wuxia-gold/20 disabled:opacity-50">
                                                     {busy === `load:${item.cloudId}` ? '读取中...' : '选择游玩'}
                                                 </button>
-                                                <button type="button" disabled={disabled} onClick={() => { void handleImportCloudSave(item); }} className="border border-emerald-400/30 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
+                                                <button type="button" disabled={busy === `import:${item.cloudId}`} onClick={() => { void handleImportCloudSave(item); }} className="border border-emerald-400/30 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
                                                     导入本地
                                                 </button>
-                                                <button type="button" disabled={disabled} onClick={() => { void handleExportCloudSave(item); }} className="border border-sky-400/30 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
+                                                <button type="button" disabled={busy === `export:${item.cloudId}`} onClick={() => { void handleExportCloudSave(item); }} className="border border-sky-400/30 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
                                                     下载到本地
                                                 </button>
                                             </div>
