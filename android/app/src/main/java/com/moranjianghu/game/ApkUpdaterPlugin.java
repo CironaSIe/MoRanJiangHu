@@ -18,6 +18,8 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -182,8 +184,11 @@ public class ApkUpdaterPlugin extends Plugin {
             connection.setConnectTimeout(15000);
             connection.setReadTimeout(60000);
             connection.setRequestMethod("GET");
-            connection.setUseCaches(true);
-            connection.setRequestProperty("Cache-Control", "max-age=0");
+            connection.setInstanceFollowRedirects(true);
+            connection.setUseCaches(false);
+            connection.setRequestProperty("Cache-Control", "no-cache");
+            connection.setRequestProperty("Accept", "application/vnd.android.package-archive,*/*");
+            connection.setRequestProperty("Connection", "close");
             connection.connect();
 
             int responseCode = connection.getResponseCode();
@@ -196,22 +201,23 @@ public class ApkUpdaterPlugin extends Plugin {
             long downloadedBytes = 0L;
             long lastReportedAt = 0L;
 
-            inputStream = connection.getInputStream();
+            inputStream = new BufferedInputStream(connection.getInputStream(), 262144);
             outputStream = new FileOutputStream(apkFile, false);
+            BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream, 262144);
 
-            byte[] buffer = new byte[8192];
+            byte[] buffer = new byte[262144];
             int bytesRead;
             while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
+                bufferedOutputStream.write(buffer, 0, bytesRead);
                 downloadedBytes += bytesRead;
 
                 long now = System.currentTimeMillis();
-                if (now - lastReportedAt >= 180L || (totalBytes > 0L && downloadedBytes >= totalBytes)) {
+                if (now - lastReportedAt >= 800L || (totalBytes > 0L && downloadedBytes >= totalBytes)) {
                     notifyUpdateProgress("downloading", "正在下载更新包...", downloadedBytes, totalBytes, apkFile.getAbsolutePath(), versionName);
                     lastReportedAt = now;
                 }
             }
-            outputStream.flush();
+            bufferedOutputStream.flush();
             verifyDownloadedApk(apkFile, expectedSha256, expectedSize);
             notifyUpdateProgress("downloaded", "更新包下载完成。", downloadedBytes, totalBytes, apkFile.getAbsolutePath(), versionName);
             return apkFile;

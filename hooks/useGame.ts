@@ -2225,7 +2225,8 @@ export const useGame = () => {
     const 世界演变功能已开启 = (): boolean => {
         const feature = apiConfig?.功能模型占位 as any;
         return Boolean(
-            feature?.世界演变独立模型开关
+            feature?.世界演变功能启用 !== false
+            && feature?.世界演变独立模型开关
             && typeof feature?.世界演变使用模型 === 'string'
             && feature.世界演变使用模型.trim().length > 0
         );
@@ -3146,6 +3147,7 @@ export const useGame = () => {
         设置提示词池: setPrompts,
         设置历史记录,
         清空重Roll快照,
+        推入重Roll快照,
         重置自动存档状态,
         切换生图存档作用域,
         最近自动存档时间戳Ref,
@@ -3446,7 +3448,7 @@ export const useGame = () => {
             canRerollLatest: 可重Roll计数 > 0,
             canRetryLatestVariableGeneration: 可重Roll计数 > 0 && 历史记录.some(item => item?.role === 'assistant'),
             canQuickRestart: Boolean(最近开局配置),
-            worldEvolutionEnabled: 已进入主剧情回合() && 接口配置是否可用(获取世界演变接口配置(apiConfig)),
+            worldEvolutionEnabled: 已进入主剧情回合() && apiConfig?.功能模型占位?.世界演变功能启用 !== false && 接口配置是否可用(获取世界演变接口配置(apiConfig)),
             worldEvolutionUpdating: 世界演变更新中,
             worldEvolutionStatus: 世界演变状态文本,
             worldEvolutionLastUpdatedAt: 世界演变最近更新时间,

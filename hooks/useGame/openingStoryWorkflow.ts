@@ -1142,8 +1142,15 @@ export const 执行开场剧情生成工作流 = async (
         }
         尽早触发主角开局生图();
 
+        const worldEvolutionFeatureEnabled = deps.apiConfig?.功能模型占位?.世界演变功能启用 !== false;
+        const planningFeatureEnabled = deps.apiConfig?.功能模型占位?.规划分析功能启用 !== false;
         const openingWorldApi = 获取世界演变接口配置(deps.apiConfig);
-        if (接口配置是否可用(openingWorldApi)) {
+        if (!worldEvolutionFeatureEnabled) {
+            deps.设置开局世界演变进度({
+                phase: 'skipped',
+                text: '动态世界功能未开启，已跳过。'
+            });
+        } else if (接口配置是否可用(openingWorldApi)) {
             const worldStage = await 执行可重试开局阶段({
                 stageLabel: '开局动态世界',
                 beforeAttempt: (attempt) => {
@@ -1302,7 +1309,12 @@ export const 执行开场剧情生成工作流 = async (
         } catch (_) { /* 静默 */ }
 
         const openingPlanningApi = 获取规划分析接口配置(deps.apiConfig);
-        if (接口配置是否可用(openingPlanningApi)) {
+        if (!planningFeatureEnabled) {
+            deps.设置开局规划进度({
+                phase: 'skipped',
+                text: '规划分析功能未开启，已跳过。'
+            });
+        } else if (接口配置是否可用(openingPlanningApi)) {
             const planningStage = await 执行可重试开局阶段({
                 stageLabel: '开局规划分析',
                 forceAutoRetry: true,

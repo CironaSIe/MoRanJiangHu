@@ -246,8 +246,10 @@ export interface 功能模型占位配置结构 {
     剧情回忆完整原文条数N: number;
     剧情回忆最早触发回合: number;
     记忆总结独立模型开关: boolean;
+    世界演变功能启用: boolean;
     世界演变独立模型开关: boolean;
     变量计算独立模型开关: boolean;
+    规划分析功能启用: boolean;
     规划分析独立模型开关: boolean;
     女主规划独立模型开关: boolean;
     剧情规划独立模型开关: boolean;

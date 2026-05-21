@@ -40,6 +40,7 @@ import { 导出ZIP存档文件 } from '../../../services/saveArchiveService';
 interface Props {
     onClose: () => void;
     onLoadGame: (save: 存档结构) => void | Promise<void>;
+    onStartNewGame?: () => void;
     onConfigureObjectStorage?: () => void;
 }
 
@@ -163,7 +164,7 @@ const buildObjectStorageSaveTrees = (saves: 对象存储云存档元数据[]): A
     }).sort((a, b) => Number(b.latest?.saveTimestamp || 0) - Number(a.latest?.saveTimestamp || 0));
 };
 
-const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjectStorage }) => {
+const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, onConfigureObjectStorage }) => {
     const [riskAccepted, setRiskAccepted] = React.useState(() => 已确认云端游玩风险());
     const [session, setSession] = React.useState<云端游玩账号 | null>(() => 读取云端游玩会话());
     const [storageMode, setStorageMode] = React.useState<'tg' | 'object'>(() => 已启用对象存储云端游玩模式() ? 'object' : 'tg');
@@ -619,6 +620,11 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                                 <div className="mt-1 text-xs text-sky-100/60">{objectStorageConfig?.bucket || '未配置'} · {objectStorageConfig?.prefix || 'MoRanJiangHu'}</div>
                             </div>
                             <div className="flex flex-wrap gap-2">
+                                {onStartNewGame && (
+                                    <button type="button" onClick={onStartNewGame} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold/20">
+                                        开启新存档
+                                    </button>
+                                )}
                                 <button type="button" disabled={busy === 'object-refresh'} onClick={() => { void handleRefreshObjectStorage(); }} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
                                     刷新云存档
                                 </button>
@@ -654,7 +660,12 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                         <div className="grid gap-4">
                             {objectStorageSaveTrees.length <= 0 ? (
                                 <div className="border border-dashed border-sky-400/25 px-4 py-8 text-center text-sm text-gray-400">
-                                    对象存储云端暂无存档。可以先把本地存档复制到对象存储，或进入游戏后由回合结束自动保存并同步。
+                                    对象存储云端暂无存档。可以开启新存档，或先把本地存档复制到对象存储。
+                                    {onStartNewGame && (
+                                        <button type="button" onClick={onStartNewGame} className="mx-auto mt-4 block border border-wuxia-gold/40 bg-wuxia-gold/10 px-4 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold/20">
+                                            开启新存档
+                                        </button>
+                                    )}
                                 </div>
                             ) : (
                                 objectStorageSaveTrees.map((series) => (
@@ -707,6 +718,11 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                                 <div className="mt-1 text-xs text-gray-500">ID：{session.userId}</div>
                             </div>
                             <div className="flex flex-wrap gap-2">
+                                {onStartNewGame && (
+                                    <button type="button" onClick={onStartNewGame} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold/20">
+                                        开启新存档
+                                    </button>
+                                )}
                                 <button type="button" disabled={busy === 'refresh'} onClick={() => { void refreshManifest(); }} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
                                     刷新云存档
                                 </button>
@@ -759,7 +775,12 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                         <div className="grid gap-4">
                             {cloudSaveTrees.length <= 0 ? (
                                 <div className="border border-dashed border-wuxia-gold/25 px-4 py-8 text-center text-sm text-gray-400">
-                                    暂无云端存档。可以先把本地存档复制到云端，或进入游戏后由回合结束自动保存并同步。
+                                    暂无云端存档。可以开启新存档，或先把本地存档复制到云端。
+                                    {onStartNewGame && (
+                                        <button type="button" onClick={onStartNewGame} className="mx-auto mt-4 block border border-wuxia-gold/40 bg-wuxia-gold/10 px-4 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold/20">
+                                            开启新存档
+                                        </button>
+                                    )}
                                 </div>
                             ) : (
                                 cloudSaveTrees.map((series) => (

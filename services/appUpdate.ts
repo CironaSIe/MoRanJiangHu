@@ -12,6 +12,8 @@ export type UpdateManifest = {
     apkSize?: number;
     releaseChannel?: string;
     apkUrl?: string;
+    directApkUrl?: string;
+    apkUrls?: string[];
     manifestUrl?: string;
     githubRepoUrl?: string;
     releaseNotesUrl?: string;
@@ -265,7 +267,10 @@ const formatChanges = (changes?: string[]) => {
 };
 
 const installUpdateInNativeApp = async (manifest: UpdateManifest) => {
-    const rawTargetUrl = manifest.apkUrl || RELEASE_INFO.apkDownloadUrl;
+    const rawTargetUrl = manifest.directApkUrl
+        || (Array.isArray(manifest.apkUrls) ? manifest.apkUrls.find((item) => typeof item === 'string' && item.trim()) : '')
+        || manifest.apkUrl
+        || RELEASE_INFO.apkDownloadUrl;
     if (!rawTargetUrl) {
         throw new Error('缺少 APK 下载地址。');
     }

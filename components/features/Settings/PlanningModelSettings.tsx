@@ -34,6 +34,7 @@ const PlanningModelSettings: React.FC<Props> = ({ settings, onSave }) => {
     }, [activeConfig?.model, form.功能模型占位.主剧情使用模型]);
 
     const 独立模型开启 = Boolean(form.功能模型占位.规划分析独立模型开关);
+    const 功能开启 = form.功能模型占位.规划分析功能启用 !== false;
     const 独立API地址 = (form.功能模型占位.规划分析API地址 || '').trim();
     const 独立API密钥 = (form.功能模型占位.规划分析API密钥 || '').trim();
 
@@ -129,9 +130,20 @@ const PlanningModelSettings: React.FC<Props> = ({ settings, onSave }) => {
 
             <div className="rounded-md border border-cyan-500/20 bg-cyan-950/10 p-4 space-y-4">
                 <div className="text-[11px] text-gray-400">当前启用接口配置：{activeConfig?.名称 || '未配置'}。</div>
+                <label className="flex items-center justify-between gap-3 text-xs text-gray-300 rounded-md border border-cyan-500/10 bg-black/25 p-3">
+                    <span>
+                        <span className="block text-cyan-200 font-bold">开启规划分析功能</span>
+                        <span className="mt-1 block text-[11px] text-gray-500">关闭后，开局和正文后的规划分析都会跳过，存档内“规划”入口也会隐藏。</span>
+                    </span>
+                    <ToggleSwitch
+                        checked={功能开启}
+                        onChange={(checked) => updatePlaceholder('规划分析功能启用', checked)}
+                        ariaLabel="切换规划分析功能"
+                    />
+                </label>
                 <label className="flex items-center justify-between gap-3 text-xs text-gray-300">
                     <span>启用规划分析独立模型</span>
-                    <ToggleSwitch checked={独立模型开启} onChange={handleToggleIndependent} ariaLabel="切换规划分析独立模型" />
+                    <ToggleSwitch checked={独立模型开启} onChange={handleToggleIndependent} disabled={!功能开启} ariaLabel="切换规划分析独立模型" />
                 </label>
                 <div className="flex gap-3 items-end">
                     <div className="flex-1 space-y-1">
@@ -140,12 +152,12 @@ const PlanningModelSettings: React.FC<Props> = ({ settings, onSave }) => {
                             value={modelDisplay}
                             options={selectOptions.map((model) => ({ value: model, label: model }))}
                             onChange={(model) => updatePlaceholder('规划分析使用模型', model)}
-                            disabled={!独立模型开启 || selectOptions.length === 0}
-                            placeholder={!独立模型开启 ? `跟随主剧情模型：${主剧情解析模型 || '未设置'}` : (selectOptions.length ? '请选择模型' : '请先点击获取列表')}
-                            buttonClassName={独立模型开启 ? 'bg-black/50 border-gray-600 py-2.5' : 'bg-black/30 border-gray-700 py-2.5'}
+                            disabled={!功能开启 || !独立模型开启 || selectOptions.length === 0}
+                            placeholder={!功能开启 ? '规划分析功能未开启' : !独立模型开启 ? `跟随主剧情模型：${主剧情解析模型 || '未设置'}` : (selectOptions.length ? '请选择模型' : '请先点击获取列表')}
+                            buttonClassName={功能开启 && 独立模型开启 ? 'bg-black/50 border-gray-600 py-2.5' : 'bg-black/30 border-gray-700 py-2.5'}
                         />
                     </div>
-                    <GameButton onClick={handleFetchModels} variant="secondary" className="px-4 py-2 text-xs" disabled={loadingModels}>
+                    <GameButton onClick={handleFetchModels} variant="secondary" className="px-4 py-2 text-xs" disabled={loadingModels || !功能开启}>
                         {loadingModels ? '...' : '获取列表'}
                     </GameButton>
                 </div>
@@ -156,8 +168,8 @@ const PlanningModelSettings: React.FC<Props> = ({ settings, onSave }) => {
                         value={form.功能模型占位.规划分析API地址 || ''}
                         onChange={(e) => updatePlaceholder('规划分析API地址', e.target.value)}
                         placeholder={activeConfig?.baseUrl || '留空则复用主剧情 Base URL'}
-                        disabled={!独立模型开启}
-                        className={`w-full border p-2 text-white rounded-md outline-none ${独立模型开启 ? 'bg-black/50 border-gray-700 focus:border-cyan-400' : 'bg-black/30 border-gray-800 text-gray-400'}`}
+                        disabled={!功能开启 || !独立模型开启}
+                        className={`w-full border p-2 text-white rounded-md outline-none ${功能开启 && 独立模型开启 ? 'bg-black/50 border-gray-700 focus:border-cyan-400' : 'bg-black/30 border-gray-800 text-gray-400'}`}
                     />
                 </div>
                 <div className="space-y-1">
@@ -167,10 +179,15 @@ const PlanningModelSettings: React.FC<Props> = ({ settings, onSave }) => {
                         value={form.功能模型占位.规划分析API密钥 || ''}
                         onChange={(e) => updatePlaceholder('规划分析API密钥', e.target.value)}
                         placeholder={activeConfig?.apiKey ? '留空则复用主剧情 API Key' : 'sk-...'}
-                        disabled={!独立模型开启}
-                        className={`w-full border p-2 text-white rounded-md outline-none ${独立模型开启 ? 'bg-black/50 border-gray-700 focus:border-cyan-400' : 'bg-black/30 border-gray-800 text-gray-400'}`}
+                        disabled={!功能开启 || !独立模型开启}
+                        className={`w-full border p-2 text-white rounded-md outline-none ${功能开启 && 独立模型开启 ? 'bg-black/50 border-gray-700 focus:border-cyan-400' : 'bg-black/30 border-gray-800 text-gray-400'}`}
                     />
                 </div>
+                {!功能开启 && (
+                    <div className="text-[11px] text-gray-400">
+                        当前状态：规划分析功能未开启，开局和正文后规划分析会跳过。
+                    </div>
+                )}
             </div>
 
             {message && <p className="text-xs text-cyan-300 animate-pulse">{message}</p>}

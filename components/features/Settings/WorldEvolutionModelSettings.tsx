@@ -34,6 +34,7 @@ const WorldEvolutionModelSettings: React.FC<Props> = ({ settings, onSave }) => {
     }, [form.功能模型占位.主剧情使用模型]);
 
     const 独立模型开启 = Boolean(form.功能模型占位.世界演变独立模型开关);
+    const 功能开启 = form.功能模型占位.世界演变功能启用 !== false;
     const 独立API地址 = (form.功能模型占位.世界演变API地址 || '').trim();
     const 独立API密钥 = (form.功能模型占位.世界演变API密钥 || '').trim();
 
@@ -148,11 +149,24 @@ const WorldEvolutionModelSettings: React.FC<Props> = ({ settings, onSave }) => {
                     当前启用接口配置：{activeConfig?.名称 || '未配置'}。可为世界演变单独指定 Base URL 与 API Key；留空时复用主配置。
                 </div>
 
+                <label className="flex items-center justify-between gap-3 text-xs text-gray-300 rounded-md border border-wuxia-gold/10 bg-black/25 p-3">
+                    <span>
+                        <span className="block text-wuxia-gold font-bold">开启动态世界功能</span>
+                        <span className="mt-1 block text-[11px] text-gray-500">关闭后，开局和正文后的世界推演都会跳过，存档内“世界”入口也会隐藏。</span>
+                    </span>
+                    <ToggleSwitch
+                        checked={功能开启}
+                        onChange={(checked) => updatePlaceholder('世界演变功能启用', checked)}
+                        ariaLabel="切换动态世界功能"
+                    />
+                </label>
+
                 <label className="flex items-center justify-between gap-3 text-xs text-gray-300">
                     <span>开启世界演变独立模型</span>
                     <ToggleSwitch
                         checked={独立模型开启}
                         onChange={handleToggleIndependent}
+                        disabled={!功能开启}
                         ariaLabel="切换世界演变独立模型"
                     />
                 </label>
@@ -167,11 +181,13 @@ const WorldEvolutionModelSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 label: model
                             }))}
                             onChange={(model) => updatePlaceholder('世界演变使用模型', model)}
-                            disabled={!独立模型开启 || selectOptions.length === 0}
-                            placeholder={!独立模型开启
+                            disabled={!功能开启 || !独立模型开启 || selectOptions.length === 0}
+                            placeholder={!功能开启
+                                ? '动态世界功能未开启'
+                                : !独立模型开启
                                 ? `跟随主剧情模型：${主剧情解析模型 || '未设置'}`
                                 : (selectOptions.length ? '请选择模型' : '请先点击获取列表')}
-                            buttonClassName={独立模型开启
+                            buttonClassName={功能开启 && 独立模型开启
                                 ? 'bg-black/50 border-gray-600 py-2.5'
                                 : 'bg-black/30 border-gray-700 py-2.5'}
                         />
@@ -180,7 +196,7 @@ const WorldEvolutionModelSettings: React.FC<Props> = ({ settings, onSave }) => {
                         onClick={handleFetchModels}
                         variant="secondary"
                         className="px-4 py-2 text-xs"
-                        disabled={loadingModels}
+                        disabled={loadingModels || !功能开启}
                     >
                         {loadingModels ? '...' : '获取列表'}
                     </GameButton>
@@ -192,9 +208,9 @@ const WorldEvolutionModelSettings: React.FC<Props> = ({ settings, onSave }) => {
                         value={form.功能模型占位.世界演变API地址 || ''}
                         onChange={(e) => updatePlaceholder('世界演变API地址', e.target.value)}
                         placeholder={activeConfig?.baseUrl || '留空则复用主剧情 Base URL'}
-                        disabled={!独立模型开启}
+                        disabled={!功能开启 || !独立模型开启}
                         className={`w-full border p-2 text-white rounded-md outline-none ${
-                            独立模型开启
+                            功能开启 && 独立模型开启
                                 ? 'bg-black/50 border-gray-700 focus:border-wuxia-gold'
                                 : 'bg-black/30 border-gray-800 text-gray-400'
                         }`}
@@ -210,9 +226,9 @@ const WorldEvolutionModelSettings: React.FC<Props> = ({ settings, onSave }) => {
                         value={form.功能模型占位.世界演变API密钥 || ''}
                         onChange={(e) => updatePlaceholder('世界演变API密钥', e.target.value)}
                         placeholder={activeConfig?.apiKey ? '留空则复用主剧情 API Key' : 'sk-...'}
-                        disabled={!独立模型开启}
+                        disabled={!功能开启 || !独立模型开启}
                         className={`w-full border p-2 text-white rounded-md outline-none ${
-                            独立模型开启
+                            功能开启 && 独立模型开启
                                 ? 'bg-black/50 border-gray-700 focus:border-wuxia-gold'
                                 : 'bg-black/30 border-gray-800 text-gray-400'
                         }`}
@@ -222,7 +238,11 @@ const WorldEvolutionModelSettings: React.FC<Props> = ({ settings, onSave }) => {
                     </div>
                 </div>
 
-                {!独立模型开启 && (
+                {!功能开启 ? (
+                    <div className="text-[11px] text-gray-400">
+                        当前状态：动态世界功能未开启，开局和正文后世界推演会跳过。
+                    </div>
+                ) : !独立模型开启 && (
                     <div className="text-[11px] text-gray-400">
                         当前状态：世界演变自动更新关闭
                     </div>

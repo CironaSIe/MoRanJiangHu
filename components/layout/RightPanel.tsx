@@ -25,7 +25,9 @@ interface Props {
     onOpenAuctionHouse?: () => void;
     worldEvolutionEnabled?: boolean;
     worldEvolutionUpdating?: boolean;
+    enableWorldPanel?: boolean;
     enableHeroinePlan?: boolean;
+    enablePlanningPanel?: boolean;
     enableKungfu?: boolean;
     onSave: () => void;
     onLoad: () => void;
@@ -55,7 +57,9 @@ const RightPanel: React.FC<Props> = ({
     onOpenAuctionHouse,
     worldEvolutionEnabled = false,
     worldEvolutionUpdating = false,
+    enableWorldPanel = true,
     enableHeroinePlan = false,
+    enablePlanningPanel = true,
     enableKungfu = true,
     onSave,
     onLoad,
@@ -89,7 +93,7 @@ const RightPanel: React.FC<Props> = ({
         { label: '背包', action: onOpenInventory, color: 'primary' as const, changeKeys: ['背包'] },
         ...(onOpenAuctionHouse ? [{ label: '拍卖行', action: onOpenAuctionHouse, color: 'primary' as const }] : []),
         { label: '社交', action: onOpenSocial, color: 'primary' as const, changeKeys: ['社交'] },
-        {
+        ...(enableWorldPanel ? [{
             label: worldEvolutionUpdating ? '世界·更新中' : '世界',
             action: onOpenWorld,
             color: worldEvolutionUpdating ? 'secondary' as const : 'primary' as const,
@@ -97,7 +101,7 @@ const RightPanel: React.FC<Props> = ({
             className: worldEvolutionEnabled && worldEvolutionUpdating
                 ? 'animate-pulse shadow-[0_0_18px_rgba(90,220,220,0.35)]'
                 : ''
-        },
+        }] : []),
         { label: '队伍', action: onOpenTeam, color: 'primary' as const, changeKeys: ['队伍'] },
         ...(enableKungfu ? [{ label: '功法', action: onOpenKungfu, color: 'primary' as const, changeKeys: ['功法'] }] : []),
         { label: '地图', action: onOpenMap, color: 'primary' as const, changeKeys: ['地图'] },
@@ -105,7 +109,7 @@ const RightPanel: React.FC<Props> = ({
         { label: '任务', action: onOpenTask, color: 'primary' as const, changeKeys: ['任务列表'] },
         { label: '约定', action: onOpenAgreement, color: 'primary' as const, changeKeys: ['约定列表'] },
         { label: '剧情', action: onOpenStory, color: 'primary' as const, changeKeys: ['剧情'] },
-        ...(enableHeroinePlan ? [{ label: '规划', action: onOpenHeroinePlan, color: 'primary' as const, changeKeys: ['剧情规划'] }] : []),
+        ...(enablePlanningPanel && enableHeroinePlan ? [{ label: '规划', action: onOpenHeroinePlan, color: 'primary' as const, changeKeys: ['剧情规划'] }] : []),
         { label: '记忆', action: onOpenMemory, color: 'primary' as const, changeKeys: ['记忆系统'] },
         ...(onOpenNovelExport ? [{ label: '导出小说', action: onOpenNovelExport, color: 'secondary' as const }] : []),
         ...(onOpenImageManager ? [{ label: '图册', action: onOpenImageManager, color: 'secondary' as const }] : []),

@@ -2158,6 +2158,10 @@ const App: React.FC = () => {
         setShowNovelDecompositionWorkbench(true);
     }, [closeAllPanels, requestConfirm, setters, state.apiConfig]);
     const handleStartFromLanding = React.useCallback(() => actions.handleStartNewGameWizard(), [actions]);
+    const handleStartFromCloudPlay = React.useCallback(() => {
+        closeCloudPlay();
+        actions.handleStartNewGameWizard();
+    }, [actions, closeCloudPlay]);
     const openReleaseNotes = React.useCallback(() => {
         setSuppressReleaseNotesForToday(false);
         setShowReleaseNotes(true);
@@ -2803,7 +2807,9 @@ const App: React.FC = () => {
                                 onOpenNovelDecomposition={() => { void openNovelDecompositionWorkbench(); }}
                                 worldEvolutionEnabled={meta.worldEvolutionEnabled}
                                 worldEvolutionUpdating={meta.worldEvolutionUpdating}
+                                enableWorldPanel={state.apiConfig?.功能模型占位?.世界演变功能启用 !== false}
                                 enableHeroinePlan={safeGameConfig?.启用女主剧情规划 === true}
+                                enablePlanningPanel={state.apiConfig?.功能模型占位?.规划分析功能启用 !== false}
                                 enableKungfu={启用修炼体系}
                                 onSave={openSave}
                                 onLoad={openLoad}
@@ -2900,7 +2906,9 @@ const App: React.FC = () => {
                     <MobileQuickMenu
                         activeWindow={activeMobileWindowId}
                         onMenuClick={handleMobileMenuAction}
+                        enableWorldPanel={state.apiConfig?.功能模型占位?.世界演变功能启用 !== false}
                         enableHeroinePlan={safeGameConfig?.启用女主剧情规划 === true}
+                        enablePlanningPanel={state.apiConfig?.功能模型占位?.规划分析功能启用 !== false}
                         enableKungfu={启用修炼体系}
                         enableImageManager={true}
                         enableNovelDecomposition={true}
@@ -3032,6 +3040,7 @@ const App: React.FC = () => {
                         <CloudPlayModal
                             onClose={closeCloudPlay}
                             onLoadGame={actions.handleLoadGame}
+                            onStartNewGame={handleStartFromCloudPlay}
                             onConfigureObjectStorage={openObjectStorageSettingsFromCloudPlay}
                         />
                     </div>

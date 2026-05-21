@@ -2,9 +2,12 @@ import {
     APK_LATEST_CACHE_CONTROL,
     APK_CORS_HEADERS,
     buildVersionedApkFileName,
+    buildSignedObjectUrl,
     buildTextResponse,
+    normalizeObjectKey,
     readReleaseBaseUrl,
-    readManifestPayload
+    readManifestPayload,
+    readReleaseObjectPrefix
 } from './_shared';
 
 const pickHeaders = (source: Headers): Headers => {
@@ -34,12 +37,20 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
         const stableApkUrl = versionedFileName
             ? `${baseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}`
             : `${baseUrl}/api/apk/latest.apk`;
+        const directApkKey = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/${versionedFileName || 'latest.apk'}`);
+        const directApkUrl = await buildSignedObjectUrl(env, directApkKey, 3600);
         const stableManifestUrl = `${baseUrl}/api/apk/latest.json`;
         const nextPayload = {
             ...payload,
             latest: {
                 ...(payload?.latest || {}),
                 apkUrl: stableApkUrl,
+                directApkUrl: directApkUrl || undefined,
+                apkUrls: [
+                    directApkUrl,
+                    stableApkUrl,
+                    `${baseUrl}/api/apk/latest.apk`
+                ].filter(Boolean),
                 latestApkUrl: `${baseUrl}/api/apk/latest.apk`,
                 manifestUrl: stableManifestUrl
             }

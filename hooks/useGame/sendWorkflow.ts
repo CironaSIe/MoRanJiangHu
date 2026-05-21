@@ -890,7 +890,9 @@ export const 执行主剧情发送工作流 = async (
             }
         });
 
-        const worldEvolutionSplitEnabled = 接口配置是否可用(获取世界演变接口配置(currentState.apiConfig));
+        const worldEvolutionFeatureEnabled = currentState.apiConfig?.功能模型占位?.世界演变功能启用 !== false;
+        const planningFeatureEnabled = currentState.apiConfig?.功能模型占位?.规划分析功能启用 !== false;
+        const worldEvolutionSplitEnabled = worldEvolutionFeatureEnabled && 接口配置是否可用(获取世界演变接口配置(currentState.apiConfig));
         // 让出主线程，避免连续深拷贝 + processResponseCommands 阻塞 UI 导致"未响应"
         await 让出主线程();
         const mainCommandBaseState = {
@@ -1250,7 +1252,12 @@ export const 执行主剧情发送工作流 = async (
                 }
                 let worldEvolutionResult: 世界演变执行结果 | null = null;
                 const 变量生成后命令数 = Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands.length : 0;
-                if (worldEvolutionSplitEnabled) {
+                if (!worldEvolutionFeatureEnabled) {
+                    options?.onWorldEvolutionProgress?.({
+                        phase: "skipped",
+                        text: "动态世界功能未开启，已跳过本轮世界推演。"
+                    });
+                } else if (worldEvolutionSplitEnabled) {
                     const worldStage = await 执行可重试独立阶段({
                         stageId: "world",
                         stageLabel: "动态世界",
@@ -1345,6 +1352,12 @@ export const 执行主剧情发送工作流 = async (
                     );
                 }
                 let 当前命令偏移 = 变量生成后命令数 + (worldEvolutionResult ? worldEvolutionResult.commands.length : 0);
+                if (!planningFeatureEnabled) {
+                    options?.onPlanningProgress?.({
+                        phase: "skipped",
+                        text: "规划分析功能未开启，已跳过本轮规划分析。"
+                    });
+                } else {
                 const planningStage = await 执行可重试独立阶段({
                     stageId: "planning",
                     stageLabel: "规划分析",
@@ -1442,6 +1455,7 @@ export const 执行主剧情发送工作流 = async (
                             { commandCount: 获取响应命令数量(responseForExecution), planningCommandCount: planningResult.commands.length }
                         );
                     }
+                }
                 }
 
                 const mapGenerationEnabled = currentState.apiConfig?.功能模型占位?.地图生成功能启用 !== false;

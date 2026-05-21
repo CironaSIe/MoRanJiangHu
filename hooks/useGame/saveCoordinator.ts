@@ -212,6 +212,31 @@ type 存档协调依赖 = {
     设置提示词池: (value: 提示词结构[]) => void;
     设置历史记录: (value: 聊天记录结构[]) => void;
     清空重Roll快照: () => void;
+    推入重Roll快照?: (snapshot: {
+        玩家输入: string;
+        游戏时间: string;
+        回档前状态: {
+            角色: 角色数据结构;
+            环境: 环境信息结构;
+            社交: any[];
+            世界: 世界数据结构;
+            战斗: 战斗状态结构;
+            玩家门派: 详细门派结构;
+            任务列表: any[];
+            约定列表: any[];
+            剧情: 剧情系统结构;
+            剧情规划: 剧情规划结构;
+            女主剧情规划?: 女主剧情规划结构;
+            同人剧情规划?: 同人剧情规划结构;
+            同人女主剧情规划?: 同人女主剧情规划结构;
+            记忆系统: 记忆系统结构;
+        };
+        回档前持久态: {
+            视觉设置: 视觉设置结构;
+            场景图片档案: 场景图片档案;
+        };
+        回档前历史: 聊天记录结构[];
+    }) => void;
     重置自动存档状态: () => void;
     切换生图存档作用域?: () => void;
     最近自动存档时间戳Ref: { current: number };
@@ -389,6 +414,66 @@ const 构建自动存档签名 = (
     const memoryRound = Array.isArray(memoryBase?.回忆档案) ? memoryBase.回忆档案.length : 0;
     const memorySize = `${memoryBase.即时记忆?.length || 0}/${memoryBase.短期记忆?.length || 0}/${memoryBase.中期记忆?.length || 0}/${memoryBase.长期记忆?.length || 0}`;
     return `${timeText}|${locationText}|${historySize}|${memoryRound}|${memorySize}|${latestDigest}`;
+};
+
+const 构建读档后重Roll快照 = (
+    save: 存档结构,
+    loaded: {
+        role: 角色数据结构;
+        env: 环境信息结构;
+        social: any[];
+        world: 世界数据结构;
+        battle: 战斗状态结构;
+        sect: 详细门派结构;
+        tasks: any[];
+        agreements: any[];
+        story: 剧情系统结构;
+        storyPlan: 剧情规划结构;
+        heroinePlan?: 女主剧情规划结构;
+        fandomStoryPlan?: 同人剧情规划结构;
+        fandomHeroinePlan?: 同人女主剧情规划结构;
+        memory: 记忆系统结构;
+        visual: 视觉设置结构;
+        sceneArchive: 场景图片档案;
+    },
+    deps: Pick<存档协调依赖, '深拷贝' | '规范化环境信息' | '规范化记忆系统'>
+) => {
+    const history = Array.isArray(save.历史记录) ? save.历史记录 : [];
+    let userIndex = -1;
+    for (let i = history.length - 1; i >= 0; i -= 1) {
+        if (history[i]?.role === 'user' && typeof history[i]?.content === 'string' && history[i].content.trim()) {
+            userIndex = i;
+            break;
+        }
+    }
+    if (userIndex < 0 || !history.slice(userIndex + 1).some((item) => item?.role === 'assistant')) return null;
+    const 玩家输入 = String(history[userIndex]?.content || '').trim();
+    if (!玩家输入) return null;
+    return {
+        玩家输入,
+        游戏时间: 环境时间转标准串(loaded.env) || '未知时间',
+        回档前状态: {
+            角色: deps.深拷贝(loaded.role),
+            环境: deps.规范化环境信息(deps.深拷贝(loaded.env)),
+            社交: deps.深拷贝(loaded.social),
+            世界: deps.深拷贝(loaded.world),
+            战斗: deps.深拷贝(loaded.battle),
+            玩家门派: deps.深拷贝(loaded.sect),
+            任务列表: deps.深拷贝(loaded.tasks),
+            约定列表: deps.深拷贝(loaded.agreements),
+            剧情: deps.深拷贝(loaded.story),
+            剧情规划: deps.深拷贝(loaded.storyPlan),
+            女主剧情规划: deps.深拷贝(loaded.heroinePlan),
+            同人剧情规划: deps.深拷贝(loaded.fandomStoryPlan),
+            同人女主剧情规划: deps.深拷贝(loaded.fandomHeroinePlan),
+            记忆系统: deps.深拷贝(deps.规范化记忆系统(loaded.memory))
+        },
+        回档前持久态: {
+            视觉设置: deps.深拷贝(loaded.visual),
+            场景图片档案: deps.深拷贝(loaded.sceneArchive)
+        },
+        回档前历史: deps.深拷贝(history.slice(0, userIndex))
+    };
 };
 
 export const 创建存档数据 = (
@@ -634,19 +719,28 @@ export const 执行读取存档 = async (
     trace('world.set.done', {
         layers: Array.isArray((normalizedWorld as any)?.地图层级) ? (normalizedWorld as any).地图层级.length : 0
     });
-    deps.设置战斗(deps.规范化战斗状态(save.战斗 || deps.创建开场空白战斗()));
-    deps.设置玩家门派(deps.规范化门派状态(save.玩家门派 || deps.创建空门派状态()));
-    deps.设置任务列表(规范化任务列表自动结算(save.任务列表 || []));
-    deps.设置约定列表(save.约定列表 || []);
+    const loadedBattle = deps.规范化战斗状态(save.战斗 || deps.创建开场空白战斗());
+    const loadedSect = deps.规范化门派状态(save.玩家门派 || deps.创建空门派状态());
+    const loadedTasks = 规范化任务列表自动结算(save.任务列表 || []);
+    const loadedAgreements = Array.isArray(save.约定列表) ? save.约定列表 : [];
+    deps.设置战斗(loadedBattle);
+    deps.设置玩家门派(loadedSect);
+    deps.设置任务列表(loadedTasks);
+    deps.设置约定列表(loadedAgreements);
     trace('battleSectTasks.set.done', {
         taskCount: Array.isArray(save.任务列表) ? save.任务列表.length : 0,
         agreementCount: Array.isArray(save.约定列表) ? save.约定列表.length : 0
     });
-    deps.设置剧情(deps.规范化剧情状态(save.剧情 || deps.创建开场空白剧情()));
-    deps.设置剧情规划(deps.规范化剧情规划状态((save as any).剧情规划));
-    deps.设置女主剧情规划(deps.规范化女主剧情规划状态((save as any).女主剧情规划));
-    deps.设置同人剧情规划(deps.规范化同人剧情规划状态((save as any).同人剧情规划));
-    deps.设置同人女主剧情规划(deps.规范化同人女主剧情规划状态((save as any).同人女主剧情规划));
+    const loadedStory = deps.规范化剧情状态(save.剧情 || deps.创建开场空白剧情());
+    const loadedStoryPlan = deps.规范化剧情规划状态((save as any).剧情规划);
+    const loadedHeroinePlan = deps.规范化女主剧情规划状态((save as any).女主剧情规划);
+    const loadedFandomStoryPlan = deps.规范化同人剧情规划状态((save as any).同人剧情规划);
+    const loadedFandomHeroinePlan = deps.规范化同人女主剧情规划状态((save as any).同人女主剧情规划);
+    deps.设置剧情(loadedStory);
+    deps.设置剧情规划(loadedStoryPlan);
+    deps.设置女主剧情规划(loadedHeroinePlan);
+    deps.设置同人剧情规划(loadedFandomStoryPlan);
+    deps.设置同人女主剧情规划(loadedFandomHeroinePlan);
     deps.设置开局配置(deps.规范化可选开局配置(save.openingConfig));
     trace('storyPlans.set.done');
     const promptSnapshot = save.核心提示词快照 && typeof save.核心提示词快照 === 'object'
@@ -688,7 +782,8 @@ export const 执行读取存档 = async (
     });
     deps.设置历史记录(loadedHistoryForState);
     trace('history.set.done');
-    deps.应用并同步记忆系统(deps.规范化记忆系统(save.记忆系统), { 静默总结提示: true });
+    const loadedMemory = deps.规范化记忆系统(save.记忆系统);
+    deps.应用并同步记忆系统(loadedMemory, { 静默总结提示: true });
     trace('memory.set.done', {
         memory: {
             archive: Array.isArray(save.记忆系统?.回忆档案) ? save.记忆系统?.回忆档案.length : 0,
@@ -703,27 +798,33 @@ export const 执行读取存档 = async (
     if (save.记忆配置) deps.setMemoryConfig(deps.规范化记忆配置(save.记忆配置));
     const incomingVisual = save.视觉设置 && typeof save.视觉设置 === 'object' ? save.视觉设置 : null;
     const currentVisual = deps.获取当前视觉设置();
+    let loadedVisual: 视觉设置结构;
     if (incomingVisual) {
         const mergedVisual = deps.规范化视觉设置({
             ...currentVisual,
             ...incomingVisual
         });
-        deps.设置视觉设置(mergedVisual);
+        loadedVisual = mergedVisual;
+        deps.设置视觉设置(loadedVisual);
     } else {
-        deps.设置视觉设置(deps.规范化视觉设置(currentVisual || {}));
+        loadedVisual = deps.规范化视觉设置(currentVisual || {});
+        deps.设置视觉设置(loadedVisual);
     }
     trace('configs.set.done', {
         hasIncomingVisual: Boolean(incomingVisual)
     });
     const loadedHistory = Array.isArray(save.历史记录) ? save.历史记录 : [];
+    let loadedSceneArchive: 场景图片档案;
     if (save.场景图片档案 && typeof save.场景图片档案 === 'object') {
         trace('sceneArchive.set.start', {
             sceneHistory: Array.isArray(save.场景图片档案.生图历史) ? save.场景图片档案.生图历史.length : 0
         });
-        deps.设置场景图片档案(过滤当前存档场景图片档案(save.场景图片档案, loadedHistory, deps));
+        loadedSceneArchive = 过滤当前存档场景图片档案(save.场景图片档案, loadedHistory, deps);
+        deps.设置场景图片档案(loadedSceneArchive);
     } else {
         trace('sceneArchive.empty.start');
-        deps.设置场景图片档案(deps.规范化场景图片档案({}));
+        loadedSceneArchive = deps.规范化场景图片档案({});
+        deps.设置场景图片档案(loadedSceneArchive);
     }
     trace('sceneArchive.set.done');
     deps.设置游戏初始时间(typeof save.游戏初始时间 === 'string' ? save.游戏初始时间 : '');
@@ -750,6 +851,31 @@ export const 执行读取存档 = async (
             detail: { scope: auctionScope, state: loadedAuctionState }
         }));
     }
+    const restoredRerollSnapshot = deps.推入重Roll快照 ? 构建读档后重Roll快照(save, {
+        role: loadedRole,
+        env: normalizedEnv,
+        social: loadedSocial,
+        world: normalizedWorld,
+        battle: loadedBattle,
+        sect: loadedSect,
+        tasks: loadedTasks,
+        agreements: loadedAgreements,
+        story: loadedStory,
+        storyPlan: loadedStoryPlan,
+        heroinePlan: loadedHeroinePlan,
+        fandomStoryPlan: loadedFandomStoryPlan,
+        fandomHeroinePlan: loadedFandomHeroinePlan,
+        memory: loadedMemory,
+        visual: loadedVisual,
+        sceneArchive: loadedSceneArchive
+    }, deps) : null;
+    if (restoredRerollSnapshot && deps.推入重Roll快照) {
+        deps.推入重Roll快照(restoredRerollSnapshot);
+    }
+    trace('reroll.restore.done', {
+        restored: Boolean(restoredRerollSnapshot),
+        historyCount: loadedHistory.length
+    });
 
     trace('view.set.start');
     deps.setHasSave(true);

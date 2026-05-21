@@ -30,7 +30,9 @@ type MenuId =
 interface Props {
     activeWindow: MenuId | null;
     onMenuClick: (menu: MenuId) => void;
+    enableWorldPanel?: boolean;
     enableHeroinePlan?: boolean;
+    enablePlanningPanel?: boolean;
     enableKungfu?: boolean;
     enableImageManager?: boolean;
     enableNovelDecomposition?: boolean;
@@ -94,7 +96,9 @@ const MENU_META: Record<Exclude<MenuId, 'more'>, MenuMeta> = {
 const MobileQuickMenu: React.FC<Props> = ({
     activeWindow,
     onMenuClick,
+    enableWorldPanel = true,
     enableHeroinePlan = false,
+    enablePlanningPanel = true,
     enableKungfu = true,
     enableImageManager = false,
     enableNovelDecomposition = false
@@ -119,12 +123,12 @@ const MobileQuickMenu: React.FC<Props> = ({
         MENU_META.map,
         MENU_META.team,
         MENU_META.task,
-        MENU_META.world,
+        ...(enableWorldPanel ? [MENU_META.world] : []),
         MENU_META.story,
         MENU_META.save,
         ...(enabled ? [MENU_META.music] : []),
         MENU_META.settings,
-    ]), [enableKungfu, enabled]);
+    ]), [enableKungfu, enableWorldPanel, enabled]);
 
     const allMenus = useMemo<MenuMeta[]>(() => ([
         MENU_META.character,
@@ -139,9 +143,9 @@ const MobileQuickMenu: React.FC<Props> = ({
         MENU_META.sect,
         MENU_META.task,
         MENU_META.agreement,
-        MENU_META.world,
+        ...(enableWorldPanel ? [MENU_META.world] : []),
         MENU_META.story,
-        ...(enableHeroinePlan ? [MENU_META.plan] : []),
+        ...(enablePlanningPanel && enableHeroinePlan ? [MENU_META.plan] : []),
         MENU_META.memory,
         MENU_META.export_novel,
         ...(enableImageManager ? [MENU_META.image_manager] : []),
@@ -149,7 +153,7 @@ const MobileQuickMenu: React.FC<Props> = ({
         MENU_META.save,
         MENU_META.load,
         MENU_META.settings,
-    ]), [enableHeroinePlan, enableImageManager, enableKungfu, enableNovelDecomposition]);
+    ]), [enableHeroinePlan, enableImageManager, enableKungfu, enableNovelDecomposition, enablePlanningPanel, enableWorldPanel]);
 
     const handleMenuClick = (menu: MenuId) => {
         onMenuClick(menu);
