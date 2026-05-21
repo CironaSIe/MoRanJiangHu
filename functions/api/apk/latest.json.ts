@@ -44,7 +44,7 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
             ...payload,
             latest: {
                 ...(payload?.latest || {}),
-                apkUrl: stableApkUrl,
+                apkUrl: directApkUrl || stableApkUrl,
                 directApkUrl: directApkUrl || undefined,
                 apkUrls: [
                     directApkUrl,
