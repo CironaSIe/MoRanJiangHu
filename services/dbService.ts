@@ -779,13 +779,16 @@ export const 读取图片资源 = async (refOrId: string): Promise<string> => {
     });
 };
 
-export const 预热图片资源缓存 = async (options?: { limit?: number; maxChars?: number }): Promise<number> => {
+export const 预热图片资源缓存 = async (options?: { limit?: number; maxChars?: number; clearExisting?: boolean }): Promise<number> => {
     const db = await 初始化数据库();
     const limit = Math.max(0, Math.floor(options?.limit ?? (isNativeCapacitorEnvironment() ? 0 : 图片缓存预热最大条目数)));
     const maxChars = Math.max(0, Math.floor(options?.maxChars ?? 图片缓存预热最大字符数));
+    const shouldClearExisting = options?.clearExisting !== false;
     if (limit <= 0 || maxChars <= 0) {
-        清空图片资源缓存();
-        图片资源签名缓存.clear();
+        if (shouldClearExisting) {
+            清空图片资源缓存();
+            图片资源签名缓存.clear();
+        }
         return 0;
     }
     const entries = await new Promise<Array<{ id: string; dataUrl: string }>>((resolve, reject) => {
@@ -811,8 +814,10 @@ export const 预热图片资源缓存 = async (options?: { limit?: number; maxCh
         };
         request.onerror = () => reject(request.error);
     });
-    清空图片资源缓存();
-    图片资源签名缓存.clear();
+    if (shouldClearExisting) {
+        清空图片资源缓存();
+        图片资源签名缓存.clear();
+    }
     批量注册图片资源缓存(entries);
     entries.forEach((item) => {
         const signature = 生成图片资源签名(item.dataUrl);
@@ -1476,7 +1481,7 @@ export const 自动迁移本地图片到图床 = async (): Promise<本地图片�
             duplicatePlan.cleanupIds.forEach((id) => assetMap.delete(id));
         }
         if (replacements.size > 0) {
-            await 预热图片资源缓存().catch((error) => {
+            await 预热图片资源缓存({ clearExisting: false }).catch((error) => {
                 console.warn('本地图片自动迁移后预热缓存失败，已跳过缓存刷新:', error);
             });
         }

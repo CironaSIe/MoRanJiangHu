@@ -599,7 +599,7 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
     );
 
     return (
-        <div className="w-full my-4 sm:my-6 px-1.5 sm:px-4 relative group transition-all duration-500 transform hover:scale-[1.01] flex justify-center" style={style}>
+        <div className="judgment-renderer w-full my-4 sm:my-6 px-1.5 sm:px-4 relative group transition-all duration-500 transform hover:scale-[1.01] flex justify-center" data-judgment-card="true" style={style}>
             {/* 动态背景发光 */}
             <div className={`absolute inset-0 w-full sm:w-11/12 md:w-5/6 lg:w-3/4 mx-auto rounded-xl ${theme.glow} opacity-40 blur-xl -z-10 transition-opacity group-hover:opacity-70`}></div>
             

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { 提取判定日志前缀, 是否判定日志文本 } from '../utils/judgmentFormat';
+import { 拆分判定日志与后续正文, 提取判定日志前缀, 是否判定日志文本 } from '../utils/judgmentFormat';
 
 describe('judgment log detection', () => {
     it('recognizes custom bracketed judgment categories with score and result fields', () => {
@@ -11,5 +11,14 @@ describe('judgment log detection', () => {
 
     it('does not treat ordinary bracketed narration as a judgment card', () => {
         expect(是否判定日志文本('【青木诀】书页泛起淡淡青光，屋内香烟袅袅。')).toBe(false);
+    });
+
+    it('splits leaked narration after a judgment result', () => {
+        const line = '[洞察]查阅账目漏洞｜触发对象 玩家:杨培强｜判定值 11/难度 8｜结果=成功 杨培强翻开账册。';
+
+        expect(拆分判定日志与后续正文(line)).toEqual({
+            judgmentText: '[洞察]查阅账目漏洞｜触发对象 玩家:杨培强｜判定值 11/难度 8｜结果=成功',
+            trailingBody: '杨培强翻开账册。'
+        });
     });
 });

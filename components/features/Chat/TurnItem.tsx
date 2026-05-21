@@ -4,7 +4,7 @@ import { NarratorRenderer, CharacterRenderer, JudgmentRenderer } from './Message
 import GameButton from '../../ui/GameButton';
 import { 构建区域文字样式 } from '../../../utils/visualSettings';
 import { 规范化可渲染对白日志 } from '../../../utils/dialogueLogNormalizer';
-import { 提取判定日志前缀, 是否判定日志文本 } from '../../../utils/judgmentFormat';
+import { 拆分判定日志与后续正文, 提取判定日志前缀, 是否判定日志文本 } from '../../../utils/judgmentFormat';
 
 interface Props {
     response: GameResponse;
@@ -151,6 +151,14 @@ const TurnItem: React.FC<Props> = ({
                 .replace(/<\s*judge\s*>[\s\S]*?(?:<\s*\/\s*judge\s*>|$)/gi, '')
                 .replace(/^\s+/, '')
         }))
+        .flatMap((log) => {
+            const split = 拆分判定日志与后续正文(log.text);
+            if (!split) return [log];
+            return [
+                { ...log, text: split.judgmentText },
+                { sender: '旁白', text: split.trailingBody }
+            ];
+        })
         .filter(log => log.text.trim().length > 0));
     const judgeBlocks = Array.isArray(response.judge_blocks)
         ? response.judge_blocks.filter(block => ((block?.text || block?.raw || '').trim().length > 0))

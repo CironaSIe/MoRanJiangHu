@@ -17,6 +17,7 @@ import { 构建COT伪装提示词 } from './promptRuntime';
 import { 环境时间转标准串 } from './timeUtils';
 import { 规范化环境信息, 构建完整地点文本 } from './stateTransforms';
 import { 规范化对白日志 } from '../../utils/dialogueLogNormalizer';
+import { 拆分判定日志与后续正文, 提取判定日志前缀, 是否判定日志文本 } from '../../utils/judgmentFormat';
 
 type 正文日志结构 = Array<{ sender: string; text: string }>;
 
@@ -69,6 +70,18 @@ const 规范化正文发送者 = (senderRaw: string): string => {
     return sender;
 };
 
+const 解析判定正文行 = (line: string): { sender: string; text: string; trailingBody?: string } | null => {
+    const text = (line || '').trim();
+    const prefix = 提取判定日志前缀(text);
+    if (!prefix) return null;
+    const split = 拆分判定日志与后续正文(text);
+    return {
+        sender: prefix,
+        text: split?.judgmentText || text,
+        trailingBody: split?.trailingBody
+    };
+};
+
 const 解析正文日志文本 = (bodyText: string): 正文日志结构 => {
     const source = (bodyText || '').trim();
     if (!source) return [];
@@ -79,11 +92,26 @@ const 解析正文日志文本 = (bodyText: string): 正文日志结构 => {
     for (const rawLine of lines) {
         const line = rawLine.trim();
         if (!line) continue;
+        const judgmentLine = 解析判定正文行(line);
+        if (judgmentLine) {
+            current = { sender: judgmentLine.sender, text: judgmentLine.text };
+            logs.push(current);
+            if (judgmentLine.trailingBody) {
+                current = { sender: '旁白', text: judgmentLine.trailingBody };
+                logs.push(current);
+            }
+            continue;
+        }
         const match = line.match(/^【\s*([^】]+?)\s*】\s*(.*)$/);
         if (match) {
             const sender = 规范化正文发送者(match[1]);
             const text = (match[2] || '').trim();
             current = { sender, text };
+            logs.push(current);
+            continue;
+        }
+        if (current && (是否判定正文发送者(current.sender) || 是否判定日志文本(current.text))) {
+            current = { sender: '旁白', text: line };
             logs.push(current);
             continue;
         }
@@ -111,7 +139,11 @@ const 构建正文文本 = (logs: 正文日志结构): string => {
 
 const 是否判定正文发送者 = (senderRaw: string): boolean => {
     const sender = (senderRaw || '').trim();
-    return sender === '【判定】' || sender === '【NSFW判定】' || sender === '判定' || sender === 'NSFW判定';
+    return sender === '【判定】'
+        || sender === '【NSFW判定】'
+        || sender === '判定'
+        || sender === 'NSFW判定'
+        || Boolean(提取判定日志前缀(sender));
 };
 
 const 限制润色结果判定数量 = (

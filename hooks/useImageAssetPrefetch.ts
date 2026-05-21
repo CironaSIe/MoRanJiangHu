@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { 读取图片资源 } from '../services/dbService';
-import { 读取图片资源缓存, 是否图片资源引用 } from '../utils/imageAssets';
+import {
+    创建图片资源引用,
+    读取图片资源缓存,
+    读取远程图片兜底资源ID,
+    是否图片资源引用,
+    是否远程图片地址
+} from '../utils/imageAssets';
 import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 
 const 取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
@@ -12,7 +18,15 @@ const 收集图片资源引用 = (
 ): void => {
     const text = 取文本(value);
     if (text) {
-        if (是否图片资源引用(text)) refs.add(text);
+        if (是否图片资源引用(text)) {
+            refs.add(text);
+            return;
+        }
+        if (是否远程图片地址(text)) {
+            const fallbackId = 读取远程图片兜底资源ID(text);
+            const fallbackRef = fallbackId ? 创建图片资源引用(fallbackId) : '';
+            if (fallbackRef) refs.add(fallbackRef);
+        }
         return;
     }
     if (!value || typeof value !== 'object') return;

@@ -1,5 +1,6 @@
 import { GameResponse } from '../../types';
 import { 规范化对白日志 } from '../../utils/dialogueLogNormalizer';
+import { 拆分判定日志与后续正文, 提取判定日志前缀, 是否判定日志文本 } from '../../utils/judgmentFormat';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
 
 export interface StoryParseOptions {
@@ -650,7 +651,9 @@ const 规范化日志发送者 = (senderRaw: string): string => {
 };
 
 const 是否判定类日志发送者 = (senderRaw: string): boolean => {
-    return /^(【)?(?:判定|NSFW判定|先机|瞄准|接战|对撞|对抗|防御|化解|伤害|态势|反击|反馈|消耗|洞察|衰退)(】)?$/.test((senderRaw || '').trim());
+    const sender = (senderRaw || '').trim();
+    return Boolean(提取判定日志前缀(sender))
+        || /^(【)?(?:判定|NSFW判定|先机|瞄准|接战|对撞|对抗|防御|化解|伤害|态势|反击|反馈|消耗|洞察|衰退)(】)?$/.test(sender);
 };
 
 const 解析无括号正文发送者行 = (line: string): { sender: string; text: string } | null => {
@@ -662,6 +665,18 @@ const 解析无括号正文发送者行 = (line: string): { sender: string; text
     return {
         sender: 规范化日志发送者(sender),
         text: (match[2] || '').trim()
+    };
+};
+
+const 解析判定日志行 = (line: string): { sender: string; text: string; trailingBody?: string } | null => {
+    const text = (line || '').trim();
+    const prefix = 提取判定日志前缀(text);
+    if (!prefix) return null;
+    const split = 拆分判定日志与后续正文(text);
+    return {
+        sender: prefix,
+        text: split?.judgmentText || text,
+        trailingBody: split?.trailingBody
     };
 };
 
@@ -710,6 +725,17 @@ const 解析正文日志 = (body: string): Array<{ sender: string; text: string 
             continue;
         }
 
+        const judgmentLine = 解析判定日志行(line);
+        if (judgmentLine) {
+            current = { sender: judgmentLine.sender, text: judgmentLine.text };
+            logs.push(current);
+            if (judgmentLine.trailingBody) {
+                current = { sender: '旁白', text: judgmentLine.trailingBody };
+                logs.push(current);
+            }
+            continue;
+        }
+
         const match = line.match(/^【\s*([^】]+?)\s*】\s*(.*)$/);
         if (match) {
             const sender = 规范化日志发送者(match[1]);
@@ -719,11 +745,17 @@ const 解析正文日志 = (body: string): Array<{ sender: string; text: string 
             continue;
         }
 
-        const plainSenderLine = current && 是否判定类日志发送者(current.sender)
+        const currentIsJudgment = current && (是否判定类日志发送者(current.sender) || 是否判定日志文本(current.text));
+        const plainSenderLine = currentIsJudgment
             ? 解析无括号正文发送者行(line)
             : null;
         if (plainSenderLine) {
             current = plainSenderLine;
+            logs.push(current);
+            continue;
+        }
+        if (currentIsJudgment) {
+            current = { sender: '旁白', text: rawLine.trimEnd() };
             logs.push(current);
             continue;
         }

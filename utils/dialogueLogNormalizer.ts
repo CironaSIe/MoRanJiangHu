@@ -1,5 +1,7 @@
 import type { GameLog } from '../types';
 
+import { 是否判定日志文本 } from './judgmentFormat';
+
 type NormalizeOptions = {
     knownSpeakers?: string[];
 };
@@ -162,8 +164,12 @@ const 含有引号对白 = (text: string): boolean => {
 
 export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): GameLog[] => {
     const normalized = (Array.isArray(logs) ? logs : []).flatMap((item) => {
-        const sender = 清理说话人(item?.sender || '旁白') || '旁白';
+        const rawSender = (item?.sender || '旁白').trim() || '旁白';
         const text = typeof item?.text === 'string' ? item.text.trim() : String(item?.text ?? '').trim();
+        if (是否判定日志文本(rawSender) || 是否判定日志文本(text)) {
+            return [{ sender: rawSender, text }];
+        }
+        const sender = 清理说话人(rawSender) || '旁白';
         if (!text) return [];
         if (sender === '旁白') return [{ sender, text }];
         if (/^(【)?(?:判定|NSFW判定|先机|瞄准|接战|对撞|对抗|防御|化解|伤害|态势|反击|反馈|消耗|洞察|衰退)(】)?$/.test(sender)) {

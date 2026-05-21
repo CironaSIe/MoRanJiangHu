@@ -121,4 +121,37 @@ describe('storyResponseParser', () => {
             { sender: '林云轩', text: '（将铜盆放稳，拧干热帕子）“娘，先净净面吧。”' }
         ]);
     });
+
+    it('extracts square-bracket judgment lines without swallowing following narration', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '【旁白】老王头被这股阴冷的气势一激，退到一旁。',
+            '[洞察]查阅账目漏洞｜触发对象 玩家:杨培强｜判定值 11/难度 8｜基础 B(+6,观察与逻辑分析)｜状态 S(+3,过目不忘天赋加成)｜结果=成功',
+            '杨培强的手指在泛黄的账页上快速划过，一目十行。',
+            '</正文>',
+            '<短期记忆>杨培强查账成功。</短期记忆>'
+        ].join('\n'));
+
+        expect(parsed.logs).toEqual([
+            { sender: '旁白', text: '老王头被这股阴冷的气势一激，退到一旁。' },
+            { sender: '[洞察]', text: '[洞察]查阅账目漏洞｜触发对象 玩家:杨培强｜判定值 11/难度 8｜基础 B(+6,观察与逻辑分析)｜状态 S(+3,过目不忘天赋加成)｜结果=成功' },
+            { sender: '旁白', text: '杨培强的手指在泛黄的账页上快速划过，一目十行。' }
+        ]);
+    });
+
+    it('splits narration leaked onto the same judgment line', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '【旁白】王管事脸色发白。',
+            '【交涉】威压管事查账｜触发对象 玩家:杨培强｜判定值 10/难度 6｜结果=成功 杨培强没有废话，直接释放灵力波动。',
+            '</正文>',
+            '<短期记忆>杨培强威压王管事。</短期记忆>'
+        ].join('\n'));
+
+        expect(parsed.logs).toEqual([
+            { sender: '旁白', text: '王管事脸色发白。' },
+            { sender: '【交涉】', text: '【交涉】威压管事查账｜触发对象 玩家:杨培强｜判定值 10/难度 6｜结果=成功' },
+            { sender: '旁白', text: '杨培强没有废话，直接释放灵力波动。' }
+        ]);
+    });
 });
