@@ -370,7 +370,7 @@ const SocialModal: React.FC<Props> = ({
                 <div className="h-14 shrink-0 border-b border-white/10 bg-gradient-to-r from-black/80 to-black/40 flex items-center justify-between px-6 relative z-50">
                     <div className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-wuxia-gold animate-pulse shadow-[0_0_10px_rgba(212,175,55,0.8)]"></div>
-                        <h3 className="text-wuxia-gold font-serif font-bold text-xl tracking-[0.4em] drop-shadow-md">江湖谱<span className="text-[10px] text-wuxia-gold/50 ml-2 font-mono tracking-widest border border-wuxia-gold/20 px-2 py-0.5 rounded-full">SOCIAL LINK SYSTEM</span></h3>
+                        <h3 className="text-wuxia-gold font-serif font-bold text-xl tracking-[0.4em] drop-shadow-md">江湖谱<span className="text-[10px] text-wuxia-gold/50 ml-2 font-mono tracking-widest border border-wuxia-gold/20 px-2 py-0.5 rounded-full">SOCIAL LINK SYSTEM</span><span className="text-[10px] text-wuxia-gold/45 ml-2 font-mono tracking-widest border border-wuxia-gold/15 px-2 py-0.5 rounded-full">test-d</span></h3>
                     </div>
                     <button
                         onClick={onClose}
