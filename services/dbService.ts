@@ -6,6 +6,7 @@ import { 默认功能模型占位, 规范化接口设置 } from '../utils/apiCon
 import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 import { buildSaveDebugSummary, recordSaveLoadError, recordSaveLoadTrace } from '../utils/saveLoadTrace';
 import { 补全存档谱系元数据 } from '../utils/saveLineage';
+import { 读取存档游玩回合数 } from '../utils/saveTurn';
 
 import { recordDiagnosticLog } from './diagnosticLog';
 import { buildImageHostProxyUrl, 上传DataUrl到图床 } from './imageHostService';
@@ -615,6 +616,9 @@ const 构建存档摘要记录 = (save: Partial<存档结构> | null | undefined
         metadata.现实保存时间戳 = timestamp;
         metadata.现实保存时间ISO = new Date(timestamp).toISOString();
     }
+    if (metadata) {
+        metadata.游戏回合数 = 读取存档游玩回合数({ ...save, 元数据: metadata });
+    }
     return {
         id: saveId,
         类型: save?.类型 === 'auto' ? 'auto' : 'manual',
@@ -689,6 +693,8 @@ const 清洗导入存档 = (raw: any): Omit<存档结构, 'id'> | null => {
 
     normalized.元数据 = {
         ...(normalized.元数据 || {}),
+        历史记录条数: Array.isArray(normalized.历史记录) ? normalized.历史记录.length : 0,
+        游戏回合数: 读取存档游玩回合数(normalized),
         存档哈希: 计算存档同步哈希(normalized)
     };
     return 补全存档谱系元数据(normalized);
@@ -1672,7 +1678,12 @@ const 删除重复自动存档签名 = async (db: IDBDatabase, signature: string
             const cursor = request.result;
             if (!cursor) return;
             const save = cursor.value as 存档结构;
-            if (save?.类型 === 'auto' && (save.元数据?.自动存档签名 || '').trim() === target) {
+            const metadata: any = save?.元数据 || {};
+            const sameSignature = (metadata.自动存档签名 || '').trim() === target;
+            const sameNode = target.startsWith('node:')
+                && typeof metadata.自动存档节点ID === 'string'
+                && `node:${metadata.自动存档节点ID}` === target;
+            if (save?.类型 === 'auto' && sameSignature && (!target.startsWith('node:') || sameNode)) {
                 cursor.delete();
                 if (typeof save.id === 'number') summaryStore.delete(save.id);
             }
@@ -1716,6 +1727,15 @@ export const 保存存档 = async (存档: Omit<存档结构, 'id'>): Promise<nu
         };
         request.onerror = () => reject(request.error);
     });
+};
+
+export const 保存存档并读取 = async (存档: Omit<存档结构, 'id'>): Promise<存档结构> => {
+    const id = await 保存存档(存档);
+    const saved = await 读取存档(id);
+    return {
+        ...(saved || 存档),
+        id
+    } as 存档结构;
 };
 
 export interface 存档导出结构 {
@@ -1797,8 +1817,12 @@ export const 导入存档数据 = async (
     let skipped = 0;
 
     const persistedCandidates: Array<Omit<存档结构, 'id'>> = [];
+    const lineageCandidates: Array<Partial<存档结构>> = [...existingSaves];
     for (const item of normalizedCandidates) {
-        persistedCandidates.push(await 外置化图片字段(item) as Omit<存档结构, 'id'>);
+        const withLineage = 补全存档谱系元数据(item, lineageCandidates);
+        const persisted = await 外置化图片字段(withLineage) as Omit<存档结构, 'id'>;
+        persistedCandidates.push(persisted);
+        lineageCandidates.push(persisted);
     }
 
     await new Promise<void>((resolve, reject) => {

@@ -37,6 +37,7 @@ import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
 import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
 import { buildHistoryDebugSummary, buildSaveDebugSummary, collectLargestStrings, collectValueStats, recordSaveLoadTrace } from '../../utils/saveLoadTrace';
 import { 清理内嵌图片冗余字段 } from '../../utils/imageAssets';
+import { 计算历史游玩回合数 } from '../../utils/saveTurn';
 
 const 收集图床图片地址 = (
     value: unknown,
@@ -416,6 +417,17 @@ const 构建自动存档签名 = (
     return `${timeText}|${locationText}|${historySize}|${memoryRound}|${memorySize}|${latestDigest}`;
 };
 
+const 生成自动存档节点ID = (save: Omit<存档结构, 'id'>): string => {
+    const turn = 计算历史游玩回合数(save.历史记录);
+    const env = save.环境信息 || ({} as any);
+    const timeText = 环境时间转标准串(env) || `${save.时间戳 || Date.now()}`;
+    const locationText = [env.具体地点, env.小地点, env.中地点, env.大地点]
+        .map((item: unknown) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean)
+        .join('/');
+    return `turn:${turn}|time:${timeText}|loc:${locationText}`;
+};
+
 const 构建读档后重Roll快照 = (
     save: 存档结构,
     loaded: {
@@ -540,6 +552,7 @@ export const 创建存档数据 = (
         元数据: {
             schemaVersion: deps.存档格式版本,
             历史记录条数: historySnapshot.length,
+            游戏回合数: 计算历史游玩回合数(historySnapshot),
             历史记录是否裁剪: false,
             自动存档签名: type === 'auto' ? (autoSignature || '') : undefined,
             现实保存时间戳,
@@ -582,8 +595,8 @@ export const 执行手动存档 = async (
     deps: 存档协调依赖
 ): Promise<void> => {
     const save = 创建存档数据('manual', currentState, deps);
-    const id = await dbService.保存存档(save);
-    后台同步存档到云端({ ...save, id } as 存档结构);
+    const persistedSave = await dbService.保存存档并读取(save);
+    后台同步存档到云端(persistedSave);
     deps.setHasSave(true);
 };
 
@@ -613,8 +626,14 @@ export const 执行自动存档 = async (
 
     try {
         const save = 创建存档数据('auto', currentState, deps, signature, snapshot);
-        const id = await dbService.保存存档(save);
-        后台同步存档到云端({ ...save, id } as 存档结构);
+        const nodeId = 生成自动存档节点ID(save);
+        save.元数据 = {
+            ...(save.元数据 || {}),
+            自动存档签名: `node:${nodeId}`,
+            自动存档节点ID: nodeId
+        } as any;
+        const persistedSave = await dbService.保存存档并读取(save);
+        后台同步存档到云端(persistedSave);
         deps.最近自动存档签名Ref.current = signature;
         deps.最近自动存档时间戳Ref.current = now;
         deps.setHasSave(true);

@@ -637,8 +637,10 @@ export interface 聊天记录结构 {
 export interface 存档元数据结构 {
     schemaVersion?: number;
     历史记录条数?: number;
+    游戏回合数?: number;
     历史记录是否裁剪?: boolean;
     自动存档签名?: string;
+    自动存档节点ID?: string;
     现实保存时间戳?: number;
     现实保存时间ISO?: string;
     存档哈希?: string;

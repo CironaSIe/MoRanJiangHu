@@ -2,6 +2,7 @@ import { RELEASE_INFO } from '../data/releaseInfo';
 import type { 存档结构 } from '../types';
 import { 设置键 } from '../utils/settingsSchema';
 import { 构建同步API地址 } from '../utils/nativeRuntime';
+import { 读取存档游玩回合数 } from '../utils/saveTurn';
 import { extractSettingsSyncData, restoreSettingsSyncData, type 云同步恢复结果 } from './githubSync';
 import { 导出ZIP存档文件, 解析ZIP存档文件 } from './saveArchiveService';
 import * as dbService from './dbService';
@@ -49,6 +50,7 @@ export interface 对象存储云存档元数据 {
     size: number;
     location: string;
     gameTime: string;
+    turnCount?: number;
     seriesId?: string;
     parentHash?: string;
     rootHash?: string;
@@ -854,6 +856,7 @@ const 构建云存档元数据 = async (save: 存档结构, archiveBytes: Uint8A
         size: archiveBytes.length,
         location: 读取地点文本(save),
         gameTime: 读取时间文本(save),
+        turnCount: 读取存档游玩回合数(save),
         seriesId: 读取文本((save.元数据 as any)?.存档系列ID),
         parentHash: 读取文本((save.元数据 as any)?.存档父节点哈希),
         rootHash: 读取文本((save.元数据 as any)?.存档根节点哈希) || hash,
@@ -1102,11 +1105,20 @@ export const 下载对象存储云存档 = async (
     const parsed = await 解析ZIP存档文件(archive);
     const save = Array.isArray(parsed.saves) ? parsed.saves[0] : null;
     if (!save) throw new Error('对象存储 云存档包中没有有效存档');
+    const metadata = payload.metadata || item;
     save.元数据 = {
         ...(save.元数据 || {}),
-        对象存储哈希: payload.metadata?.hash || item.hash,
-        对象存储存档ID: payload.metadata?.id || item.id,
-        对象存储同步时间: payload.metadata?.syncedAt || item.syncedAt
+        存档哈希: 读取文本(metadata?.hash) || 读取文本(save.元数据?.存档哈希),
+        存档系列ID: 读取文本(metadata?.seriesId) || 读取文本(save.元数据?.存档系列ID),
+        存档父节点哈希: 读取文本(metadata?.parentHash) || 读取文本(save.元数据?.存档父节点哈希),
+        存档根节点哈希: 读取文本(metadata?.rootHash) || 读取文本(save.元数据?.存档根节点哈希) || 读取文本(metadata?.hash),
+        存档谱系深度: Number.isFinite(Number(metadata?.lineageDepth)) ? Math.max(0, Math.floor(Number(metadata?.lineageDepth))) : save.元数据?.存档谱系深度,
+        存档分支输入: 读取文本(metadata?.branchInput) || 读取文本(save.元数据?.存档分支输入),
+        存档谱系版本: 1,
+        游戏回合数: Number.isFinite(Number(metadata?.turnCount)) ? Math.max(0, Math.floor(Number(metadata?.turnCount))) : 读取存档游玩回合数(save),
+        对象存储哈希: metadata?.hash || item.hash,
+        对象存储存档ID: metadata?.id || item.id,
+        对象存储同步时间: metadata?.syncedAt || item.syncedAt
     };
     记录对象存储日志('已下载并解析云端存档包', {
         metadata: 构建云存档日志摘要(payload.metadata || item),

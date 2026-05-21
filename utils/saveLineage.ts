@@ -52,6 +52,7 @@ export const 选择存档父节点 = (
 ): Partial<存档结构> | null => {
     const seriesId = 读取存档系列ID(save);
     const currentHash = 读取存档谱系哈希(save);
+    const currentAutoNodeId = readText((save.元数据 as any)?.自动存档节点ID);
     const historyCount = Array.isArray(save.历史记录) ? save.历史记录.length : 0;
     const timestamp = Number(save.时间戳 || 0);
     const explicitParentHash = readText((save.元数据 as any)?.存档父节点哈希);
@@ -61,6 +62,7 @@ export const 选择存档父节点 = (
     }
     return candidates
         .filter((item) => 读取存档谱系哈希(item) && 读取存档谱系哈希(item) !== currentHash)
+        .filter((item) => !currentAutoNodeId || readText((item.元数据 as any)?.自动存档节点ID) !== currentAutoNodeId)
         .filter((item) => 读取存档系列ID(item) === seriesId)
         .filter((item) => (Array.isArray(item.历史记录) ? item.历史记录.length : 0) <= historyCount)
         .filter((item) => Number(item.时间戳 || 0) <= timestamp || timestamp <= 0)
@@ -80,17 +82,25 @@ export const 补全存档谱系元数据 = <T extends Partial<存档结构>>(
     };
     const seriesId = readText(metadata.存档系列ID) || 读取存档系列ID({ ...save, 元数据: metadata } as Partial<存档结构>);
     metadata.存档系列ID = seriesId;
+    const explicitParentHash = readText(metadata.存档父节点哈希);
+    const explicitRootHash = readText(metadata.存档根节点哈希);
+    const explicitDepth = Number(metadata.存档谱系深度);
     const parent = 选择存档父节点({ ...save, 元数据: metadata } as Partial<存档结构>, candidates);
-    const parentHash = parent ? 读取存档谱系哈希(parent) : '';
+    const parentHash = parent ? 读取存档谱系哈希(parent) : explicitParentHash;
     const parentHistoryCount = parent && Array.isArray(parent.历史记录) ? parent.历史记录.length : 0;
-    const branchInput = parent ? 读取历史用户输入(save, parentHistoryCount) : 读取历史用户输入(save, 0);
+    const existingBranchInput = readText(metadata.存档分支输入);
+    const branchInput = parent
+        ? 读取历史用户输入(save, parentHistoryCount)
+        : (!parentHash && !existingBranchInput ? 读取历史用户输入(save, 0) : '');
     const rootHash = parent
         ? readText((parent.元数据 as any)?.存档根节点哈希) || parentHash
-        : readText(metadata.存档根节点哈希) || readText(metadata.存档哈希);
+        : explicitRootHash || readText(metadata.存档哈希) || parentHash;
     metadata.存档父节点哈希 = parentHash || '';
     metadata.存档根节点哈希 = rootHash || readText(metadata.存档哈希);
-    metadata.存档谱系深度 = parent ? Math.max(0, Number((parent.元数据 as any)?.存档谱系深度 || 0) + 1) : 0;
-    metadata.存档分支输入 = branchInput || (parent ? '继续游玩' : '开局');
+    metadata.存档谱系深度 = parent
+        ? Math.max(0, Number((parent.元数据 as any)?.存档谱系深度 || 0) + 1)
+        : (Number.isFinite(explicitDepth) && explicitDepth > 0 ? Math.floor(explicitDepth) : 0);
+    metadata.存档分支输入 = branchInput || existingBranchInput || (parentHash ? '继续游玩' : '开局');
     metadata.存档谱系版本 = 1;
     return {
         ...save,

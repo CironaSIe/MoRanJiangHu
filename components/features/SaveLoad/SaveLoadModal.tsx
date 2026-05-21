@@ -6,6 +6,7 @@ import { 存档结构 } from '../../../types';
 import { parseJsonWithRepair } from '../../../utils/jsonRepair';
 import { isNativeCapacitorEnvironment } from '../../../utils/nativeRuntime';
 import { buildSaveDebugSummary, recordSaveLoadError, recordSaveLoadTrace } from '../../../utils/saveLoadTrace';
+import { 读取存档游玩回合数 } from '../../../utils/saveTurn';
 import GameButton from '../../ui/GameButton';
 
 interface Props {
@@ -19,6 +20,13 @@ interface Props {
 type 存档列表项 = dbService.存档摘要结构;
 type 本地时间树节点 = 存档列表项 & { children: 本地时间树节点[] };
 type 本地时间树系列 = { key: string; hash: string; title: string; latest: 存档列表项; roots: 本地时间树节点[]; count: number };
+
+const 需要刷新回合数摘要 = (save: 存档列表项): boolean => (
+    !Boolean((save.元数据 as any)?.摘要缺失)
+    && typeof save.id === 'number'
+    && typeof save.元数据?.游戏回合数 !== 'number'
+    && Number(save.元数据?.历史记录条数 || 0) > 0
+);
 
 const 读取本地系列Key = (save: 存档列表项): string => (
     save.元数据?.存档系列ID
@@ -77,7 +85,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         const hydrateLimit = native ? pageSize : 40;
         const hydrateCandidates = saves.slice(0, hydrateLimit);
         const nextTarget = hydrateCandidates.find((save) => (
-            是旧版缺摘要存档(save)
+            (是旧版缺摘要存档(save) || 需要刷新回合数摘要(save))
             && typeof save.id === 'number'
             && !hydratedSummaryIdsRef.current.has(save.id)
         ));
@@ -101,7 +109,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 count: hydratedSummaryCountRef.current
             });
             if (native) {
-                const missingTotal = hydrateCandidates.filter((save) => 是旧版缺摘要存档(save)).length;
+                const missingTotal = hydrateCandidates.filter((save) => 是旧版缺摘要存档(save) || 需要刷新回合数摘要(save)).length;
                 setTransferMessage(`正在恢复存档列表详情：${hydratedSummaryCountRef.current} / ${hydratedSummaryCountRef.current + Math.max(0, missingTotal - 1)}`);
             }
             void dbService.补全存档摘要(id)
@@ -237,12 +245,10 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
     const 构建存档摘要 = (save: 存档列表项): string => {
         if (是旧版缺摘要存档(save)) return '正在读取存档摘要，请稍候';
-        const historyCount = typeof save.元数据?.历史记录条数 === 'number'
-            ? save.元数据.历史记录条数
-            : (Array.isArray(save.历史记录) ? save.历史记录.length : 0);
+        const turnCount = 读取存档游玩回合数(save);
         const tags: string[] = [
             `保存于 ${读取现实保存时间文本(save)}`,
-            `历史 ${historyCount} 条`
+            需要刷新回合数摘要(save) ? '正在校准回合数' : `第 ${turnCount} 回合`
         ];
         if (save.元数据?.历史记录是否裁剪) {
             tags.push('已裁剪');
@@ -258,6 +264,9 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     };
 
     const 读取存档短哈希 = (save: 存档列表项): string => dbService.计算存档摘要短哈希(save);
+    const 读取存档回合标签 = (save: 存档列表项): string => (
+        需要刷新回合数摘要(save) ? '回合数校准中' : `第 ${读取存档游玩回合数(save)} 回合`
+    );
 
     const 构建本地时间树 = (items: 存档列表项[]): 本地时间树系列[] => {
         const groups = new Map<string, 存档列表项[]>();
@@ -266,12 +275,20 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             groups.set(key, [...(groups.get(key) || []), item]);
         });
         return [...groups.entries()].map(([key, list]) => {
-            const nodes = new Map<string, 本地时间树节点>();
-            list.forEach((item) => nodes.set(读取存档短哈希(item), { ...item, children: [] }));
+            const nodes = list.map((item) => ({ ...item, children: [] } as 本地时间树节点));
+            const nodeByHash = new Map<string, 本地时间树节点>();
+            nodes.forEach((node) => {
+                const fullHash = typeof node.元数据?.存档哈希 === 'string' ? node.元数据.存档哈希.trim() : '';
+                const shortHash = 读取存档短哈希(node);
+                if (fullHash) nodeByHash.set(fullHash, node);
+                if (fullHash) nodeByHash.set(fullHash.slice(0, 16), node);
+                if (fullHash) nodeByHash.set(fullHash.slice(-8), node);
+                if (shortHash) nodeByHash.set(shortHash, node);
+            });
             const roots: 本地时间树节点[] = [];
             nodes.forEach((node) => {
                 const parentHash = typeof node.元数据?.存档父节点哈希 === 'string' ? node.元数据.存档父节点哈希.trim() : '';
-                const parent = parentHash ? nodes.get(parentHash.slice(0, 16)) || nodes.get(parentHash) : undefined;
+                const parent = parentHash ? nodeByHash.get(parentHash) || nodeByHash.get(parentHash.slice(0, 16)) || nodeByHash.get(parentHash.slice(-8)) : undefined;
                 if (parent) parent.children.push(node);
                 else roots.push(node);
             });
@@ -284,7 +301,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             const hashSource = JSON.stringify({
                 key,
                 root: latest?.元数据?.存档根节点哈希 || '',
-                nodes: [...nodes.keys()].sort()
+                nodes: nodes.map((node) => 读取存档短哈希(node)).sort()
             });
             return { key, hash: 计算文本短哈希(hashSource), title: 构建存档标题(latest), latest, roots, count: list.length };
         }).sort((a, b) => Number(b.latest?.元数据?.现实保存时间戳 || b.latest?.时间戳 || 0) - Number(a.latest?.元数据?.现实保存时间戳 || a.latest?.时间戳 || 0));
@@ -896,7 +913,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                         <div>
                                             <div className="font-serif text-base font-bold tracking-[0.12em] text-wuxia-gold">{selectedSeries.title}</div>
                                             <div className="mt-1 text-[11px] text-gray-500">
-                                                时间树 {selectedSeries.count} 个节点 · #{selectedSeries.hash} · 最新 {读取现实保存时间文本(selectedSeries.latest)} · {读取地点文本(selectedSeries.latest)}
+                                                时间树 {selectedSeries.count} 个节点 · #{selectedSeries.hash} · 最新 {读取存档回合标签(selectedSeries.latest)} · {读取现实保存时间文本(selectedSeries.latest)} · {读取地点文本(selectedSeries.latest)}
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
@@ -937,7 +954,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                             <div>
                                                 <div className="font-serif text-sm font-bold tracking-[0.12em] text-wuxia-gold">{series.title}</div>
                                                 <div className="mt-1 text-[11px] text-gray-500">
-                                                    时间树 {series.count} 个节点 · #{series.hash} · 最新 {读取现实保存时间文本(series.latest)} · {读取地点文本(series.latest)}
+                                                    时间树 {series.count} 个节点 · #{series.hash} · 最新 {读取存档回合标签(series.latest)} · {读取现实保存时间文本(series.latest)} · {读取地点文本(series.latest)}
                                                 </div>
                                             </div>
                                             <div className="text-[11px] text-wuxia-cyan">{series.count > 1 ? '展开时间树选择存档' : '查看时间树'}</div>
