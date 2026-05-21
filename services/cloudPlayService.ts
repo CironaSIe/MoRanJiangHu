@@ -51,6 +51,7 @@ export type 云端存档摘要 = {
     parentSyncHash?: string;
     rootSyncHash?: string;
     depth?: number;
+    branchInput?: string;
     deletedAt?: string;
 };
 
@@ -521,7 +522,6 @@ export const 清除云端游玩会话 = (): void => {
 
 export const 启用对象存储云端游玩模式 = (): void => {
     localStorage.setItem(OBJECT_STORAGE_MODE_KEY, 'true');
-    localStorage.removeItem(SESSION_KEY);
 };
 
 export const 清除对象存储云端游玩模式 = (): void => {
@@ -654,7 +654,8 @@ const 构建云端摘要 = (
         baseCloudId: options?.baseCloudId || parentCloudId,
         parentSyncHash: readString((save.元数据 as any)?.存档父节点哈希),
         rootSyncHash: readString((save.元数据 as any)?.存档根节点哈希) || syncHash,
-        depth: Math.max(0, Math.floor(Number(options?.depth || 0)))
+        depth: Math.max(0, Math.floor(Number(options?.depth || 0))),
+        branchInput: readString((save.元数据 as any)?.存档分支输入) || (parentCloudId ? '继续游玩' : '开局')
     };
 };
 

@@ -53,6 +53,7 @@ export interface 对象存储云存档元数据 {
     parentHash?: string;
     rootHash?: string;
     lineageDepth?: number;
+    branchInput?: string;
 }
 
 interface 对象存储清单结构 {
@@ -856,7 +857,8 @@ const 构建云存档元数据 = async (save: 存档结构, archiveBytes: Uint8A
         seriesId: 读取文本((save.元数据 as any)?.存档系列ID),
         parentHash: 读取文本((save.元数据 as any)?.存档父节点哈希),
         rootHash: 读取文本((save.元数据 as any)?.存档根节点哈希) || hash,
-        lineageDepth: Math.max(0, Math.floor(Number((save.元数据 as any)?.存档谱系深度 || 0)))
+        lineageDepth: Math.max(0, Math.floor(Number((save.元数据 as any)?.存档谱系深度 || 0))),
+        branchInput: 读取文本((save.元数据 as any)?.存档分支输入) || (读取文本((save.元数据 as any)?.存档父节点哈希) ? '继续游玩' : '开局')
     };
 };
 

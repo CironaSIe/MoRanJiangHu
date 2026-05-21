@@ -1,13 +1,14 @@
 {
-  "versionCode": 269,
-  "versionName": "1.0.268",
+  "versionCode": 272,
+  "versionName": "1.0.271",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复手机端顶部时间/节日显示不一致的问题，时程按钮会直接显示日期，节日只按当前游戏日期匹配。",
-    "优化判定文本识别，兼容 [洞察]、[判定] 等方括号格式，避免判定信息误当正文大段显示。",
-    "保留时间详情中的完整年/月/日/时刻展示，同时减少旁边快捷按钮误导。",
+    "优化存档时间线界面：电脑端显示区域更大，手机端改为全屏可滑动布局，查看长时间线不再被裁剪。",
+    "本地存档、TG 图床云端存档和对象存储云端存档的时间树都支持横向滑动，节点卡片在小屏幕上也能完整查看。",
+    "时间线节点之间改用箭头指示推进方向，不再显示低信息量的“继续游玩”连线文字。",
+    "修复云端游玩在 TG 图床和对象存储之间切换时丢失 TG 登录状态的问题，切回 TG 图床无需重新输入账号密码。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.268。"
+    "同步更新 Web、APK 与更新清单到 v1.0.271。"
   ],
   "releaseHistory": [
     {
@@ -2709,7 +2710,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-21T13:11:27+08:00",
+  "releasePublishedAt": "2026-05-21T18:54:20+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
