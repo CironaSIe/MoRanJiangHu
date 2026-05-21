@@ -10,14 +10,17 @@ import {
     清除云端游玩会话,
     启用对象存储云端游玩模式,
     清除对象存储云端游玩模式,
+    已启用对象存储云端游玩模式,
     读取云端存档清单,
+    读取缓存云端存档清单,
     复制全部本地存档到云端,
     导入云端存档到本地,
     保存云端存档为本地文件,
     下载云端存档包,
     type 云端游玩账号,
     type 云端存档清单,
-    type 云端存档摘要
+    type 云端存档摘要,
+    type 云端上传进度
 } from '../../../services/cloudPlayService';
 import {
     读取对象存储同步配置,
@@ -56,10 +59,15 @@ const formatBytes = (bytes?: number): string => {
     return `${value.toFixed(value >= 100 || unit === 0 ? 0 : 1)} ${units[unit]}`;
 };
 
+const clampPercent = (value: number | undefined): number => {
+    if (!Number.isFinite(value || NaN)) return 0;
+    return Math.max(0, Math.min(100, Math.round(value || 0)));
+};
+
 const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjectStorage }) => {
     const [riskAccepted, setRiskAccepted] = React.useState(() => 已确认云端游玩风险());
     const [session, setSession] = React.useState<云端游玩账号 | null>(() => 读取云端游玩会话());
-    const [storageMode, setStorageMode] = React.useState<'tg' | 'object'>('tg');
+    const [storageMode, setStorageMode] = React.useState<'tg' | 'object'>(() => 已启用对象存储云端游玩模式() ? 'object' : 'tg');
     const [objectStorageConfig, setObjectStorageConfig] = React.useState<对象存储同步配置 | null>(null);
     const [objectStorageSaves, setObjectStorageSaves] = React.useState<对象存储云存档元数据[]>([]);
     const [mode, setMode] = React.useState<'login' | 'register'>('login');
@@ -68,6 +76,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
     const [manifest, setManifest] = React.useState<云端存档清单 | null>(null);
     const [busy, setBusy] = React.useState('');
     const [message, setMessage] = React.useState('');
+    const [uploadProgress, setUploadProgress] = React.useState<云端上传进度 | null>(null);
 
     const refreshManifest = React.useCallback(async (targetSession = session) => {
         if (!targetSession) return;
@@ -77,11 +86,15 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
             setManifest(next);
             setMessage(next.saves.length > 0 ? `已读取 ${next.saves.length} 个云端存档。` : '当前云端还没有存档。');
         } catch (error: any) {
-            setMessage(`读取云端存档失败：${error?.message || '未知错误'}`);
+            const cached = manifest || 读取缓存云端存档清单(targetSession);
+            if (cached) setManifest(cached);
+            setMessage(cached
+                ? `读取云端存档失败：${error?.message || '未知错误'}。已保留上次成功读取的 ${cached.saves.length} 个云端存档，稍后可重试刷新。`
+                : `读取云端存档失败：${error?.message || '未知错误'}`);
         } finally {
             setBusy('');
         }
-    }, [session]);
+    }, [manifest, session]);
 
     React.useEffect(() => {
         if (riskAccepted && session) {
@@ -89,21 +102,32 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
         }
     }, [riskAccepted, session, refreshManifest]);
 
+    React.useEffect(() => {
+        if (!riskAccepted || !已启用对象存储云端游玩模式()) return;
+        void handleUseObjectStorage(false);
+    }, [riskAccepted]);
+
     const handleAcceptRisk = () => {
-        setStorageMode('tg');
-        清除对象存储云端游玩模式();
         设置云端游玩风险确认();
         setRiskAccepted(true);
     };
 
-    const handleUseObjectStorage = async () => {
+    const handleUseTgStorage = () => {
+        清除对象存储云端游玩模式();
+        setStorageMode('tg');
+        setObjectStorageConfig(null);
+        setObjectStorageSaves([]);
+        setMessage(session ? '已切换为 TG 图床云端游玩。' : '已切换为 TG 图床模式，请登录账号后继续。');
+    };
+
+    const handleUseObjectStorage = async (openConfigOnFailure = true) => {
         setBusy('object-storage-check');
         setMessage('正在检查对象存储配置...');
         try {
             const config = await 读取对象存储同步配置();
             if (!config) {
                 setMessage('尚未配置对象存储，正在打开配置页。');
-                onConfigureObjectStorage?.();
+                if (openConfigOnFailure) onConfigureObjectStorage?.();
                 return;
             }
             await 测试对象存储连接(config);
@@ -116,7 +140,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
             setMessage(list.length > 0 ? `对象存储连接成功，已读取 ${list.length} 个云端存档。` : '对象存储连接成功，当前云端还没有存档。');
         } catch (error: any) {
             setMessage(`对象存储不可用：${error?.message || '未知错误'}。正在打开配置页。`);
-            onConfigureObjectStorage?.();
+            if (openConfigOnFailure) onConfigureObjectStorage?.();
         } finally {
             setBusy('');
         }
@@ -152,14 +176,22 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
     const handleCopyLocal = async () => {
         if (!session) return;
         setBusy('copy');
+        setUploadProgress(null);
         setMessage('正在复制本地存档到云端...');
         try {
-            const result = await 复制全部本地存档到云端(session, setMessage);
+            const result = await 复制全部本地存档到云端(session, (progress) => {
+                setUploadProgress(progress);
+                setMessage(progress.message);
+            });
             setSession(result.session);
             setMessage(`复制完成：新增 ${result.uploaded} 个，跳过重复 ${result.skipped} 个。`);
             await refreshManifest(result.session);
         } catch (error: any) {
-            setMessage(`复制失败：${error?.message || '未知错误'}`);
+            const cached = manifest || 读取缓存云端存档清单(session);
+            if (cached) setManifest(cached);
+            setMessage(cached
+                ? `复制失败：${error?.message || '未知错误'}。已有云端存档列表已保留（${cached.saves.length} 个），本次失败不会删除云端旧存档。`
+                : `复制失败：${error?.message || '未知错误'}`);
         } finally {
             setBusy('');
         }
@@ -352,6 +384,9 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                                 <button type="button" disabled={disabled} onClick={() => { 清除对象存储云端游玩模式(); onConfigureObjectStorage?.(); }} className="border border-gray-500/40 px-3 py-2 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-50">
                                     修改对象存储配置
                                 </button>
+                                <button type="button" disabled={disabled} onClick={handleUseTgStorage} className="border border-amber-400/35 px-3 py-2 text-xs text-amber-100 hover:bg-amber-500/10 disabled:opacity-50">
+                                    切换到TG图床
+                                </button>
                             </div>
                         </div>
 
@@ -407,6 +442,9 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                         <button type="button" disabled={disabled} onClick={() => { void handleAuth(); }} className="mt-5 w-full border border-wuxia-gold/40 bg-wuxia-gold/15 px-4 py-3 font-serif text-sm font-bold tracking-[0.18em] text-wuxia-gold hover:bg-wuxia-gold/25 disabled:opacity-50">
                             {busy === 'auth' ? '处理中...' : mode === 'register' ? '注册并进入' : '登录云端'}
                         </button>
+                        <button type="button" disabled={disabled} onClick={() => { void handleUseObjectStorage(); }} className="mt-3 w-full border border-sky-400/35 bg-sky-500/10 px-4 py-2 text-xs font-bold text-sky-100 hover:bg-sky-500/20 disabled:opacity-50">
+                            切换到自己的对象存储
+                        </button>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -425,8 +463,30 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                                 <button type="button" disabled={disabled} onClick={handleLogout} className="border border-gray-500/40 px-3 py-2 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-50">
                                     退出账号
                                 </button>
+                                <button type="button" disabled={disabled} onClick={() => { void handleUseObjectStorage(); }} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
+                                    切换到对象存储
+                                </button>
                             </div>
                         </div>
+
+                        {uploadProgress && busy === 'copy' && (
+                            <div className="border border-emerald-400/25 bg-emerald-950/20 px-4 py-3 text-sm text-emerald-50">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <span>{uploadProgress.message}</span>
+                                    <span className="text-xs text-emerald-100/70">
+                                        {uploadProgress.current && uploadProgress.total ? `${uploadProgress.current}/${uploadProgress.total} · ` : ''}
+                                        {uploadProgress.attempt ? `第 ${uploadProgress.attempt}/${uploadProgress.maxAttempts || uploadProgress.attempt} 次 · ` : ''}
+                                        {uploadProgress.uploadBytes ? formatBytes(uploadProgress.uploadBytes) : ''}
+                                    </span>
+                                </div>
+                                <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/40">
+                                    <div
+                                        className="h-full rounded-full bg-emerald-300 transition-all duration-300"
+                                        style={{ width: `${clampPercent(uploadProgress.percent)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid gap-3">
                             {(manifest?.saves || []).length <= 0 ? (

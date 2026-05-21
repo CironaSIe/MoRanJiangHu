@@ -74,6 +74,40 @@ describe('imageHostService', () => {
             }
         })));
 
-        await expect(上传DataUrl到图床('data:image/png;base64,aGVsbG8=')).rejects.toThrow(/HTTP 500/);
+        await expect(上传DataUrl到图床('data:image/png;base64,aGVsbG8=', { maxAttempts: 1 })).rejects.toThrow(/HTTP 500/);
+    });
+
+    it('retries transient image host upload failures', async () => {
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(new Response(JSON.stringify({
+                success: false,
+                error: { message: 'Network error while uploading to Telegram.' }
+            }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            }))
+            .mockResolvedValueOnce(new Response(JSON.stringify({
+                success: true,
+                file: {
+                    id: 'retry-ok',
+                    size: 12,
+                    storage: 'telegram'
+                }
+            }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            }));
+        vi.stubGlobal('fetch', fetchMock);
+        vi.useFakeTimers();
+        try {
+            const resultPromise = 上传DataUrl到图床('data:image/png;base64,aGVsbG8=', { maxAttempts: 2 });
+            await vi.advanceTimersByTimeAsync(1200);
+            await expect(resultPromise).resolves.toMatchObject({
+                url: 'https://image.bacon159.pp.ua/api/v1/file/retry-ok'
+            });
+            expect(fetchMock).toHaveBeenCalledTimes(2);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

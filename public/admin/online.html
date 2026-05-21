@@ -146,6 +146,27 @@
     .tableWrap {
       overflow: auto;
     }
+    .sectionTitle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 16px;
+      margin-top: 14px;
+      margin-bottom: 0;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      border-bottom: 0;
+    }
+    .sectionTitle h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0.1em;
+    }
+    .sectionTitle + .tableWrap {
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -240,15 +261,51 @@
       <div class="stats">
         <div class="panel stat"><small>当前在线</small><strong id="onlineCount">0</strong></div>
         <div class="panel stat"><small>最近用户</small><strong id="recentCount">0</strong></div>
-        <div class="panel stat"><small>在线窗口</small><strong id="ttlSeconds">0s</strong></div>
+        <div class="panel stat"><small>云端注册</small><strong id="cloudPlayUserCount">0</strong></div>
         <div class="panel stat"><small>服务器时间</small><strong id="serverTime" style="font-size:14px">-</strong></div>
       </div>
 
       <div class="panel toolbar">
         <div id="statusText" class="muted">等待刷新</div>
-        <div class="muted">同一 IP 自动合并为同一个用户</div>
+        <div class="muted">在线窗口 <span id="ttlSeconds">0s</span>；同一 IP 自动合并为同一个用户</div>
       </div>
 
+      <div class="panel sectionTitle">
+        <h2>云端游玩注册情况</h2>
+        <div class="muted">显示用户名、密码哈希、注册时间和云端存档清单</div>
+      </div>
+      <div class="panel tableWrap">
+        <table style="min-width: 1540px">
+          <colgroup>
+            <col style="width: 150px" />
+            <col style="width: 160px" />
+            <col style="width: 320px" />
+            <col style="width: 150px" />
+            <col style="width: 150px" />
+            <col style="width: 130px" />
+            <col style="width: 230px" />
+            <col style="width: 250px" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>用户名</th>
+              <th>用户ID</th>
+              <th>密码哈希</th>
+              <th>注册时间</th>
+              <th>更新时间</th>
+              <th>存档数量</th>
+              <th>最新存档</th>
+              <th>清单地址</th>
+            </tr>
+          </thead>
+          <tbody id="cloudPlayRows"></tbody>
+        </table>
+      </div>
+
+      <div class="panel sectionTitle">
+        <h2>在线用户</h2>
+        <div class="muted">最近访问、版本、设备和图床迁移状态</div>
+      </div>
       <div class="panel tableWrap">
         <table>
           <colgroup>
@@ -297,6 +354,7 @@
     const loginMessage = document.getElementById('loginMessage');
     const statusText = document.getElementById('statusText');
     const sessionRows = document.getElementById('sessionRows');
+    const cloudPlayRows = document.getElementById('cloudPlayRows');
     let refreshTimer = 0;
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -396,6 +454,12 @@
       return `${size >= 10 || unitIndex === 0 ? size.toFixed(0) : size.toFixed(2)} ${units[unitIndex]}`;
     };
 
+    const shortHash = (value) => {
+      const text = String(value || '');
+      if (text.length <= 24) return text || '-';
+      return `${text.slice(0, 16)}…${text.slice(-8)}`;
+    };
+
     const migrationStageText = (stage) => ({
       idle: '等待扫描',
       scanning: '扫描中',
@@ -468,9 +532,11 @@
     function renderData(data) {
       document.getElementById('onlineCount').textContent = data.onlineCount || 0;
       document.getElementById('recentCount').textContent = data.totalRecentCount || 0;
+      document.getElementById('cloudPlayUserCount').textContent = data.cloudPlayUserCount || 0;
       document.getElementById('ttlSeconds').textContent = `${data.ttlSeconds || 0}s`;
       document.getElementById('serverTime').textContent = formatTime(data.serverTime);
       statusText.textContent = `已刷新：${new Date().toLocaleTimeString()}`;
+      renderCloudPlayUsers(data.cloudPlayUsers || []);
       const onlineIds = new Set((data.users || data.sessions || []).map((item) => item.id));
       const sourceRows = onlineOnly.checked ? (data.users || data.sessions || []) : (data.recentUsers || data.recentSessions || []);
       const rows = sourceRows.map((item) => {
@@ -492,6 +558,32 @@
         </tr>`;
       }).join('');
       sessionRows.innerHTML = rows || '<tr><td colspan="11" class="muted">暂无用户</td></tr>';
+    }
+
+    function renderCloudPlayUsers(users) {
+      const rows = users.map((item) => {
+        const summary = item.saveSummary || {};
+        const saveText = summary.manifestError
+          ? `<span class="bad">${escapeHtml(summary.manifestError)}</span>`
+          : `<strong>${escapeHtml(summary.saveCount || 0)}</strong> 个<br><span class="muted">手动 ${escapeHtml(summary.manualCount || 0)} / 自动 ${escapeHtml(summary.autoCount || 0)}</span>`;
+        const latestText = summary.latestSavedAt
+          ? `${escapeHtml(formatTime(summary.latestSavedAt))}<br><span class="muted">${escapeHtml(summary.latestTitle || '未知角色')} · ${escapeHtml(summary.latestLocation || '未知地点')}</span>`
+          : '<span class="muted">暂无存档</span>';
+        const manifestText = item.manifestUrl
+          ? `${escapeHtml(shortHash(item.manifestUrl))}<br><span class="muted">${escapeHtml(formatTime(summary.manifestUpdatedAt || item.manifestUpdatedAt))}</span>`
+          : '<span class="muted">暂无清单</span>';
+        return `<tr>
+          <td><strong>${escapeHtml(item.username || '-')}</strong><br><span class="muted mono">${escapeHtml(item.usernameKey || '-')}</span></td>
+          <td class="mono">${escapeHtml(item.userId || '-')}</td>
+          <td class="mono" title="${escapeHtml(item.passwordHash || '')}">${escapeHtml(shortHash(item.passwordHash))}</td>
+          <td>${escapeHtml(formatTime(item.createdAt))}</td>
+          <td>${escapeHtml(formatTime(item.updatedAt))}</td>
+          <td>${saveText}</td>
+          <td>${latestText}</td>
+          <td class="mono" title="${escapeHtml(item.manifestUrl || '')}">${manifestText}</td>
+        </tr>`;
+      }).join('');
+      cloudPlayRows.innerHTML = rows || '<tr><td colspan="8" class="muted">暂无云端注册用户，或云端游玩 R2 未配置。</td></tr>';
     }
 
     async function login() {

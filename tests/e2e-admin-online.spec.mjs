@@ -127,9 +127,9 @@ test('online admin table is readable and can filter to online users', async ({ p
   await expect(page.getByText('节点：SJC')).toBeVisible();
   await expect(page.getByText('美国 · 加利福尼亚 · 洛杉矶')).toBeVisible();
   await expect(page.getByText('路径：')).toHaveCount(0);
-  await expect(page.getByRole('row')).toHaveCount(3);
+  await expect(page.locator('#sessionRows tr')).toHaveCount(2);
 
   await page.getByLabel('只看在线').check();
-  await expect(page.getByRole('row')).toHaveCount(2);
+  await expect(page.locator('#sessionRows tr')).toHaveCount(1);
   await expect(page.getByText('10.4.194.87')).toHaveCount(0);
 });

@@ -77,12 +77,41 @@ type OnlineUserRecord = {
     imageStats?: OnlineImageStats;
 };
 
+type CloudPlayUserRecord = {
+    userId: string;
+    username: string;
+    usernameKey: string;
+    createdAt: string;
+    updatedAt: string;
+    passwordHash: string;
+    clientSalt?: string;
+    manifestUrl?: string;
+    manifestUpdatedAt?: string;
+};
+
+type CloudPlaySaveSummary = {
+    saveCount: number;
+    autoCount: number;
+    manualCount: number;
+    latestSavedAt: string;
+    latestTitle: string;
+    latestLocation: string;
+    manifestUpdatedAt: string;
+    manifestError?: string;
+};
+
+type CloudPlayAdminRecord = CloudPlayUserRecord & {
+    saveSummary: CloudPlaySaveSummary;
+};
+
 const ONLINE_R2_PREFIX = 'moranjianghu/online';
 const REGISTRY_FILE = 'sessions.json';
 const SESSION_TTL_MS = 2 * 60 * 1000;
 const SESSION_RETENTION_MS = 24 * 60 * 60 * 1000;
 const MAX_SESSIONS = 500;
 const HEARTBEAT_MIN_INTERVAL_MS = 20 * 1000;
+const CLOUD_PLAY_R2_PREFIX = 'moranjianghu/cloud-play';
+const MAX_CLOUD_PLAY_USERS = 300;
 
 const buildJsonResponse = (payload: unknown, status = 200): Response => (
     new Response(JSON.stringify(payload), {
@@ -114,9 +143,19 @@ const getBucket = (env: any): R2Bucket | null => {
     return candidate as R2Bucket;
 };
 
+const getCloudPlayBucket = (env: any): R2Bucket | null => {
+    const candidate = env?.CLOUD_PLAY_R2 || env?.CNB_SYNC_R2;
+    if (!candidate || typeof candidate.get !== 'function' || typeof candidate.list !== 'function') return null;
+    return candidate as R2Bucket;
+};
+
 const getPrefix = (env: any): string => (
     readString(env?.ONLINE_SESSIONS_R2_PREFIX) || ONLINE_R2_PREFIX
 ).replace(/^\/+|\/+$/g, '') || ONLINE_R2_PREFIX;
+
+const getCloudPlayPrefix = (env: any): string => (
+    readString(env?.CLOUD_PLAY_R2_PREFIX) || CLOUD_PLAY_R2_PREFIX
+).replace(/^\/+|\/+$/g, '') || CLOUD_PLAY_R2_PREFIX;
 
 const getRegistryKey = (env: any): string => `${getPrefix(env)}/${REGISTRY_FILE}`;
 
@@ -419,6 +458,83 @@ const aggregateUsersByIp = (sessions: OnlineSessionRecord[], nowMs: number, ttlM
     return Array.from(users.values()).sort((left, right) => Date.parse(right.lastSeenAt || '') - Date.parse(left.lastSeenAt || ''));
 };
 
+const summarizeCloudPlayManifest = async (manifestUrl?: string): Promise<CloudPlaySaveSummary> => {
+    const empty: CloudPlaySaveSummary = {
+        saveCount: 0,
+        autoCount: 0,
+        manualCount: 0,
+        latestSavedAt: '',
+        latestTitle: '',
+        latestLocation: '',
+        manifestUpdatedAt: ''
+    };
+    const url = readString(manifestUrl);
+    if (!url) return empty;
+    try {
+        const response = await fetch(url, {
+            headers: { Accept: 'application/json' },
+            cf: { cacheTtl: 0, cacheEverything: false } as any
+        } as RequestInit);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json() as any;
+        const saves = Array.isArray(payload?.saves) ? payload.saves : [];
+        const latest = saves
+            .slice()
+            .sort((left: any, right: any) => Date.parse(readString(right?.savedAt)) - Date.parse(readString(left?.savedAt)))[0];
+        return {
+            saveCount: saves.length,
+            autoCount: saves.filter((item: any) => readString(item?.type) === 'auto').length,
+            manualCount: saves.filter((item: any) => readString(item?.type) !== 'auto').length,
+            latestSavedAt: readString(latest?.savedAt),
+            latestTitle: readString(latest?.title),
+            latestLocation: readString(latest?.location),
+            manifestUpdatedAt: readString(payload?.updatedAt)
+        };
+    } catch (error: any) {
+        return {
+            ...empty,
+            manifestError: error?.message || '读取清单失败'
+        };
+    }
+};
+
+const readCloudPlayUsers = async (env: any): Promise<CloudPlayAdminRecord[]> => {
+    const bucket = getCloudPlayBucket(env);
+    if (!bucket) return [];
+    const prefix = `${getCloudPlayPrefix(env)}/users/`;
+    const users: CloudPlayUserRecord[] = [];
+    let cursor: string | undefined;
+    do {
+        const listed = await bucket.list({ prefix, cursor, limit: 100 });
+        const objects = Array.isArray(listed.objects) ? listed.objects : [];
+        for (const object of objects) {
+            if (users.length >= MAX_CLOUD_PLAY_USERS) break;
+            const item = await bucket.get(object.key);
+            if (!item) continue;
+            const parsed = await item.json<any>().catch(() => null);
+            if (!parsed?.username || !parsed?.userId) continue;
+            users.push({
+                userId: readString(parsed.userId),
+                username: readString(parsed.username),
+                usernameKey: readString(parsed.usernameKey),
+                createdAt: readString(parsed.createdAt),
+                updatedAt: readString(parsed.updatedAt),
+                passwordHash: readString(parsed.passwordHash),
+                clientSalt: readString(parsed.clientSalt),
+                manifestUrl: readString(parsed.manifestUrl),
+                manifestUpdatedAt: readString(parsed.manifestUpdatedAt)
+            });
+        }
+        cursor = listed.truncated && users.length < MAX_CLOUD_PLAY_USERS ? listed.cursor : undefined;
+    } while (cursor);
+
+    const records = await Promise.all(users.map(async (user) => ({
+        ...user,
+        saveSummary: await summarizeCloudPlayManifest(user.manifestUrl)
+    })));
+    return records.sort((left, right) => Date.parse(right.createdAt || '') - Date.parse(left.createdAt || ''));
+};
+
 export function onRequestOptions(): Response {
     return new Response(null, {
         status: 204,
@@ -468,17 +584,20 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
     });
     const users = aggregateUsersByIp(sessions, nowMs, ttlMs);
     const onlineUsers = users.filter((item) => item.online);
+    const cloudPlayUsers = await readCloudPlayUsers(env);
 
     return buildJsonResponse({
         success: true,
         serverTime: new Date(nowMs).toISOString(),
         onlineCount: onlineUsers.length,
         totalRecentCount: users.length,
+        cloudPlayUserCount: cloudPlayUsers.length,
         ttlSeconds: Math.round(ttlMs / 1000),
         users: onlineUsers,
         recentUsers: users.slice(0, 100),
         sessions: onlineSessions,
-        recentSessions: sessions.slice(0, 100)
+        recentSessions: sessions.slice(0, 100),
+        cloudPlayUsers
     });
 }
 
