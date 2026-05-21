@@ -122,13 +122,14 @@ test('可以只导出选中的单个存档', async ({ page }) => {
     await injectSavesAndReload(page);
     await expect.poll(() => clickByTexts(page, ['重入江湖', '读取进度', '继续游戏', '读取', '载入'])).toBe(true);
 
-    const targetCard = page.locator('[class*="border-gray-700"]', { hasText: '单档导出甲' }).first();
+    const targetCard = page.getByText('单档导出甲').locator('xpath=ancestor::div[contains(@class,"cursor-pointer")][1]');
     await expect(targetCard).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('button', { name: '导出全部存档' })).toBeVisible();
-    await expect(targetCard.getByRole('button', { name: '导出此档' })).toHaveCount(1);
+    const exportOneButton = targetCard.getByRole('button', { name: '导出此档' });
+    await expect(exportOneButton).toHaveCount(1);
 
     const downloadPromise = page.waitForEvent('download');
-    await targetCard.getByRole('button', { name: '导出此档' }).click({ force: true });
+    await exportOneButton.click({ force: true });
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/^wuxia-save-manual-.*单档导出甲\.zip$/);
 

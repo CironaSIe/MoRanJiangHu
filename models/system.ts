@@ -646,6 +646,7 @@ export interface 存档元数据结构 {
     存档系列ID?: string;
     存档父节点哈希?: string;
     存档根节点哈希?: string;
+    存档分支输入?: string;
     存档谱系深度?: number;
     存档谱系版本?: number;
 }

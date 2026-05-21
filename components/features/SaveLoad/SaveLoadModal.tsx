@@ -18,12 +18,22 @@ interface Props {
 
 type 存档列表项 = dbService.存档摘要结构;
 type 本地时间树节点 = 存档列表项 & { children: 本地时间树节点[] };
+type 本地时间树系列 = { key: string; hash: string; title: string; latest: 存档列表项; roots: 本地时间树节点[]; count: number };
 
 const 读取本地系列Key = (save: 存档列表项): string => (
     save.元数据?.存档系列ID
     || save.元数据?.存档根节点哈希
     || `${save.角色数据?.姓名 || '未知角色'}-${save.类型 || 'manual'}`
 );
+
+const 计算文本短哈希 = (text: string): string => {
+    let hash = 2166136261;
+    for (let index = 0; index < text.length; index += 1) {
+        hash ^= text.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+};
 
 const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode, requestConfirm }) => {
     const [saves, setSaves] = useState<存档列表项[]>([]);
@@ -231,7 +241,6 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             ? save.元数据.历史记录条数
             : (Array.isArray(save.历史记录) ? save.历史记录.length : 0);
         const tags: string[] = [
-            save.类型 === 'auto' ? '自动快照' : '手动快照',
             `保存于 ${读取现实保存时间文本(save)}`,
             `历史 ${historyCount} 条`
         ];
@@ -243,9 +252,14 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
     const 是新谱系存档 = (save: 存档列表项): boolean => Boolean(save.元数据?.存档系列ID && save.元数据?.存档谱系版本);
 
+    const 读取存档类型标签 = (save: 存档列表项): string => {
+        if (是旧版缺摘要存档(save)) return '恢复中';
+        return save.类型 === 'auto' ? '自动快照' : '手动快照';
+    };
+
     const 读取存档短哈希 = (save: 存档列表项): string => dbService.计算存档摘要短哈希(save);
 
-    const 构建本地时间树 = (items: 存档列表项[]): Array<{ key: string; title: string; latest: 存档列表项; roots: 本地时间树节点[]; count: number }> => {
+    const 构建本地时间树 = (items: 存档列表项[]): 本地时间树系列[] => {
         const groups = new Map<string, 存档列表项[]>();
         items.forEach((item) => {
             const key = 读取本地系列Key(item);
@@ -267,7 +281,12 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             };
             sortNodes(roots);
             const latest = [...list].sort((a, b) => Number(b.元数据?.现实保存时间戳 || b.时间戳 || 0) - Number(a.元数据?.现实保存时间戳 || a.时间戳 || 0))[0];
-            return { key, title: 构建存档标题(latest), latest, roots, count: list.length };
+            const hashSource = JSON.stringify({
+                key,
+                root: latest?.元数据?.存档根节点哈希 || '',
+                nodes: [...nodes.keys()].sort()
+            });
+            return { key, hash: 计算文本短哈希(hashSource), title: 构建存档标题(latest), latest, roots, count: list.length };
         }).sort((a, b) => Number(b.latest?.元数据?.现实保存时间戳 || b.latest?.时间戳 || 0) - Number(a.latest?.元数据?.现实保存时间戳 || a.latest?.时间戳 || 0));
     };
 
@@ -590,10 +609,10 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 className={`relative bg-black/40 border border-gray-700 p-4 rounded-lg group transition-all flex flex-col gap-2 ${mode === 'load' ? 'cursor-pointer hover:border-wuxia-gold/50 hover:bg-black/60' : ''}`}
                 style={{ marginLeft: `${Math.min(level, 5) * 18}px` }}
             >
-                <div className="flex justify-between items-start">
-                    <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-start pr-8">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                         <span className={`text-[10px] px-1.5 rounded border ${是旧版缺摘要存档(save) ? 'border-gray-500 text-gray-300' : (save.类型 === 'auto' ? 'border-blue-500 text-blue-400' : 'border-wuxia-gold text-wuxia-gold')}`}>
-                            {是旧版缺摘要存档(save) ? '恢复中' : (save.类型 === 'auto' ? 'AUTO' : 'MANUAL')}
+                            {读取存档类型标签(save)}
                         </span>
                         <span className={`text-[10px] px-1.5 rounded border ${是新谱系存档(save) ? 'border-emerald-500/60 text-emerald-300' : 'border-amber-500/50 text-amber-300'}`} title={是新谱系存档(save) ? '新存档：已写入时间树谱系，可用于云端差分同步' : '旧存档：兼容读取，尚未写入新时间树谱系'}>
                             {是新谱系存档(save) ? '新谱系' : '旧存档'}
@@ -608,9 +627,6 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                         <span className="rounded border border-gray-700 bg-black/35 px-1.5 py-0.5 font-mono text-[10px] text-wuxia-cyan/80" title="存档短哈希，用于区分同名同时间附近的存档">
                             #{读取存档短哈希(save)}
                         </span>
-                    </div>
-                    <div className="text-[10px] text-gray-600 font-mono text-right" style={{ fontFamily: 'var(--ui-等宽信息-font-family, inherit)', fontSize: 'var(--ui-等宽信息-font-size, 12px)' }}>
-                        {读取现实保存时间文本(save)}
                     </div>
                 </div>
 
@@ -635,7 +651,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                     className={`absolute top-4 right-4 transition-colors ${
                         saveProtectionEnabled
                             ? 'text-gray-700 opacity-40 cursor-not-allowed'
-                            : 'text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100'
+                            : 'text-gray-500 opacity-70 hover:text-red-500 group-hover:opacity-100'
                     }`}
                     title={saveProtectionEnabled ? '存档保护已开启' : '删除'}
                     disabled={saveProtectionEnabled}
@@ -652,20 +668,17 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const renderLocalCard = (save: 本地时间树节点): React.ReactNode => (
         <div
             onClick={() => { void handleLoadClick(save); }}
-            className={`relative w-[min(18rem,calc(100vw-4rem))] shrink-0 snap-start bg-black/40 border border-gray-700 p-4 rounded-lg group transition-all flex flex-col gap-2 ${mode === 'load' ? 'cursor-pointer hover:border-wuxia-gold/50 hover:bg-black/60' : ''}`}
+            className={`relative w-[min(16.5rem,calc(100vw-5rem))] shrink-0 snap-start bg-black/40 border border-gray-700 p-3.5 rounded-lg group transition-all flex flex-col gap-2 ${mode === 'load' ? 'cursor-pointer hover:border-wuxia-gold/50 hover:bg-black/60' : ''}`}
         >
-            <div className="flex justify-between items-start gap-2">
-                <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-start pr-7">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <span className={`text-[10px] px-1.5 rounded border ${是旧版缺摘要存档(save) ? 'border-gray-500 text-gray-300' : (save.类型 === 'auto' ? 'border-blue-500 text-blue-400' : 'border-wuxia-gold text-wuxia-gold')}`}>
-                        {是旧版缺摘要存档(save) ? '恢复中' : (save.类型 === 'auto' ? 'AUTO' : 'MANUAL')}
+                        {读取存档类型标签(save)}
                     </span>
                     <span className={`text-[10px] px-1.5 rounded border ${是新谱系存档(save) ? 'border-emerald-500/60 text-emerald-300' : 'border-amber-500/50 text-amber-300'}`} title={是新谱系存档(save) ? '新存档：已写入时间树谱系，可用于云端差分同步' : '旧存档：兼容读取，尚未写入新时间树谱系'}>
                         {是新谱系存档(save) ? '新谱系' : '旧存档'}
                     </span>
                     <span className="font-bold text-gray-200 text-sm">{构建存档标题(save)}</span>
-                </div>
-                <div className="max-w-[7rem] break-words text-[10px] text-gray-600 font-mono text-right" style={{ fontFamily: 'var(--ui-等宽信息-font-family, inherit)', fontSize: 'var(--ui-等宽信息-font-size, 12px)' }}>
-                    {读取现实保存时间文本(save)}
                 </div>
             </div>
             <div className="text-xs text-gray-400 border-l-2 border-gray-700 pl-2">
@@ -690,7 +703,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 className={`absolute top-4 right-4 transition-colors ${
                     saveProtectionEnabled
                         ? 'text-gray-700 opacity-40 cursor-not-allowed'
-                        : 'text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100'
+                        : 'text-gray-500 opacity-70 hover:text-red-500 group-hover:opacity-100'
                 }`}
                 title={saveProtectionEnabled ? '存档保护已开启' : '删除'}
                 disabled={saveProtectionEnabled}
@@ -721,7 +734,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         </div>
     );
 
-    const renderSeriesTimeline = (series: { key: string; roots: 本地时间树节点[] }): React.ReactNode => {
+    const renderSeriesTimeline = (series: 本地时间树系列): React.ReactNode => {
         const roots = series.roots.length > 0 ? series.roots : [];
         if (roots.length <= 0) return null;
         const hasExplicitBranches = roots.some((root) => root.children.length > 0);
@@ -783,7 +796,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                         </div>
                     )}
 
-                    <div className="min-w-0 flex-1 flex flex-col bg-ink-wash/5">
+                    <div className="min-h-0 min-w-0 flex-1 flex flex-col bg-ink-wash/5">
                         <div className="max-w-full overflow-x-auto overscroll-x-contain border-b border-gray-800/50 px-4 pt-3 pb-3 touch-pan-x custom-scrollbar sm:px-6 sm:pt-4">
                             <div className="flex min-w-max justify-end gap-2">
                             {isNativeCapacitorEnvironment() && saves.some((save) => 是旧版缺摘要存档(save)) && (
@@ -869,7 +882,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                             </div>
                         </div>
 
-                        <div className="min-w-0 flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 sm:p-6">
+                        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain touch-pan-y custom-scrollbar p-4 space-y-3 sm:p-6">
                             {filteredSaves.length === 0 && !loading && (
                                 <div className="text-center text-gray-600 py-10">暂无记录</div>
                             )}
@@ -883,7 +896,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                         <div>
                                             <div className="font-serif text-base font-bold tracking-[0.12em] text-wuxia-gold">{selectedSeries.title}</div>
                                             <div className="mt-1 text-[11px] text-gray-500">
-                                                时间树 {selectedSeries.count} 个节点 · 最新 {读取现实保存时间文本(selectedSeries.latest)} · {读取地点文本(selectedSeries.latest)}
+                                                时间树 {selectedSeries.count} 个节点 · #{selectedSeries.hash} · 最新 {读取现实保存时间文本(selectedSeries.latest)} · {读取地点文本(selectedSeries.latest)}
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
@@ -909,7 +922,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                     {renderSeriesTimeline(selectedSeries)}
                                 </div>
                             ) : visibleSaveTrees.map((series) => {
-                                const expanded = expandedSeries.has(series.key) || series.count === 1;
+                                const expanded = expandedSeries.has(series.key);
                                 return (
                                     <div key={series.key} onClick={() => { void handleLoadClick(series.latest); }} className={`rounded-lg border border-wuxia-gold/20 bg-black/20 p-3 ${mode === 'load' ? 'cursor-pointer hover:border-wuxia-gold/45 hover:bg-black/30' : ''}`}>
                                         <button
@@ -924,14 +937,30 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                             <div>
                                                 <div className="font-serif text-sm font-bold tracking-[0.12em] text-wuxia-gold">{series.title}</div>
                                                 <div className="mt-1 text-[11px] text-gray-500">
-                                                    时间树 {series.count} 个节点 · 最新 {读取现实保存时间文本(series.latest)} · {读取地点文本(series.latest)}
+                                                    时间树 {series.count} 个节点 · #{series.hash} · 最新 {读取现实保存时间文本(series.latest)} · {读取地点文本(series.latest)}
                                                 </div>
                                             </div>
-                                            <div className="text-[11px] text-wuxia-cyan">展开时间树选择存档</div>
+                                            <div className="text-[11px] text-wuxia-cyan">{series.count > 1 ? '展开时间树选择存档' : '查看时间树'}</div>
                                         </button>
                                         <div className="mt-3 text-[11px] text-gray-500">
-                                            点击本系列会直接读取最新存档；展开后可从完整时间树中选择任意节点。
+                                            点击本系列会直接读取最新存档；{series.count > 1 ? '展开后可从完整时间树中选择任意节点。' : '只有一个节点时默认收起，避免占用列表空间。'}
                                         </div>
+                                        {series.count === 1 && (
+                                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-wuxia-gold/10 pt-3">
+                                                <div className="font-mono text-[10px] text-wuxia-cyan/75" title="存档短哈希，用于区分同名同时间附近的存档">
+                                                    #{读取存档短哈希(series.latest)}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => { void handleExportOne(series.latest, event); }}
+                                                    className="rounded border border-wuxia-cyan/35 bg-black/30 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-wuxia-cyan transition-colors hover:border-wuxia-cyan hover:bg-wuxia-cyan/15 disabled:cursor-not-allowed disabled:opacity-40"
+                                                    title="只导出这一条存档"
+                                                    disabled={busy}
+                                                >
+                                                    导出此档
+                                                </button>
+                                            </div>
+                                        )}
                                         {expanded && series.count === 1 && (
                                             <div className="mt-3">
                                                 {renderLocalCard(series.latest as 本地时间树节点)}
