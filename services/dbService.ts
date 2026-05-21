@@ -43,6 +43,7 @@ const 是图床图片地址 = (value: string): boolean => {
     }
 };
 const 本地图片图床迁移状态缓存键 = 'moranjianghu.legacyImageMigrationStatus';
+const 旧存档谱系迁移状态缓存键 = 'moranjianghu.saveLineageMigrationStatus.v1';
 const 图床备份下载失败跳过缓存键 = 'moranjianghu.imageHostBackupDownloadFailures.v1';
 const 图床备份下载失败跳过最大数量 = 600;
 const 图床备份下载失败跳过有效期毫秒 = 6 * 60 * 60 * 1000;
@@ -88,6 +89,79 @@ export interface 本地图片图床迁移资源状态 {
     status: 'pending_upload' | 'uploaded' | 'pending_backup' | 'backed_up' | 'local_only' | 'remote_only' | 'complete' | 'failed';
     error?: string;
 }
+
+export type 旧存档谱系迁移阶段 = 'idle' | 'scanning' | 'running' | 'completed' | 'failed';
+
+export interface 旧存档谱系迁移状态 {
+    stage: 旧存档谱系迁移阶段;
+    totalSaves: number;
+    legacySaves: number;
+    convertedSaves: number;
+    skippedSaves: number;
+    failedSaves: number;
+    currentSaveTitle?: string;
+    lastMessage: string;
+    lastError?: string;
+    startedAt?: string;
+    updatedAt?: string;
+    completedAt?: string;
+}
+
+const 创建默认旧存档谱系迁移状态 = (): 旧存档谱系迁移状态 => ({
+    stage: 'idle',
+    totalSaves: 0,
+    legacySaves: 0,
+    convertedSaves: 0,
+    skippedSaves: 0,
+    failedSaves: 0,
+    lastMessage: '等待扫描旧存档谱系'
+});
+
+let 旧存档谱系迁移状态缓存: 旧存档谱系迁移状态 = 创建默认旧存档谱系迁移状态();
+let 正在迁移旧存档谱系 = false;
+const 旧存档谱系迁移监听器 = new Set<(status: 旧存档谱系迁移状态) => void>();
+
+const 写入旧存档谱系迁移状态 = (patch: Partial<旧存档谱系迁移状态>): 旧存档谱系迁移状态 => {
+    旧存档谱系迁移状态缓存 = {
+        ...旧存档谱系迁移状态缓存,
+        ...patch,
+        updatedAt: new Date().toISOString()
+    };
+    try {
+        localStorage.setItem(旧存档谱系迁移状态缓存键, JSON.stringify(旧存档谱系迁移状态缓存));
+    } catch {
+        // ignore local progress cache failures
+    }
+    旧存档谱系迁移监听器.forEach((listener) => {
+        try {
+            listener(旧存档谱系迁移状态缓存);
+        } catch (error) {
+            console.warn('旧存档谱系迁移监听器执行失败:', error);
+        }
+    });
+    return 旧存档谱系迁移状态缓存;
+};
+
+export const 读取旧存档谱系迁移状态 = (): 旧存档谱系迁移状态 => {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(旧存档谱系迁移状态缓存键) || 'null');
+        if (parsed && typeof parsed === 'object') {
+            旧存档谱系迁移状态缓存 = {
+                ...创建默认旧存档谱系迁移状态(),
+                ...parsed
+            };
+        }
+    } catch {
+        // ignore invalid cache
+    }
+    return 旧存档谱系迁移状态缓存;
+};
+
+export const 订阅旧存档谱系迁移状态 = (listener: (status: 旧存档谱系迁移状态) => void): (() => void) => {
+    旧存档谱系迁移监听器.add(listener);
+    listener(读取旧存档谱系迁移状态());
+    return () => 旧存档谱系迁移监听器.delete(listener);
+};
 
 export interface 本地图片资源统计 {
     totalAssets: number;
@@ -1944,6 +2018,117 @@ export const 读取存档 = async (id: number): Promise<存档结构> => {
             reject(request.error);
         };
     });
+};
+
+const 是新谱系存档 = (save: Partial<存档结构> | null | undefined): boolean => (
+    Boolean(save?.元数据?.存档系列ID && save?.元数据?.存档谱系版本)
+);
+
+export const 启动旧存档谱系迁移 = async (): Promise<旧存档谱系迁移状态> => {
+    if (正在迁移旧存档谱系) return 读取旧存档谱系迁移状态();
+    正在迁移旧存档谱系 = true;
+    const startedAt = new Date().toISOString();
+    写入旧存档谱系迁移状态({
+        stage: 'scanning',
+        startedAt,
+        completedAt: undefined,
+        lastError: undefined,
+        currentSaveTitle: undefined,
+        totalSaves: 0,
+        legacySaves: 0,
+        convertedSaves: 0,
+        skippedSaves: 0,
+        failedSaves: 0,
+        lastMessage: '正在扫描旧存档谱系...'
+    });
+    try {
+        const db = await 初始化数据库();
+        const allSaves = await 读取存档列表();
+        const sorted = [...allSaves].sort((a, b) => Number(a.时间戳 || 0) - Number(b.时间戳 || 0));
+        const legacySaves = sorted.filter((save) => !是新谱系存档(save) && typeof save.id === 'number');
+        if (legacySaves.length <= 0) {
+            return 写入旧存档谱系迁移状态({
+                stage: 'completed',
+                totalSaves: sorted.length,
+                legacySaves: 0,
+                convertedSaves: 0,
+                skippedSaves: sorted.length,
+                failedSaves: 0,
+                completedAt: new Date().toISOString(),
+                lastMessage: '没有需要转换的旧存档。'
+            });
+        }
+
+        写入旧存档谱系迁移状态({
+            stage: 'running',
+            totalSaves: sorted.length,
+            legacySaves: legacySaves.length,
+            skippedSaves: sorted.length - legacySaves.length,
+            lastMessage: `发现 ${legacySaves.length} 个旧存档，正在转换为新谱系...`
+        });
+
+        const convertedOrExisting: 存档结构[] = sorted.filter((save) => 是新谱系存档(save));
+        let converted = 0;
+        let failed = 0;
+        for (const save of legacySaves) {
+            const title = typeof save.角色数据?.姓名 === 'string' && save.角色数据.姓名.trim()
+                ? save.角色数据.姓名.trim()
+                : '未知角色';
+            try {
+                const withHash: 存档结构 = {
+                    ...save,
+                    元数据: {
+                        ...(save.元数据 || {}),
+                        存档哈希: 计算存档同步哈希(save)
+                    }
+                };
+                const convertedSave = 补全存档谱系元数据(withHash, convertedOrExisting) as 存档结构;
+                await new Promise<void>((resolve, reject) => {
+                    const transaction = db.transaction([STORE_NAME, SAVE_SUMMARIES_STORE], 'readwrite');
+                    const saveStore = transaction.objectStore(STORE_NAME);
+                    const summaryStore = transaction.objectStore(SAVE_SUMMARIES_STORE);
+                    saveStore.put(convertedSave);
+                    const summary = 构建存档摘要记录(convertedSave, convertedSave.id);
+                    if (summary) summaryStore.put(summary);
+                    transaction.oncomplete = () => resolve();
+                    transaction.onerror = () => reject(transaction.error);
+                });
+                convertedOrExisting.push(convertedSave);
+                converted += 1;
+            } catch (error: any) {
+                failed += 1;
+                recordSaveLoadError('db.lineageMigration.itemError', error, { id: save.id, title });
+            }
+            写入旧存档谱系迁移状态({
+                stage: 'running',
+                convertedSaves: converted,
+                failedSaves: failed,
+                currentSaveTitle: title,
+                lastMessage: `正在转换旧存档：${converted + failed}/${legacySaves.length}（${title}）`
+            });
+            await new Promise((resolve) => setTimeout(resolve, isNativeCapacitorEnvironment() ? 180 : 40));
+        }
+
+        return 写入旧存档谱系迁移状态({
+            stage: failed > 0 ? 'failed' : 'completed',
+            convertedSaves: converted,
+            failedSaves: failed,
+            currentSaveTitle: undefined,
+            completedAt: new Date().toISOString(),
+            lastError: failed > 0 ? `${failed} 个旧存档暂时未转换成功，下次进入会继续重试。` : undefined,
+            lastMessage: failed > 0
+                ? `已转换 ${converted} 个旧存档，${failed} 个稍后重试。`
+                : `旧存档转换完成：已转换 ${converted} 个。`
+        });
+    } catch (error: any) {
+        return 写入旧存档谱系迁移状态({
+            stage: 'failed',
+            lastError: error?.message || String(error),
+            lastMessage: `旧存档谱系转换失败：${error?.message || '未知错误'}`
+        });
+    } finally {
+        正在迁移旧存档谱系 = false;
+    }
 };
 
 export const 补全存档摘要 = async (id: number): Promise<存档摘要结构 | null> => {

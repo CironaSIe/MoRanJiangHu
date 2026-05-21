@@ -21,6 +21,7 @@ import {
     type 云端游玩账号,
     type 云端存档清单,
     type 云端存档摘要,
+    type 云端下载进度,
     type 云端上传进度
 } from '../../../services/cloudPlayService';
 import {
@@ -66,8 +67,10 @@ const clampPercent = (value: number | undefined): number => {
 };
 
 type 云端时间树节点 = 云端存档摘要 & { children: 云端时间树节点[] };
+type 对象存储时间树节点 = 对象存储云存档元数据 & { children: 对象存储时间树节点[] };
 
 const buildSeriesKey = (item: 云端存档摘要): string => item.seriesId || item.rootCloudId || item.title || item.cloudId;
+const buildObjectSeriesKey = (item: 对象存储云存档元数据): string => item.seriesId || item.rootHash || item.title || item.id;
 
 const buildCloudSaveTrees = (saves: 云端存档摘要[]): Array<{ key: string; title: string; latest: 云端存档摘要; roots: 云端时间树节点[]; count: number; totalBytes: number }> => {
     const groups = new Map<string, 云端存档摘要[]>();
@@ -101,6 +104,38 @@ const buildCloudSaveTrees = (saves: 云端存档摘要[]): Array<{ key: string; 
     }).sort((a, b) => Number(b.latest?.timestamp || 0) - Number(a.latest?.timestamp || 0));
 };
 
+const buildObjectStorageSaveTrees = (saves: 对象存储云存档元数据[]): Array<{ key: string; title: string; latest: 对象存储云存档元数据; roots: 对象存储时间树节点[]; count: number; totalBytes: number }> => {
+    const groups = new Map<string, 对象存储云存档元数据[]>();
+    saves.forEach((item) => {
+        const key = buildObjectSeriesKey(item);
+        groups.set(key, [...(groups.get(key) || []), item]);
+    });
+    return [...groups.entries()].map(([key, items]) => {
+        const nodes = new Map<string, 对象存储时间树节点>();
+        items.forEach((item) => nodes.set(item.hash || item.id, { ...item, children: [] }));
+        const roots: 对象存储时间树节点[] = [];
+        nodes.forEach((node) => {
+            const parent = node.parentHash ? nodes.get(node.parentHash) : undefined;
+            if (parent) parent.children.push(node);
+            else roots.push(node);
+        });
+        const sortNodes = (list: 对象存储时间树节点[]) => {
+            list.sort((a, b) => Number(a.saveTimestamp || 0) - Number(b.saveTimestamp || 0));
+            list.forEach((node) => sortNodes(node.children));
+        };
+        sortNodes(roots);
+        const latest = [...items].sort((a, b) => Number(b.saveTimestamp || 0) - Number(a.saveTimestamp || 0))[0];
+        return {
+            key,
+            title: latest?.title || '未知角色',
+            latest,
+            roots,
+            count: items.length,
+            totalBytes: items.reduce((sum, item) => sum + Math.max(0, Number(item.size || 0)), 0)
+        };
+    }).sort((a, b) => Number(b.latest?.saveTimestamp || 0) - Number(a.latest?.saveTimestamp || 0));
+};
+
 const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjectStorage }) => {
     const [riskAccepted, setRiskAccepted] = React.useState(() => 已确认云端游玩风险());
     const [session, setSession] = React.useState<云端游玩账号 | null>(() => 读取云端游玩会话());
@@ -114,7 +149,9 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
     const [busy, setBusy] = React.useState('');
     const [message, setMessage] = React.useState('');
     const [uploadProgress, setUploadProgress] = React.useState<云端上传进度 | null>(null);
+    const [downloadProgress, setDownloadProgress] = React.useState<云端下载进度 | null>(null);
     const cloudSaveTrees = React.useMemo(() => buildCloudSaveTrees(manifest?.saves || []), [manifest]);
+    const objectStorageSaveTrees = React.useMemo(() => buildObjectStorageSaveTrees(objectStorageSaves), [objectStorageSaves]);
 
     const refreshManifest = React.useCallback(async (targetSession = session) => {
         if (!targetSession) return;
@@ -238,9 +275,13 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
     const handleLoadCloudSave = async (item: 云端存档摘要) => {
         if (!session) return;
         setBusy(`load:${item.cloudId}`);
+        setDownloadProgress(null);
         setMessage('正在下载并解密云端存档...');
         try {
-            const payload = await 下载云端存档包(session, item);
+            const payload = await 下载云端存档包(session, item, (progress) => {
+                setDownloadProgress(progress);
+                setMessage(progress.message);
+            });
             const save = payload.saves[0];
             if (!save) throw new Error('云端存档包内没有可读取的存档。');
             await Promise.resolve(onLoadGame(save));
@@ -248,6 +289,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
         } catch (error: any) {
             setMessage(`载入失败：${error?.message || '未知错误'}`);
         } finally {
+            setDownloadProgress(null);
             setBusy('');
         }
     };
@@ -255,6 +297,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
     const handleImportCloudSave = async (item: 云端存档摘要) => {
         if (!session) return;
         setBusy(`import:${item.cloudId}`);
+        setDownloadProgress(null);
         setMessage('正在导入云端存档到本地...');
         try {
             const result = await 导入云端存档到本地(session, item);
@@ -262,6 +305,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
         } catch (error: any) {
             setMessage(`导入失败：${error?.message || '未知错误'}`);
         } finally {
+            setDownloadProgress(null);
             setBusy('');
         }
     };
@@ -388,6 +432,48 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
         }
     };
 
+    const renderObjectStorageNode = (item: 对象存储时间树节点, level = 0): React.ReactNode => (
+        <div key={item.id} className="space-y-2">
+            <div className="border border-sky-400/15 bg-black/25 px-4 py-3" style={{ marginLeft: `${Math.min(level, 5) * 18}px` }}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-serif text-base font-bold text-paper-white">{item.title || '未知角色'}</span>
+                            <span className="border border-sky-400/20 px-2 py-0.5 text-[10px] text-sky-200">
+                                {level === 0 ? '起点' : `+${level}`}
+                            </span>
+                            <span className={`border px-2 py-0.5 text-[10px] ${item.seriesId ? 'border-emerald-400/25 text-emerald-200' : 'border-amber-400/25 text-amber-200'}`}>
+                                {item.seriesId ? '新谱系' : '旧存档'}
+                            </span>
+                        </div>
+                        <div className="mt-1 text-xs leading-6 text-gray-400">
+                            {item.type === 'auto' ? '自动存档' : '手动存档'} · {item.location || '未知地点'} · {item.gameTime || '未知时间'} · {item.deviceLabel || (item.deviceType === 'phone' ? '手机' : '电脑')}
+                        </div>
+                        <div className="text-[11px] text-gray-500">
+                            {formatTime(item.syncedAt || item.savedAt)} · {formatBytes(item.size)} · #{(item.hash || item.id).slice(-8)}
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <button type="button" disabled={busy === `object-load:${item.id}`} onClick={() => { void handleLoadObjectStorageSave(item); }} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs text-wuxia-gold hover:bg-wuxia-gold/20 disabled:opacity-50">
+                            {busy === `object-load:${item.id}` ? '读取中...' : '选择游玩'}
+                        </button>
+                        <button type="button" disabled={busy === `object-import:${item.id}`} onClick={() => { void handleImportObjectStorageSave(item); }} className="border border-emerald-400/30 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
+                            导入本地
+                        </button>
+                        <button type="button" disabled={busy === `object-export:${item.id}`} onClick={() => { void handleExportObjectStorageSave(item); }} className="border border-sky-400/30 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
+                            下载到本地
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {item.children.length > 0 && (
+                <div className="space-y-2">
+                    {item.children.map((child) => renderObjectStorageNode(child, level + 1))}
+                </div>
+            )}
+        </div>
+    );
+
     const renderCloudNode = (item: 云端时间树节点, level = 0): React.ReactNode => (
         <div key={item.cloudId} className="space-y-2">
             <div className="border border-wuxia-gold/15 bg-black/25 px-4 py-3" style={{ marginLeft: `${Math.min(level, 5) * 18}px` }}>
@@ -494,35 +580,25 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                             </div>
                         </div>
 
-                        <div className="grid gap-3">
-                            {objectStorageSaves.length <= 0 ? (
+                        <div className="grid gap-4">
+                            {objectStorageSaveTrees.length <= 0 ? (
                                 <div className="border border-dashed border-sky-400/25 px-4 py-8 text-center text-sm text-gray-400">
                                     对象存储云端暂无存档。可以先把本地存档复制到对象存储，或进入游戏后由回合结束自动保存并同步。
                                 </div>
                             ) : (
-                                objectStorageSaves.map((item) => (
-                                    <div key={item.id} className="border border-sky-400/15 bg-black/25 px-4 py-3">
-                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                objectStorageSaveTrees.map((series) => (
+                                    <div key={series.key} className="border border-sky-400/20 bg-black/15 p-3">
+                                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-sky-400/10 pb-2">
                                             <div>
-                                                <div className="font-serif text-base font-bold text-paper-white">{item.title || '未知角色'}</div>
-                                                <div className="mt-1 text-xs leading-6 text-gray-400">
-                                                    {item.type === 'auto' ? '自动存档' : '手动存档'} · {item.location || '未知地点'} · {item.gameTime || '未知时间'} · {item.deviceLabel || (item.deviceType === 'phone' ? '手机' : '电脑')}
-                                                </div>
-                                                <div className="text-[11px] text-gray-500">
-                                                    {formatTime(item.syncedAt || item.savedAt)} · {formatBytes(item.size)} · #{(item.hash || item.id).slice(-8)}
+                                                <div className="font-serif text-sm font-bold tracking-[0.12em] text-sky-100">{series.title}</div>
+                                                <div className="mt-1 text-[11px] text-gray-500">
+                                                    时间树 {series.count} 个节点 · 云端包合计 {formatBytes(series.totalBytes)} · 最新 {formatTime(series.latest?.syncedAt || series.latest?.savedAt)}
                                                 </div>
                                             </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                <button type="button" disabled={busy === `object-load:${item.id}`} onClick={() => { void handleLoadObjectStorageSave(item); }} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs text-wuxia-gold hover:bg-wuxia-gold/20 disabled:opacity-50">
-                                                    {busy === `object-load:${item.id}` ? '读取中...' : '选择游玩'}
-                                                </button>
-                                                <button type="button" disabled={busy === `object-import:${item.id}`} onClick={() => { void handleImportObjectStorageSave(item); }} className="border border-emerald-400/30 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
-                                                    导入本地
-                                                </button>
-                                                <button type="button" disabled={busy === `object-export:${item.id}`} onClick={() => { void handleExportObjectStorageSave(item); }} className="border border-sky-400/30 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
-                                                    下载到本地
-                                                </button>
-                                            </div>
+                                            <div className="text-[11px] text-gray-500">同一起始存档已归并为一个系列</div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {series.roots.map((root) => renderObjectStorageNode(root))}
                                         </div>
                                     </div>
                                 ))
@@ -588,6 +664,21 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onConfigureObjec
                                         className="h-full rounded-full bg-emerald-300 transition-all duration-300"
                                         style={{ width: `${clampPercent(uploadProgress.percent)}%` }}
                                     />
+                                </div>
+                            </div>
+                        )}
+
+                        {downloadProgress && busy.startsWith('load:') && (
+                            <div className="border border-sky-400/25 bg-sky-950/20 px-4 py-3 text-sm text-sky-50">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <span>{downloadProgress.message}</span>
+                                    <span className="text-xs text-sky-100/70">
+                                        {downloadProgress.current && downloadProgress.total ? `${downloadProgress.current}/${downloadProgress.total} · ` : ''}
+                                        {downloadProgress.attempt ? `第 ${downloadProgress.attempt}/${downloadProgress.maxAttempts || downloadProgress.attempt} 次` : ''}
+                                    </span>
+                                </div>
+                                <div className="mt-2 text-xs leading-6 text-sky-100/70">
+                                    TG 图床偶尔会短暂返回 500，系统会自动重试；只要这里仍在显示读取进度，请先等待完成。
                                 </div>
                             </div>
                         )}

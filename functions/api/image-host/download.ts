@@ -57,6 +57,33 @@ const buildPublicFileUrl = (targetUrl: string, env: any): string => {
     return `${readImageHostBase(env)}/file/${encodeURIComponent(fileId)}`;
 };
 
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+const fetchWithRetry = async (
+    url: string,
+    headers: Record<string, string>,
+    attempts = 3
+): Promise<Response> => {
+    let lastResponse: Response | null = null;
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers
+            });
+            if (response.ok) return response;
+            lastResponse = response;
+            if (response.status < 500 && response.status !== 408 && response.status !== 429) return response;
+        } catch (error) {
+            lastError = error;
+        }
+        if (attempt < attempts) await sleep(Math.min(2500, 400 * attempt * attempt));
+    }
+    if (lastResponse) return lastResponse;
+    throw lastError || new Error('Image host fetch failed');
+};
+
 const sniffImageContentType = (bytes: Uint8Array): string => {
     if (bytes.length >= 8
         && bytes[0] === 0x89
@@ -118,16 +145,19 @@ const fetchImageHostFile = async (targetUrl: string, env: any): Promise<Response
 
     const seen = new Set<string>();
     let lastResponse: Response | null = null;
+    let lastError: unknown = null;
     for (const candidate of candidates) {
         if (seen.has(candidate.url)) continue;
         seen.add(candidate.url);
-        const response = await fetch(candidate.url, {
-            method: 'GET',
-            headers: candidate.headers
-        });
-        if (response.ok) return response;
-        lastResponse = response;
+        try {
+            const response = await fetchWithRetry(candidate.url, candidate.headers);
+            if (response.ok) return response;
+            lastResponse = response;
+        } catch (error) {
+            lastError = error;
+        }
     }
+    if (lastError && !lastResponse) throw lastError;
     return lastResponse || new Response('Image download failed', { status: 502 });
 };
 

@@ -96,6 +96,16 @@ type 持久云端游玩会话 = {
     expiresAt: number;
     session: 云端游玩账号;
 };
+export type 云端下载阶段 = 'manifest' | 'download' | 'decrypt' | 'restore' | 'done';
+
+export interface 云端下载进度 {
+    stage: 云端下载阶段;
+    current?: number;
+    total?: number;
+    attempt?: number;
+    maxAttempts?: number;
+    message: string;
+}
 
 const readString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
@@ -203,11 +213,21 @@ const isRetryableDownloadFailure = (status: number, message = ''): boolean => {
     return /network|timeout|fetch|aborted|temporar/i.test(message);
 };
 
-const fetchCloudSaveBytes = async (targetUrl: string, maxAttempts = 4): Promise<Uint8Array> => {
+const fetchCloudSaveBytes = async (
+    targetUrl: string,
+    maxAttempts = 5,
+    onProgress?: (progress: 云端下载进度) => void
+): Promise<Uint8Array> => {
     const downloadUrl = buildCloudSaveDownloadUrl(targetUrl);
     let lastStatus = 0;
     let lastMessage = '';
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        onProgress?.({
+            stage: 'download',
+            attempt,
+            maxAttempts,
+            message: attempt === 1 ? '正在下载云端存档...' : `下载暂时失败，正在第 ${attempt}/${maxAttempts} 次重试...`
+        });
         try {
             const response = await fetch(downloadUrl, {
                 method: 'GET',
@@ -217,7 +237,16 @@ const fetchCloudSaveBytes = async (targetUrl: string, maxAttempts = 4): Promise<
                 }
             });
             lastStatus = response.status;
-            if (response.ok) return arrayBufferToBytes(await response.arrayBuffer());
+            if (response.ok) {
+                const bytes = arrayBufferToBytes(await response.arrayBuffer());
+                onProgress?.({
+                    stage: 'download',
+                    attempt,
+                    maxAttempts,
+                    message: '云端存档下载完成，正在校验...'
+                });
+                return bytes;
+            }
             lastMessage = (await response.text().catch(() => '')).slice(0, 180) || `HTTP ${response.status}`;
             if (attempt >= maxAttempts || !isRetryableDownloadFailure(response.status, lastMessage)) break;
         } catch (error: any) {
@@ -225,7 +254,7 @@ const fetchCloudSaveBytes = async (targetUrl: string, maxAttempts = 4): Promise<
             lastMessage = error?.message || String(error);
             if (attempt >= maxAttempts || !isRetryableDownloadFailure(0, lastMessage)) break;
         }
-        await sleep(Math.min(10000, 1000 * attempt * attempt));
+        await sleep(Math.min(12000, 1200 * attempt * attempt));
     }
     throw new Error(`下载云端存档失败：HTTP ${lastStatus || 0}。TG 图床下载链路连续失败（${lastMessage || '无响应'}），可稍后重试，或切换对象存储/先下载到本地备份。`);
 };
@@ -788,10 +817,15 @@ export const 复制全部本地存档到云端 = async (
     return { uploaded, skipped, total: localSaves.length, session: activeSession };
 };
 
-const 下载并解密云端存档字节 = async (session: 云端游玩账号, item: 云端存档摘要): Promise<Uint8Array> => {
-    const encryptedBytes = await fetchCloudSaveBytes(item.packageUrl);
+const 下载并解密云端存档字节 = async (
+    session: 云端游玩账号,
+    item: 云端存档摘要,
+    onProgress?: (progress: 云端下载进度) => void
+): Promise<Uint8Array> => {
+    const encryptedBytes = await fetchCloudSaveBytes(item.packageUrl, 5, onProgress);
     const hash = await sha256Hex(encryptedBytes);
     if (item.sha256 && hash !== item.sha256) throw new Error('云端存档校验失败，文件可能不完整。');
+    onProgress?.({ stage: 'decrypt', message: '校验通过，正在解密云端存档...' });
     return 解密字节(encryptedBytes, session);
 };
 
@@ -799,11 +833,17 @@ const 从云端存档包还原存档 = async (
     session: 云端游玩账号,
     item: 云端存档摘要,
     manifest: 云端存档清单,
-    seen = new Set<string>()
+    seen = new Set<string>(),
+    onProgress?: (progress: 云端下载进度) => void
 ): Promise<存档结构> => {
     if (seen.has(item.cloudId)) throw new Error('云端差分存档链存在循环引用，无法还原。');
     seen.add(item.cloudId);
-    const bytes = await 下载并解密云端存档字节(session, item);
+    onProgress?.({
+        stage: 'restore',
+        current: seen.size,
+        message: `正在还原时间树节点 ${seen.size}：${item.title || '云端存档'}`
+    });
+    const bytes = await 下载并解密云端存档字节(session, item, onProgress);
     const cloudPack = 解码云端存档包(bytes);
     if (!cloudPack) {
         const payload = await 解析ZIP存档文件(new Blob([bytes], { type: 'application/zip' }));
@@ -818,7 +858,7 @@ const 从云端存档包还原存档 = async (
     const baseCloudId = readString(cloudPack.baseCloudId || item.baseCloudId);
     const base = manifest.saves.find((candidate) => candidate.cloudId === baseCloudId || candidate.syncHash === cloudPack.baseSyncHash);
     if (!base) throw new Error('云端差分存档缺少上一版本，无法还原。');
-    const baseSave = await 从云端存档包还原存档(session, base, manifest, seen);
+    const baseSave = await 从云端存档包还原存档(session, base, manifest, seen, onProgress);
     const restoredGame = 应用JsonPatch(去除存档易变字段(baseSave), cloudPack.gamePatch || []);
     const baseHistory = Array.isArray(baseSave.历史记录) ? baseSave.历史记录 : [];
     const nextHistory = Array.isArray(cloudPack.historyReplace)
@@ -834,9 +874,15 @@ const 从云端存档包还原存档 = async (
     } as 存档结构;
 };
 
-export const 下载云端存档包 = async (session: 云端游玩账号, item: 云端存档摘要): Promise<dbService.存档导出结构> => {
+export const 下载云端存档包 = async (
+    session: 云端游玩账号,
+    item: 云端存档摘要,
+    onProgress?: (progress: 云端下载进度) => void
+): Promise<dbService.存档导出结构> => {
+    onProgress?.({ stage: 'manifest', message: '正在读取云端时间树清单...' });
     const manifest = await 读取云端存档清单(session).catch(() => 读取缓存云端存档清单(session) || 空清单(session));
-    const save = await 从云端存档包还原存档(session, item, manifest);
+    const save = await 从云端存档包还原存档(session, item, manifest, new Set<string>(), onProgress);
+    onProgress?.({ stage: 'done', message: '云端存档已读取完成，正在进入游戏...' });
     return {
         version: 1,
         exportedAt: new Date().toISOString(),
