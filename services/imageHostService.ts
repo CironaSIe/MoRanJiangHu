@@ -17,6 +17,24 @@ export interface 图床上传结果 {
     storage?: string;
 }
 
+export type 图床上传阶段 = 'prepare' | 'attempt' | 'retry' | 'success' | 'failed';
+
+export interface 图床上传进度 {
+    stage: 图床上传阶段;
+    attempt: number;
+    maxAttempts: number;
+    fileName: string;
+    uploadBytes: number;
+    elapsedMs?: number;
+    message: string;
+}
+
+export interface 图床上传选项 {
+    fileName?: string;
+    maxAttempts?: number;
+    onProgress?: (progress: 图床上传进度) => void;
+}
+
 const readEnvText = (value: unknown): string => (
     typeof value === 'string' ? value.trim().replace(/\/+$/, '') : ''
 );
@@ -188,7 +206,21 @@ const 构建稳定下载链接 = (payload: any): string => {
     return `${DEFAULT_IMAGE_HOST_BASE}/api/v1/file/${encodeURIComponent(fileId)}`;
 };
 
-export const 上传DataUrl到图床 = async (dataUrl: string, options?: { fileName?: string }): Promise<图床上传结果> => {
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+
+const 读取重试次数 = (value: unknown): number => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 3;
+    return Math.max(1, Math.min(5, Math.trunc(parsed)));
+};
+
+const 是否可重试上传失败 = (status: number, message: string): boolean => {
+    if (status === 0 || status === 408 || status === 429) return true;
+    if (status >= 500) return true;
+    return /network|timeout|fetch|aborted|temporar/i.test(message);
+};
+
+export const 上传DataUrl到图床 = async (dataUrl: string, options?: 图床上传选项): Promise<图床上传结果> => {
     const normalized = 读取文本(dataUrl);
     if (!normalized || !是否DataUrl(normalized)) {
         throw new Error('只支持上传 data URL 图片');
@@ -205,10 +237,17 @@ export const 上传DataUrl到图床 = async (dataUrl: string, options?: { fileNa
     const { blob, mimeType } = dataUrl转Blob(uploadPlan.dataUrl);
     const extension = 推断扩展名(mimeType);
     const fileName = 读取文本(options?.fileName) || `moranjianghu-image-${Date.now()}.${extension}`;
-    const form = new FormData();
-    form.append('file', blob, fileName);
     const uploadUrl = buildImageHostProxyUrl(IMAGE_HOST_UPLOAD_PROXY_PATH);
+    const maxAttempts = 读取重试次数(options?.maxAttempts);
     const uploadStartedAt = Date.now();
+    options?.onProgress?.({
+        stage: 'prepare',
+        attempt: 0,
+        maxAttempts,
+        fileName,
+        uploadBytes: blob.size,
+        message: `准备上传图片 ${Math.round(blob.size / 1024)}KB`
+    });
 
     recordDiagnosticLog('info', '图床上传开始', {
         fileName,
@@ -221,34 +260,89 @@ export const 上传DataUrl到图床 = async (dataUrl: string, options?: { fileNa
         proxyUrl: uploadUrl
     });
 
-    const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: form
-    });
-    const text = await response.text();
-    const elapsedMs = Date.now() - uploadStartedAt;
     let payload: any = null;
-    try {
-        payload = text ? JSON.parse(text) : null;
-    } catch {
-        payload = null;
+    let text = '';
+    let response: Response | null = null;
+    let elapsedMs = 0;
+    let lastMessage = '';
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        const attemptStartedAt = Date.now();
+        options?.onProgress?.({
+            stage: 'attempt',
+            attempt,
+            maxAttempts,
+            fileName,
+            uploadBytes: blob.size,
+            elapsedMs: Date.now() - uploadStartedAt,
+            message: `正在上传图片 ${Math.round(blob.size / 1024)}KB（第 ${attempt}/${maxAttempts} 次）`
+        });
+        try {
+            const form = new FormData();
+            form.append('file', blob, fileName);
+            response = await fetch(uploadUrl, {
+                method: 'POST',
+                body: form
+            });
+            text = await response.text();
+            elapsedMs = Date.now() - uploadStartedAt;
+            try {
+                payload = text ? JSON.parse(text) : null;
+            } catch {
+                payload = null;
+            }
+            if (response.ok && payload?.success !== false) {
+                lastMessage = '';
+                break;
+            }
+            lastMessage = 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response.status}`;
+            if (attempt >= maxAttempts || !是否可重试上传失败(response.status, lastMessage)) break;
+        } catch (error: any) {
+            response = null;
+            text = '';
+            payload = null;
+            elapsedMs = Date.now() - uploadStartedAt;
+            lastMessage = error?.message || String(error);
+            if (attempt >= maxAttempts || !是否可重试上传失败(0, lastMessage)) break;
+        }
+        const delayMs = Math.min(12000, 1200 * attempt * attempt);
+        options?.onProgress?.({
+            stage: 'retry',
+            attempt,
+            maxAttempts,
+            fileName,
+            uploadBytes: blob.size,
+            elapsedMs,
+            message: `图床上传暂时失败：${lastMessage}。${Math.round(delayMs / 1000)} 秒后自动重试`
+        });
+        await sleep(delayMs);
+        elapsedMs = Date.now() - uploadStartedAt;
     }
-    if (!response.ok || payload?.success === false) {
-        const message = 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response.status}`;
+    if (!response?.ok || payload?.success === false) {
+        const message = lastMessage || 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response?.status || 0}`;
         recordDiagnosticLog('error', '图床上传失败', {
-            status: response.status,
-            statusText: response.statusText,
+            status: response?.status || 0,
+            statusText: response?.statusText || '',
             elapsedMs,
             fileName,
             originalBytes: uploadPlan.originalBytes,
             uploadBytes: blob.size,
             optimized: uploadPlan.optimized,
             mobileMode: uploadPlan.mobileMode,
-            proxyRequestId: response.headers.get('X-Moran-Image-Proxy-Request-Id') || '',
-            upstreamStatus: response.headers.get('X-Moran-Image-Upstream-Status') || '',
+            attempts: maxAttempts,
+            proxyRequestId: response?.headers.get('X-Moran-Image-Proxy-Request-Id') || '',
+            upstreamStatus: response?.headers.get('X-Moran-Image-Upstream-Status') || '',
             responseSnippet: 截断诊断文本(text)
         });
-        throw new Error(`图床上传失败：${message}（HTTP ${response.status}，上传 ${Math.round(blob.size / 1024)}KB，耗时 ${elapsedMs}ms）`);
+        options?.onProgress?.({
+            stage: 'failed',
+            attempt: maxAttempts,
+            maxAttempts,
+            fileName,
+            uploadBytes: blob.size,
+            elapsedMs,
+            message: `图床上传失败：${message}`
+        });
+        throw new Error(`图床上传失败：${message}（HTTP ${response?.status || 0}，上传 ${Math.round(blob.size / 1024)}KB，尝试 ${maxAttempts} 次，耗时 ${elapsedMs}ms）`);
     }
 
     const url = 构建稳定下载链接(payload);
@@ -270,6 +364,15 @@ export const 上传DataUrl到图床 = async (dataUrl: string, options?: { fileNa
         id: 读取文件ID(payload) || '',
         storage: 读取文本(payload?.file?.storage) || ''
     });
+    options?.onProgress?.({
+        stage: 'success',
+        attempt: maxAttempts,
+        maxAttempts,
+        fileName,
+        uploadBytes: blob.size,
+        elapsedMs,
+        message: `图片上传成功，耗时 ${Math.round(elapsedMs / 1000)} 秒`
+    });
     return {
         url,
         id: 读取文件ID(payload) || undefined,
@@ -278,15 +381,22 @@ export const 上传DataUrl到图床 = async (dataUrl: string, options?: { fileNa
     };
 };
 
-export const 上传Blob到图床 = async (blob: Blob, options?: { fileName?: string }): Promise<图床上传结果> => {
+export const 上传Blob到图床 = async (blob: Blob, options?: 图床上传选项): Promise<图床上传结果> => {
     if (!(blob instanceof Blob) || blob.size <= 0) {
         throw new Error('上传文件失败：文件内容为空');
     }
     const fileName = 读取文本(options?.fileName) || `moranjianghu-file-${Date.now()}.bin`;
-    const form = new FormData();
-    form.append('file', blob, fileName);
     const uploadUrl = buildImageHostProxyUrl(IMAGE_HOST_UPLOAD_PROXY_PATH);
+    const maxAttempts = 读取重试次数(options?.maxAttempts);
     const uploadStartedAt = Date.now();
+    options?.onProgress?.({
+        stage: 'prepare',
+        attempt: 0,
+        maxAttempts,
+        fileName,
+        uploadBytes: blob.size,
+        message: `准备上传文件 ${Math.round(blob.size / 1024)}KB`
+    });
 
     recordDiagnosticLog('info', '图床上传文件开始', {
         fileName,
@@ -295,31 +405,85 @@ export const 上传Blob到图床 = async (blob: Blob, options?: { fileName?: str
         proxyUrl: uploadUrl
     });
 
-    const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: form
-    });
-    const text = await response.text();
-    const elapsedMs = Date.now() - uploadStartedAt;
     let payload: any = null;
-    try {
-        payload = text ? JSON.parse(text) : null;
-    } catch {
-        payload = null;
+    let text = '';
+    let response: Response | null = null;
+    let elapsedMs = 0;
+    let lastMessage = '';
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        options?.onProgress?.({
+            stage: 'attempt',
+            attempt,
+            maxAttempts,
+            fileName,
+            uploadBytes: blob.size,
+            elapsedMs: Date.now() - uploadStartedAt,
+            message: `正在上传文件 ${Math.round(blob.size / 1024)}KB（第 ${attempt}/${maxAttempts} 次）`
+        });
+        try {
+            const form = new FormData();
+            form.append('file', blob, fileName);
+            response = await fetch(uploadUrl, {
+                method: 'POST',
+                body: form
+            });
+            text = await response.text();
+            elapsedMs = Date.now() - uploadStartedAt;
+            try {
+                payload = text ? JSON.parse(text) : null;
+            } catch {
+                payload = null;
+            }
+            if (response.ok && payload?.success !== false) {
+                lastMessage = '';
+                break;
+            }
+            lastMessage = 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response.status}`;
+            if (attempt >= maxAttempts || !是否可重试上传失败(response.status, lastMessage)) break;
+        } catch (error: any) {
+            response = null;
+            text = '';
+            payload = null;
+            elapsedMs = Date.now() - uploadStartedAt;
+            lastMessage = error?.message || String(error);
+            if (attempt >= maxAttempts || !是否可重试上传失败(0, lastMessage)) break;
+        }
+        const delayMs = Math.min(12000, 1200 * attempt * attempt);
+        options?.onProgress?.({
+            stage: 'retry',
+            attempt,
+            maxAttempts,
+            fileName,
+            uploadBytes: blob.size,
+            elapsedMs,
+            message: `图床上传暂时失败：${lastMessage}。${Math.round(delayMs / 1000)} 秒后自动重试`
+        });
+        await sleep(delayMs);
+        elapsedMs = Date.now() - uploadStartedAt;
     }
-    if (!response.ok || payload?.success === false) {
-        const message = 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response.status}`;
+    if (!response?.ok || payload?.success === false) {
+        const message = lastMessage || 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response?.status || 0}`;
         recordDiagnosticLog('error', '图床上传文件失败', {
-            status: response.status,
-            statusText: response.statusText,
+            status: response?.status || 0,
+            statusText: response?.statusText || '',
             elapsedMs,
             fileName,
             uploadBytes: blob.size,
-            proxyRequestId: response.headers.get('X-Moran-Image-Proxy-Request-Id') || '',
-            upstreamStatus: response.headers.get('X-Moran-Image-Upstream-Status') || '',
+            attempts: maxAttempts,
+            proxyRequestId: response?.headers.get('X-Moran-Image-Proxy-Request-Id') || '',
+            upstreamStatus: response?.headers.get('X-Moran-Image-Upstream-Status') || '',
             responseSnippet: 截断诊断文本(text)
         });
-        throw new Error(`图床上传文件失败：${message}（HTTP ${response.status}，上传 ${Math.round(blob.size / 1024)}KB，耗时 ${elapsedMs}ms）`);
+        options?.onProgress?.({
+            stage: 'failed',
+            attempt: maxAttempts,
+            maxAttempts,
+            fileName,
+            uploadBytes: blob.size,
+            elapsedMs,
+            message: `图床上传文件失败：${message}`
+        });
+        throw new Error(`图床上传文件失败：${message}（HTTP ${response?.status || 0}，上传 ${Math.round(blob.size / 1024)}KB，尝试 ${maxAttempts} 次，耗时 ${elapsedMs}ms）`);
     }
 
     const url = 构建稳定下载链接(payload);
@@ -338,6 +502,15 @@ export const 上传Blob到图床 = async (blob: Blob, options?: { fileName?: str
         uploadBytes: blob.size,
         id: 读取文件ID(payload) || '',
         storage: 读取文本(payload?.file?.storage) || ''
+    });
+    options?.onProgress?.({
+        stage: 'success',
+        attempt: maxAttempts,
+        maxAttempts,
+        fileName,
+        uploadBytes: blob.size,
+        elapsedMs,
+        message: `文件上传成功，耗时 ${Math.round(elapsedMs / 1000)} 秒`
     });
     return {
         url,

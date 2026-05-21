@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as dbService from '../../../services/dbService';
+import { 读取云端游玩存储模式 } from '../../../services/cloudPlayService';
 import { 导出ZIP存档文件, 解析ZIP存档文件 } from '../../../services/saveArchiveService';
 import { 存档结构 } from '../../../types';
 import { parseJsonWithRepair } from '../../../utils/jsonRepair';
@@ -27,6 +28,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const [syncing, setSyncing] = useState(false);
     const [saveProtectionEnabled, setSaveProtectionEnabled] = useState(false);
     const [transferMessage, setTransferMessage] = useState('');
+    const [cloudPlayMode, setCloudPlayMode] = useState<'tg' | 'object' | null>(() => 读取云端游玩存储模式());
     const [hydratingVisibleSummaries, setHydratingVisibleSummaries] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const hydratedSummaryIdsRef = useRef<Set<number>>(new Set());
@@ -35,6 +37,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
     useEffect(() => {
         void loadSaves(true);
+        setCloudPlayMode(读取云端游玩存储模式());
     }, []);
 
     useEffect(() => {
@@ -530,6 +533,11 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                             <p className="text-xs text-gray-400 leading-relaxed" style={{ fontFamily: 'var(--ui-辅助文本-font-family, inherit)', fontSize: 'var(--ui-辅助文本-font-size, 12px)', lineHeight: 'var(--ui-辅助文本-line-height, 1.5)' }}>
                                 手动与自动存档都会完整保存全部内容。导出时会按 ZIP 拆分为图片、聊天记录、游戏数据三个目录。
                             </p>
+                            {cloudPlayMode && (
+                                <div className="rounded-lg border border-sky-400/35 bg-sky-500/10 px-3 py-2 text-xs leading-6 text-sky-100">
+                                    当前处于云端游玩模式（{cloudPlayMode === 'object' ? '对象存储' : 'TG图床'}）。保存存档会同步保存到云端和本地。
+                                </div>
+                            )}
                             <GameButton onClick={() => { void handleSave(); }} disabled={!onSaveGame || busy} variant="primary" className="w-full">
                                 立即保存
                             </GameButton>

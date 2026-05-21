@@ -21,6 +21,7 @@ const MobileKungfuModal: React.FC<Props> = ({ skills, onClose }) => {
         () => safeSkills.find((s) => s.ID === selectedId) || null,
         [safeSkills, selectedId]
     );
+    const effects = Array.isArray(current?.附带效果) ? current.附带效果 : [];
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-3 md:hidden animate-fadeIn">
@@ -111,11 +112,11 @@ const MobileKungfuModal: React.FC<Props> = ({ skills, onClose }) => {
                                 </div>
                             </div>
 
-                            {current.附带效果.length > 0 && (
+                            {effects.length > 0 && (
                                 <div className="bg-black/40 border border-gray-800 rounded-xl p-4">
                                     <div className="text-[10px] text-gray-500 tracking-[0.2em] mb-2">附带效果</div>
                                     <div className="space-y-2">
-                                        {current.附带效果.map((e, i) => (
+                                        {effects.map((e, i) => (
                                             <div key={i} className="border border-gray-800 rounded p-2 text-[11px]">
                                                 <div className="text-wuxia-cyan font-bold">{e.名称}</div>
                                                 <div className="text-gray-400 mt-1">触发 {e.触发概率} · 持续 {e.持续时间}</div>
