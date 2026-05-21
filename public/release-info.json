@@ -1,15 +1,13 @@
 {
-  "versionCode": 268,
-  "versionName": "1.0.267",
+  "versionCode": 269,
+  "versionName": "1.0.268",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "本地存档、TG 图床云端游玩、对象存储云端游玩统一改为按同一起始存档归并的时间树展示。",
-    "新谱系存档进入系列后可展开时间树，从具体时间节点选择游玩、导入、导出或删除。",
-    "首次进入新版本会保留旧存档，并在后台逐步转换为新谱系；可关闭提示继续使用，之后可在“重入江湖”页面查看进度。",
-    "TG 图床云端读档增加文件代理兜底和自动重试，遇到短暂 HTTP 500 时会显示下载、重试、解密和时间树还原进度。",
-    "对象存储和本地存档也会明确标记“新谱系 / 旧存档”，便于识别迁移状态。",
+    "修复手机端顶部时间/节日显示不一致的问题，时程按钮会直接显示日期，节日只按当前游戏日期匹配。",
+    "优化判定文本识别，兼容 [洞察]、[判定] 等方括号格式，避免判定信息误当正文大段显示。",
+    "保留时间详情中的完整年/月/日/时刻展示，同时减少旁边快捷按钮误导。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.267。"
+    "同步更新 Web、APK 与更新清单到 v1.0.268。"
   ],
   "releaseHistory": [
     {
@@ -2711,7 +2709,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-21T12:58:57+08:00",
+  "releasePublishedAt": "2026-05-21T13:11:27+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

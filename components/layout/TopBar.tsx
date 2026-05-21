@@ -230,6 +230,11 @@ const mapMinuteToKe = (minute: number): string => {
     return '三刻';
 };
 
+const 构建日期短文本 = (parsedTime: { month: number; day: number } | null | undefined): string => {
+    if (!parsedTime) return '未知日期';
+    return `${parsedTime.month}/${parsedTime.day}`;
+};
+
 const parseCanonicalGameTime = (raw?: string): { year: number; month: number; day: number; hour: number; minute: number } | null => {
     if (typeof raw !== 'string') return null;
     const match = raw.trim().match(/^(\d{1,6}):(\d{2}):(\d{2}):(\d{2}):(\d{2})$/);
@@ -358,9 +363,12 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
         return festivals.find(f => f.月 === month && f.日 === day);
     }, [festivals, month, day]);
 
-    const festivalDisplay = 环境?.节日?.名称?.trim()
-        ? 环境.节日.名称.trim()
-        : (currentFestival ? currentFestival.名称 : '平常日');
+    const 环境节日名称 = typeof 环境?.节日?.名称 === 'string' ? 环境.节日.名称.trim() : '';
+    const 环境节日是否匹配当前日期 = !!currentFestival && !!环境节日名称 && 环境节日名称 === currentFestival.名称;
+    const festivalDisplay = currentFestival
+        ? currentFestival.名称
+        : (环境节日是否匹配当前日期 ? 环境节日名称 : '平常日');
+    const dateBadge = 构建日期短文本(parsedTime);
     const weatherDisplay = useMemo(() => {
         const rawWeather = (环境 as any)?.天气;
         if (rawWeather && typeof rawWeather === 'object') {
@@ -525,11 +533,12 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
             content: (
                 <div className="space-y-2">
                     <div className="text-lg font-bold text-wuxia-gold">{festivalDisplay}</div>
-                    <div className="italic opacity-80" style={{ fontSize: 顶栏字号(1, 14) }}>{环境.节日?.简介 || (currentFestival?.描述) || '正是寻常好时节。'}</div>
-                    {(环境.节日?.效果 || currentFestival?.效果) && (
+                    <div className="text-wuxia-gold/60" style={{ fontSize: 顶栏字号(0.9, 13) }}>{dateBadge}</div>
+                    <div className="italic opacity-80" style={{ fontSize: 顶栏字号(1, 14) }}>{(currentFestival?.描述) || (环境节日是否匹配当前日期 ? 环境.节日?.简介 : '') || '正是寻常好时节。'}</div>
+                    {((currentFestival?.效果) || (环境节日是否匹配当前日期 ? 环境.节日?.效果 : '')) && (
                         <div className="mt-3 rounded border border-wuxia-gold/10 bg-wuxia-gold/5 p-2">
                             <div className="mb-1 text-wuxia-gold/60" style={{ fontSize: 顶栏字号(0.9, 13) }}>时节影响</div>
-                            <div className="text-wuxia-gold" style={{ fontSize: 顶栏字号(1, 14) }}>{环境.节日?.效果 || currentFestival?.效果}</div>
+                            <div className="text-wuxia-gold" style={{ fontSize: 顶栏字号(1, 14) }}>{currentFestival?.效果 || (环境节日是否匹配当前日期 ? 环境.节日?.效果 : '')}</div>
                         </div>
                     )}
                 </div>
@@ -550,7 +559,7 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
     const mobileItems = [
         { type: 'weather' as const, label: '天气', shortLabel: '气', value: weatherDisplay, highlight: false },
         { type: 'environment' as const, label: '环境', shortLabel: '境', value: environmentDisplay, highlight: false },
-        { type: 'time' as const, label: '时程', shortLabel: '时', value: `${mobileClockStr} / 第${derivedDayCount}天`, highlight: false },
+        { type: 'time' as const, label: '时程', shortLabel: '时', value: `${dateBadge} ${mobileClockStr} / 第${derivedDayCount}天`, highlight: false },
         { type: 'location' as const, label: '地点', shortLabel: '地', value: mobileLocationBadge, highlight: false },
         { type: 'festival' as const, label: '节日', shortLabel: '节', value: festivalDisplay, highlight: !!currentFestival },
     ];

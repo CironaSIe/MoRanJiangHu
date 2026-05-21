@@ -154,7 +154,7 @@ const TurnItem: React.FC<Props> = ({
     const judgeBlocks = Array.isArray(response.judge_blocks)
         ? response.judge_blocks.filter(block => ((block?.text || block?.raw || '').trim().length > 0))
         : [];
-    const 判定前缀正则 = /^(【判定】|【NSFW判定】|【先机】|【瞄准】|【接战】|【对撞】|【对抗】|【防御】|【化解】|【伤害】|【态势】|【反击】|【反馈】|【消耗】|【洞察】|【衰退】)/;
+    const 判定前缀正则 = /^(【(?:NSFW)?判定】|【先机】|【瞄准】|【接战】|【对撞】|【对抗】|【防御】|【化解】|【伤害】|【态势】|【反击】|【反馈】|【消耗】|【洞察】|【衰退】|\[(?:NSFW)?判定\]|\[先机\]|\[瞄准\]|\[接战\]|\[对撞\]|\[对抗\]|\[防御\]|\[化解\]|\[伤害\]|\[态势\]|\[反击\]|\[反馈\]|\[消耗\]|\[洞察\]|\[衰退\])/;
     const 判定日志索引映射 = useMemo(() => {
         let currentJudgmentIndex = -1;
         return displayLogs.map((log) => {
@@ -525,12 +525,16 @@ const TurnItem: React.FC<Props> = ({
             <div className="mt-2 space-y-2">
                 {displayLogs.map((log, idx) => {
                     const matchedJudgeBlock = 判定日志索引映射[idx] >= 0 ? judgeBlocks[判定日志索引映射[idx]] : undefined;
-                    if (log.sender === '旁白') return <NarratorRenderer key={idx} text={log.text} visualConfig={visualConfig} />;
-                    if (判定前缀正则.test(log.sender || '')) {
-                        const isNsfw = log.sender?.includes('NSFW');
-                        return <JudgmentRenderer key={idx} text={log.text} thoughtBlock={matchedJudgeBlock} isNsfw={isNsfw} visualConfig={visualConfig} prefix={log.sender} />;
+                    const rawSender = log.sender || '';
+                    const rawText = log.text || '';
+                    const textStartsWithJudgment = 判定前缀正则.test(rawText);
+                    if (rawSender === '旁白' && !textStartsWithJudgment) return <NarratorRenderer key={idx} text={rawText} visualConfig={visualConfig} />;
+                    if (判定前缀正则.test(rawSender) || textStartsWithJudgment) {
+                        const prefix = 判定前缀正则.test(rawSender) ? rawSender : (rawText.match(判定前缀正则)?.[0] || rawSender);
+                        const isNsfw = prefix.includes('NSFW');
+                        return <JudgmentRenderer key={idx} text={rawText} thoughtBlock={matchedJudgeBlock} isNsfw={isNsfw} visualConfig={visualConfig} prefix={prefix} />;
                     }
-                    return <CharacterRenderer key={idx} sender={log.sender} text={log.text} visualConfig={visualConfig} socialList={socialList} playerProfile={playerProfile} onOpenNpcDetail={onOpenNpcDetail} />;
+                    return <CharacterRenderer key={idx} sender={rawSender} text={rawText} visualConfig={visualConfig} socialList={socialList} playerProfile={playerProfile} onOpenNpcDetail={onOpenNpcDetail} />;
                 })}
             </div>
 
