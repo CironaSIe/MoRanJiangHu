@@ -1310,7 +1310,7 @@ export const 构建系统提示词 = ({
         realmPrompt
     });
     const 应用境界区块替换 = (content: string): string => (
-        启用修炼体系 && fandomPromptBundle.enabled
+        启用修炼体系
             ? 应用境界体系区块替换(content, fandomPromptBundle)
             : content
     );
@@ -1401,7 +1401,10 @@ export const 构建系统提示词 = ({
     const fandomSummaryPrompt = 按当前设置过滤提示词(fandomPromptBundle.同人设定摘要 || '');
     const genreModePrompt = 按当前设置过滤提示词(构建题材模式提示词(openingConfig));
     const realmTemplatePrompt = 启用修炼体系
-        ? 按当前设置过滤提示词(渲染提示词文本(核心_境界体系.内容))
+        ? 按当前设置过滤提示词(渲染提示词文本([
+            核心_境界体系.内容,
+            fandomPromptBundle.境界母板补丁
+        ].filter(Boolean).join('\n\n')))
         : '';
     const otherPrompts = [
         ...otherPromptEntries.map(item => item.content),

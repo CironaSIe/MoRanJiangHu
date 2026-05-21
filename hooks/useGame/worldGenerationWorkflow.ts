@@ -263,6 +263,7 @@ export const 执行世界生成工作流 = async (
             : '';
         const useManualWorldPrompt = normalizedManualWorldPrompt.length > 0;
         const useManualRealmPrompt = 启用修炼体系 && normalizedManualRealmPrompt.length > 0;
+        const isXianxiaOpening = openingConfig?.题材模式 === '仙侠';
         const normalizedWorldExtraRequirement = typeof worldConfig.worldExtraRequirement === 'string'
             ? worldConfig.worldExtraRequirement.trim()
             : '';
@@ -293,7 +294,12 @@ export const 执行世界生成工作流 = async (
 
         const worldGenerationCotPseudoPrompt = 世界观生成COT伪装历史消息提示词;
 
-        if (useManualRealmPrompt) {
+        if (启用修炼体系 && isXianxiaOpening) {
+            if (openingStreaming) {
+                开局流式历史更新器?.更新('【生成中】加载固定仙侠境界体系...', { immediate: true });
+            }
+            realmPromptContent = initialFandomBundle.境界母板补丁 || 核心_境界体系.内容;
+        } else if (useManualRealmPrompt) {
             if (openingStreaming) {
                 开局流式历史更新器?.更新('【生成中】校验手动境界提示词...', { immediate: true });
             }
@@ -364,10 +370,12 @@ export const 执行世界生成工作流 = async (
         const worldGenerationExtraPrompt = 按功能开关过滤提示词内容([
             世界观生成COT提示词,
             fandomPromptBundle.世界观创建补丁,
-            启用修炼体系 && fandomEnabled
+            启用修炼体系 && (fandomEnabled || isXianxiaOpening)
                 ? [
-                    '【已生成同人境界体系参考】',
-                    '- 同人境界体系已在本阶段先生成完成；world_prompt 的力量常识、高手稀缺度、强弱断层与术语口径必须跟随这份体系，不得回退默认现体系。',
+                    isXianxiaOpening ? '【已固定仙侠境界体系参考】' : '【已生成同人境界体系参考】',
+                    isXianxiaOpening
+                        ? '- 仙侠境界体系由项目内置固定映射提供；world_prompt 的力量常识、高手稀缺度、强弱断层与术语口径必须跟随这份体系，不得回退默认武侠术语或自行生成新境界。'
+                        : '- 同人境界体系已在本阶段先生成完成；world_prompt 的力量常识、高手稀缺度、强弱断层与术语口径必须跟随这份体系，不得回退默认现体系。',
                     '- 生成 world_prompt 时只提炼概述级境界与力量边界，不得把完整映射、阶段推进表或大境突破表原样抄回世界观正文。',
                     realmPromptContent
                 ].join('\n')

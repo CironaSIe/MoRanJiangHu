@@ -1,6 +1,7 @@
 import React from 'react';
 import { 角色数据结构, 战斗状态结构 } from '../../../types';
 import { 生成战斗可视化数据, 逻辑判断知识库 } from '../../../utils/rulebook';
+import { 获取单位境界显示, 推断单位仙侠 } from '../../../utils/realmDisplay';
 import BattleRoundAnimation from './BattleRoundAnimation';
 
 interface Props {
@@ -63,7 +64,8 @@ const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '
     const 玩家总血量当前 = 部位当前.reduce((sum, n) => sum + Math.max(0, Number(n) || 0), 0);
     const 玩家总血量上限 = 部位上限.reduce((sum, n) => sum + Math.max(0, Number(n) || 0), 0);
     const 境界值 = Math.max(1, Number(character.境界层级) || 1);
-    const 玩家境界展示 = (character.境界 || '').trim() || `境界值 ${境界值}`;
+    const 玩家是仙侠 = 推断单位仙侠(character);
+    const 玩家境界展示 = 获取单位境界显示(character, `境界值 ${境界值}`, { forceXianxia: 玩家是仙侠 });
  
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[210] flex items-center justify-center p-3 md:hidden animate-fadeIn">
@@ -153,7 +155,7 @@ const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '
                                             <div className="flex items-start justify-between">
                                                 <div>
                                                     <div className="text-sm text-gray-100 font-serif">{enemy?.名字 || `敌方${idx + 1}`}</div>
-                                                    <div className="text-[10px] text-gray-500 mt-0.5">{enemy?.境界 || '未知境界'}</div>
+                                                    <div className="text-[10px] text-gray-500 mt-0.5">{获取单位境界显示(enemy, '未知境界', { forceXianxia: 玩家是仙侠 || 推断单位仙侠(enemy) })}</div>
                                                 </div>
                                                 <div className="text-right text-[10px] font-mono">
                                                     <div className="text-red-300">攻 {enemy?.战斗力 || 0}</div>

@@ -3,6 +3,7 @@ import { NPC结构, 角色数据结构, 战斗状态结构 } from '../../../type
 import { IconSwords, IconYinYang } from '../../ui/Icons';
 import { 生成战斗可视化数据, 逻辑判断知识库 } from '../../../utils/rulebook';
 import { 计算角色总气血 } from '../../../utils/characterVitals';
+import { 获取单位境界显示, 推断单位仙侠 } from '../../../utils/realmDisplay';
 import BattleRoundAnimation from './BattleRoundAnimation';
 
 interface Props {
@@ -380,7 +381,8 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
     const 玩家总血量上限 = 部位列表.reduce((sum, [, , max]) => sum + Math.max(0, Number(max) || 0), 0);
     const 玩家总血量当前 = 部位列表.reduce((sum, [, cur]) => sum + Math.max(0, Number(cur) || 0), 0);
     const 境界值 = Math.max(1, Number(character.境界层级) || 1);
-    const 玩家境界展示 = (character.境界 || '').trim() || `境界值 ${境界值}`;
+    const 玩家是仙侠 = 推断单位仙侠(character);
+    const 玩家境界展示 = 获取单位境界显示(character, `境界值 ${境界值}`, { forceXianxia: 玩家是仙侠 });
     const 玩家战斗指标 = 计算战斗指标({
         ...character,
         当前血量: 玩家总血量当前,
@@ -415,7 +417,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                 index: index + 1,
                 total: 队友列表.length + 1,
                 name: npc.姓名 || `队友${index + 1}`,
-                realm: npc.境界 || '未明境界',
+                realm: 获取单位境界显示(npc, '未明境界', { forceXianxia: 玩家是仙侠 || 推断单位仙侠(npc) }),
                 metrics: 计算NPC战斗指标(npc),
                 contextText,
             })),
@@ -426,12 +428,12 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
             index,
             total: Math.max(1, 敌方列表.length),
             name: enemy?.名字 || `敌人${index + 1}`,
-            realm: enemy?.境界 || '未明境界',
+            realm: 获取单位境界显示(enemy, '未明境界', { forceXianxia: 玩家是仙侠 || 推断单位仙侠(enemy) }),
             metrics: 计算NPC战斗指标(enemy),
             contextText,
         }));
         return 自动划分前后排([...allies, ...enemies]);
-    }, [character, contextText, 敌方列表, 境界值, 玩家境界展示, 玩家战斗指标, 玩家总血量上限, 玩家总血量当前, 队友列表]);
+    }, [character, contextText, 敌方列表, 境界值, 玩家境界展示, 玩家是仙侠, 玩家战斗指标, 玩家总血量上限, 玩家总血量当前, 队友列表]);
     const 我方参战者 = 战场单位列表.filter((unit) => unit.side === 'ally');
     const 敌方参战者 = 战场单位列表.filter((unit) => unit.side === 'enemy');
     const 默认攻击者 = 我方参战者[0];
@@ -616,7 +618,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                                             key={npc.id || `${npc.姓名}-${index}`}
                                             unit={npc}
                                             name={npc.姓名 || `队友${index + 1}`}
-                                            realm={npc.境界 || '未明'}
+                                            realm={获取单位境界显示(npc, '未明', { forceXianxia: 玩家是仙侠 || 推断单位仙侠(npc) })}
                                             row={我方参战者[index + 1]?.row || (index === 0 ? '前排' : '后排')}
                                             side="ally"
                                             metrics={指标}
@@ -638,7 +640,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                                             key={`${enemy?.名字 || 'enemy'}-${index}-summary`}
                                             unit={enemy}
                                             name={enemy.名字 || `敌人${index + 1}`}
-                                            realm={enemy.境界 || '未明'}
+                                            realm={获取单位境界显示(enemy, '未明', { forceXianxia: 玩家是仙侠 || 推断单位仙侠(enemy) })}
                                             row={敌方参战者[index]?.row || (index === 0 ? '前排' : '后排')}
                                             side="enemy"
                                             metrics={npc指标}
@@ -682,7 +684,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                                                     </div>
                                                     <div className="text-[11px] text-red-300/70 mt-1.5 flex items-center gap-2">
                                                         <span className="border border-red-900/50 bg-red-950/50 px-2 py-0.5 rounded font-serif shadow-sm tracking-wider">
-                                                            {enemy?.境界 || '未明修身'}
+                                                            {获取单位境界显示(enemy, '未明修身', { forceXianxia: 玩家是仙侠 || 推断单位仙侠(enemy) })}
                                                         </span>
                                                         {已失能 && <span className="text-gray-400 border border-gray-700 bg-gray-900 px-2 py-0.5 rounded tracking-widest">失能/败北</span>}
                                                     </div>

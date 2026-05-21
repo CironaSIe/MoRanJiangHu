@@ -5,6 +5,7 @@ import { 自动装备最佳装备 } from '../../utils/equipmentActions';
 import { 规范化消耗品使用效果 } from '../../utils/itemEffects';
 import { 补齐自动丹药预设 } from '../../utils/autoConsumables';
 import { 归一化六维到境界预算 } from '../../utils/attributeBudget';
+import { 重命名重复女性NPC列表 } from '../../utils/femaleNameSelector';
 
 const 深拷贝 = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
 const 默认装备模板 = {
@@ -2594,8 +2595,10 @@ const 规范化社交列表 = (list: any[], options?: { 合并同名?: boolean }
     if (!Array.isArray(list)) return [];
     const filtered = list.filter((npc) => !是否应丢弃NPC条目(npc));
     const normalized = filtered.map((npc, index) => 标准化单个NPC(npc, index));
-    if (options?.合并同名 === false) return 合并占位NPC列表(normalized, { 合并精确同名: false });
-    return 合并占位NPC列表(合并同名NPC列表(normalized));
+    const merged = options?.合并同名 === false
+        ? 合并占位NPC列表(normalized, { 合并精确同名: false })
+        : 合并占位NPC列表(合并同名NPC列表(normalized));
+    return 重命名重复女性NPC列表(merged);
 };
 
 export {
