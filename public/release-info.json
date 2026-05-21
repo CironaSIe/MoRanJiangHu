@@ -1,15 +1,29 @@
 {
-  "versionCode": 281,
-  "versionName": "1.0.280",
+  "versionCode": 282,
+  "versionName": "1.0.281",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "仙侠模式境界体系改为固定体系，减少 AI 误读成武侠境界的问题。",
-    "战斗面板会按仙侠境界层级显示境界，战斗体系查看更清晰。",
-    "女性 NPC 重名和占位名会自动从内置女性姓名池中选择新名字，减少人物名重复混淆。",
+    "修复新谱系自动存档只保留最新一条的问题；每回合自动存档会按时间树节点保留，可回看第 1/2/3 回合等历史节点。",
+    "存档列表和云端时间树改为显示真实“第 N 回合”，不再把变量生成、规划分析、世界推演等后台记录误显示成历史条数。",
+    "云端游玩会记住 TG 图床或对象存储的选择状态，切换回来不再要求重复输入账号密码。",
+    "云端同步会保留新谱系父子关系与回合信息，电脑本回合游玩后，手机刷新云存档即可接上同一时间树继续玩。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.280。"
+    "同步更新 Web、APK 与更新清单到 v1.0.281。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.281",
+      "versionCode": 282,
+      "publishedAt": "2026-05-22T01:37:07+08:00",
+      "changes": [
+        "修复新谱系自动存档只保留最新一条的问题；每回合自动存档会按时间树节点保留，可回看第 1/2/3 回合等历史节点。",
+        "存档列表和云端时间树改为显示真实“第 N 回合”，不再把变量生成、规划分析、世界推演等后台记录误显示成历史条数。",
+        "云端游玩会记住 TG 图床或对象存储的选择状态，切换回来不再要求重复输入账号密码。",
+        "云端同步会保留新谱系父子关系与回合信息，电脑本回合游玩后，手机刷新云存档即可接上同一时间树继续玩。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.281。"
+      ]
+    },
     {
       "versionName": "1.0.279",
       "versionCode": 280,
@@ -2747,7 +2761,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-22T00:49:29+08:00",
+  "releasePublishedAt": "2026-05-22T01:37:07+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

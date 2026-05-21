@@ -7,6 +7,7 @@ import {
     增量同步到对象存储,
     type 对象存储同步配置
 } from './objectStorageSync';
+import { 读取存档游玩回合数 } from '../utils/saveTurn';
 
 const CLOUD_PLAY_API_PATH = '/api/cloud-play';
 const IMAGE_HOST_DOWNLOAD_PROXY_PATH = '/api/image-host/download';
@@ -43,6 +44,7 @@ export type 云端存档摘要 = {
     location: string;
     gameTime: string;
     historyCount: number;
+    turnCount?: number;
     packageUrl: string;
     packageSize?: number;
     sha256: string;
@@ -97,6 +99,7 @@ type 持久云端游玩会话 = {
     expiresAt: number;
     session: 云端游玩账号;
 };
+export type 云端游玩存储模式 = 'tg' | 'object';
 export type 云端下载阶段 = 'manifest' | 'download' | 'decrypt' | 'restore' | 'done';
 
 export interface 云端下载进度 {
@@ -265,6 +268,20 @@ const 深拷贝 = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const 去除存档易变字段 = (save: 存档结构): any => {
     const copy: any = 深拷贝(save);
     delete copy.id;
+    if (copy.元数据 && typeof copy.元数据 === 'object') {
+        delete copy.元数据.存档哈希;
+        delete copy.元数据.存档父节点哈希;
+        delete copy.元数据.存档根节点哈希;
+        delete copy.元数据.存档谱系深度;
+        delete copy.元数据.存档分支输入;
+        delete copy.元数据.现实保存时间戳;
+        delete copy.元数据.现实保存时间ISO;
+        delete copy.元数据.自动存档签名;
+        delete copy.元数据.自动存档节点ID;
+        delete copy.元数据.对象存储哈希;
+        delete copy.元数据.对象存储存档ID;
+        delete copy.元数据.对象存储同步时间;
+    }
     copy.历史记录 = [];
     return copy;
 };
@@ -493,6 +510,10 @@ const 保存会话 = (session: 云端游玩账号): void => {
     localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
 };
 
+export const 设置云端游玩存储模式 = (mode: 云端游玩存储模式): void => {
+    localStorage.setItem(OBJECT_STORAGE_MODE_KEY, mode);
+};
+
 const 读取有效云端会话载荷 = (): 持久云端游玩会话 | null => {
     try {
         const parsed = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
@@ -521,22 +542,27 @@ export const 清除云端游玩会话 = (): void => {
 };
 
 export const 启用对象存储云端游玩模式 = (): void => {
-    localStorage.setItem(OBJECT_STORAGE_MODE_KEY, 'true');
+    设置云端游玩存储模式('object');
 };
 
 export const 清除对象存储云端游玩模式 = (): void => {
     localStorage.removeItem(OBJECT_STORAGE_MODE_KEY);
 };
 
-export const 已启用对象存储云端游玩模式 = (): boolean => localStorage.getItem(OBJECT_STORAGE_MODE_KEY) === 'true';
+export const 已启用对象存储云端游玩模式 = (): boolean => {
+    const stored = localStorage.getItem(OBJECT_STORAGE_MODE_KEY);
+    return stored === 'object' || stored === 'true';
+};
 
-export const 读取云端游玩存储模式 = (): 'tg' | 'object' | null => {
-    if (已启用对象存储云端游玩模式()) return 'object';
+export const 读取云端游玩存储模式 = (): 云端游玩存储模式 | null => {
+    const stored = localStorage.getItem(OBJECT_STORAGE_MODE_KEY);
+    if (stored === 'object' || stored === 'true') return 'object';
+    if (stored === 'tg') return 读取云端游玩会话() ? 'tg' : null;
     return 读取云端游玩会话() ? 'tg' : null;
 };
 
 export const 读取对象存储云端游玩配置 = async (): Promise<对象存储同步配置 | null> => {
-    if (!已启用对象存储云端游玩模式()) return null;
+    if (读取云端游玩存储模式() !== 'object') return null;
     return 读取对象存储同步配置();
 };
 
@@ -551,6 +577,7 @@ export const 注册云端游玩账号 = async (username: string, password: strin
     const user = payload.user as ApiUser;
     const session = { ...user, password };
     保存会话(session);
+    设置云端游玩存储模式('tg');
     return session;
 };
 
@@ -559,6 +586,7 @@ export const 登录云端游玩账号 = async (username: string, password: strin
     const user = payload.user as ApiUser;
     const session = { ...user, password };
     保存会话(session);
+    设置云端游玩存储模式('tg');
     return session;
 };
 
@@ -647,6 +675,7 @@ const 构建云端摘要 = (
         location: 读取地点文本(save),
         gameTime: 读取时间文本(save),
         historyCount: Array.isArray(save.历史记录) ? save.历史记录.length : 0,
+        turnCount: 读取存档游玩回合数(save),
         packageUrl,
         packageSize,
         sha256,
@@ -657,6 +686,31 @@ const 构建云端摘要 = (
         depth: Math.max(0, Math.floor(Number(options?.depth || 0))),
         branchInput: readString((save.元数据 as any)?.存档分支输入) || (parentCloudId ? '继续游玩' : '开局')
     };
+};
+
+const 补全云端存档谱系元数据 = (save: 存档结构, item: 云端存档摘要): 存档结构 => {
+    const syncHash = readString(item.syncHash) || dbService.计算存档同步哈希(save);
+    const metadata: Record<string, any> = {
+        ...(save.元数据 || {})
+    };
+    if (syncHash) metadata.存档哈希 = syncHash;
+    const seriesId = readString(item.seriesId);
+    if (seriesId) metadata.存档系列ID = seriesId;
+    metadata.存档父节点哈希 = readString(item.parentSyncHash) || readString(metadata.存档父节点哈希);
+    metadata.存档根节点哈希 = readString(item.rootSyncHash) || readString(metadata.存档根节点哈希) || syncHash;
+    const depth = Number(item.depth);
+    if (Number.isFinite(depth)) metadata.存档谱系深度 = Math.max(0, Math.floor(depth));
+    const branchInput = readString(item.branchInput);
+    if (branchInput) metadata.存档分支输入 = branchInput;
+    const turnCount = Number(item.turnCount);
+    if (Number.isFinite(turnCount) && turnCount >= 0) metadata.游戏回合数 = Math.floor(turnCount);
+    metadata.存档谱系版本 = 1;
+    return {
+        ...save,
+        类型: item.type === 'auto' ? 'auto' : (save.类型 || 'manual'),
+        时间戳: Number(save.时间戳 || item.timestamp || Date.now()),
+        元数据: metadata as any
+    } as 存档结构;
 };
 
 const 上传清单 = async (
@@ -755,8 +809,8 @@ export const 上传单个存档到云端 = async (
 let 后台同步队列: Promise<unknown> = Promise.resolve();
 
 export const 后台同步存档到云端 = (save: 存档结构): void => {
-    const session = 读取云端游玩会话();
-    if (!session) {
+    const mode = 读取云端游玩存储模式();
+    if (mode === 'object') {
         后台同步队列 = 后台同步队列
             .catch(() => undefined)
             .then(async () => {
@@ -769,6 +823,9 @@ export const 后台同步存档到云端 = (save: 存档结构): void => {
             });
         return;
     }
+    if (mode !== 'tg') return;
+    const session = 读取云端游玩会话();
+    if (!session) return;
     后台同步队列 = 后台同步队列
         .catch(() => undefined)
         .then(async () => {
@@ -854,7 +911,7 @@ const 从云端存档包还原存档 = async (
     }
     if (cloudPack.kind === 'snapshot') {
         if (!cloudPack.save) throw new Error('云端快照存档内容为空。');
-        return cloudPack.save;
+        return 补全云端存档谱系元数据(cloudPack.save, item);
     }
     const baseCloudId = readString(cloudPack.baseCloudId || item.baseCloudId);
     const base = manifest.saves.find((candidate) => candidate.cloudId === baseCloudId || candidate.syncHash === cloudPack.baseSyncHash);
@@ -868,11 +925,11 @@ const 从云端存档包还原存档 = async (
             ...baseHistory.slice(0, Number(cloudPack.historyBaseLength) || baseHistory.length),
             ...(Array.isArray(cloudPack.historyAppend) ? cloudPack.historyAppend : [])
         ];
-    return {
+    return 补全云端存档谱系元数据({
         ...(restoredGame || {}),
         id: Number((restoredGame as any)?.id) || 0,
         历史记录: nextHistory
-    } as 存档结构;
+    } as 存档结构, item);
 };
 
 export const 下载云端存档包 = async (

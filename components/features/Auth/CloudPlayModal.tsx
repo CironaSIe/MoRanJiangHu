@@ -11,6 +11,8 @@ import {
     启用对象存储云端游玩模式,
     清除对象存储云端游玩模式,
     已启用对象存储云端游玩模式,
+    设置云端游玩存储模式,
+    读取云端游玩存储模式,
     读取云端存档清单,
     读取缓存云端存档清单,
     复制全部本地存档到云端,
@@ -99,6 +101,13 @@ const 估算对象存储复制进度 = (progress: 对象存储同步进度 | nul
 
 const buildSeriesKey = (item: 云端存档摘要): string => item.seriesId || item.rootCloudId || item.title || item.cloudId;
 const buildObjectSeriesKey = (item: 对象存储云存档元数据): string => item.seriesId || item.rootHash || item.title || item.id;
+const addHashAliases = <T,>(map: Map<string, T>, hash: string | undefined, value: T): void => {
+    const normalized = typeof hash === 'string' ? hash.trim() : '';
+    if (!normalized) return;
+    map.set(normalized, value);
+    map.set(normalized.slice(0, 16), value);
+    map.set(normalized.slice(-8), value);
+};
 
 const buildCloudSaveTrees = (saves: 云端存档摘要[]): Array<{ key: string; title: string; latest: 云端存档摘要; roots: 云端时间树节点[]; count: number; totalBytes: number }> => {
     const groups = new Map<string, 云端存档摘要[]>();
@@ -139,11 +148,17 @@ const buildObjectStorageSaveTrees = (saves: 对象存储云存档元数据[]): A
         groups.set(key, [...(groups.get(key) || []), item]);
     });
     return [...groups.entries()].map(([key, items]) => {
+        const nodeList = items.map((item) => ({ ...item, children: [] } as 对象存储时间树节点));
         const nodes = new Map<string, 对象存储时间树节点>();
-        items.forEach((item) => nodes.set(item.hash || item.id, { ...item, children: [] }));
+        nodeList.forEach((node) => {
+            nodes.set(node.id, node);
+            addHashAliases(nodes, node.hash, node);
+        });
         const roots: 对象存储时间树节点[] = [];
-        nodes.forEach((node) => {
-            const parent = node.parentHash ? nodes.get(node.parentHash) : undefined;
+        nodeList.forEach((node) => {
+            const parent = node.parentHash
+                ? nodes.get(node.parentHash) || nodes.get(node.parentHash.slice(0, 16)) || nodes.get(node.parentHash.slice(-8))
+                : undefined;
             if (parent) parent.children.push(node);
             else roots.push(node);
         });
@@ -167,7 +182,7 @@ const buildObjectStorageSaveTrees = (saves: 对象存储云存档元数据[]): A
 const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, onConfigureObjectStorage }) => {
     const [riskAccepted, setRiskAccepted] = React.useState(() => 已确认云端游玩风险());
     const [session, setSession] = React.useState<云端游玩账号 | null>(() => 读取云端游玩会话());
-    const [storageMode, setStorageMode] = React.useState<'tg' | 'object'>(() => 已启用对象存储云端游玩模式() ? 'object' : 'tg');
+    const [storageMode, setStorageMode] = React.useState<'tg' | 'object'>(() => 读取云端游玩存储模式() || 'tg');
     const [objectStorageConfig, setObjectStorageConfig] = React.useState<对象存储同步配置 | null>(null);
     const [objectStorageSaves, setObjectStorageSaves] = React.useState<对象存储云存档元数据[]>([]);
     const [mode, setMode] = React.useState<'login' | 'register'>('login');
@@ -222,7 +237,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
     };
 
     const handleUseTgStorage = () => {
-        清除对象存储云端游玩模式();
+        设置云端游玩存储模式('tg');
         setStorageMode('tg');
         setObjectStorageConfig(null);
         setObjectStorageSaves([]);
@@ -269,7 +284,9 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
             const nextSession = mode === 'register'
                 ? await 注册云端游玩账号(username, password)
                 : await 登录云端游玩账号(username, password);
+            设置云端游玩存储模式('tg');
             setSession(nextSession);
+            setStorageMode('tg');
             setUsername('');
             setPassword('');
             setMessage(mode === 'register' ? '注册成功，已进入云端游玩。' : '登录成功。');
@@ -486,7 +503,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                 </span>
             </div>
             <div className="mt-1 text-xs leading-5 text-gray-400">
-                {item.type === 'auto' ? '自动存档' : '手动存档'} · {item.location || '未知地点'} · {item.gameTime || '未知时间'}
+                {item.type === 'auto' ? '自动存档' : '手动存档'} · 第 {Math.max(0, Math.floor(Number(item.turnCount || 0)))} 回合 · {item.location || '未知地点'} · {item.gameTime || '未知时间'}
             </div>
             <div className="text-[11px] text-gray-500">
                 {formatTime(item.syncedAt || item.savedAt)} · {formatBytes(item.size)} · #{(item.hash || item.id).slice(-8)}
@@ -516,7 +533,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                 </span>
             </div>
             <div className="mt-1 text-xs leading-5 text-gray-400">
-                {item.type === 'auto' ? '自动存档' : '手动存档'} · {item.location} · {item.gameTime} · 历史 {item.historyCount} 条
+                {item.type === 'auto' ? '自动存档' : '手动存档'} · 第 {Math.max(0, Math.floor(Number(item.turnCount || 0)))} 回合 · {item.location} · {item.gameTime}
             </div>
             <div className="text-[11px] text-gray-500">
                 {formatTime(item.savedAt)} · {formatBytes(item.packageSize)} · #{item.syncHash.slice(0, 8)}
@@ -631,7 +648,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                 <button type="button" disabled={busy === 'object-copy'} onClick={() => { void handleCopyLocalToObjectStorage(); }} className="border border-emerald-400/35 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
                                     本地一键复制到对象存储
                                 </button>
-                                <button type="button" disabled={busy === 'object-storage-check'} onClick={() => { 清除对象存储云端游玩模式(); onConfigureObjectStorage?.(); }} className="border border-gray-500/40 px-3 py-2 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-50">
+                                <button type="button" disabled={busy === 'object-storage-check'} onClick={() => { 启用对象存储云端游玩模式(); onConfigureObjectStorage?.(); }} className="border border-gray-500/40 px-3 py-2 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-50">
                                     修改对象存储配置
                                 </button>
                                 <button type="button" disabled={busy === 'object-storage-check'} onClick={handleUseTgStorage} className="border border-amber-400/35 px-3 py-2 text-xs text-amber-100 hover:bg-amber-500/10 disabled:opacity-50">
