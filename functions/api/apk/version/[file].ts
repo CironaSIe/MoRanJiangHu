@@ -29,32 +29,6 @@ const buildVersionedApkHeaders = (fileName: string, sourceHeaders?: Headers, sou
     return headers;
 };
 
-const buildVersionedCacheKey = (request: Request, fileName: string): Request => {
-    const url = new URL(request.url);
-    url.pathname = `/api/apk/version/${encodeURIComponent(fileName)}`;
-    url.search = '';
-    return new Request(url.toString(), { method: 'GET' });
-};
-
-const cacheGet = async (cacheKey: Request): Promise<Response | null> => {
-    const workerCache = (globalThis as any).caches?.default;
-    if (!workerCache) return null;
-    return workerCache.match(cacheKey);
-};
-
-const cachePut = (cacheKey: Request, response: Response, context: any): void => {
-    const workerCache = (globalThis as any).caches?.default;
-    if (!workerCache || !response.ok || !response.body) return;
-    const task = workerCache.put(cacheKey, response.clone()).catch((error: unknown) => {
-        console.warn('Versioned APK edge cache write failed:', error);
-    });
-    if (typeof context?.waitUntil === 'function') {
-        context.waitUntil(task);
-    } else {
-        void task;
-    }
-};
-
 const toHeadResponse = (response: Response): Response => (
     new Response(null, { status: response.status, statusText: response.statusText, headers: response.headers })
 );
@@ -82,24 +56,16 @@ const handleVersionedApkRequest = async (context: any, method: 'GET' | 'HEAD'): 
             return buildTextResponse('APK version is no longer current', 404);
         }
 
-        const cacheKey = buildVersionedCacheKey(request, fileName);
-        const cached = await cacheGet(cacheKey);
-        if (cached) {
-            return method === 'HEAD' ? toHeadResponse(cached) : cached;
-        }
-
         const key = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/${fileName}`);
         try {
-            const signedUrl = await buildSignedObjectUrl(env, key, 1800);
-            const upstream = await fetch(signedUrl, { headers: { Accept: 'application/vnd.android.package-archive,*/*' } });
-            if (upstream.ok && upstream.body) {
-                const response = new Response(upstream.body, {
-                    status: 200,
-                    headers: buildVersionedApkHeaders(fileName, upstream.headers, 'hi168')
-                });
-                cachePut(cacheKey, response, context);
-                return method === 'HEAD' ? toHeadResponse(response) : response;
-            }
+            const signedUrl = await buildSignedObjectUrl(env, key, 1800, method);
+            return new Response(null, {
+                status: 302,
+                headers: {
+                    Location: signedUrl,
+                    ...Object.fromEntries(buildVersionedApkHeaders(fileName, undefined, 'hi168-redirect'))
+                }
+            });
         } catch (error) {
             console.warn('Versioned APK object storage download failed, falling back to R2:', error);
         }
@@ -110,7 +76,6 @@ const handleVersionedApkRequest = async (context: any, method: 'GET' | 'HEAD'): 
             r2Object.writeHttpMetadata?.(headers);
             if (r2Object.etag) headers.set('ETag', r2Object.etag);
             const response = new Response(r2Object.body, { status: 200, headers });
-            cachePut(cacheKey, response, context);
             return method === 'HEAD' ? toHeadResponse(response) : response;
         }
 

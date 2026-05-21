@@ -66,7 +66,12 @@ const formatAmzDate = (date: Date): { amzDate: string; dateStamp: string } => {
     return { amzDate: iso, dateStamp: iso.slice(0, 8) };
 };
 
-export const buildSignedObjectUrl = async (env: any, key: string, expiresSeconds = 1800): Promise<string> => {
+export const buildSignedObjectUrl = async (
+    env: any,
+    key: string,
+    expiresSeconds = 1800,
+    method: 'GET' | 'HEAD' = 'GET'
+): Promise<string> => {
     const endpoint = readEnvString(env, 'MORAN_OSS_ENDPOINT', 'https://s3.hi168.com').replace(/\/+$/, '');
     const bucket = readEnvString(env, 'MORAN_OSS_BUCKET');
     const accessKey = readEnvString(env, 'MORAN_OSS_ACCESS_KEY');
@@ -89,7 +94,7 @@ export const buildSignedObjectUrl = async (env: any, key: string, expiresSeconds
         .map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}`)
         .join('&');
     const canonicalRequest = [
-        'GET',
+        method,
         target.pathname,
         canonicalQuery,
         `host:${target.host}\n`,

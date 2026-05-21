@@ -16,20 +16,17 @@ export async function onRequestGet({ env }: any): Promise<Response> {
         const key = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/latest.apk`);
         try {
             const signedUrl = await buildSignedObjectUrl(env, key, 1800);
-            const upstream = await fetch(signedUrl, { headers: { Accept: 'application/vnd.android.package-archive,*/*' } });
-            if (upstream.ok && upstream.body) {
-                const headers = new Headers({
-                    'Content-Type': 'application/vnd.android.package-archive',
+            return new Response(null, {
+                status: 302,
+                headers: {
+                    Location: signedUrl,
                     'Cache-Control': APK_LATEST_CACHE_CONTROL,
+                    'Content-Type': 'application/vnd.android.package-archive',
                     'Content-Disposition': 'attachment; filename="MoRanJiangHu-latest.apk"',
+                    'X-Moran-Apk-Source': 'hi168-redirect',
                     ...APK_CORS_HEADERS
-                });
-                const contentLength = upstream.headers.get('Content-Length');
-                if (contentLength) headers.set('Content-Length', contentLength);
-                const etag = upstream.headers.get('ETag');
-                if (etag) headers.set('ETag', etag);
-                return new Response(upstream.body, { status: 200, headers });
-            }
+                }
+            });
         } catch (error) {
             console.warn('APK object storage download failed, falling back to R2:', error);
         }
@@ -45,11 +42,28 @@ export async function onRequestGet({ env }: any): Promise<Response> {
             if (r2Object.etag) headers.set('ETag', r2Object.etag);
             return new Response(r2Object.body, { status: 200, headers });
         }
-        const signedUrl = await buildSignedObjectUrl(env, key, 1800);
-        return Response.redirect(signedUrl, 302);
+        return buildTextResponse('APK latest object not found', 404);
     } catch (error: any) {
         return buildTextResponse(error?.message || 'APK redirect failed', 502);
     }
 }
 
-export const onRequestHead = onRequestGet;
+export async function onRequestHead({ env }: any): Promise<Response> {
+    try {
+        const key = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/latest.apk`);
+        const signedUrl = await buildSignedObjectUrl(env, key, 1800, 'HEAD');
+        return new Response(null, {
+            status: 302,
+            headers: {
+                Location: signedUrl,
+                'Cache-Control': APK_LATEST_CACHE_CONTROL,
+                'Content-Type': 'application/vnd.android.package-archive',
+                'Content-Disposition': 'attachment; filename="MoRanJiangHu-latest.apk"',
+                'X-Moran-Apk-Source': 'hi168-redirect',
+                ...APK_CORS_HEADERS
+            }
+        });
+    } catch (error: any) {
+        return buildTextResponse(error?.message || 'APK redirect failed', 502);
+    }
+}
