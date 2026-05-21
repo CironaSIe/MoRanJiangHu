@@ -3305,8 +3305,10 @@ export const useGame = () => {
         环境时间转标准串,
         规范化社交列表: 规范化社交列表安全,
         设置社交,
-        执行社交自动存档: (socialSnapshot) => {
-            void performAutoSave({ social: socialSnapshot, history: 历史记录, force: true });
+        获取玩家门派: () => 玩家门派,
+        设置玩家门派,
+        执行社交自动存档: (socialSnapshot, sectSnapshot) => {
+            void performAutoSave({ social: socialSnapshot, sect: sectSnapshot, history: 历史记录, force: true });
         },
         保存图片资源: dbService.保存图片资源
     });

@@ -43,7 +43,12 @@ const s3PublicUrl = (key) => {
 };
 const hi168VersionedApkUrl = s3PublicUrl(`${s3Prefix}/MoRanJiangHu-v${releaseInfo.versionName}.apk`);
 const hi168LatestApkUrl = s3PublicUrl(`${s3Prefix}/latest.apk`);
-const versionedApkUrl = readEnv('MORAN_RELEASE_VERSIONED_APK_URL', releaseInfo.apkDownloadUrl || hi168VersionedApkUrl);
+const websiteBaseUrl = String(releaseInfo.websiteUrl || '').replace(/\/+$/, '');
+const versionedApkFileName = `MoRanJiangHu-v${releaseInfo.versionName}.apk`;
+const versionedApkUrl = readEnv(
+  'MORAN_RELEASE_VERSIONED_APK_URL',
+  websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedApkFileName)}` : (releaseInfo.apkDownloadUrl || hi168VersionedApkUrl)
+);
 const legacyLatestApkUrl = readEnv('MORAN_RELEASE_LATEST_APK_URL', releaseInfo.apkDownloadUrl || hi168LatestApkUrl);
 const apkBuffer = fs.readFileSync(apkPath);
 const apkSha256 = crypto.createHash('sha256').update(apkBuffer).digest('hex');
@@ -59,7 +64,7 @@ const manifest = {
     websiteUrl: releaseInfo.websiteUrl,
     githubRepoUrl: releaseInfo.githubRepoUrl,
     releaseNotesUrl: releaseInfo.releaseNotesUrl,
-    apkUrl: `${versionedApkUrl}?v=${encodeURIComponent(releaseInfo.versionName)}-${encodeURIComponent(String(releaseInfo.versionCode))}`,
+    apkUrl: versionedApkUrl,
     latestApkUrl: legacyLatestApkUrl,
     manifestUrl: legacyManifestUrl,
     publishedAt: releaseInfo.releasePublishedAt || new Date().toISOString(),

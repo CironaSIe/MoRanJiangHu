@@ -45,6 +45,7 @@ const publicUrl = (key) => objectUrl(key).toString();
 
 const latestKey = normalizeKey(`${prefix}/latest.apk`);
 const versionedKey = normalizeKey(`${prefix}/MoRanJiangHu-v${releaseInfo.versionName}.apk`);
+const versionedFileName = path.basename(versionedKey);
 const manifestKey = normalizeKey(`${prefix}/latest.json`);
 const apkBuffer = fs.readFileSync(apkPath);
 const apkSha256 = crypto.createHash('sha256').update(apkBuffer).digest('hex');
@@ -60,7 +61,8 @@ const manifest = {
     websiteUrl: releaseInfo.websiteUrl,
     githubRepoUrl: releaseInfo.githubRepoUrl,
     releaseNotesUrl: releaseInfo.releaseNotesUrl,
-    apkUrl: `${publicUrl(versionedKey)}?v=${encodeURIComponent(releaseInfo.versionName)}-${encodeURIComponent(String(releaseInfo.versionCode))}`,
+    apkUrl: `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/version/${encodeURIComponent(versionedFileName)}`,
+    latestApkUrl: `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/latest.apk`,
     manifestUrl: publicUrl(manifestKey),
     publishedAt: releaseInfo.releasePublishedAt || new Date().toISOString(),
     changes: Array.isArray(releaseInfo.releaseNotes) ? releaseInfo.releaseNotes : []

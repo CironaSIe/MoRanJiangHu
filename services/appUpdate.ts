@@ -155,9 +155,11 @@ const resolveBrowserApkDownloadUrl = (rawUrl: string): string => {
     if (/^(msjh\.bacon159\.pp\.ua|msjh\.bacon\.de5\.net)$/i.test(current.hostname)) {
         target.protocol = current.protocol;
         target.host = current.host;
-        target.pathname = '/api/apk/latest.apk';
+        const versionMatch = target.pathname.match(/\/MoRanJiangHu-v([^/?#]+\.apk)$/i);
+        target.pathname = versionMatch
+            ? `/api/apk/version/${encodeURIComponent(`MoRanJiangHu-v${decodeURIComponent(versionMatch[1])}`)}`
+            : target.pathname;
     }
-    target.searchParams.set('downloadAt', String(Date.now()));
     return target.toString();
 };
 
@@ -268,7 +270,6 @@ const installUpdateInNativeApp = async (manifest: UpdateManifest) => {
         throw new Error('缺少 APK 下载地址。');
     }
     const targetUrlObject = new URL(rawTargetUrl, typeof window !== 'undefined' ? window.location.href : 'https://msjh.bacon.de5.net');
-    targetUrlObject.searchParams.set('downloadAt', String(Date.now()));
     const targetUrl = targetUrlObject.toString();
 
     const versionName = manifest.versionName || RELEASE_INFO.versionName;

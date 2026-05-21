@@ -6,6 +6,9 @@ export const APK_CORS_HEADERS = {
     'Access-Control-Allow-Headers': 'Content-Type, Accept'
 };
 
+export const APK_LATEST_CACHE_CONTROL = 'no-store,no-cache,max-age=0,must-revalidate';
+export const APK_VERSIONED_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
 export const readEnvString = (env: any, name: string, fallback = ''): string => (
     typeof env?.[name] === 'string' && env[name].trim() ? env[name].trim() : fallback
 );
@@ -108,3 +111,37 @@ export const buildSignedObjectUrl = async (env: any, key: string, expiresSeconds
 export const readReleaseObjectPrefix = (env: any): string => (
     readEnvString(env, 'MORAN_OSS_RELEASE_PREFIX', 'moranjianghu').replace(/^\/+|\/+$/g, '') || 'moranjianghu'
 );
+
+export const buildVersionedApkFileName = (versionName: unknown): string => {
+    const safeVersion = typeof versionName === 'string'
+        ? versionName.trim().replace(/[^0-9A-Za-z._-]/g, '')
+        : '';
+    return safeVersion ? `MoRanJiangHu-v${safeVersion}.apk` : '';
+};
+
+export const readManifestPayload = async (env: any): Promise<{ payload: any; sourceHeaders: Headers; etag?: string } | null> => {
+    const prefix = readReleaseObjectPrefix(env);
+    const key = normalizeObjectKey(`${prefix}/latest.json`);
+    const r2Object = env?.CNB_SYNC_R2 ? await env.CNB_SYNC_R2.get(key) : null;
+    if (r2Object) {
+        const headers = new Headers();
+        r2Object.writeHttpMetadata?.(headers);
+        if (r2Object.etag) headers.set('ETag', r2Object.etag);
+        return {
+            payload: await r2Object.json(),
+            sourceHeaders: headers,
+            etag: r2Object.etag
+        };
+    }
+
+    const manifestUrl = await buildSignedObjectUrl(env, key, 300);
+    const upstream = await fetch(manifestUrl, { headers: { Accept: 'application/json' } });
+    if (!upstream.ok) {
+        throw new Error(`APK manifest fetch failed: ${upstream.status}`);
+    }
+    return {
+        payload: await upstream.json(),
+        sourceHeaders: upstream.headers,
+        etag: upstream.headers.get('ETag') || undefined
+    };
+};

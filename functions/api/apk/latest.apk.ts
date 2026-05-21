@@ -1,5 +1,6 @@
 import {
     APK_CORS_HEADERS,
+    APK_LATEST_CACHE_CONTROL,
     buildSignedObjectUrl,
     buildTextResponse,
     normalizeObjectKey,
@@ -19,7 +20,7 @@ export async function onRequestGet({ env }: any): Promise<Response> {
             if (upstream.ok && upstream.body) {
                 const headers = new Headers({
                     'Content-Type': 'application/vnd.android.package-archive',
-                    'Cache-Control': 'no-store,no-cache,max-age=0,must-revalidate',
+                    'Cache-Control': APK_LATEST_CACHE_CONTROL,
                     'Content-Disposition': 'attachment; filename="MoRanJiangHu-latest.apk"',
                     ...APK_CORS_HEADERS
                 });
@@ -36,7 +37,7 @@ export async function onRequestGet({ env }: any): Promise<Response> {
         if (r2Object) {
             const headers = new Headers({
                 'Content-Type': 'application/vnd.android.package-archive',
-                'Cache-Control': 'no-store,no-cache,max-age=0,must-revalidate',
+                'Cache-Control': APK_LATEST_CACHE_CONTROL,
                 'Content-Disposition': 'attachment; filename="MoRanJiangHu-latest.apk"',
                 ...APK_CORS_HEADERS
             });
