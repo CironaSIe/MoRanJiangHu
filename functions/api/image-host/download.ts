@@ -5,6 +5,7 @@ const CORS_HEADERS = {
 };
 
 const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
+const MAX_FILE_BYTES = 128 * 1024 * 1024;
 const DEFAULT_IMAGE_HOST_BASE = 'https://image.bacon159.pp.ua';
 
 const buildTextResponse = (message: string, status = 400): Response => (
@@ -141,6 +142,7 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
     try {
         const url = new URL(request.url);
         const targetUrl = (url.searchParams.get('url') || '').trim();
+        const fileMode = url.searchParams.get('type') === 'file';
         if (!targetUrl || !isAllowedImageHostUrl(targetUrl)) {
             return buildTextResponse('Invalid image host URL', 400);
         }
@@ -151,15 +153,18 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
         }
         const contentType = upstream.headers.get('Content-Type') || '';
         const length = Number(upstream.headers.get('Content-Length') || 0);
-        if (Number.isFinite(length) && length > MAX_IMAGE_BYTES) {
-            return buildTextResponse('Image is too large', 413);
+        const maxBytes = fileMode ? MAX_FILE_BYTES : MAX_IMAGE_BYTES;
+        if (Number.isFinite(length) && length > maxBytes) {
+            return buildTextResponse(fileMode ? 'File is too large' : 'Image is too large', 413);
         }
         const bytes = await upstream.arrayBuffer();
-        if (bytes.byteLength > MAX_IMAGE_BYTES) {
-            return buildTextResponse('Image is too large', 413);
+        if (bytes.byteLength > maxBytes) {
+            return buildTextResponse(fileMode ? 'File is too large' : 'Image is too large', 413);
         }
         const sniffedContentType = sniffImageContentType(new Uint8Array(bytes));
-        const outputContentType = /^image\//i.test(contentType) ? contentType : sniffedContentType;
+        const outputContentType = fileMode
+            ? (contentType || 'application/octet-stream')
+            : (/^image\//i.test(contentType) ? contentType : sniffedContentType);
         if (!outputContentType) {
             return buildTextResponse(`Upstream response is not an image (${contentType || 'unknown'})`, 415);
         }

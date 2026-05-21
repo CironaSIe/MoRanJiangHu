@@ -643,6 +643,11 @@ export interface 存档元数据结构 {
     对象存储哈希?: string;
     对象存储存档ID?: string;
     对象存储同步时间?: string;
+    存档系列ID?: string;
+    存档父节点哈希?: string;
+    存档根节点哈希?: string;
+    存档谱系深度?: number;
+    存档谱系版本?: number;
 }
 
 export interface 核心提示词快照结构 {

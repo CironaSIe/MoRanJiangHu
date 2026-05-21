@@ -9,6 +9,7 @@ import {
 } from './objectStorageSync';
 
 const CLOUD_PLAY_API_PATH = '/api/cloud-play';
+const IMAGE_HOST_DOWNLOAD_PROXY_PATH = '/api/image-host/download';
 const SESSION_KEY = 'moranjianghu.cloudPlay.session.v1';
 const OBJECT_STORAGE_MODE_KEY = 'moranjianghu.cloudPlay.objectStorageMode.v1';
 const RISK_ACK_KEY = 'moranjianghu.cloudPlay.riskAcknowledged.v1';
@@ -32,6 +33,9 @@ export type 云端游玩账号 = {
 export type 云端存档摘要 = {
     cloudId: string;
     syncHash: string;
+    seriesId?: string;
+    rootCloudId?: string;
+    parentCloudId?: string;
     title: string;
     type: 'auto' | 'manual';
     timestamp: number;
@@ -44,6 +48,10 @@ export type 云端存档摘要 = {
     sha256: string;
     packageFormat?: 'zip' | 'snapshot' | 'delta';
     baseCloudId?: string;
+    parentSyncHash?: string;
+    rootSyncHash?: string;
+    depth?: number;
+    deletedAt?: string;
 };
 
 export type 云端存档清单 = {
@@ -83,12 +91,44 @@ type 云端存档包 = {
     historyAppend?: unknown[];
     historyReplace?: unknown[];
 };
+type 差分基准 = { summary: 云端存档摘要; save: 存档结构 } | null;
 type 持久云端游玩会话 = {
     expiresAt: number;
     session: 云端游玩账号;
 };
 
 const readString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+const 短文本哈希 = (value: string): string => {
+    let left = 0x811c9dc5;
+    let right = 0x01000193;
+    for (let index = 0; index < value.length; index += 1) {
+        const code = value.charCodeAt(index);
+        left ^= code;
+        left = Math.imul(left, 0x01000193);
+        right ^= code + index;
+        right = Math.imul(right, 0x811c9dc5);
+    }
+    return `${(left >>> 0).toString(16).padStart(8, '0')}${(right >>> 0).toString(16).padStart(8, '0')}`;
+};
+
+const 构建存档系列ID = (save: Partial<存档结构>): string => {
+    const existing = readString((save.元数据 as any)?.存档系列ID);
+    if (existing) return existing;
+    const history = Array.isArray(save.历史记录) ? save.历史记录 : [];
+    const firstHistory = history[0] || null;
+    const seed = {
+        title: readString(save.角色数据?.姓名),
+        initialTime: (save as any)?.游戏初始时间 || null,
+        firstHistory,
+        firstLocation: (save as any)?.环境信息?.具体地点 || (save as any)?.环境信息?.小地点 || ''
+    };
+    return `series-${短文本哈希(JSON.stringify(seed))}`;
+};
+
+const 读取摘要系列ID = (item: 云端存档摘要): string => (
+    readString(item.seriesId) || readString(item.rootCloudId) || `legacy-${readString(item.title) || 'unknown'}`
+);
 
 const 读取清单缓存键 = (session: 云端游玩账号): string => `${MANIFEST_CACHE_PREFIX}${session.userId || session.username}`;
 
@@ -104,14 +144,14 @@ export const 读取缓存云端存档清单 = (session: 云端游玩账号): 云
     try {
         const parsed = JSON.parse(localStorage.getItem(读取清单缓存键(session)) || 'null');
         if (parsed?.format !== 'moranjianghu-cloud-play' || !Array.isArray(parsed?.saves)) return null;
-        return {
+        return 规范化云端存档清单({
             format: 'moranjianghu-cloud-play',
             version: 1,
             userId: readString(parsed.userId) || session.userId,
             username: readString(parsed.username) || session.username,
             updatedAt: readString(parsed.updatedAt) || new Date().toISOString(),
             saves: parsed.saves
-        };
+        });
     } catch {
         return null;
     }
@@ -143,6 +183,51 @@ const arrayBufferToBytes = (buffer: ArrayBuffer): Uint8Array => new Uint8Array(b
 const sha256Hex = async (bytes: Uint8Array): Promise<string> => {
     const digest = await crypto.subtle.digest('SHA-256', bytes);
     return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+
+const buildCloudSaveDownloadUrl = (targetUrl: string): string => {
+    try {
+        const url = new URL(targetUrl);
+        if (!/(^|\.)image\.bacon159\.pp\.ua$/i.test(url.hostname)) return targetUrl;
+        return `${buildImageHostProxyUrl(IMAGE_HOST_DOWNLOAD_PROXY_PATH)}?type=file&url=${encodeURIComponent(targetUrl)}`;
+    } catch {
+        return targetUrl;
+    }
+};
+
+const isRetryableDownloadFailure = (status: number, message = ''): boolean => {
+    if (status === 0 || status === 408 || status === 425 || status === 429) return true;
+    if (status >= 500) return true;
+    return /network|timeout|fetch|aborted|temporar/i.test(message);
+};
+
+const fetchCloudSaveBytes = async (targetUrl: string, maxAttempts = 4): Promise<Uint8Array> => {
+    const downloadUrl = buildCloudSaveDownloadUrl(targetUrl);
+    let lastStatus = 0;
+    let lastMessage = '';
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+            const response = await fetch(downloadUrl, {
+                method: 'GET',
+                cache: 'no-store',
+                headers: {
+                    Accept: 'application/octet-stream,*/*;q=0.8'
+                }
+            });
+            lastStatus = response.status;
+            if (response.ok) return arrayBufferToBytes(await response.arrayBuffer());
+            lastMessage = (await response.text().catch(() => '')).slice(0, 180) || `HTTP ${response.status}`;
+            if (attempt >= maxAttempts || !isRetryableDownloadFailure(response.status, lastMessage)) break;
+        } catch (error: any) {
+            lastStatus = 0;
+            lastMessage = error?.message || String(error);
+            if (attempt >= maxAttempts || !isRetryableDownloadFailure(0, lastMessage)) break;
+        }
+        await sleep(Math.min(10000, 1000 * attempt * attempt));
+    }
+    throw new Error(`下载云端存档失败：HTTP ${lastStatus || 0}。TG 图床下载链路连续失败（${lastMessage || '无响应'}），可稍后重试，或切换对象存储/先下载到本地备份。`);
 };
 
 const 深拷贝 = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -200,6 +285,31 @@ const 历史记录是否前缀 = (base: unknown[], next: unknown[]): boolean => 
     return true;
 };
 
+const 规范化云端存档清单 = (manifest: 云端存档清单): 云端存档清单 => {
+    const byId = new Map<string, 云端存档摘要>();
+    const sorted = [...manifest.saves]
+        .filter((item) => item && !item.deletedAt)
+        .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
+    sorted.forEach((raw) => {
+        const seriesId = 读取摘要系列ID(raw);
+        const parentCloudId = readString(raw.parentCloudId || raw.baseCloudId);
+        const parent = parentCloudId ? byId.get(parentCloudId) : undefined;
+        const rootCloudId = readString(raw.rootCloudId) || parent?.rootCloudId || parent?.cloudId || raw.cloudId;
+        byId.set(raw.cloudId, {
+            ...raw,
+            seriesId,
+            parentCloudId: parent?.cloudId || '',
+            baseCloudId: parent?.cloudId || raw.baseCloudId,
+            rootCloudId,
+            depth: parent ? Number(parent.depth || 0) + 1 : 0
+        });
+    });
+    return {
+        ...manifest,
+        saves: [...byId.values()].sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+    };
+};
+
 const 编码云端存档包 = (pack: 云端存档包): Uint8Array => TEXT_ENCODER.encode(JSON.stringify(pack));
 
 const 解码云端存档包 = (bytes: Uint8Array): 云端存档包 | null => {
@@ -215,13 +325,23 @@ const 解码云端存档包 = (bytes: Uint8Array): 云端存档包 | null => {
 const 查找差分基准 = async (
     save: 存档结构,
     manifest: 云端存档清单
-): Promise<{ summary: 云端存档摘要; save: 存档结构 } | null> => {
+): Promise<差分基准> => {
     const localSaves = await dbService.读取存档列表().catch(() => []);
     const currentHash = dbService.计算存档同步哈希(save);
-    const title = readString(save.角色数据?.姓名);
-    const candidates = [...manifest.saves]
-        .filter((item) => item.syncHash !== currentHash && (!title || item.title === title))
-        .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+    const seriesId = 构建存档系列ID(save);
+    const parentHash = readString((save.元数据 as any)?.存档父节点哈希);
+    if (parentHash) {
+        const explicitSummary = manifest.saves.find((item) => item.syncHash === parentHash && 读取摘要系列ID(item) === seriesId);
+        const explicitLocal = explicitSummary
+            ? localSaves.find((item) => dbService.计算存档同步哈希(item) === explicitSummary.syncHash)
+            : undefined;
+        if (explicitSummary && explicitLocal) return { summary: explicitSummary, save: explicitLocal };
+    }
+    const nextHistoryCount = Array.isArray(save.历史记录) ? save.历史记录.length : 0;
+    const candidates = 规范化云端存档清单(manifest).saves
+        .filter((item) => item.syncHash !== currentHash && 读取摘要系列ID(item) === seriesId)
+        .filter((item) => Number(item.historyCount || 0) <= nextHistoryCount)
+        .sort((a, b) => Number(b.historyCount || 0) - Number(a.historyCount || 0) || Number(b.timestamp || 0) - Number(a.timestamp || 0));
     for (const summary of candidates) {
         const local = localSaves.find((item) => dbService.计算存档同步哈希(item) === summary.syncHash);
         if (local) return { summary, save: local };
@@ -231,9 +351,10 @@ const 查找差分基准 = async (
 
 const 构建存档上传包 = async (
     save: 存档结构,
-    manifest: 云端存档清单
+    manifest: 云端存档清单,
+    forcedBase?: 差分基准
 ): Promise<{ pack: 云端存档包; packageFormat: 'snapshot' | 'delta'; baseCloudId?: string; baseSyncHash?: string }> => {
-    const base = await 查找差分基准(save, manifest);
+    const base = forcedBase === undefined ? await 查找差分基准(save, manifest) : forcedBase;
     if (!base) {
         return {
             packageFormat: 'snapshot',
@@ -442,14 +563,14 @@ export const 读取云端存档清单 = async (session: 云端游玩账号): Pro
     if (payload?.format !== 'moranjianghu-cloud-play' || !Array.isArray(payload?.saves)) {
         throw new Error('云端存档清单格式无效。');
     }
-    const manifest = {
+    const manifest = 规范化云端存档清单({
         format: 'moranjianghu-cloud-play',
         version: 1,
         userId: readString(payload.userId) || session.userId,
         username: readString(payload.username) || session.username,
         updatedAt: readString(payload.updatedAt) || new Date().toISOString(),
         saves: payload.saves
-    };
+    });
     缓存云端清单(session, manifest);
     return manifest;
 };
@@ -478,12 +599,18 @@ const 构建云端摘要 = (
     packageUrl: string,
     packageSize: number | undefined,
     sha256: string,
-    options?: { packageFormat?: 'zip' | 'snapshot' | 'delta'; baseCloudId?: string }
+    options?: { packageFormat?: 'zip' | 'snapshot' | 'delta'; baseCloudId?: string; parentCloudId?: string; rootCloudId?: string; depth?: number }
 ): 云端存档摘要 => {
     const syncHash = dbService.计算存档同步哈希(save);
+    const seriesId = 构建存档系列ID(save);
+    const parentCloudId = readString(options?.parentCloudId || options?.baseCloudId);
+    const cloudId = `${save.类型 === 'auto' ? 'auto' : 'manual'}-${syncHash.slice(0, 16)}`;
     return {
-        cloudId: `${save.类型 === 'auto' ? 'auto' : 'manual'}-${syncHash.slice(0, 16)}`,
+        cloudId,
         syncHash,
+        seriesId,
+        rootCloudId: readString(options?.rootCloudId) || (parentCloudId ? '' : cloudId),
+        parentCloudId,
         title: readString(save.角色数据?.姓名) || '未知角色',
         type: save.类型 === 'auto' ? 'auto' : 'manual',
         timestamp: Number(save.时间戳) || Date.now(),
@@ -495,7 +622,10 @@ const 构建云端摘要 = (
         packageSize,
         sha256,
         packageFormat: options?.packageFormat,
-        baseCloudId: options?.baseCloudId
+        baseCloudId: options?.baseCloudId || parentCloudId,
+        parentSyncHash: readString((save.元数据 as any)?.存档父节点哈希),
+        rootSyncHash: readString((save.元数据 as any)?.存档根节点哈希) || syncHash,
+        depth: Math.max(0, Math.floor(Number(options?.depth || 0)))
     };
 };
 
@@ -504,14 +634,15 @@ const 上传清单 = async (
     manifest: 云端存档清单,
     onProgress?: (progress: 云端上传进度) => void
 ): Promise<云端游玩账号> => {
+    const prepared = 规范化云端存档清单(manifest);
     const normalized: 云端存档清单 = {
-        ...manifest,
+        ...prepared,
         format: 'moranjianghu-cloud-play',
         version: 1,
         userId: session.userId,
         username: session.username,
         updatedAt: new Date().toISOString(),
-        saves: [...manifest.saves].sort((a, b) => b.timestamp - a.timestamp)
+        saves: [...prepared.saves].sort((a, b) => b.timestamp - a.timestamp)
     };
     const blob = new Blob([JSON.stringify(normalized, null, 2)], { type: 'application/json' });
     const uploaded = await 上传Blob到图床(blob, {
@@ -570,12 +701,16 @@ export const 上传单个存档到云端 = async (
             message: progress.message.replace('文件', '加密存档包')
         })
     });
+    const baseSummary = packagePlan.baseCloudId ? manifest.saves.find((item) => item.cloudId === packagePlan.baseCloudId) : undefined;
     const nextManifest: 云端存档清单 = {
         ...manifest,
         saves: [
             构建云端摘要(save, uploaded.url, uploaded.size, encryptedHash, {
                 packageFormat: packagePlan.packageFormat,
-                baseCloudId: packagePlan.baseCloudId
+                baseCloudId: packagePlan.baseCloudId,
+                parentCloudId: packagePlan.baseCloudId,
+                rootCloudId: baseSummary?.rootCloudId || baseSummary?.cloudId,
+                depth: baseSummary ? Number(baseSummary.depth || 0) + 1 : 0
             }),
             ...manifest.saves.filter((item) => item.syncHash !== syncHash)
         ]
@@ -654,9 +789,7 @@ export const 复制全部本地存档到云端 = async (
 };
 
 const 下载并解密云端存档字节 = async (session: 云端游玩账号, item: 云端存档摘要): Promise<Uint8Array> => {
-    const response = await fetch(item.packageUrl);
-    if (!response.ok) throw new Error(`下载云端存档失败：HTTP ${response.status}。TG 图床下载偶发不稳定，可稍后重试，或先下载到本地备份。`);
-    const encryptedBytes = arrayBufferToBytes(await response.arrayBuffer());
+    const encryptedBytes = await fetchCloudSaveBytes(item.packageUrl);
     const hash = await sha256Hex(encryptedBytes);
     if (item.sha256 && hash !== item.sha256) throw new Error('云端存档校验失败，文件可能不完整。');
     return 解密字节(encryptedBytes, session);
@@ -709,6 +842,99 @@ export const 下载云端存档包 = async (session: 云端游玩账号, item: �
         exportedAt: new Date().toISOString(),
         saves: [save]
     };
+};
+
+const 重新上传存档节点包 = async (
+    session: 云端游玩账号,
+    save: 存档结构,
+    manifest: 云端存档清单,
+    previous: 云端存档摘要,
+    base: 差分基准
+): Promise<云端存档摘要> => {
+    const packagePlan = await 构建存档上传包(save, manifest, base);
+    const packageBytes = 编码云端存档包(packagePlan.pack);
+    const encryptedBytes = await 加密字节(packageBytes, session);
+    const encryptedHash = await sha256Hex(encryptedBytes);
+    const packageBlob = new Blob([encryptedBytes], { type: 'application/octet-stream' });
+    const uploaded = await 上传Blob到图床(packageBlob, {
+        fileName: `moranjianghu-cloud-save-${session.userId}-${previous.syncHash.slice(0, 12)}-rebased.mjc`,
+        maxAttempts: 4
+    });
+    const parent = base?.summary;
+    return {
+        ...构建云端摘要(save, uploaded.url, uploaded.size, encryptedHash, {
+            packageFormat: packagePlan.packageFormat,
+            baseCloudId: parent?.cloudId,
+            parentCloudId: parent?.cloudId,
+            rootCloudId: parent?.rootCloudId || parent?.cloudId || previous.cloudId,
+            depth: parent ? Number(parent.depth || 0) + 1 : 0
+        }),
+        cloudId: previous.cloudId,
+        syncHash: previous.syncHash,
+        savedAt: previous.savedAt,
+        timestamp: previous.timestamp,
+        type: previous.type
+    };
+};
+
+export const 删除云端存档节点 = async (
+    session: 云端游玩账号,
+    target: 云端存档摘要
+): Promise<{ session: 云端游玩账号; manifest: 云端存档清单; removed: boolean; rebased: number }> => {
+    const manifest = 规范化云端存档清单(await 读取云端存档清单(session));
+    const targetItem = manifest.saves.find((item) => item.cloudId === target.cloudId || item.syncHash === target.syncHash);
+    if (!targetItem) return { session, manifest, removed: false, rebased: 0 };
+
+    const targetSave = await 从云端存档包还原存档(session, targetItem, manifest);
+    const parent = targetItem.parentCloudId ? manifest.saves.find((item) => item.cloudId === targetItem.parentCloudId) : undefined;
+    const children = manifest.saves
+        .filter((item) => item.parentCloudId === targetItem.cloudId || item.baseCloudId === targetItem.cloudId)
+        .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
+    const nextById = new Map(manifest.saves.map((item) => [item.cloudId, item]));
+    nextById.delete(targetItem.cloudId);
+
+    let promotedParent = parent;
+    let promotedSave: 存档结构 | null = null;
+    let rebased = 0;
+    for (let index = 0; index < children.length; index += 1) {
+        const child = children[index];
+        const childSave = await 从云端存档包还原存档(session, child, manifest);
+        let base: 差分基准 = null;
+        if (parent) {
+            base = { summary: parent, save: await 从云端存档包还原存档(session, parent, manifest) };
+        } else if (promotedParent && promotedSave) {
+            base = { summary: promotedParent, save: promotedSave };
+        }
+        const rebasedChild = await 重新上传存档节点包(session, childSave, manifest, child, base);
+        const normalizedChild: 云端存档摘要 = parent
+            ? rebasedChild
+            : index === 0
+                ? {
+                    ...rebasedChild,
+                    packageFormat: 'snapshot',
+                    baseCloudId: '',
+                    parentCloudId: '',
+                    rootCloudId: child.cloudId,
+                    depth: 0
+                }
+                : rebasedChild;
+        nextById.set(child.cloudId, normalizedChild);
+        if (!parent && index === 0) {
+            promotedParent = normalizedChild;
+            promotedSave = childSave;
+        }
+        rebased += 1;
+    }
+
+    const nextManifest = 规范化云端存档清单({
+        ...manifest,
+        saves: [...nextById.values()]
+    });
+    const nextSession = await 上传清单(session, nextManifest);
+    const resultManifest = 规范化云端存档清单({ ...nextManifest, updatedAt: new Date().toISOString() });
+    缓存云端清单(nextSession, resultManifest);
+    void targetSave;
+    return { session: nextSession, manifest: resultManifest, removed: true, rebased };
 };
 
 export const 导入云端存档到本地 = async (session: 云端游玩账号, item: 云端存档摘要): Promise<dbService.存档导入结果> => {
