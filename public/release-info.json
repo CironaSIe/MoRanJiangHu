@@ -1,15 +1,27 @@
 {
-  "versionCode": 280,
-  "versionName": "1.0.279",
+  "versionCode": 281,
+  "versionName": "1.0.280",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复判定卡解析问题：半角方括号判定（如 [洞察]）会正确识别为判定卡，不再残留在正文里。",
-    "修复判定行后续正文被吞进判定框的问题，判定结果和正文会分开显示。",
-    "修复图床上传或云同步后，人物头像等本地图片可能突然不显示的问题。",
+    "仙侠模式境界体系改为固定体系，减少 AI 误读成武侠境界的问题。",
+    "战斗面板会按仙侠境界层级显示境界，战斗体系查看更清晰。",
+    "女性 NPC 重名和占位名会自动从内置女性姓名池中选择新名字，减少人物名重复混淆。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.279。"
+    "同步更新 Web、APK 与更新清单到 v1.0.280。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.279",
+      "versionCode": 280,
+      "publishedAt": "2026-05-21T23:59:24+08:00",
+      "changes": [
+        "修复判定卡解析问题：半角方括号判定（如 [洞察]）会正确识别为判定卡，不再残留在正文里。",
+        "修复判定行后续正文被吞进判定框的问题，判定结果和正文会分开显示。",
+        "修复图床上传或云同步后，人物头像等本地图片可能突然不显示的问题。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.279。"
+      ]
+    },
     {
       "versionName": "1.0.278",
       "versionCode": 279,
@@ -2735,7 +2747,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-21T23:59:24+08:00",
+  "releasePublishedAt": "2026-05-22T00:49:29+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
