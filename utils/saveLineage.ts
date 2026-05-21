@@ -2,6 +2,18 @@ import type { 存档结构 } from '../types';
 
 const readText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
+const 截断连线文本 = (value: string): string => {
+    const normalized = readText(value).replace(/\s+/g, ' ');
+    if (!normalized) return '';
+    return normalized.length > 42 ? `${normalized.slice(0, 42)}...` : normalized;
+};
+
+const 读取历史用户输入 = (save: Partial<存档结构>, startIndex = 0): string => {
+    const history = Array.isArray(save.历史记录) ? save.历史记录 : [];
+    const user = history.slice(Math.max(0, startIndex)).find((item: any) => item?.role === 'user' && readText(item.content));
+    return 截断连线文本((user as any)?.content || '');
+};
+
 export const 计算谱系短哈希 = (value: string): string => {
     let left = 0x811c9dc5;
     let right = 0x01000193;
@@ -70,12 +82,15 @@ export const 补全存档谱系元数据 = <T extends Partial<存档结构>>(
     metadata.存档系列ID = seriesId;
     const parent = 选择存档父节点({ ...save, 元数据: metadata } as Partial<存档结构>, candidates);
     const parentHash = parent ? 读取存档谱系哈希(parent) : '';
+    const parentHistoryCount = parent && Array.isArray(parent.历史记录) ? parent.历史记录.length : 0;
+    const branchInput = parent ? 读取历史用户输入(save, parentHistoryCount) : 读取历史用户输入(save, 0);
     const rootHash = parent
         ? readText((parent.元数据 as any)?.存档根节点哈希) || parentHash
         : readText(metadata.存档根节点哈希) || readText(metadata.存档哈希);
     metadata.存档父节点哈希 = parentHash || '';
     metadata.存档根节点哈希 = rootHash || readText(metadata.存档哈希);
     metadata.存档谱系深度 = parent ? Math.max(0, Number((parent.元数据 as any)?.存档谱系深度 || 0) + 1) : 0;
+    metadata.存档分支输入 = branchInput || (parent ? '继续游玩' : '开局');
     metadata.存档谱系版本 = 1;
     return {
         ...save,

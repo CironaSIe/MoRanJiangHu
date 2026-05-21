@@ -42,6 +42,19 @@ try {
 
   await page.evaluate(() => {
     localStorage.setItem('moranjianghu.cloudPlay.riskAcknowledged.v1', 'true');
+  });
+  await page.reload({ waitUntil: 'load' });
+  const releaseCloseAfterObjectReload = page.getByRole('button', { name: '关闭更新日志' });
+  if (await releaseCloseAfterObjectReload.count()) await releaseCloseAfterObjectReload.click();
+  await page.getByRole('button', { name: '云端游玩' }).click();
+  const restoredSessionInObjectMode = await page.evaluate(() => JSON.parse(localStorage.getItem('moranjianghu.cloudPlay.session.v1') || 'null'));
+  if (restoredSessionInObjectMode?.session?.username !== 'e2e-user') {
+    throw new Error('切换到对象存储后不应清除 TG 图床登录态。');
+  }
+
+  await page.evaluate(() => {
+    localStorage.setItem('moranjianghu.cloudPlay.riskAcknowledged.v1', 'true');
+    localStorage.removeItem('moranjianghu.cloudPlay.objectStorageMode.v1');
     localStorage.setItem('moranjianghu.cloudPlay.session.v1', JSON.stringify({
       expiresAt: Date.now() - 1000,
       session: {
@@ -65,6 +78,7 @@ try {
     riskNotice: true,
     objectStorageButton: true,
     sevenDaySession: true,
+    tgSessionSurvivesObjectStorageMode: true,
     expiredSessionReturnsToLogin: true,
     objectStorageMode: true
   }));

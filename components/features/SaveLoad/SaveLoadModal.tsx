@@ -37,6 +37,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const [transferMessage, setTransferMessage] = useState('');
     const [cloudPlayMode, setCloudPlayMode] = useState<'tg' | 'object' | null>(() => 读取云端游玩存储模式());
     const [expandedSeries, setExpandedSeries] = useState<Set<string>>(() => new Set());
+    const [selectedSeriesKey, setSelectedSeriesKey] = useState<string | null>(null);
     const [lineageMigrationStatus, setLineageMigrationStatus] = useState(() => dbService.读取旧存档谱系迁移状态());
     const [hydratingVisibleSummaries, setHydratingVisibleSummaries] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -571,6 +572,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const showLineageMigration = lineageMigrationStatus.stage === 'scanning'
         || lineageMigrationStatus.stage === 'running'
         || ((lineageMigrationStatus.stage === 'completed' || lineageMigrationStatus.stage === 'failed') && lineageMigrationStatus.legacySaves > 0);
+    const selectedSeries = selectedSeriesKey ? saveTrees.find((series) => series.key === selectedSeriesKey) || null : null;
 
     const toggleSeries = (key: string) => {
         setExpandedSeries((current) => {
@@ -647,20 +649,125 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         </div>
     );
 
-    return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[300] flex items-center justify-center p-4 animate-fadeIn">
-            <div className="bg-ink-black/95 border border-wuxia-gold/30 w-full max-w-4xl h-[600px] flex flex-col shadow-[0_0_80px_rgba(0,0,0,0.9)] rounded-2xl relative overflow-hidden">
+    const renderLocalCard = (save: 本地时间树节点): React.ReactNode => (
+        <div
+            onClick={() => { void handleLoadClick(save); }}
+            className={`relative w-[min(18rem,calc(100vw-4rem))] shrink-0 snap-start bg-black/40 border border-gray-700 p-4 rounded-lg group transition-all flex flex-col gap-2 ${mode === 'load' ? 'cursor-pointer hover:border-wuxia-gold/50 hover:bg-black/60' : ''}`}
+        >
+            <div className="flex justify-between items-start gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className={`text-[10px] px-1.5 rounded border ${是旧版缺摘要存档(save) ? 'border-gray-500 text-gray-300' : (save.类型 === 'auto' ? 'border-blue-500 text-blue-400' : 'border-wuxia-gold text-wuxia-gold')}`}>
+                        {是旧版缺摘要存档(save) ? '恢复中' : (save.类型 === 'auto' ? 'AUTO' : 'MANUAL')}
+                    </span>
+                    <span className={`text-[10px] px-1.5 rounded border ${是新谱系存档(save) ? 'border-emerald-500/60 text-emerald-300' : 'border-amber-500/50 text-amber-300'}`} title={是新谱系存档(save) ? '新存档：已写入时间树谱系，可用于云端差分同步' : '旧存档：兼容读取，尚未写入新时间树谱系'}>
+                        {是新谱系存档(save) ? '新谱系' : '旧存档'}
+                    </span>
+                    <span className="font-bold text-gray-200 text-sm">{构建存档标题(save)}</span>
+                </div>
+                <div className="max-w-[7rem] break-words text-[10px] text-gray-600 font-mono text-right" style={{ fontFamily: 'var(--ui-等宽信息-font-family, inherit)', fontSize: 'var(--ui-等宽信息-font-size, 12px)' }}>
+                    {读取现实保存时间文本(save)}
+                </div>
+            </div>
+            <div className="text-xs text-gray-400 border-l-2 border-gray-700 pl-2">
+                {读取地点文本(save)} · 游戏内 {读取时间文本(save)}
+            </div>
+            <div className="text-[11px] text-gray-500">
+                {构建存档摘要(save)}
+            </div>
+            <div className="rounded border border-gray-700 bg-black/35 px-1.5 py-0.5 font-mono text-[10px] text-wuxia-cyan/80 w-fit" title="存档短哈希，用于区分同名同时间附近的存档">
+                #{读取存档短哈希(save)}
+            </div>
+            <button
+                onClick={(event) => { void handleExportOne(save, event); }}
+                className="absolute bottom-4 right-4 rounded border border-wuxia-cyan/35 bg-black/50 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-wuxia-cyan opacity-0 transition-all hover:border-wuxia-cyan hover:bg-wuxia-cyan/15 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                title="只导出这一条存档"
+                disabled={busy}
+            >
+                导出此档
+            </button>
+            <button
+                onClick={(e) => { void handleDelete(save.id, e); }}
+                className={`absolute top-4 right-4 transition-colors ${
+                    saveProtectionEnabled
+                        ? 'text-gray-700 opacity-40 cursor-not-allowed'
+                        : 'text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100'
+                }`}
+                title={saveProtectionEnabled ? '存档保护已开启' : '删除'}
+                disabled={saveProtectionEnabled}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+            </button>
+        </div>
+    );
 
-                <div className="h-16 shrink-0 border-b border-gray-800/50 bg-black/40 flex items-center justify-between px-6 relative z-50">
-                    <h3 className="text-wuxia-gold font-serif font-bold text-2xl tracking-[0.3em] drop-shadow-md" style={{ fontFamily: 'var(--ui-页面标题-font-family, inherit)', fontSize: 'var(--ui-页面标题-font-size, 28px)', lineHeight: 'var(--ui-页面标题-line-height, 1.2)' }}>
+    const renderLocalTimelineNode = (save: 本地时间树节点, root = false): React.ReactNode => (
+        <div key={save.id} className="inline-flex flex-col items-start">
+            <div className="flex items-center">
+                {!root && (
+                    <div className="flex w-14 shrink-0 items-center sm:w-20" aria-hidden="true">
+                        <div className="h-px flex-1 bg-wuxia-gold/40" />
+                        <div className="h-2 w-2 rotate-45 border-r border-t border-wuxia-gold/70" />
+                    </div>
+                )}
+                {renderLocalCard(save)}
+            </div>
+            {save.children.length > 0 && (
+                <div className="ml-36 mt-3 flex items-start gap-4 border-t border-wuxia-gold/20 pt-3">
+                    {save.children.map((child) => renderLocalTimelineNode(child))}
+                </div>
+            )}
+        </div>
+    );
+
+    const renderSeriesTimeline = (series: { key: string; roots: 本地时间树节点[] }): React.ReactNode => {
+        const roots = series.roots.length > 0 ? series.roots : [];
+        if (roots.length <= 0) return null;
+        const hasExplicitBranches = roots.some((root) => root.children.length > 0);
+        if (!hasExplicitBranches && roots.length > 1) {
+            const ordered = [...roots].sort((a, b) => Number(a.元数据?.现实保存时间戳 || a.时间戳 || 0) - Number(b.元数据?.现实保存时间戳 || b.时间戳 || 0));
+            return (
+                <div className="-mx-1 max-w-full overflow-x-auto overscroll-x-contain pb-4 touch-pan-x custom-scrollbar">
+                    <div className="inline-flex min-w-full snap-x snap-mandatory items-center gap-0 px-1">
+                        {ordered.map((node, index) => (
+                            <React.Fragment key={node.id}>
+                                {index > 0 && (
+                                    <div className="flex w-14 shrink-0 items-center sm:w-20" aria-hidden="true">
+                                        <div className="h-px flex-1 bg-wuxia-gold/45" />
+                                        <div className="h-2 w-2 rotate-45 border-r border-t border-wuxia-gold/75" />
+                                    </div>
+                                )}
+                                {renderLocalCard(node)}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+        return (
+            <div className="-mx-1 max-w-full overflow-x-auto overscroll-x-contain pb-4 touch-pan-x custom-scrollbar">
+                <div className="inline-flex min-w-full snap-x snap-mandatory items-start gap-4 px-1">
+                    {roots.map((root) => renderLocalTimelineNode(root, true))}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[300] flex items-stretch justify-stretch p-0 animate-fadeIn sm:items-center sm:justify-center sm:p-4">
+            <div className="bg-ink-black/95 border border-wuxia-gold/30 w-full h-[100svh] flex flex-col shadow-[0_0_80px_rgba(0,0,0,0.9)] relative overflow-hidden sm:h-[min(82vh,820px)] sm:w-[min(1280px,calc(100vw-2rem))] sm:rounded-2xl">
+
+                <div className="h-14 shrink-0 border-b border-gray-800/50 bg-black/40 flex items-center justify-between px-4 relative z-50 sm:h-16 sm:px-6">
+                    <h3 className="text-wuxia-gold font-serif font-bold text-xl tracking-[0.22em] drop-shadow-md sm:text-2xl sm:tracking-[0.3em]" style={{ fontFamily: 'var(--ui-页面标题-font-family, inherit)', lineHeight: 'var(--ui-页面标题-line-height, 1.2)' }}>
                         {mode === 'save' ? '铭刻时光' : '时光回溯'}
                     </h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors text-2xl" style={{ fontFamily: 'var(--ui-按钮-font-family, inherit)' }}>×</button>
                 </div>
 
-                <div className="flex-1 flex overflow-hidden">
+                <div className="min-h-0 flex-1 flex flex-col overflow-hidden sm:flex-row">
                     {mode === 'save' && (
-                        <div className="w-[30%] bg-black/20 border-r border-gray-800/50 p-6 flex flex-col gap-4">
+                        <div className="shrink-0 bg-black/20 border-b border-gray-800/50 p-4 flex flex-col gap-3 sm:w-[30%] sm:border-b-0 sm:border-r sm:p-6 sm:gap-4">
                             <h4 className="text-wuxia-gold font-bold text-sm uppercase tracking-widest" style={{ fontFamily: 'var(--ui-分组标题-font-family, inherit)', fontSize: 'var(--ui-分组标题-font-size, 18px)' }}>手动存档</h4>
                             <p className="text-xs text-gray-400 leading-relaxed" style={{ fontFamily: 'var(--ui-辅助文本-font-family, inherit)', fontSize: 'var(--ui-辅助文本-font-size, 12px)', lineHeight: 'var(--ui-辅助文本-line-height, 1.5)' }}>
                                 手动与自动存档会写入同一起始进度的时间树谱系信息；本地保留可独立读取的完整存档，云端同步会优先使用谱系差分压缩。导出时会按 ZIP 拆分为图片、聊天记录、游戏数据三个目录。
@@ -676,8 +783,9 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                         </div>
                     )}
 
-                    <div className="flex-1 flex flex-col bg-ink-wash/5">
-                        <div className="px-6 pt-4 pb-3 border-b border-gray-800/50 flex justify-end gap-2">
+                    <div className="min-w-0 flex-1 flex flex-col bg-ink-wash/5">
+                        <div className="max-w-full overflow-x-auto overscroll-x-contain border-b border-gray-800/50 px-4 pt-3 pb-3 touch-pan-x custom-scrollbar sm:px-6 sm:pt-4">
+                            <div className="flex min-w-max justify-end gap-2">
                             {isNativeCapacitorEnvironment() && saves.some((save) => 是旧版缺摘要存档(save)) && (
                                 <GameButton
                                     onClick={() => { void handleHydrateVisibleSummaries(); }}
@@ -712,6 +820,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                 aria-label="选择要导入的存档文件"
                                 onChange={(e) => { void handleImportFileChange(e); }}
                             />
+                            </div>
                         </div>
                         {transferMessage && (
                             <div className="px-6 py-2 text-[11px] text-wuxia-cyan bg-wuxia-cyan/10 border-b border-wuxia-cyan/25">
@@ -743,22 +852,24 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                             </div>
                         )}
 
-                        <div className="flex border-b border-gray-800/50">
+                        <div className="max-w-full overflow-x-auto overscroll-x-contain border-b border-gray-800/50 touch-pan-x custom-scrollbar">
+                            <div className="flex min-w-max sm:min-w-full">
                             <button
                                 onClick={() => setActiveTab('manual')}
-                                className={`flex-1 py-3 text-sm font-bold tracking-widest transition-colors ${activeTab === 'manual' ? 'bg-wuxia-gold/10 text-wuxia-gold border-b-2 border-wuxia-gold' : 'text-gray-500 hover:text-gray-300'}`}
+                                className={`min-w-40 flex-1 px-5 py-3 text-sm font-bold tracking-widest transition-colors ${activeTab === 'manual' ? 'bg-wuxia-gold/10 text-wuxia-gold border-b-2 border-wuxia-gold' : 'text-gray-500 hover:text-gray-300'}`}
                             >
                                 手动存档
                             </button>
                             <button
                                 onClick={() => setActiveTab('auto')}
-                                className={`flex-1 py-3 text-sm font-bold tracking-widest transition-colors ${activeTab === 'auto' ? 'bg-wuxia-gold/10 text-wuxia-gold border-b-2 border-wuxia-gold' : 'text-gray-500 hover:text-gray-300'}`}
+                                className={`min-w-40 flex-1 px-5 py-3 text-sm font-bold tracking-widest transition-colors ${activeTab === 'auto' ? 'bg-wuxia-gold/10 text-wuxia-gold border-b-2 border-wuxia-gold' : 'text-gray-500 hover:text-gray-300'}`}
                             >
                                 自动存档
                             </button>
+                            </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3">
+                        <div className="min-w-0 flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 sm:p-6">
                             {filteredSaves.length === 0 && !loading && (
                                 <div className="text-center text-gray-600 py-10">暂无记录</div>
                             )}
@@ -766,13 +877,48 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                 <div className="text-center text-gray-500 py-10">读取中...</div>
                             )}
 
-                            {visibleSaveTrees.map((series) => {
+                            {selectedSeries ? (
+                                <div className="min-h-full min-w-0 rounded-lg border border-wuxia-gold/25 bg-black/20 p-3 sm:p-4">
+                                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-wuxia-gold/15 pb-3">
+                                        <div>
+                                            <div className="font-serif text-base font-bold tracking-[0.12em] text-wuxia-gold">{selectedSeries.title}</div>
+                                            <div className="mt-1 text-[11px] text-gray-500">
+                                                时间树 {selectedSeries.count} 个节点 · 最新 {读取现实保存时间文本(selectedSeries.latest)} · {读取地点文本(selectedSeries.latest)}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => { void handleLoadClick(selectedSeries.latest); }}
+                                                className="rounded border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs font-semibold text-wuxia-gold hover:bg-wuxia-gold/20"
+                                            >
+                                                读取最新存档
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedSeriesKey(null)}
+                                                className="rounded border border-gray-600 px-3 py-2 text-xs text-gray-200 hover:bg-white/5"
+                                            >
+                                                返回系列列表
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="mb-3 text-[11px] leading-5 text-gray-500">
+                                        横向线路按存档父子关系展开；读取中间节点继续游玩后，后续存档会在这里形成分叉，箭头表示时间推进方向。
+                                    </div>
+                                    {renderSeriesTimeline(selectedSeries)}
+                                </div>
+                            ) : visibleSaveTrees.map((series) => {
                                 const expanded = expandedSeries.has(series.key) || series.count === 1;
                                 return (
-                                    <div key={series.key} className="rounded-lg border border-wuxia-gold/20 bg-black/20 p-3">
+                                    <div key={series.key} onClick={() => { void handleLoadClick(series.latest); }} className={`rounded-lg border border-wuxia-gold/20 bg-black/20 p-3 ${mode === 'load' ? 'cursor-pointer hover:border-wuxia-gold/45 hover:bg-black/30' : ''}`}>
                                         <button
                                             type="button"
-                                            onClick={() => toggleSeries(series.key)}
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                setSelectedSeriesKey(series.key);
+                                                toggleSeries(series.key);
+                                            }}
                                             className="flex w-full flex-wrap items-center justify-between gap-2 border-b border-wuxia-gold/10 pb-2 text-left"
                                         >
                                             <div>
@@ -781,17 +927,20 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                                     时间树 {series.count} 个节点 · 最新 {读取现实保存时间文本(series.latest)} · {读取地点文本(series.latest)}
                                                 </div>
                                             </div>
-                                            <div className="text-[11px] text-wuxia-cyan">{expanded ? '收起时间树' : '展开时间树选择存档'}</div>
+                                            <div className="text-[11px] text-wuxia-cyan">展开时间树选择存档</div>
                                         </button>
-                                        {expanded && (
-                                            <div className="mt-3 space-y-2">
-                                                {series.roots.map((root) => renderLocalNode(root))}
+                                        <div className="mt-3 text-[11px] text-gray-500">
+                                            点击本系列会直接读取最新存档；展开后可从完整时间树中选择任意节点。
+                                        </div>
+                                        {expanded && series.count === 1 && (
+                                            <div className="mt-3">
+                                                {renderLocalCard(series.latest as 本地时间树节点)}
                                             </div>
                                         )}
                                     </div>
                                 );
                             })}
-                            {(hasMoreRenderedSaves || hasMoreSaves) && (
+                            {!selectedSeries && (hasMoreRenderedSaves || hasMoreSaves) && (
                                 <button
                                     type="button"
                                     onClick={() => {
