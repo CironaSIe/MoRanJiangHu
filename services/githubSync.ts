@@ -72,6 +72,10 @@ type 云同步ZIP清单 = {
 type 云同步存档索引项 = {
     key: string;
     syncKey?: string;
+    seriesId?: string;
+    parentHash?: string;
+    rootHash?: string;
+    lineageDepth?: number;
     类型: 'manual' | 'auto';
     时间戳: number;
     标题: string;
@@ -1029,6 +1033,10 @@ const 构建云同步ZIP二进制 = async (): Promise<Uint8Array> => {
         saveIndex.push({
             key: saveKey,
             syncKey: 构建存档同步键(save),
+            seriesId: 读取文本((save?.元数据 as any)?.存档系列ID),
+            parentHash: 读取文本((save?.元数据 as any)?.存档父节点哈希),
+            rootHash: 读取文本((save?.元数据 as any)?.存档根节点哈希),
+            lineageDepth: Math.max(0, Math.floor(Number((save?.元数据 as any)?.存档谱系深度 || 0))),
             类型: save?.类型 === 'auto' ? 'auto' : 'manual',
             时间戳: Number(save?.时间戳) || Date.now(),
             标题: 读取文本(save?.角色数据?.姓名) || '未知角色',

@@ -220,6 +220,8 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         return tags.join(' · ');
     };
 
+    const 是新谱系存档 = (save: 存档列表项): boolean => Boolean(save.元数据?.存档系列ID && save.元数据?.存档谱系版本);
+
     const 读取存档短哈希 = (save: 存档列表项): string => dbService.计算存档摘要短哈希(save);
 
     const handleDelete = async (id: number, e: React.MouseEvent) => {
@@ -531,7 +533,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                         <div className="w-[30%] bg-black/20 border-r border-gray-800/50 p-6 flex flex-col gap-4">
                             <h4 className="text-wuxia-gold font-bold text-sm uppercase tracking-widest" style={{ fontFamily: 'var(--ui-分组标题-font-family, inherit)', fontSize: 'var(--ui-分组标题-font-size, 18px)' }}>手动存档</h4>
                             <p className="text-xs text-gray-400 leading-relaxed" style={{ fontFamily: 'var(--ui-辅助文本-font-family, inherit)', fontSize: 'var(--ui-辅助文本-font-size, 12px)', lineHeight: 'var(--ui-辅助文本-line-height, 1.5)' }}>
-                                手动与自动存档都会完整保存全部内容。导出时会按 ZIP 拆分为图片、聊天记录、游戏数据三个目录。
+                                手动与自动存档会写入同一起始进度的时间树谱系信息；本地保留可独立读取的完整存档，云端同步会优先使用谱系差分压缩。导出时会按 ZIP 拆分为图片、聊天记录、游戏数据三个目录。
                             </p>
                             {cloudPlayMode && (
                                 <div className="rounded-lg border border-sky-400/35 bg-sky-500/10 px-3 py-2 text-xs leading-6 text-sky-100">
@@ -625,6 +627,9 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                         <div className="flex items-center gap-2">
                                             <span className={`text-[10px] px-1.5 rounded border ${是旧版缺摘要存档(save) ? 'border-gray-500 text-gray-300' : (save.类型 === 'auto' ? 'border-blue-500 text-blue-400' : 'border-wuxia-gold text-wuxia-gold')}`}>
                                                 {是旧版缺摘要存档(save) ? '恢复中' : (save.类型 === 'auto' ? 'AUTO' : 'MANUAL')}
+                                            </span>
+                                            <span className={`text-[10px] px-1.5 rounded border ${是新谱系存档(save) ? 'border-emerald-500/60 text-emerald-300' : 'border-amber-500/50 text-amber-300'}`} title={是新谱系存档(save) ? '新存档：已写入时间树谱系，可用于云端差分同步' : '旧存档：兼容读取，尚未写入新时间树谱系'}>
+                                                {是新谱系存档(save) ? '新谱系' : '旧存档'}
                                             </span>
                                             <span className="font-bold text-gray-200 text-sm">{构建存档标题(save)}</span>
                                             <span className="text-xs text-gray-500">

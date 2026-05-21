@@ -49,6 +49,10 @@ export interface 对象存储云存档元数据 {
     size: number;
     location: string;
     gameTime: string;
+    seriesId?: string;
+    parentHash?: string;
+    rootHash?: string;
+    lineageDepth?: number;
 }
 
 interface 对象存储清单结构 {
@@ -848,7 +852,11 @@ const 构建云存档元数据 = async (save: 存档结构, archiveBytes: Uint8A
         hash,
         size: archiveBytes.length,
         location: 读取地点文本(save),
-        gameTime: 读取时间文本(save)
+        gameTime: 读取时间文本(save),
+        seriesId: 读取文本((save.元数据 as any)?.存档系列ID),
+        parentHash: 读取文本((save.元数据 as any)?.存档父节点哈希),
+        rootHash: 读取文本((save.元数据 as any)?.存档根节点哈希) || hash,
+        lineageDepth: Math.max(0, Math.floor(Number((save.元数据 as any)?.存档谱系深度 || 0)))
     };
 };
 

@@ -5,6 +5,7 @@ import { 获取设置项定义, 设置分类定义表, 设置键, type 设置分
 import { 默认功能模型占位, 规范化接口设置 } from '../utils/apiConfig';
 import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 import { buildSaveDebugSummary, recordSaveLoadError, recordSaveLoadTrace } from '../utils/saveLoadTrace';
+import { 补全存档谱系元数据 } from '../utils/saveLineage';
 
 import { recordDiagnosticLog } from './diagnosticLog';
 import { buildImageHostProxyUrl, 上传DataUrl到图床 } from './imageHostService';
@@ -616,7 +617,7 @@ const 清洗导入存档 = (raw: any): Omit<存档结构, 'id'> | null => {
         ...(normalized.元数据 || {}),
         存档哈希: 计算存档同步哈希(normalized)
     };
-    return normalized;
+    return 补全存档谱系元数据(normalized);
 };
 
 export const 初始化数据库 = (): Promise<IDBDatabase> => {
@@ -1610,7 +1611,9 @@ export const 保存存档 = async (存档: Omit<存档结构, 'id'>): Promise<nu
     if (!normalized) {
         throw new Error('保存存档失败：存档数据结构不完整');
     }
-    const persistedSave = await 外置化图片字段(normalized) as Omit<存档结构, 'id'>;
+    const existingSaves = await 读取存档列表().catch(() => []);
+    const withLineage = 补全存档谱系元数据(normalized, existingSaves);
+    const persistedSave = await 外置化图片字段(withLineage) as Omit<存档结构, 'id'>;
 
     if (persistedSave.类型 === 'auto') {
         const signature = (persistedSave.元数据?.自动存档签名 || '').trim();
