@@ -74,6 +74,26 @@ const 队列命令展示单行上限 = 1800;
 const 主剧情首次响应超时毫秒 = 90_000;
 const 主剧情流式空闲超时毫秒 = 30_000;
 
+export const 统计正文字符数 = (response: GameResponse): number => (
+    (Array.isArray(response.logs) ? response.logs : [])
+        .map((log) => (typeof log?.text === 'string' ? log.text : ''))
+        .join('')
+        .replace(/\s+/g, '')
+        .length
+);
+
+export const 校验主剧情正文最低字数 = (response: GameResponse, minLength: number, rawText: string) => {
+    const required = Number.isFinite(minLength) ? Math.max(50, Math.floor(minLength)) : 0;
+    if (required <= 0) return;
+    const actual = 统计正文字符数(response);
+    if (actual >= required) return;
+    throw new textAIService.StoryResponseParseError(
+        `正文过短：当前约 ${actual} 字，低于设置要求 ${required} 字。请完整重写本回合正文，并保持标签协议完整。`,
+        rawText,
+        `正文过短：当前约 ${actual} 字，低于设置要求 ${required} 字。`
+    );
+};
+
 const 创建主剧情流式超时错误 = (stage: string, timeoutMs: number): Error => {
     const error = new Error(`主剧情乾坤推演${stage}（${Math.max(1, Math.ceil(timeoutMs / 1000))} 秒无流式输出）`);
     error.name = 'TimeoutError';
@@ -913,6 +933,7 @@ export const 执行主剧情发送工作流 = async (
 
         const socialBeforeMainCommands = deps.深拷贝(currentState.社交);
         const rawAiText = deps.获取原始AI消息(aiResult.rawText);
+        校验主剧情正文最低字数(aiData, runtimeGameConfig.字数要求, rawAiText);
 
         if (!deps.文章优化功能已开启()) {
             options?.onPolishProgress?.({
