@@ -1,15 +1,23 @@
 {
-  "versionCode": 283,
-  "versionName": "1.0.282",
+  "versionCode": 284,
+  "versionName": "1.0.283",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复网页端和本地预览误触 APK 原生流式插件的问题，避免出现 NativeChatStreamer 未实现导致生成失败。",
-    "优化手机端存档时间树操作：节点详情可上下滚动，横向时间线留出触控空间，删除入口更醒目。",
-    "对象存储云端存档新增单条删除入口，可从云端列表移除指定存档并清理对应云端文件。",
+    "修复主剧情正文可能明显短于设置字数仍被当作成功回合的问题；短正文会进入重试或恢复流程，不再静默落盘。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.282。"
+    "同步更新 Web、APK 与更新清单到 v1.0.283。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.283",
+      "versionCode": 284,
+      "publishedAt": "2026-05-22T12:47:38+08:00",
+      "changes": [
+        "修复主剧情正文可能明显短于设置字数仍被当作成功回合的问题；短正文会进入重试或恢复流程，不再静默落盘。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.283。"
+      ]
+    },
     {
       "versionName": "1.0.282",
       "versionCode": 283,
@@ -2772,7 +2780,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-22T07:54:31+08:00",
+  "releasePublishedAt": "2026-05-22T12:47:38+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
