@@ -1,13 +1,25 @@
 {
-  "versionCode": 285,
-  "versionName": "1.0.284",
+  "versionCode": 286,
+  "versionName": "1.0.285",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "增强对象存储云存档时间树同步：新上传的子节点会携带本地可找到的祖先快照，换设备导入后可读取已同步历史节点继续游玩。",
+    "修复男性/男娘私密特写开关提示不准确的问题：现在会区分 NSFW 总开关和男娘相关 NSFW 子开关，避免明明开启总 NSFW 后仍被误导。",
+    "男性/男娘私密特写生成入口会按实际关闭原因给出提示，方便玩家快速检查对应设置。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.284。"
+    "同步更新 Web、APK 与更新清单到 v1.0.285。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.285",
+      "versionCode": 286,
+      "publishedAt": "2026-05-22T20:33:59+08:00",
+      "changes": [
+        "修复男性/男娘私密特写开关提示不准确的问题：现在会区分 NSFW 总开关和男娘相关 NSFW 子开关，避免明明开启总 NSFW 后仍被误导。",
+        "男性/男娘私密特写生成入口会按实际关闭原因给出提示，方便玩家快速检查对应设置。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.285。"
+      ]
+    },
     {
       "versionName": "1.0.284",
       "versionCode": 285,
@@ -2790,7 +2802,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-22T13:12:20+08:00",
+  "releasePublishedAt": "2026-05-22T20:33:59+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
