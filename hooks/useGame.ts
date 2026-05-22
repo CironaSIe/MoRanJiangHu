@@ -3376,6 +3376,7 @@ export const useGame = () => {
         retryNpcImageGeneration
     } = 创建手动图片动作工作流({
         获取社交列表: () => 社交,
+        NSFW模式已启用: () => gameConfig?.启用NSFW模式 === true,
         男娘NSFW内容已启用,
         记录后台手动生图监控: (payload) => {
             后台手动生图监控Ref.current.push(payload);

@@ -8,6 +8,7 @@ type 右下角提示参数 = {
 
 type 手动图片动作工作流依赖 = {
     获取社交列表: () => any[];
+    NSFW模式已启用?: () => boolean;
     男娘NSFW内容已启用?: () => boolean;
     记录后台手动生图监控: (payload: { npcId: string; since: number; npcName: string; 构图: '头像' | '半身' | '立绘' }) => void;
     记录后台私密生图监控: (payload: { npcId: string; since: number; npcName: string; 部位: 香闺秘档部位类型 }) => void;
@@ -195,7 +196,16 @@ export const 创建手动图片动作工作流 = (deps: 手动图片动作工作
         const socialList = Array.isArray(deps.获取社交列表()) ? deps.获取社交列表() : [];
         const targetNpc = socialList.find((npc: any) => npc && npc.id === npcId);
         if (!targetNpc) return;
+        const nsfwEnabled = deps.NSFW模式已启用?.() === true;
         const femboyNsfwEnabled = deps.男娘NSFW内容已启用?.() === true;
+        if (!nsfwEnabled) {
+            deps.推送右下角提示({
+                title: '私密特写未启用',
+                message: '当前已关闭 NSFW 模式，男性/男娘角色不会生成私密部位特写。',
+                tone: 'info'
+            });
+            return;
+        }
         if (!NPC是否允许私密部位生图(targetNpc, { femboyNsfwEnabled })) {
             deps.推送右下角提示({
                 title: '私密特写未启用',
