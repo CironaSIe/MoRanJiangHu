@@ -13,7 +13,7 @@ export const RELEASE_INFO = {
         {
             "versionName": "1.0.285",
             "versionCode": 286,
-            "publishedAt": "2026-05-22T20:33:59+08:00",
+            "publishedAt": "2026-05-22T21:53:59+08:00",
             "changes": [
                 "修复男性/男娘私密特写开关提示不准确的问题：现在会区分 NSFW 总开关和男娘相关 NSFW 子开关，避免明明开启总 NSFW 后仍被误导。",
                 "男性/男娘私密特写生成入口会按实际关闭原因给出提示，方便玩家快速检查对应设置。",
@@ -2803,7 +2803,7 @@ export const RELEASE_INFO = {
     "r2Bucket": "quark-downloads-bacon",
     "r2Prefix": "moranjianghu",
     "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-    "releasePublishedAt": "2026-05-22T20:33:59+08:00",
+    "releasePublishedAt": "2026-05-22T21:53:59+08:00",
     "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
     "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 } as const;
