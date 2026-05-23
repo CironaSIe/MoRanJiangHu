@@ -1,12 +1,13 @@
 {
-  "versionCode": 292,
-  "versionName": "1.0.291",
+  "versionCode": 293,
+  "versionName": "1.0.292",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复正文低于字数要求时直接失败、看不到内容的问题；现在会先保留可用剧情大纲，并交给文章优化继续扩写。",
-    "优化文章润色保护：正常长正文不会被压缩成摘要，功法效果、人物设定、NPC互动和关键细节会更稳定保留。",
+    "修复正文扩写不够长时会被误判为已成功的问题，现在会自动再补一次，尽量把内容真正扩到可读长度。",
+    "修复功法表现不一致的问题，绝世等高品质功法现在会更稳定匹配描述、效果和数值，不再只剩名头。",
+    "修复 NPC 指令和去向记忆不稳的问题，玩家交代的行动会更容易跨回合记住并继续执行。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web 与更新清单到 v1.0.291。"
+    "同步更新 Web、APK 与更新清单到 v1.0.292。"
   ],
   "releaseHistory": [
     {
@@ -2875,7 +2876,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-23T13:01:35+08:00",
+  "releasePublishedAt": "2026-05-23T14:13:44+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

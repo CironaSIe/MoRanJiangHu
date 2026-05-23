@@ -370,7 +370,7 @@ export const 执行正文润色 = async (
         return { response: baseResponse, applied: false, error: '正文为空，无法优化。' };
     }
 
-    const polishedResult = await textAIService.generatePolishedBody(
+    let polishedResult = await textAIService.generatePolishedBody(
         sourceBody,
         effectivePolishPrompt,
         polishApi,
@@ -378,7 +378,7 @@ export const 执行正文润色 = async (
         polishExtraPrompt,
         polishCotPseudoPrompt
     );
-    const polishedLogs = 规范化对白日志(限制润色结果判定数量(
+    let polishedLogs = 规范化对白日志(限制润色结果判定数量(
         sourceLogs,
         解析正文日志文本(polishedResult.bodyText)
     ));
@@ -386,13 +386,53 @@ export const 执行正文润色 = async (
         return { response: baseResponse, applied: false, error: '优化后正文为空，已保留原文。', rawText: polishedResult.rawText };
     }
     const sourceLength = 统计润色正文字符数(sourceLogs);
-    const polishedLength = 统计润色正文字符数(polishedLogs);
-    const lengthCheck = 评估润色长度结果({
+    let polishedLength = 统计润色正文字符数(polishedLogs);
+    let lengthCheck = 评估润色长度结果({
         sourceLength,
         polishedLength,
         requiredLength: requiredBodyLength,
         allowExpansionForLength: options?.allowExpansionForLength
     });
+    if (!lengthCheck.ok && options?.allowExpansionForLength === true && !options?.signal?.aborted) {
+        const requiredEnough = Math.max(requiredBodyLength, Math.ceil(sourceLength * 1.25));
+        const retryPrompt = [
+            effectivePolishPrompt,
+            '【自动二次扩写要求】',
+            `上一版优化正文约 ${polishedLength} 字，未达到本回合目标 ${requiredEnough} 字，因此必须重新扩写。`,
+            `这次 <正文> 内可见正文必须不少于 ${requiredEnough} 字；不要只说明“已扩写”，必须把扩写后的正文实际写入 <正文> 标签。`,
+            '只能沿用原始正文已经成立的事实补足动作过程、感官反馈、环境承接、NPC反应和结果余波；不得新增判定、改写结果或跳到新事件。'
+        ].join('\n\n');
+        const retryResult = await textAIService.generatePolishedBody(
+            sourceBody,
+            retryPrompt,
+            polishApi,
+            options?.signal,
+            polishExtraPrompt,
+            polishCotPseudoPrompt
+        );
+        const retryLogs = 规范化对白日志(限制润色结果判定数量(
+            sourceLogs,
+            解析正文日志文本(retryResult.bodyText)
+        ));
+        const retryLength = 统计润色正文字符数(retryLogs);
+        const retryCheck = 评估润色长度结果({
+            sourceLength,
+            polishedLength: retryLength,
+            requiredLength: requiredBodyLength,
+            allowExpansionForLength: true
+        });
+        if (retryLogs.length > 0 && retryCheck.ok) {
+            polishedResult = retryResult;
+            polishedLogs = retryLogs;
+            polishedLength = retryLength;
+            lengthCheck = retryCheck;
+        } else if (!retryCheck.ok) {
+            lengthCheck = {
+                ok: false,
+                error: `文章优化未应用：二次扩写后正文仍偏短（当前约 ${retryLength} 字，目标至少 ${requiredEnough} 字），已保留原始正文。`
+            };
+        }
+    }
     if (!lengthCheck.ok) {
         return {
             response: baseResponse,
