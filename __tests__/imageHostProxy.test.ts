@@ -36,7 +36,9 @@ describe('image host proxy', () => {
         expect(response.headers.get('X-Moran-Image-Proxy-Request-Id')).toMatch(/^imgup_/);
         expect(response.headers.get('X-Moran-Image-Upstream-Status')).toBe('200');
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock.mock.calls[0][1]?.body).toBe(body);
+        expect(fetchMock.mock.calls[0][0]).toBe('https://image1.bacon159.pp.ua/api/v1/upload?storage=telegram');
+        expect(fetchMock.mock.calls[0][1]?.body).toBeInstanceOf(ArrayBuffer);
+        expect(new Uint8Array(fetchMock.mock.calls[0][1]?.body as ArrayBuffer)).toEqual(new Uint8Array([1, 2, 3]));
     });
 
     it('returns diagnostic details when upstream upload fails', async () => {
@@ -96,9 +98,9 @@ describe('image host proxy', () => {
         expect(response.status).toBe(200);
         expect(response.headers.get('Content-Type')).toBe('image/png');
         expect(fetchMock).toHaveBeenCalledTimes(4);
-        expect(fetchMock.mock.calls[0][0]).toBe('https://image.bacon159.pp.ua/api/v1/file/abc123');
-        expect(fetchMock.mock.calls[1][0]).toBe('https://image.bacon159.pp.ua/api/v1/file/abc123');
-        expect(fetchMock.mock.calls[2][0]).toBe('https://image.bacon159.pp.ua/api/v1/file/abc123');
-        expect(fetchMock.mock.calls[3][0]).toBe('https://image.bacon159.pp.ua/file/abc123');
+        expect(fetchMock.mock.calls[0][0]).toBe('https://image1.bacon159.pp.ua/api/v1/file/abc123');
+        expect(fetchMock.mock.calls[1][0]).toBe('https://image1.bacon159.pp.ua/api/v1/file/abc123');
+        expect(fetchMock.mock.calls[2][0]).toBe('https://image1.bacon159.pp.ua/api/v1/file/abc123');
+        expect(fetchMock.mock.calls[3][0]).toBe('https://image1.bacon159.pp.ua/file/abc123');
     });
 });

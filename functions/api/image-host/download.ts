@@ -8,6 +8,22 @@ const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 const MAX_FILE_BYTES = 128 * 1024 * 1024;
 const DEFAULT_IMAGE_HOST_BASE = 'https://image1.bacon159.pp.ua';
 
+const normalizeImageHostBase = (value: unknown): string => {
+    const raw = typeof value === 'string' && value.trim()
+        ? value.trim().replace(/\/+$/, '')
+        : DEFAULT_IMAGE_HOST_BASE;
+    try {
+        const url = new URL(raw);
+        if (/^image\.bacon159\.pp\.ua$/i.test(url.hostname)) {
+            url.hostname = 'image1.bacon159.pp.ua';
+            return url.toString().replace(/\/+$/, '');
+        }
+        return raw;
+    } catch {
+        return DEFAULT_IMAGE_HOST_BASE;
+    }
+};
+
 const buildTextResponse = (message: string, status = 400): Response => (
     new Response(message, {
         status,
@@ -34,15 +50,16 @@ const readImageHostToken = (env: any): string => (
 );
 
 const readImageHostBase = (env: any): string => (
-    typeof env?.IMAGE_HOST_BASE === 'string' && env.IMAGE_HOST_BASE.trim()
-        ? env.IMAGE_HOST_BASE.trim().replace(/\/+$/, '')
-        : DEFAULT_IMAGE_HOST_BASE
+    normalizeImageHostBase(env?.IMAGE_HOST_BASE)
 );
 
 const buildAuthenticatedApiUrl = (targetUrl: string, env: any): string => {
     const url = new URL(targetUrl);
+    if (/^image\.bacon159\.pp\.ua$/i.test(url.hostname)) {
+        url.hostname = 'image1.bacon159.pp.ua';
+    }
     const fileMatch = url.pathname.match(/^\/file\/([^/?#]+)/i);
-    if (!fileMatch) return targetUrl;
+    if (!fileMatch) return url.toString();
     const fileId = decodeURIComponent(fileMatch[1] || '').trim();
     if (!fileId) return targetUrl;
     return `${readImageHostBase(env)}/api/v1/file/${encodeURIComponent(fileId)}`;
@@ -50,8 +67,11 @@ const buildAuthenticatedApiUrl = (targetUrl: string, env: any): string => {
 
 const buildPublicFileUrl = (targetUrl: string, env: any): string => {
     const url = new URL(targetUrl);
+    if (/^image\.bacon159\.pp\.ua$/i.test(url.hostname)) {
+        url.hostname = 'image1.bacon159.pp.ua';
+    }
     const fileMatch = url.pathname.match(/^\/api\/v1\/file\/([^/?#]+)/i);
-    if (!fileMatch) return targetUrl;
+    if (!fileMatch) return url.toString();
     const fileId = decodeURIComponent(fileMatch[1] || '').trim();
     if (!fileId) return targetUrl;
     return `${readImageHostBase(env)}/file/${encodeURIComponent(fileId)}`;
@@ -131,16 +151,17 @@ const fetchImageHostFile = async (targetUrl: string, env: any): Promise<Response
     };
 
     const candidates: Array<{ url: string; headers: Record<string, string> }> = [];
-    const authenticatedUrl = buildAuthenticatedApiUrl(targetUrl, env);
+    const normalizedTargetUrl = buildAuthenticatedApiUrl(targetUrl, env);
+    const authenticatedUrl = buildAuthenticatedApiUrl(normalizedTargetUrl, env);
     if (token) candidates.push({ url: authenticatedUrl, headers: authenticatedHeaders });
 
-    const publicFileUrl = buildPublicFileUrl(targetUrl, env);
-    if (publicFileUrl !== targetUrl) {
+    const publicFileUrl = buildPublicFileUrl(normalizedTargetUrl, env);
+    if (publicFileUrl !== normalizedTargetUrl) {
         candidates.push({ url: publicFileUrl, headers: publicHeaders });
-    } else if (authenticatedUrl !== targetUrl) {
-        candidates.push({ url: targetUrl, headers: publicHeaders });
+    } else if (authenticatedUrl !== normalizedTargetUrl) {
+        candidates.push({ url: normalizedTargetUrl, headers: publicHeaders });
     } else {
-        candidates.push({ url: targetUrl, headers: token ? authenticatedHeaders : publicHeaders });
+        candidates.push({ url: normalizedTargetUrl, headers: token ? authenticatedHeaders : publicHeaders });
     }
 
     const seen = new Set<string>();

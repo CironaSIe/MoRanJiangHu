@@ -326,10 +326,6 @@ const 获取NPC头像地址 = (sender: string, socialList?: NPC结构[]): string
         if (profileUrl) {
             return profileUrl;
         }
-        const recent = npc?.图片档案?.最近生图结果 || npc?.最近生图结果;
-        if (recent?.状态 === 'success' && 获取图片展示地址(recent)) {
-            return 获取图片展示地址(recent);
-        }
     }
     return '';
 };

@@ -89,6 +89,32 @@ const 读取目标性别 = (source: any): '男' | '女' | '' => {
     return '';
 };
 
+const 私密构图集合 = new Set(['部位特写', '胸部', '小穴', '屁穴', '肉棒']);
+
+const 是否私密图片记录 = (record: any): boolean => {
+    const composition = typeof record?.构图 === 'string' ? record.构图.trim() : '';
+    const part = typeof record?.部位 === 'string' ? record.部位.trim() : '';
+    if (私密构图集合.has(composition) || 私密构图集合.has(part)) return true;
+    const id = typeof record?.id === 'string' ? record.id : '';
+    return /^npc_secret_/i.test(id);
+};
+
+const 是否可作头像图片 = (record: any): boolean => (
+    record?.构图 === '头像'
+    && record?.状态 === 'success'
+    && !是否私密图片记录(record)
+    && Boolean(record?.id)
+    && Boolean(获取图片展示地址(record))
+);
+
+const 是否可作立绘图片 = (record: any): boolean => (
+    (record?.构图 === '半身' || record?.构图 === '立绘')
+    && record?.状态 === 'success'
+    && !是否私密图片记录(record)
+    && Boolean(record?.id)
+    && Boolean(获取图片展示地址(record))
+);
+
 const 生图记录属于当前角色 = (currentNpc: any, record: any): boolean => {
     if (!record || typeof record !== 'object') return false;
     const currentName = typeof currentNpc?.姓名 === 'string' ? currentNpc.姓名.trim() : '';
@@ -154,16 +180,24 @@ export const 合并NPC图片档案 = (currentNpc: any, payload: any) => {
     const incomingSelectedBackgroundImageId = typeof payload?.图片档案?.已选背景图片ID === 'string'
         ? payload.图片档案.已选背景图片ID.trim()
         : (typeof payload?.已选背景图片ID === 'string' ? payload.已选背景图片ID.trim() : '');
-    const fallbackAvatarId = mergedHistory.find((item) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
-        || mergedHistory.find((item) => !['部位特写', '胸部', '小穴', '屁穴', '肉棒'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
+    const fallbackAvatarId = mergedHistory.find(是否可作头像图片)?.id || '';
+    const fallbackPortraitId = mergedHistory.find(是否可作立绘图片)?.id
         || '';
-    const fallbackPortraitId = mergedHistory.find((item) => (item?.构图 === '半身' || item?.构图 === '立绘') && item?.状态 === 'success' && item?.id)?.id
-        || '';
-    const selectedAvatarImageId = incomingSelectedAvatarImageId
-        || (typeof currentArchive?.已选头像图片ID === 'string' ? currentArchive.已选头像图片ID.trim() : '')
+    const currentSelectedAvatar = typeof currentArchive?.已选头像图片ID === 'string' ? currentArchive.已选头像图片ID.trim() : '';
+    const selectedAvatarImageId = (
+        incomingSelectedAvatarImageId && mergedHistory.some((item) => item?.id === incomingSelectedAvatarImageId && 是否可作头像图片(item))
+            ? incomingSelectedAvatarImageId
+            : ''
+    )
+        || (currentSelectedAvatar && mergedHistory.some((item) => item?.id === currentSelectedAvatar && 是否可作头像图片(item)) ? currentSelectedAvatar : '')
         || fallbackAvatarId;
-    const selectedPortraitImageId = incomingSelectedPortraitImageId
-        || (typeof currentArchive?.已选立绘图片ID === 'string' ? currentArchive.已选立绘图片ID.trim() : '')
+    const currentSelectedPortrait = typeof currentArchive?.已选立绘图片ID === 'string' ? currentArchive.已选立绘图片ID.trim() : '';
+    const selectedPortraitImageId = (
+        incomingSelectedPortraitImageId && mergedHistory.some((item) => item?.id === incomingSelectedPortraitImageId && 是否可作立绘图片(item))
+            ? incomingSelectedPortraitImageId
+            : ''
+    )
+        || (currentSelectedPortrait && mergedHistory.some((item) => item?.id === currentSelectedPortrait && 是否可作立绘图片(item)) ? currentSelectedPortrait : '')
         || fallbackPortraitId
         || undefined;
     const selectedBackgroundImageId = incomingSelectedBackgroundImageId
@@ -268,15 +302,12 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                 const currentSelectedBackgroundImageId = typeof archive?.已选背景图片ID === 'string'
                     ? archive.已选背景图片ID.trim()
                     : undefined;
-                const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId)
+                const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId && 是否可作头像图片(item))
                     ? currentSelectedAvatarImageId
-                    : (nextHistory.find((item: any) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
-                        || nextHistory.find((item: any) => !['部位特写', '胸部', '小穴', '屁穴', '肉棒'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
-                        || undefined);
-                const nextSelectedPortraitImageId = currentSelectedPortraitImageId && nextHistory.some((item: any) => item?.id === currentSelectedPortraitImageId)
+                    : (nextHistory.find(是否可作头像图片)?.id || undefined);
+                const nextSelectedPortraitImageId = currentSelectedPortraitImageId && nextHistory.some((item: any) => item?.id === currentSelectedPortraitImageId && 是否可作立绘图片(item))
                     ? currentSelectedPortraitImageId
-                    : (nextHistory.find((item: any) => (item?.构图 === '半身' || item?.构图 === '立绘') && item?.状态 === 'success' && item?.id)?.id
-                        || undefined);
+                    : (nextHistory.find(是否可作立绘图片)?.id || undefined);
                 return {
                     ...npc,
                     图片档案: {
@@ -405,11 +436,9 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                 const currentSelectedAvatarImageId = typeof archive?.已选头像图片ID === 'string' ? archive.已选头像图片ID.trim() : '';
                 const currentSelectedPortraitImageId = typeof archive?.已选立绘图片ID === 'string' ? archive.已选立绘图片ID.trim() : '';
                 const currentSelectedBackgroundImageId = typeof archive?.已选背景图片ID === 'string' ? archive.已选背景图片ID.trim() : '';
-                const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId)
+                const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId && 是否可作头像图片(item))
                     ? currentSelectedAvatarImageId
-                    : (nextHistory.find((item: any) => item?.构图 === '头像' && item?.状态 === 'success' && item?.id)?.id
-                        || nextHistory.find((item: any) => !['部位特写', '胸部', '小穴', '屁穴', '肉棒'].includes(item?.构图 as string) && item?.状态 === 'success' && item?.id)?.id
-                        || undefined);
+                    : (nextHistory.find(是否可作头像图片)?.id || undefined);
                 return {
                     ...npc,
                     图片档案: nextHistory.length > 0 ? {
@@ -487,7 +516,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
         npcId,
         '已选头像图片ID',
         imageId,
-        (history) => Boolean(history.find((item: any) => item?.id === imageId && item?.构图 === '头像' && item?.状态 === 'success' && 获取图片展示地址(item)))
+        (history) => Boolean(history.find((item: any) => item?.id === imageId && 是否可作头像图片(item)))
     );
 
     const 清除NPC头像图片 = (npcId: string) => 更新NPC选图字段(npcId, '已选头像图片ID');
@@ -496,7 +525,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
         npcId,
         '已选立绘图片ID',
         imageId,
-        (history) => Boolean(history.find((item: any) => item?.id === imageId && (item?.构图 === '半身' || item?.构图 === '立绘') && item?.状态 === 'success' && 获取图片展示地址(item)))
+        (history) => Boolean(history.find((item: any) => item?.id === imageId && 是否可作立绘图片(item)))
     );
 
     const 清除NPC立绘图片 = (npcId: string) => 更新NPC选图字段(npcId, '已选立绘图片ID');
@@ -505,7 +534,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
         npcId,
         '已选背景图片ID',
         imageId,
-        (history) => Boolean(history.find((item: any) => item?.id === imageId && item?.构图 !== '部位特写' && item?.状态 === 'success' && 获取图片展示地址(item)))
+        (history) => Boolean(history.find((item: any) => item?.id === imageId && !是否私密图片记录(item) && item?.状态 === 'success' && 获取图片展示地址(item)))
     );
 
     const 清除NPC背景图片 = (npcId: string) => 更新NPC选图字段(npcId, '已选背景图片ID');

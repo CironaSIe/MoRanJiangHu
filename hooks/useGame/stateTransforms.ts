@@ -2229,6 +2229,29 @@ const 标准化NPC图片记录 = (raw: any): any | undefined => {
     };
 };
 
+const NPC私密图片构图集合 = new Set(['部位特写', '胸部', '小穴', '屁穴', '肉棒']);
+const NPC图片记录是否私密 = (record: any): boolean => {
+    const composition = 规范化文本(record?.构图);
+    const part = 规范化文本(record?.部位);
+    if (NPC私密图片构图集合.has(composition) || NPC私密图片构图集合.has(part)) return true;
+    const id = 规范化文本(record?.id);
+    return /^npc_secret_/i.test(id);
+};
+
+const NPC图片记录可作头像 = (record: any): boolean => (
+    record?.状态 === 'success'
+    && record?.构图 === '头像'
+    && !NPC图片记录是否私密(record)
+    && Boolean(规范化文本(record?.id))
+);
+
+const NPC图片记录可作立绘 = (record: any): boolean => (
+    record?.状态 === 'success'
+    && (record?.构图 === '半身' || record?.构图 === '立绘')
+    && !NPC图片记录是否私密(record)
+    && Boolean(规范化文本(record?.id))
+);
+
 const 合并NPC图片历史记录 = (leftRaw: any[] | undefined, rightRaw: any[] | undefined): any[] => {
     const merged = new Map<string, any>();
     const fallback: any[] = [];
@@ -2261,9 +2284,15 @@ const 合并NPC图片档案对象 = (leftRaw: any, rightRaw: any): any | undefin
     const recent = rightRecent
         || leftRecent
         || mergedHistory[0];
-    const 已选头像图片ID = 取首个非空文本(rightSource?.已选头像图片ID, leftSource?.已选头像图片ID);
-    const 已选立绘图片ID = 取首个非空文本(rightSource?.已选立绘图片ID, leftSource?.已选立绘图片ID);
+    const 原始已选头像图片ID = 取首个非空文本(rightSource?.已选头像图片ID, leftSource?.已选头像图片ID);
+    const 原始已选立绘图片ID = 取首个非空文本(rightSource?.已选立绘图片ID, leftSource?.已选立绘图片ID);
     const 已选背景图片ID = 取首个非空文本(rightSource?.已选背景图片ID, leftSource?.已选背景图片ID);
+    const 已选头像图片ID = mergedHistory.some((item) => item?.id === 原始已选头像图片ID && NPC图片记录可作头像(item))
+        ? 原始已选头像图片ID
+        : '';
+    const 已选立绘图片ID = mergedHistory.some((item) => item?.id === 原始已选立绘图片ID && NPC图片记录可作立绘(item))
+        ? 原始已选立绘图片ID
+        : '';
     const 香闺秘档部位档案 = 标准化香闺秘档部位档案({
         ...(leftSource?.香闺秘档部位档案 && typeof leftSource.香闺秘档部位档案 === 'object' ? leftSource.香闺秘档部位档案 : {}),
         ...(rightSource?.香闺秘档部位档案 && typeof rightSource.香闺秘档部位档案 === 'object' ? rightSource.香闺秘档部位档案 : {})
@@ -2378,6 +2407,66 @@ const 是否应丢弃NPC条目 = (rawNpc: any): boolean => {
     return !hasStableId || !hasSubstantialProfile;
 };
 
+const 推断NPC性别 = (npc: any): string => {
+    const raw = 规范化文本(npc?.性别);
+    if (raw && !/^(未知|不详|未定|待定|无)$/u.test(raw)) return raw;
+    const text = [
+        npc?.姓名,
+        npc?.身份,
+        npc?.简介,
+        npc?.外貌描写,
+        npc?.身材描写,
+        npc?.衣着风格,
+        npc?.男娘设定,
+        npc?.扶她设定
+    ].map((value) => 规范化文本(value)).join(' ');
+    if (/扶她/.test(text)) return '扶她';
+    if (/男娘/.test(text)) return '男娘';
+    if (/女|女子|少女|姑娘|师姐|师妹|侍女|丫鬟|妇人|夫人|小姐|娘子|仙子|女修/.test(text)) return '女';
+    if (/男|男子|少年|公子|师兄|师弟|老者|老人|太监|内侍|侍卫|护卫|汉子|家丁|门客/.test(text)) return '男';
+    return 稳定区间整数(`${text || npc?.id || npc?.姓名}:gender`, 0, 1) === 0 ? '男' : '女';
+};
+
+const 推断NPC年龄 = (npc: any, fallbackIndex: number): number => {
+    const parsed = Number(npc?.年龄);
+    if (Number.isFinite(parsed) && parsed >= 1) return Math.trunc(parsed);
+    const text = [npc?.姓名, npc?.身份, npc?.简介, npc?.境界, npc?.外貌描写, npc?.身材描写]
+        .map((value) => 规范化文本(value))
+        .join(' ');
+    if (/老者|老人|长老|掌门|宗主|族老|老妪/.test(text)) return 稳定区间整数(`${text}:age`, 45, 68);
+    if (/中年|执事|管事|掌柜|夫人|妇人|叔|伯|婶/.test(text)) return 稳定区间整数(`${text}:age`, 28, 42);
+    if (/少女|少年|弟子|同门|师妹|师弟|侍女|丫鬟/.test(text)) return 稳定区间整数(`${text}:age`, 18, 24);
+    return 稳定区间整数(`${text || npc?.id || fallbackIndex}:age`, 18, 32);
+};
+
+const 规范化NPC身份 = (npc: any): string => {
+    const raw = 规范化文本(npc?.身份);
+    if (raw && !/^(未知|未知身份|不详|待补充|剧情对话人物|对话人物|路人)$/u.test(raw)) return raw;
+    const text = [npc?.姓名, npc?.简介, npc?.所属势力, npc?.关系状态].map((value) => 规范化文本(value)).join(' ');
+    if (/同门|师兄|师姐|师弟|师妹|青云山庄/.test(text)) return '同门';
+    if (/侍卫|护卫|守卫/.test(text)) return '护卫';
+    if (/侍女|丫鬟/.test(text)) return '侍女';
+    if (/掌柜|商会|商贾|牙行|拍卖/.test(text)) return '商会人士';
+    if (/敌|水贼|山贼|匪|刺客/.test(text)) return '敌对人物';
+    return npc?.是否队友 === true ? '随行同伴' : '江湖人物';
+};
+
+const 规范化NPC关系状态 = (npc: any): string => {
+    const raw = 规范化文本(npc?.关系状态);
+    if (raw && !/^(未知|不详|待补充)$/u.test(raw)) return raw;
+    if (npc?.是否队友 === true) return '队友';
+    if (npc?.是否在场 === true) return '同场';
+    return '初识';
+};
+
+const 规范化NPC简介 = (npc: any, identity: string): string => {
+    const raw = 规范化文本(npc?.简介);
+    if (raw && !/^(暂无简介|未知|不详|待补充)$/u.test(raw)) return raw;
+    const name = 规范化文本(npc?.姓名);
+    const realm = 规范化文本(npc?.境界);
+    return [name, identity, realm && !/^未知/.test(realm) ? realm : ''].filter(Boolean).join('，') || '本回合登场人物，后续由变量生成继续补档。';
+};
+
 const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
     const npc = rawNpc && typeof rawNpc === 'object' ? rawNpc : {};
     const npc其他字段 = { ...npc };
@@ -2473,13 +2562,18 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
             source
         );
     })();
+    const 推断性别 = 推断NPC性别(npc);
+    const 推断年龄 = 推断NPC年龄(npc, fallbackIndex);
+    const 推断身份 = 规范化NPC身份(npc);
+    const 推断关系状态 = 规范化NPC关系状态(npc);
+    const 推断简介 = 规范化NPC简介(npc, 推断身份);
 
     return {
         ...npc其他字段,
         id: 取首个非空文本(npc?.id, `npc_${fallbackIndex}`) || `npc_${fallbackIndex}`,
         姓名: 取首个非空文本(npc?.姓名, `角色${fallbackIndex}`) || `角色${fallbackIndex}`,
-        性别: typeof npc?.性别 === 'string' ? npc.性别 : '未知',
-        年龄: Number.isFinite(Number(npc?.年龄)) ? Number(npc.年龄) : undefined,
+        性别: 推断性别,
+        年龄: 推断年龄,
         ...(生日 ? { 生日 } : {}),
         境界: 规范化境界显示文本(npc?.境界, '未知境界'),
         ...(
@@ -2509,14 +2603,14 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
                 }
                 : {}
         ),
-        身份: typeof npc?.身份 === 'string' ? npc.身份 : '未知身份',
+        身份: 推断身份,
         是否在场: typeof npc?.是否在场 === 'boolean' ? npc.是否在场 : true,
         是否队友: typeof npc?.是否队友 === 'boolean' ? npc.是否队友 : false,
         是否主要角色: typeof npc?.是否主要角色 === 'boolean' ? npc.是否主要角色 : false,
         好感度: Number.isFinite(Number(npc?.好感度)) ? Number(npc.好感度) : 0,
-        关系状态: typeof npc?.关系状态 === 'string' ? npc.关系状态 : '未知',
+        关系状态: 推断关系状态,
         ...(对主角称呼 ? { 对主角称呼 } : {}),
-        简介: typeof npc?.简介 === 'string' ? npc.简介 : '暂无简介',
+        简介: 推断简介,
         力量: 基础属性.力量,
         敏捷: 基础属性.敏捷,
         体质: 基础属性.体质,

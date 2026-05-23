@@ -87,6 +87,46 @@ describe('云端游玩存储模式', () => {
         await vi.waitFor(() => expect(syncToObjectStorage).toHaveBeenCalledTimes(1));
     });
 
+    it('返回首页前可以等待云端自动同步队列完成', async () => {
+        const service = await import('../services/cloudPlayService');
+        localStorage.setItem('moranjianghu.cloudPlay.session.v1', JSON.stringify({
+            expiresAt: Date.now() + 60_000,
+            session: {
+                userId: 'u1',
+                username: 'tg-user',
+                password: 'pw',
+                clientSalt: 'salt'
+            }
+        }));
+        service.启用对象存储云端游玩模式();
+
+        let resolveSync!: () => void;
+        const syncFinished = new Promise<void>((resolve) => { resolveSync = resolve; });
+        syncToObjectStorage.mockImplementationOnce(async () => {
+            await syncFinished;
+            return { uploaded: 1, skipped: 0, updated: 0, deduped: 0, total: 1 };
+        });
+
+        service.后台同步存档到云端({
+            id: 1,
+            类型: 'auto',
+            时间戳: 1779000000000,
+            角色数据: { 姓名: '杨培开' },
+            环境信息: { 具体地点: '武馆' },
+            历史记录: [],
+            元数据: { 存档哈希: 'abcd1234abcd1234' }
+        } as any);
+
+        let completed = false;
+        const waiting = service.等待云端后台同步完成().then(() => { completed = true; });
+        await vi.waitFor(() => expect(syncToObjectStorage).toHaveBeenCalledTimes(1));
+        await Promise.resolve();
+        expect(completed).toBe(false);
+        resolveSync();
+        await waiting;
+        expect(completed).toBe(true);
+    });
+
     it('TG 云端存档包只复用已登记可用的头像图床兜底映射，不内嵌图片数据或重复上传图片', async () => {
         vi.stubGlobal('crypto', {
             getRandomValues: (bytes: Uint8Array) => bytes.fill(7),

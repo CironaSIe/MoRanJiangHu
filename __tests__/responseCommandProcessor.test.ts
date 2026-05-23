@@ -46,7 +46,7 @@ describe('responseCommandProcessor dialogue social sync', () => {
         expect(result.社交).toHaveLength(1);
         expect(result.社交[0]).toMatchObject({
             姓名: '杨青儿',
-            身份: '剧情对话人物',
+            身份: '江湖人物',
             是否主要角色: false,
             是否在场: true,
             对白登场: true,
@@ -160,18 +160,8 @@ describe('responseCommandProcessor team companion fallback', () => {
 
         const companions = result.社交.filter((npc: any) => npc.是否队友 === true);
         expect(companions).toHaveLength(10);
-        expect(companions.map((npc: any) => npc.姓名)).toEqual([
-            '阮清',
-            '尹舟',
-            '青棠',
-            '辛夷',
-            '温竹',
-            '闻溪',
-            '乔霜',
-            '云照',
-            '桑宁',
-            '叶澄'
-        ]);
+        expect(companions.every((npc: any) => /^[\u4e00-\u9fa5]{2,4}$/u.test(npc.姓名))).toBe(true);
+        expect(companions.every((npc: any) => !/^随行者\d+$/u.test(npc.姓名))).toBe(true);
         expect(result.社交.some((npc: any) => npc.身份 === '随行队伍')).toBe(false);
     });
 

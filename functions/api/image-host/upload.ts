@@ -7,6 +7,22 @@ const CORS_HEADERS = {
 const DEFAULT_IMAGE_HOST_BASE = 'https://image1.bacon159.pp.ua';
 const MAX_RESPONSE_SNIPPET = 1200;
 
+const normalizeImageHostBase = (value: unknown): string => {
+    const raw = typeof value === 'string' && value.trim()
+        ? value.trim().replace(/\/+$/, '')
+        : DEFAULT_IMAGE_HOST_BASE;
+    try {
+        const url = new URL(raw);
+        if (/^image\.bacon159\.pp\.ua$/i.test(url.hostname)) {
+            url.hostname = 'image1.bacon159.pp.ua';
+            return url.toString().replace(/\/+$/, '');
+        }
+        return raw;
+    } catch {
+        return DEFAULT_IMAGE_HOST_BASE;
+    }
+};
+
 const buildJsonResponse = (payload: unknown, status = 200): Response => (
     new Response(JSON.stringify(payload), {
         status,
@@ -38,9 +54,7 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
             return buildJsonResponse({ success: false, error: 'IMAGE_HOST_TOKEN is not configured', requestId }, 503);
         }
 
-        const base = (typeof env?.IMAGE_HOST_BASE === 'string' && env.IMAGE_HOST_BASE.trim())
-            ? env.IMAGE_HOST_BASE.trim().replace(/\/+$/, '')
-            : DEFAULT_IMAGE_HOST_BASE;
+        const base = normalizeImageHostBase(env?.IMAGE_HOST_BASE);
         const url = new URL(request.url);
         const storage = url.searchParams.get('storage')?.trim() || 'telegram';
         const upstreamUrl = `${base}/api/v1/upload?storage=${encodeURIComponent(storage)}`;
@@ -54,14 +68,16 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
             upstreamUrl
         });
 
+        const bodyBuffer = await request.arrayBuffer();
         const upstreamResponse = await fetch(upstreamUrl, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
                 Accept: request.headers.get('Accept') || 'application/json',
-                'Content-Type': contentType
+                'Content-Type': contentType,
+                'Content-Length': String(bodyBuffer.byteLength)
             },
-            body: request.body
+            body: bodyBuffer
         });
 
         const responseHeaders = new Headers(upstreamResponse.headers);

@@ -198,4 +198,44 @@ describe('NPC old save compatibility', () => {
         expect(list[1].姓名).not.toBe('慕容氏精锐水鬼');
         expect(list[1].姓名.length).toBeLessThanOrEqual(4);
     });
+
+    it('repairs unknown dialogue NPC basics and keeps private closeups out of avatar selection', () => {
+        const [npc] = 规范化社交列表([
+            {
+                id: 'npc_dialogue_half_profile',
+                姓名: '许明澈',
+                性别: '未知',
+                年龄: undefined,
+                身份: '未知身份',
+                简介: '暂无简介',
+                图片档案: {
+                    最近生图结果: {
+                        id: 'npc_secret_胸部_1',
+                        构图: '部位特写',
+                        部位: '胸部',
+                        状态: 'success',
+                        图片URL: 'https://image1.bacon159.pp.ua/api/v1/file/private-chest'
+                    },
+                    生图历史: [
+                        {
+                            id: 'npc_secret_胸部_1',
+                            构图: '部位特写',
+                            部位: '胸部',
+                            状态: 'success',
+                            图片URL: 'https://image1.bacon159.pp.ua/api/v1/file/private-chest'
+                        }
+                    ],
+                    已选头像图片ID: 'npc_secret_胸部_1'
+                }
+            }
+        ], { 合并同名: false });
+
+        expect(npc.性别).not.toBe('未知');
+        expect(Number.isFinite(npc.年龄)).toBe(true);
+        expect(npc.年龄).toBeGreaterThanOrEqual(18);
+        expect(npc.身份).not.toBe('未知身份');
+        expect(npc.简介).not.toBe('暂无简介');
+        expect(npc.图片档案?.已选头像图片ID).toBeUndefined();
+        expect(npc.图片档案?.最近生图结果?.构图).toBe('部位特写');
+    });
 });

@@ -924,6 +924,10 @@ export const 后台同步存档到云端 = (save: 存档结构): void => {
         });
 };
 
+export const 等待云端后台同步完成 = async (): Promise<void> => {
+    await 后台同步队列;
+};
+
 export const 复制全部本地存档到云端 = async (
     session: 云端游玩账号,
     onProgress?: (progress: 云端上传进度) => void
