@@ -442,6 +442,60 @@ describe('对象存储同步', () => {
         expect(exportedOptions.some((options) => options?.includeImages === false)).toBe(true);
     });
 
+    it('后台只同步当前存档时，也会补传本地可找到的祖先节点', async () => {
+        const parent = {
+            ...makeSave(1),
+            元数据: {
+                存档哈希: 'parenthash0001',
+                存档系列ID: 'series-a',
+                存档根节点哈希: 'parenthash0001',
+                存档谱系版本: 1,
+                存档谱系深度: 0
+            }
+        };
+        const child = {
+            ...makeSave(2),
+            元数据: {
+                存档哈希: 'childhash0002',
+                存档系列ID: 'series-a',
+                存档父节点哈希: 'parenthash0001',
+                存档根节点哈希: 'parenthash0001',
+                存档谱系版本: 1,
+                存档谱系深度: 1
+            }
+        };
+        const dbService = await import('../services/dbService');
+        vi.mocked(dbService.读取存档列表).mockResolvedValueOnce([parent, child]);
+        let writtenManifest: any = null;
+
+        vi.stubGlobal('fetch', vi.fn(async (_url: string, init?: RequestInit) => {
+            const headers = new Headers(init?.headers);
+            const method = headers.get('X-Object-Storage-Method') || '';
+            const key = headers.get('X-Object-Storage-Key') || '';
+            if (!method) throw new TypeError('CORS blocked direct object storage request');
+            if (method === 'GET' && key.endsWith('/manifest.json')) {
+                return new Response(JSON.stringify({
+                    format: 'moranjianghu-object-storage-manifest',
+                    version: 1,
+                    updatedAt: new Date().toISOString(),
+                    saves: []
+                }), { status: 200 });
+            }
+            if (method === 'PUT' && key.includes('/saves/')) return new Response('', { status: 200 });
+            if (method === 'PUT' && key.endsWith('/manifest.json')) {
+                writtenManifest = JSON.parse(String(init?.body || '{}'));
+                return new Response('', { status: 200 });
+            }
+            return new Response('', { status: 200 });
+        }));
+
+        const { 增量同步到对象存储 } = await import('../services/objectStorageSync');
+        const result = await 增量同步到对象存储(config, [child as any]);
+
+        expect(result.uploaded).toBe(2);
+        expect(writtenManifest.saves.map((item: any) => item.hash).sort()).toEqual(['childhash0002', 'parenthash0001']);
+    });
+
     it('增量导入云包时会恢复包内全部时间树节点', async () => {
         const parent = {
             ...makeSave(1),

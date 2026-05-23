@@ -31,7 +31,7 @@ const flattenChildren = (items: ReturnType<typeof 展开对象存储进度线>) 
 );
 
 describe('对象存储云端游玩进度线', () => {
-    it('按谱系根区分同名角色，并把同谱系重复自动节点整理成单线', () => {
+    it('按谱系系列区分同名角色，并把同谱系重复自动节点整理成单线', () => {
         const trees = 构建对象存储云存档时间树([
             makeItem({ hash: 'root-old', rootHash: 'root-a', seriesId: 'series-a', turnCount: 6, gameTime: '1:01:01:22:30', saveTimestamp: 1779520000000 }),
             makeItem({ hash: 'root-new', rootHash: 'root-a', seriesId: 'series-a', turnCount: 6, gameTime: '1:01:01:22:30', saveTimestamp: 1779520100000 }),
@@ -53,6 +53,19 @@ describe('对象存储云端游玩进度线', () => {
         expect(timeline.map((item) => item.hash)).toEqual(['root-new', 'turn7-new', 'turn8']);
         expect(flattenChildren(timeline).slice(0, -1).every((item) => item.children === 1)).toBe(true);
         expect(flattenChildren(timeline).at(-1)?.children).toBe(0);
+    });
+
+    it('同一谱系根哈希变化或父节点缺失时，按上一进度兜底接续', () => {
+        const trees = 构建对象存储云存档时间树([
+            makeItem({ hash: 'turn6', rootHash: 'root-old', seriesId: 'series-same', turnCount: 6, gameTime: '1:01:01:22:00', saveTimestamp: 1779520000000 }),
+            makeItem({ hash: 'turn7', rootHash: 'root-new', parentHash: 'missing-root-new', seriesId: 'series-same', turnCount: 7, gameTime: '1:01:01:22:30', saveTimestamp: 1779520100000 }),
+            makeItem({ hash: 'turn8', rootHash: 'root-new', parentHash: 'turn7', seriesId: 'series-same', turnCount: 8, gameTime: '1:01:01:23:00', saveTimestamp: 1779520200000 })
+        ]);
+
+        expect(trees).toHaveLength(1);
+        expect(trees[0].roots).toHaveLength(1);
+        expect(展开对象存储进度线(trees[0].roots).map((item) => item.hash)).toEqual(['turn6', 'turn7', 'turn8']);
+        expect(trees[0].latest.hash).toBe('turn8');
     });
 
     it('旧云端元数据缺根哈希时，用首回合片段区分同名开局', () => {
