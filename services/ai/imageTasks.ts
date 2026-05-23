@@ -28,6 +28,7 @@ import * as dbService from '../dbService';
 import { 压缩图片资源字段, 是否图片资源引用 } from '../../utils/imageAssets';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
 import { RELEASE_INFO } from '../../data/releaseInfo';
+import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
 import {
     判断疑似网络或跨域错误,
     构建ComfyUI精确连接失败提示,
@@ -1564,6 +1565,18 @@ const fetchComfyUI直连优先 = async (
     init: RequestInit,
     contextBaseUrl: string
 ): Promise<{ response: Response; channel: ComfyUI请求通道 }> => {
+    if (isNativeCapacitorEnvironment()) {
+        const host = (() => {
+            try {
+                return new URL(baseUrl).hostname.toLowerCase();
+            } catch {
+                return '';
+            }
+        })();
+        if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]') {
+            throw new Error(await 构建ComfyUI精确连接失败提示(contextBaseUrl, new Error('APK 内不能直连 localhost / 127.0.0.1。')));
+        }
+    }
     const directEndpoint = 构建ComfyUI直连端点(baseUrl, path);
     try {
         return {

@@ -65,6 +65,11 @@ const manifest = {
     releaseNotesUrl: releaseInfo.releaseNotesUrl,
     apkUrl: `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/version/${encodeURIComponent(versionedFileName)}`,
     latestApkUrl: `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/latest.apk`,
+    directApkUrl: `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/latest.apk`,
+    apkUrls: [
+      `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/latest.apk`,
+      `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/version/${encodeURIComponent(versionedFileName)}`
+    ],
     manifestUrl: publicUrl(manifestKey),
     publishedAt: releaseInfo.releasePublishedAt || new Date().toISOString(),
     changes: Array.isArray(releaseInfo.releaseNotes) ? releaseInfo.releaseNotes : []

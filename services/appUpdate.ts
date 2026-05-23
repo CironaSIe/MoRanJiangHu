@@ -14,6 +14,7 @@ export type UpdateManifest = {
     apkUrl?: string;
     directApkUrl?: string;
     apkUrls?: string[];
+    latestApkUrl?: string;
     manifestUrl?: string;
     githubRepoUrl?: string;
     releaseNotesUrl?: string;
@@ -266,16 +267,42 @@ const formatChanges = (changes?: string[]) => {
     return changes.map((item, index) => `${index + 1}. ${item}`).join('\n');
 };
 
+const normalizeApkDownloadUrl = (rawUrl?: string): string => {
+    const value = typeof rawUrl === 'string' ? rawUrl.trim() : '';
+    if (!value) return '';
+
+    try {
+        const baseUrl = typeof window !== 'undefined' ? window.location.href : 'https://msjh.bacon.de5.net';
+        return new URL(value, baseUrl).toString();
+    } catch {
+        return '';
+    }
+};
+
+const resolveNativeApkDownloadUrls = (manifest: UpdateManifest): string[] => {
+    const rawCandidates = [
+        manifest.directApkUrl,
+        ...(Array.isArray(manifest.apkUrls) ? manifest.apkUrls : []),
+        manifest.apkUrl,
+        manifest.latestApkUrl,
+        RELEASE_INFO.apkDownloadUrl
+    ];
+    const seen = new Set<string>();
+
+    return rawCandidates
+        .map((item) => normalizeApkDownloadUrl(item))
+        .filter((item) => {
+            if (!item || seen.has(item)) return false;
+            seen.add(item);
+            return true;
+        });
+};
+
 const installUpdateInNativeApp = async (manifest: UpdateManifest) => {
-    const rawTargetUrl = manifest.directApkUrl
-        || (Array.isArray(manifest.apkUrls) ? manifest.apkUrls.find((item) => typeof item === 'string' && item.trim()) : '')
-        || manifest.apkUrl
-        || RELEASE_INFO.apkDownloadUrl;
-    if (!rawTargetUrl) {
+    const targetUrls = resolveNativeApkDownloadUrls(manifest);
+    if (targetUrls.length === 0) {
         throw new Error('缺少 APK 下载地址。');
     }
-    const targetUrlObject = new URL(rawTargetUrl, typeof window !== 'undefined' ? window.location.href : 'https://msjh.bacon.de5.net');
-    const targetUrl = targetUrlObject.toString();
 
     const versionName = manifest.versionName || RELEASE_INFO.versionName;
     const listenerHandle = await NativeApkUpdater.addListener('updateProgress', (progress) => {
@@ -293,12 +320,33 @@ const installUpdateInNativeApp = async (manifest: UpdateManifest) => {
     });
 
     try {
-        await NativeApkUpdater.downloadAndInstall({
-            url: targetUrl,
-            versionName,
-            apkSha256: manifest.apkSha256,
-            apkSize: manifest.apkSize
-        });
+        let lastError: unknown = null;
+        for (let index = 0; index < targetUrls.length; index += 1) {
+            const targetUrl = targetUrls[index];
+            if (index > 0) {
+                emitAppUpdateProgress({
+                    visible: true,
+                    stage: 'preparing',
+                    message: '主下载地址不可用，正在尝试备用下载地址...',
+                    versionName
+                });
+            }
+
+            try {
+                await NativeApkUpdater.downloadAndInstall({
+                    url: targetUrl,
+                    versionName,
+                    apkSha256: manifest.apkSha256,
+                    apkSize: manifest.apkSize
+                });
+                return;
+            } catch (error) {
+                lastError = error;
+                console.warn('APK download candidate failed:', targetUrl, error);
+            }
+        }
+
+        throw lastError instanceof Error ? lastError : new Error('更新失败：所有 APK 下载地址均不可用。');
     } catch (error) {
         emitAppUpdateProgress({
             visible: true,

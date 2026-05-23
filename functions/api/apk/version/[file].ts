@@ -1,5 +1,6 @@
 import {
     APK_CORS_HEADERS,
+    APK_LATEST_CACHE_CONTROL,
     APK_VERSIONED_CACHE_CONTROL,
     buildSignedObjectUrl,
     buildTextResponse,
@@ -33,6 +34,28 @@ const toHeadResponse = (response: Response): Response => (
     new Response(null, { status: response.status, statusText: response.statusText, headers: response.headers })
 );
 
+const objectExists = async (env: any, key: string): Promise<boolean> => {
+    const signedHeadUrl = await buildSignedObjectUrl(env, key, 1800, 'HEAD');
+    const response = await fetch(signedHeadUrl, { method: 'HEAD' });
+    return response.ok;
+};
+
+const buildLatestApkRedirect = async (env: any, fileName: string, method: 'GET' | 'HEAD'): Promise<Response> => {
+    const key = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/latest.apk`);
+    const signedUrl = await buildSignedObjectUrl(env, key, 1800, method);
+    return new Response(null, {
+        status: 302,
+        headers: {
+            Location: signedUrl,
+            'Content-Type': 'application/vnd.android.package-archive',
+            'Cache-Control': APK_LATEST_CACHE_CONTROL,
+            'Content-Disposition': `attachment; filename="${fileName}"`,
+            'X-Moran-Apk-Source': 'hi168-latest-fallback',
+            ...APK_CORS_HEADERS
+        }
+    });
+};
+
 const pickVersionedFileName = (request: Request, params: any): string => {
     const raw = typeof params?.file === 'string'
         ? params.file
@@ -59,6 +82,10 @@ const handleVersionedApkRequest = async (context: any, method: 'GET' | 'HEAD'): 
         const key = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/${fileName}`);
         try {
             const signedUrl = await buildSignedObjectUrl(env, key, 1800, method);
+            if (!(await objectExists(env, key))) {
+                console.warn(`Versioned APK object missing, falling back to latest.apk: ${key}`);
+                return buildLatestApkRedirect(env, fileName, method);
+            }
             return new Response(null, {
                 status: 302,
                 headers: {

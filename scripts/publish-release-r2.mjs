@@ -66,6 +66,11 @@ const manifest = {
     releaseNotesUrl: releaseInfo.releaseNotesUrl,
     apkUrl: versionedApkUrl,
     latestApkUrl: legacyLatestApkUrl,
+    directApkUrl: legacyLatestApkUrl,
+    apkUrls: [
+      legacyLatestApkUrl,
+      versionedApkUrl
+    ].filter(Boolean),
     manifestUrl: legacyManifestUrl,
     publishedAt: releaseInfo.releasePublishedAt || new Date().toISOString(),
     changes: Array.isArray(releaseInfo.releaseNotes) ? releaseInfo.releaseNotes : []

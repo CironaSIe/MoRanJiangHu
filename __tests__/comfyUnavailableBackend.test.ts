@@ -199,4 +199,33 @@ describe('ComfyUI unavailable backend detection', () => {
         expect(calls[1]).toBe('https://msjh.bacon159.pp.ua/api/image-backend/comfyui-proxy/prompt?url=https%3A%2F%2Flive-8188.cnb.run');
         expect(calls[2]).toBe('https://msjh.bacon159.pp.ua/api/image-backend/comfyui-proxy/history/p1?url=https%3A%2F%2Flive-8188.cnb.run');
     });
+
+    it('rejects localhost ComfyUI addresses directly inside native APK before they can hit the app shell', async () => {
+        vi.stubGlobal('window', {
+            localStorage: createLocalStorageMock(),
+            location: {
+                protocol: 'https:',
+                origin: 'https://localhost',
+            },
+            Capacitor: {
+                isNativePlatform: () => true,
+            },
+        });
+        const fetchMock = vi.fn(async () => {
+            throw new Error('should not reach fetch');
+        });
+        vi.stubGlobal('fetch', fetchMock);
+
+        await expect(generateImageByPrompt('test item', {
+            baseUrl: 'http://127.0.0.1:8188',
+            apiKey: '',
+            model: '',
+            图片后端类型: 'comfyui',
+            图片接口路径: '/prompt',
+            图片响应格式: 'url',
+            ComfyUI工作流JSON: '{"1":{"class_type":"CLIPTextEncode","inputs":{"text":"__PROMPT__"}}}',
+        } as any)).rejects.toThrow(/127\.0\.0\.1|localhost|APK/);
+
+        expect(fetchMock.mock.calls.some(([input]) => String(input).includes('http://127.0.0.1:8188/prompt'))).toBe(false);
+    });
 });

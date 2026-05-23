@@ -41,10 +41,10 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
             latest: {
                 ...(payload?.latest || {}),
                 apkUrl: stableApkUrl,
-                directApkUrl: stableApkUrl,
+                directApkUrl: latestApkUrl,
                 apkUrls: [
-                    stableApkUrl,
-                    latestApkUrl
+                    latestApkUrl,
+                    stableApkUrl
                 ].filter(Boolean),
                 latestApkUrl,
                 manifestUrl: stableManifestUrl
