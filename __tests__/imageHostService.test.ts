@@ -22,7 +22,7 @@ describe('imageHostService', () => {
         const result = await 上传DataUrl到图床('data:image/png;base64,aGVsbG8=');
 
         expect(result).toMatchObject({
-            url: 'https://image.bacon159.pp.ua/api/v1/file/abc%20123',
+            url: 'https://image1.bacon159.pp.ua/api/v1/file/abc%20123',
             id: 'abc 123',
             size: 12,
             storage: 'telegram'
@@ -103,7 +103,7 @@ describe('imageHostService', () => {
             const resultPromise = 上传DataUrl到图床('data:image/png;base64,aGVsbG8=', { maxAttempts: 2 });
             await vi.advanceTimersByTimeAsync(1200);
             await expect(resultPromise).resolves.toMatchObject({
-                url: 'https://image.bacon159.pp.ua/api/v1/file/retry-ok'
+                url: 'https://image1.bacon159.pp.ua/api/v1/file/retry-ok'
             });
             expect(fetchMock).toHaveBeenCalledTimes(2);
         } finally {

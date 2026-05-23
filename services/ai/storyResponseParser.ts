@@ -680,6 +680,73 @@ const 解析判定日志行 = (line: string): { sender: string; text: string; tr
     };
 };
 
+const Judge标签残片行正则 = /^\s*(?:<|&lt;)\s*\/?\s*judge\s*(?:>|&gt;)\s*$/i;
+const Judge数值起始行正则 = /^判定值\s*[+\-]?\d+(?:\.\d+)?\s*\/\s*难度\s*[+\-]?\d+(?:\.\d+)?/;
+const Judge明细延续行正则 = /^(?:触发对象|对象|判定值|难度|基础\s*B|环境\s*E|状态\s*S|幸运\s*L|装备\s*Q|胜方|败方|差值|失败窗口|硬失败|结果)\s*(?:[=:：]|[（(]|[A-Za-z＋+\-0-9])/;
+const Judge标题残片行正则 = /^(?:【\s*[^】｜\n\r]{1,16}\s*】|\[\s*[^\]｜\n\r]{1,16}\s*\])\s*[^｜\n\r]{0,80}$/;
+
+const 是否Judge标签残片行 = (line: string): boolean => Judge标签残片行正则.test(line.trim());
+const 是否Judge数值起始行 = (line: string): boolean => Judge数值起始行正则.test(line.trim());
+const 是否Judge明细延续行 = (line: string): boolean => Judge明细延续行正则.test(line.trim());
+
+const 下一条非空行 = (lines: string[], startIndex: number): string => {
+    for (let index = startIndex; index < lines.length; index += 1) {
+        const line = (lines[index] || '').trim();
+        if (line) return line;
+    }
+    return '';
+};
+
+const 清理正文Judge残片 = (body: string): string => {
+    const lines = (body || '').replace(/\r\n/g, '\n').split('\n');
+    const result: string[] = [];
+    let inOrphanJudgeDetail = false;
+
+    for (let index = 0; index < lines.length; index += 1) {
+        const rawLine = lines[index] || '';
+        const line = rawLine.trim();
+
+        if (是否Judge标签残片行(line)) {
+            continue;
+        }
+
+        const nextNonEmpty = 下一条非空行(lines, index + 1);
+        if (
+            !inOrphanJudgeDetail
+            && Judge标题残片行正则.test(line)
+            && 是否Judge数值起始行(nextNonEmpty)
+        ) {
+            inOrphanJudgeDetail = true;
+            continue;
+        }
+
+        if (是否Judge数值起始行(line)) {
+            inOrphanJudgeDetail = true;
+            continue;
+        }
+
+        if (inOrphanJudgeDetail) {
+            if (!line) {
+                inOrphanJudgeDetail = false;
+                result.push(rawLine);
+                continue;
+            }
+            if (是否Judge明细延续行(line) || 是否Judge标签残片行(line)) {
+                continue;
+            }
+            inOrphanJudgeDetail = false;
+        }
+
+        result.push(rawLine);
+    }
+
+    return result.join('\n')
+        .replace(/(?:<|&lt;)\s*\/?\s*judge\s*(?:>|&gt;)/gi, '\n')
+        .replace(/[\t ]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+};
+
 const 提取正文中的Judge区块 = (body: string): { cleanBody: string; judgeBlocks: GameResponse['judge_blocks'] } => {
     const source = (body || '').replace(/\r\n/g, '\n');
     if (!source.trim()) {
@@ -704,7 +771,7 @@ const 提取正文中的Judge区块 = (body: string): { cleanBody: string; judge
         .replace(/\n{3,}/g, '\n\n');
 
     return {
-        cleanBody,
+        cleanBody: 清理正文Judge残片(cleanBody),
         judgeBlocks: judgeBlocks.length > 0 ? judgeBlocks : undefined
     };
 };

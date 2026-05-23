@@ -8,6 +8,15 @@ import {
     type 对象存储同步配置
 } from './objectStorageSync';
 import { 读取存档游玩回合数 } from '../utils/saveTurn';
+import {
+    创建图片资源引用,
+    解析图片资源引用ID,
+    是否图片资源引用,
+    是否远程图片地址,
+    注册远程图片兜底引用,
+    读取远程图片兜底映射,
+    读取图片资源远程兜底地址
+} from '../utils/imageAssets';
 
 const CLOUD_PLAY_API_PATH = '/api/cloud-play';
 const IMAGE_HOST_DOWNLOAD_PROXY_PATH = '/api/image-host/download';
@@ -93,7 +102,9 @@ type 云端存档包 = {
     historyBaseLength?: number;
     historyAppend?: unknown[];
     historyReplace?: unknown[];
+    imageFallbacks?: 云端图片兜底项[];
 };
+type 云端图片兜底项 = { id: string; remoteUrl: string };
 type 差分基准 = { summary: 云端存档摘要; save: 存档结构 } | null;
 type 持久云端游玩会话 = {
     expiresAt: number;
@@ -265,6 +276,79 @@ const fetchCloudSaveBytes = async (
 
 const 深拷贝 = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
+const 检查图床图片可用 = async (remoteUrl: string): Promise<boolean> => {
+    const normalized = readString(remoteUrl);
+    if (!是否远程图片地址(normalized)) return false;
+    try {
+        const response = await fetch(`${buildImageHostProxyUrl(IMAGE_HOST_DOWNLOAD_PROXY_PATH)}?url=${encodeURIComponent(normalized)}`, {
+            method: 'GET',
+            cache: 'no-store',
+            headers: {
+                Accept: 'image/*,*/*;q=0.8',
+                Range: 'bytes=0-0'
+            }
+        });
+        if (!response.ok) return false;
+        const contentType = response.headers.get('Content-Type') || '';
+        return !contentType || /^image\//i.test(contentType) || contentType.includes('octet-stream');
+    } catch {
+        return false;
+    }
+};
+
+const 准备云端包图片兜底 = async (save: 存档结构): Promise<云端图片兜底项[]> => {
+    const refs = new Map<string, string>();
+    const remoteFallbacks = 读取远程图片兜底映射();
+    const seen = new WeakSet<object>();
+
+    const visit = (value: unknown): void => {
+        const text = readString(value);
+        if (text) {
+            if (是否图片资源引用(text)) {
+                const id = 解析图片资源引用ID(text);
+                if (id && !refs.has(id)) refs.set(id, '');
+                return;
+            }
+            if (是否远程图片地址(text)) {
+                const id = readString(remoteFallbacks[text]);
+                if (id && !refs.has(id)) refs.set(id, text);
+            }
+            return;
+        }
+        if (!value || typeof value !== 'object') return;
+        if (seen.has(value as object)) return;
+        seen.add(value as object);
+        if (Array.isArray(value)) {
+            value.forEach(visit);
+            return;
+        }
+        Object.values(value as Record<string, unknown>).forEach(visit);
+    };
+
+    visit(save);
+    const fallbacks: 云端图片兜底项[] = [];
+    for (const [id, discoveredRemoteUrl] of refs.entries()) {
+        const ref = 创建图片资源引用(id);
+        let remoteUrl = readString(discoveredRemoteUrl) || 读取图片资源远程兜底地址(ref);
+        if (!remoteUrl) continue;
+        if (await 检查图床图片可用(remoteUrl)) {
+            注册远程图片兜底引用(remoteUrl, id);
+            fallbacks.push({ id, remoteUrl });
+        }
+    }
+    return fallbacks;
+};
+
+const 恢复云端包图片兜底 = (pack: 云端存档包): void => {
+    const fallbacks = Array.isArray(pack.imageFallbacks) ? pack.imageFallbacks : [];
+    if (fallbacks.length === 0) return;
+    for (const item of fallbacks) {
+        const id = readString(item?.id);
+        const remoteUrl = readString(item?.remoteUrl);
+        if (id && 是否远程图片地址(remoteUrl)) 注册远程图片兜底引用(remoteUrl, id);
+    }
+};
+
 const 去除存档易变字段 = (save: 存档结构): any => {
     const copy: any = 深拷贝(save);
     delete copy.id;
@@ -402,6 +486,7 @@ const 构建存档上传包 = async (
     forcedBase?: 差分基准
 ): Promise<{ pack: 云端存档包; packageFormat: 'snapshot' | 'delta'; baseCloudId?: string; baseSyncHash?: string }> => {
     const base = forcedBase === undefined ? await 查找差分基准(save, manifest) : forcedBase;
+    const imageFallbacks = await 准备云端包图片兜底(save);
     if (!base) {
         return {
             packageFormat: 'snapshot',
@@ -409,7 +494,8 @@ const 构建存档上传包 = async (
                 format: 'moranjianghu-cloud-play-save-package',
                 version: 1,
                 kind: 'snapshot',
-                save
+                save,
+                imageFallbacks
             }
         };
     }
@@ -431,7 +517,8 @@ const 构建存档上传包 = async (
             gamePatch: 构建JsonPatch(baseGame, nextGame),
             historyBaseLength: prefix ? baseHistory.length : 0,
             historyAppend: prefix ? nextHistory.slice(baseHistory.length) : undefined,
-            historyReplace: prefix ? undefined : nextHistory
+            historyReplace: prefix ? undefined : nextHistory,
+            imageFallbacks
         }
     };
 };
@@ -909,6 +996,7 @@ const 从云端存档包还原存档 = async (
         if (!save) throw new Error('云端存档包内没有可读取的存档。');
         return save;
     }
+    恢复云端包图片兜底(cloudPack);
     if (cloudPack.kind === 'snapshot') {
         if (!cloudPack.save) throw new Error('云端快照存档内容为空。');
         return 补全云端存档谱系元数据(cloudPack.save, item);

@@ -4,7 +4,7 @@ const CORS_HEADERS = {
     'Access-Control-Allow-Headers': 'Content-Type, Accept'
 };
 
-const DEFAULT_IMAGE_HOST_BASE = 'https://image.bacon159.pp.ua';
+const DEFAULT_IMAGE_HOST_BASE = 'https://image1.bacon159.pp.ua';
 const MAX_RESPONSE_SNIPPET = 1200;
 
 const buildJsonResponse = (payload: unknown, status = 200): Response => (

@@ -1,9 +1,10 @@
 import React from 'react';
-import { 角色数据结构, 游戏设置结构, 视觉设置结构 } from '../../types';
+import { OpeningConfig, 角色数据结构, 游戏设置结构, 视觉设置结构 } from '../../types';
 import { use图片资源回源预取 } from '../../hooks/useImageAssetPrefetch';
 import { 构建区域文字样式 } from '../../utils/visualSettings';
 import { 获取图片资源文本地址 } from '../../utils/imageAssets';
 import { 计算角色总气血 } from '../../utils/characterVitals';
+import { 获取货币显示模式, 获取货币单位标签 } from '../../utils/currencyDisplay';
 
 interface Props {
     角色: 角色数据结构;
@@ -12,6 +13,7 @@ interface Props {
     onUploadAvatar?: (imageUrl: string) => void;
     visualConfig?: 视觉设置结构;
     gameConfig?: 游戏设置结构;
+    openingConfig?: OpeningConfig;
     latestCommands?: any[];
 }
 
@@ -168,7 +170,7 @@ const 读取本回合数值变化 = (commands: any[], path: string): number | nu
     return total === 0 ? null : total;
 };
 
-const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableManager, onUploadAvatar, visualConfig, gameConfig, latestCommands = [] }) => {
+const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableManager, onUploadAvatar, visualConfig, gameConfig, openingConfig, latestCommands = [] }) => {
     use图片资源回源预取(角色);
     const 金钱 = 角色.金钱 || { 金元宝: 0, 银子: 0, 铜钱: 0 };
     const 玩家BUFF列表 = Array.isArray(角色.玩家BUFF) ? 角色.玩家BUFF : [];
@@ -215,6 +217,7 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
         银子: 读取本回合数值变化(latestCommands, '角色.金钱.银子'),
         铜钱: 读取本回合数值变化(latestCommands, '角色.金钱.铜钱')
     };
+    const 货币模式 = 获取货币显示模式(openingConfig, 角色);
 
     const equipmentOrder: { key: keyof typeof 角色.装备; label: string }[] = [
         { key: '头部', label: '头部' },
@@ -333,9 +336,9 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
             <div className="mb-2 shrink-0 border border-gray-800/60 bg-black/30 px-2 py-1 flex items-center justify-between font-mono" style={{ color: 'rgba(209,213,219,1)', fontSize: 缩放字号(1, 14) }}>
                 <span className="text-gray-500">钱财</span>
                 <span className="text-right">
-                    元宝 {金钱变化.金元宝 !== null && <span className={金钱变化.金元宝 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.金元宝 > 0 ? '+' : ''}{金钱变化.金元宝})</span>} {金钱.金元宝}
-                    {' / '}银 {金钱变化.银子 !== null && <span className={金钱变化.银子 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.银子 > 0 ? '+' : ''}{金钱变化.银子})</span>} {金钱.银子}
-                    {' / '}铜 {金钱变化.铜钱 !== null && <span className={金钱变化.铜钱 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.铜钱 > 0 ? '+' : ''}{金钱变化.铜钱})</span>} {金钱.铜钱}
+                    {获取货币单位标签('金元宝', 货币模式)} {金钱变化.金元宝 !== null && <span className={金钱变化.金元宝 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.金元宝 > 0 ? '+' : ''}{金钱变化.金元宝})</span>} {金钱.金元宝}
+                    {' / '}{获取货币单位标签('银子', 货币模式)} {金钱变化.银子 !== null && <span className={金钱变化.银子 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.银子 > 0 ? '+' : ''}{金钱变化.银子})</span>} {金钱.银子}
+                    {' / '}{获取货币单位标签('铜钱', 货币模式)} {金钱变化.铜钱 !== null && <span className={金钱变化.铜钱 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.铜钱 > 0 ? '+' : ''}{金钱变化.铜钱})</span>} {金钱.铜钱}
                 </span>
             </div>
 

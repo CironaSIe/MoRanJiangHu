@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { 提取图片资源引用列表 } from '../hooks/useImageAssetPrefetch';
 import {
     创建图片资源引用,
+    获取图片资源文本地址,
+    清空图片资源缓存,
+    注册图片资源缓存,
     注册远程图片兜底引用,
     图片资源记录含可恢复地址
 } from '../utils/imageAssets';
@@ -19,5 +22,24 @@ describe('imageAssets', () => {
         注册远程图片兜底引用(remoteUrl, fallbackRef);
 
         expect(提取图片资源引用列表({ 图片URL: remoteUrl })).toContain(fallbackRef);
+    });
+
+    it('uses the local cached copy before a registered remote fallback URL', () => {
+        const remoteUrl = 'https://image.bacon159.pp.ua/api/v1/file/player-avatar.png';
+        const fallbackRef = 创建图片资源引用('player-avatar-local');
+        const dataUrl = 'data:image/png;base64,LOCAL_AVATAR';
+        注册远程图片兜底引用(remoteUrl, fallbackRef);
+        注册图片资源缓存('player-avatar-local', dataUrl);
+
+        expect(获取图片资源文本地址(remoteUrl)).toBe(dataUrl);
+    });
+
+    it('uses a registered remote fallback when a local asset ref has not been cached on this device', () => {
+        const remoteUrl = 'https://image.bacon159.pp.ua/api/v1/file/player-avatar-cloud.png';
+        const fallbackRef = 创建图片资源引用('player-avatar-cloud-local');
+        清空图片资源缓存();
+        注册远程图片兜底引用(remoteUrl, fallbackRef);
+
+        expect(获取图片资源文本地址(fallbackRef)).toBe(remoteUrl);
     });
 });

@@ -63,7 +63,8 @@ const 是否可缓存图床图片地址 = (value: string): boolean => {
     if (!/^https?:\/\//i.test(value)) return false;
     try {
         const url = new URL(value);
-        return /(^|\.)image\.bacon159\.pp\.ua$/i.test(url.hostname)
+        return /^image1\.bacon159\.pp\.ua$/i.test(url.hostname)
+            || /^image\.bacon159\.pp\.ua$/i.test(url.hostname)
             || /\.(png|jpe?g|webp|gif|bmp)(?:$|[?#])/i.test(url.pathname);
     } catch {
         return false;
@@ -277,7 +278,19 @@ const 构建存档历史记录 = (
     deps: Pick<存档协调依赖, '深拷贝'>
 ): 聊天记录结构[] => {
     const rawHistory = Array.isArray(sourceHistory) ? sourceHistory : [];
-    return deps.深拷贝(rawHistory);
+    return 清理历史瞬态滚动标记(deps.深拷贝(rawHistory));
+};
+
+export const 清理历史瞬态滚动标记 = (history: 聊天记录结构[] | undefined): 聊天记录结构[] => {
+    if (!Array.isArray(history)) return [];
+    return history.map((item) => {
+        if (!item || typeof item !== 'object') return item;
+        if (item.autoScrollToTurnIcon !== true && item.autoScrollToTurnStart !== true) return item;
+        const next = { ...item };
+        delete next.autoScrollToTurnIcon;
+        delete next.autoScrollToTurnStart;
+        return next;
+    });
 };
 
 const 规范化文本签名 = (value: unknown): string => (
@@ -795,7 +808,9 @@ export const 执行读取存档 = async (
         }
         trace('promptSnapshot.done');
     }
-    const loadedHistoryForState = Array.isArray(save.历史记录) ? save.历史记录 : [];
+    const loadedHistoryForState = 清理历史瞬态滚动标记(
+        Array.isArray(save.历史记录) ? deps.深拷贝(save.历史记录) : []
+    );
     trace('history.set.start', {
         history: buildHistoryDebugSummary(loadedHistoryForState)
     });
@@ -832,7 +847,7 @@ export const 执行读取存档 = async (
     trace('configs.set.done', {
         hasIncomingVisual: Boolean(incomingVisual)
     });
-    const loadedHistory = Array.isArray(save.历史记录) ? save.历史记录 : [];
+    const loadedHistory = loadedHistoryForState;
     let loadedSceneArchive: 场景图片档案;
     if (save.场景图片档案 && typeof save.场景图片档案 === 'object') {
         trace('sceneArchive.set.start', {

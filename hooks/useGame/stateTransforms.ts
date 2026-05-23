@@ -5,7 +5,7 @@ import { 自动装备最佳装备 } from '../../utils/equipmentActions';
 import { 规范化消耗品使用效果 } from '../../utils/itemEffects';
 import { 补齐自动丹药预设 } from '../../utils/autoConsumables';
 import { 归一化六维到境界预算 } from '../../utils/attributeBudget';
-import { 重命名重复女性NPC列表 } from '../../utils/femaleNameSelector';
+import { 判断女性名称目标, 选择唯一女性姓名, 重命名重复女性NPC列表 } from '../../utils/femaleNameSelector';
 
 const 深拷贝 = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
 const 默认装备模板 = {
@@ -2281,20 +2281,86 @@ const 合并NPC图片档案对象 = (leftRaw: any, rightRaw: any): any | undefin
     };
 };
 
-const 噪声NPC姓名片段正则 = /(?:轻声|低声|细语|小声|柔声|温声|沉声|冷声|厉声|压低|喃喃|喃语|嘀咕|说道|说着|问道|答道|开口|补充|解释|提醒|笑着|苦笑|皱眉|抬眼|抬头|看向|望向|回头|点头|摇头|叹息|擦净|将|把|并|却|已经|刚刚)/;
+const NPC真实姓名最大长度 = 4;
+const NPC真实姓名最小长度 = 2;
+const 男性NPC真实姓名列表 = [
+    '顾长风', '沈砚', '陆怀安', '谢行舟', '裴景明', '温玄', '晏清河', '秦照夜',
+    '傅云峥', '宁远山', '赵平安', '林砚舟', '许明澈', '周临渊', '韩不疑', '唐问川',
+    '宋青崖', '叶归尘', '江听澜', '方知白', '洛怀瑾', '萧承影', '陈照微', '岑越'
+];
+const 中性NPC真实姓名列表 = [
+    '云照', '青棠', '闻溪', '桑宁', '辛夷', '乔霜', '尹舟', '郁离',
+    '楚衡', '姜行', '阮清', '奚白', '叶澄', '洛微', '祝宁', '温竹'
+];
+const 噪声NPC姓名片段正则 = /(?:轻声|低声|细语|小声|柔声|温声|沉声|冷声|厉声|压低|喃喃|喃语|嘀咕|说道|说着|问道|答道|开口|补充|解释|提醒|笑着|苦笑|皱眉|抬眼|抬头|看向|望向|回头|点头|摇头|叹息|擦净|将|把|并|却|已经|刚刚|没有|只能|只好|不得不|勉强|继续|仍旧|还是)/;
 const 噪声NPC姓名收尾正则 = /(?:地|着|了|道|问|说)$/;
 const 噪声NPC姓名完整短语正则 = /^(?:(?:他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人))?(?:只能|只好|只得|不得不|勉强|连忙|赶紧|急忙|仍旧|还是|却|并|但|又|便|就|再)?(?:强辩|辩解|解释|补充|提醒|回答|答话|应声|开口|说道|说着|问道|答道|低声|轻声|沉声|苦笑|皱眉|点头|摇头|叹息|看向|望向|回头|抬眼|抬头|擦净)$/;
 
 const 是否噪声NPC姓名 = (value: unknown): boolean => {
     const name = 规范化文本(value);
     if (!name) return true;
-    if (name.length > 12) return true;
+    if (name.length > 12 || name.length > NPC真实姓名最大长度) return true;
     if (/[，。！？；：、,.!?;:\s\n\r]/.test(name)) return true;
     if (/^(旁白|判定|NSFW判定|免责声明|disclaimer)$/.test(name)) return true;
+    if (/^(?:自己|自身|本人|主角|玩家|他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人)(?:已经|没有|只能|只好|仍旧|还是|刚刚|继续|再|又|便|就|不再|无法|不能)?.*$/u.test(name)) return true;
     if (噪声NPC姓名完整短语正则.test(name)) return true;
-    if (/^(?:他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人).{1,10}$/.test(name) && 噪声NPC姓名片段正则.test(name)) return true;
+    if (/^(?:自己|自身|本人|主角|玩家|他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人).{1,10}$/.test(name) && 噪声NPC姓名片段正则.test(name)) return true;
     if (name.length >= 4 && 噪声NPC姓名收尾正则.test(name) && 噪声NPC姓名片段正则.test(name)) return true;
     return false;
+};
+
+const 是否真实NPC姓名 = (value: unknown): boolean => {
+    const name = 规范化文本(value).replace(/\s+/g, '');
+    if (name.length < NPC真实姓名最小长度 || name.length > NPC真实姓名最大长度) return false;
+    if (!/^[\u4e00-\u9fa5]{2,4}$/u.test(name)) return false;
+    if (是否噪声NPC姓名(name)) return false;
+    if (/^(?:未知|无名|未命名|某人|路人|角色|人物|NPC|同门|随行者|队友|弟子)\d*$/u.test(name)) return false;
+    if (/(?:女子|女人|少女|姑娘|男子|男人|少年|老者|老人|太监|内侍|侍卫|护卫|弟子|同门|掌柜|管事|宫女|丫鬟|小厮|车夫)$/u.test(name)) return false;
+    return true;
+};
+
+const 选择男性或中性NPC姓名 = (npc: any, index: number, usedNames: Set<string>): string => {
+    const text = [npc?.id, npc?.姓名, npc?.性别, npc?.身份, npc?.简介, npc?.境界, index]
+        .map((value) => 规范化文本(value))
+        .join('|');
+    const pool = /女|女子|少女|姑娘|侍女|丫鬟|妇人|夫人/.test(text)
+        ? 中性NPC真实姓名列表
+        : (/男|男子|少年|老者|太监|内侍|侍卫|护卫|公子|汉子/.test(text) ? 男性NPC真实姓名列表 : 中性NPC真实姓名列表);
+    const start = 稳定区间整数(`${text}:real-name`, 0, Math.max(0, pool.length - 1));
+    for (let offset = 0; offset < pool.length; offset += 1) {
+        const candidate = pool[(start + offset) % pool.length];
+        if (candidate && !usedNames.has(candidate)) return candidate;
+    }
+    return `${pool[start] || '云照'}${usedNames.size + 1}`;
+};
+
+const 修复NPC真实姓名列表 = (list: any[]): any[] => {
+    if (!Array.isArray(list)) return [];
+    const usedNames = new Set<string>();
+    return list.map((npc, index) => {
+        const name = 规范化文本(npc?.姓名).replace(/\s+/g, '');
+        if (是否真实NPC姓名(name) && !usedNames.has(name)) {
+            usedNames.add(name);
+            return name === npc?.姓名 ? npc : { ...npc, 姓名: name };
+        }
+
+        const nextName = 判断女性名称目标(npc)
+            ? 选择唯一女性姓名({
+                usedNames,
+                seed: [npc?.id, npc?.姓名, npc?.身份, npc?.简介, npc?.境界, index].map((value) => 规范化文本(value)).join('|')
+            })
+            : 选择男性或中性NPC姓名(npc, index, usedNames);
+        usedNames.add(nextName);
+        const legacyNames = Array.isArray(npc?.曾用名)
+            ? npc.曾用名.map((item: unknown) => 规范化文本(item)).filter(Boolean)
+            : [];
+        const 曾用名 = Array.from(new Set([...legacyNames, name].filter(Boolean)));
+        return {
+            ...npc,
+            姓名: nextName,
+            ...(曾用名.length > 0 ? { 曾用名 } : {})
+        };
+    });
 };
 
 const 是否应丢弃NPC条目 = (rawNpc: any): boolean => {
@@ -2760,7 +2826,7 @@ const 规范化社交列表 = (list: any[], options?: { 合并同名?: boolean }
     const merged = options?.合并同名 === false
         ? 合并占位NPC列表(normalized, { 合并精确同名: false })
         : 合并占位NPC列表(合并同名NPC列表(normalized));
-    return 重命名重复女性NPC列表(merged);
+    return 重命名重复女性NPC列表(修复NPC真实姓名列表(merged));
 };
 
 export {

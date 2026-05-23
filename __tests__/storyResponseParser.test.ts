@@ -122,6 +122,22 @@ describe('storyResponseParser', () => {
         ]);
     });
 
+    it('filters leaked judge fragments from renderable logs', () => {
+        const rendered = 规范化可渲染对白日志([
+            { sender: '旁白', text: '城门金色流光转动。' },
+            { sender: '【洞察】', text: '入城气机感知' },
+            { sender: '旁白', text: '判定值 22 / 难度 15\n基础 B(+10,静心观微)\n状态 S(+10,水银灵力内敛)\n环境 E(+2,城门阵法压迫)\n结果：大成功\n</judge>' },
+            { sender: '【判定】', text: '【判定】[洞察]入城气机感知｜触发对象 玩家:杨培强｜判定值 22/难度 15｜结果=大成功' },
+            { sender: '旁白', text: '你跨过青石门槛。' }
+        ]);
+
+        expect(rendered).toEqual([
+            { sender: '旁白', text: '城门金色流光转动。' },
+            { sender: '【判定】', text: '【判定】[洞察]入城气机感知｜触发对象 玩家:杨培强｜判定值 22/难度 15｜结果=大成功' },
+            { sender: '旁白', text: '你跨过青石门槛。' }
+        ]);
+    });
+
     it('extracts square-bracket judgment lines without swallowing following narration', () => {
         const parsed = parseStoryRawText([
             '<正文>',
@@ -153,5 +169,31 @@ describe('storyResponseParser', () => {
             { sender: '【交涉】', text: '【交涉】威压管事查账｜触发对象 玩家:杨培强｜判定值 10/难度 6｜结果=成功' },
             { sender: '旁白', text: '杨培强没有废话，直接释放灵力波动。' }
         ]);
+    });
+
+    it('removes orphan judge detail blocks from rendered body', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '【旁白】州府城门高达数十丈，玄色砖石上隐约可见金色流光转动。',
+            '【洞察】入城气机感知',
+            '判定值 22 / 难度 15',
+            '基础 B(+10,静心观微)',
+            '状态 S(+10,水银灵力内敛)',
+            '环境 E(+2,城门阵法压迫)',
+            '结果：大成功',
+            '</judge>',
+            '【判定】[洞察]入城气机感知｜触发对象 玩家:杨培强｜判定值 22/难度 15｜基础 B(+10,静心观微)｜状态 S(+10,水银灵力内敛)｜环境 E(+2,城门阵法压迫)｜结果=大成功',
+            '【旁白】跨过那道刻满繁复符文的青石门槛时，你目不斜视。',
+            '</正文>',
+            '<短期记忆>杨培强入城时成功收敛气机。</短期记忆>'
+        ].join('\n'));
+
+        expect(parsed.logs).toEqual([
+            { sender: '旁白', text: '州府城门高达数十丈，玄色砖石上隐约可见金色流光转动。' },
+            { sender: '【判定】', text: '【判定】[洞察]入城气机感知｜触发对象 玩家:杨培强｜判定值 22/难度 15｜基础 B(+10,静心观微)｜状态 S(+10,水银灵力内敛)｜环境 E(+2,城门阵法压迫)｜结果=大成功' },
+            { sender: '旁白', text: '跨过那道刻满繁复符文的青石门槛时，你目不斜视。' }
+        ]);
+        expect(parsed.logs.map(item => item.text).join('\n')).not.toContain('</judge>');
+        expect(parsed.logs.map(item => item.text).join('\n')).not.toContain('判定值 22 / 难度 15');
     });
 });

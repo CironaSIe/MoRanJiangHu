@@ -149,6 +149,112 @@ const 序列化变量模型状态 = (
 
 const 读取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
+const 标准化人物匹配文本 = (value: unknown): string => (
+    读取文本(value).replace(/\s+/g, '').replace(/[·・\-—_【】（）()《》“”"'，,。！？!?:：；;]/g, '')
+);
+
+const 非人物对白发送者集合 = new Set([
+    '旁白',
+    '判定',
+    '系统',
+    '提示',
+    'disclaimer',
+    '行动选项',
+    '变量规划',
+    '剧情规划'
+]);
+
+const 是否疑似主角发送者 = (sender: string, roleName: string): boolean => {
+    const normalized = 标准化人物匹配文本(sender);
+    const normalizedRole = 标准化人物匹配文本(roleName);
+    if (!normalized) return true;
+    if (normalizedRole && normalized === normalizedRole) return true;
+    return normalized === '我' || normalized === '你' || normalized === '主角' || normalized === '玩家';
+};
+
+const 提取本回合对白发送者 = (response: GameResponse, roleName?: string): string[] => {
+    const role = 读取文本(roleName);
+    const seen = new Set<string>();
+    const result: string[] = [];
+    (Array.isArray(response?.logs) ? response.logs : []).forEach((log: any) => {
+        const sender = 读取文本(log?.sender);
+        const text = 读取文本(log?.text);
+        if (!sender || !text) return;
+        if (非人物对白发送者集合.has(sender) || 非人物对白发送者集合.has(sender.toLowerCase())) return;
+        if (/^判定/.test(sender)) return;
+        if (是否疑似主角发送者(sender, role)) return;
+        const key = 标准化人物匹配文本(sender);
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        result.push(sender);
+    });
+    return result.slice(0, 12);
+};
+
+const 查找社交NPC索引 = (socialRaw: unknown, sender: string): number => {
+    if (!Array.isArray(socialRaw)) return -1;
+    const target = 标准化人物匹配文本(sender);
+    if (!target) return -1;
+    return socialRaw.findIndex((npc: any) => {
+        if (!npc || typeof npc !== 'object') return false;
+        const candidates = [
+            npc?.姓名,
+            ...(Array.isArray(npc?.曾用名) ? npc.曾用名 : []),
+            npc?.身份,
+            npc?.简介
+        ].map(标准化人物匹配文本).filter(Boolean);
+        return candidates.some((item) => item === target || item.includes(target) || target.includes(item));
+    });
+};
+
+const 对白人物基础缺口 = (npc: any, options?: { xianxiaMode?: boolean }): string[] => {
+    const missing: string[] = [];
+    ['姓名', '性别', '年龄', '身份', '境界', '简介', '关系状态', '出身背景'].forEach((key) => {
+        if (文本疑似占位(npc?.[key])) missing.push(key);
+    });
+    ['是否主要角色', '是否在场'].forEach((key) => {
+        if (typeof npc?.[key] !== 'boolean') missing.push(key);
+    });
+    ['天赋列表', '当前装备', '背包', 'BUFF', 'DEBUFF', '技艺', '记忆'].forEach((key) => {
+        if (!Array.isArray(npc?.[key])) missing.push(key);
+    });
+    ['力量', '敏捷', '体质', '根骨', '悟性', '福源', '境界层级', '攻击力', '防御力', '当前血量', '最大血量', '当前精力', '最大精力'].forEach((key) => {
+        if (!Number.isFinite(Number(npc?.[key]))) missing.push(key);
+    });
+    if (NPC缺少七部位状态(npc)) missing.push('七部位血量与状态');
+    if (options?.xianxiaMode === true && 缺少仙侠字段(npc)) missing.push('仙侠修真字段');
+    return Array.from(new Set(missing));
+};
+
+export const 构建正文对白人物审计提示 = (
+    response: GameResponse,
+    baseState: 变量模型基态,
+    options?: { xianxiaMode?: boolean }
+): string => {
+    const senders = 提取本回合对白发送者(response, (baseState as any)?.角色?.姓名);
+    if (senders.length <= 0) return '';
+    const lines = senders.map((sender) => {
+        const index = 查找社交NPC索引(baseState.社交, sender);
+        if (index < 0) {
+            return `- ${sender}：本回合有独立对白框，但当前 \`社交[]\` 未找到对应完整档案；必须通过 \`push 社交 = {...}\` 新建完整 NPC 档案，包含真实姓名(2-4字)、性别、年龄、境界、身份、简介、是否主要角色、是否在场、位置、记忆、天赋列表、出身背景、当前装备、背包、BUFF、DEBUFF、技艺、战斗数值与七部位状态；禁止只写“剧情对话人物/未知身份/未知境界”。`;
+        }
+        const npc = Array.isArray(baseState.社交) ? (baseState.社交 as any[])[index] : null;
+        const gaps = 对白人物基础缺口(npc, { xianxiaMode: options?.xianxiaMode === true });
+        if (gaps.length <= 0) {
+            return `- ${sender}：已匹配 \`社交[${index}]\`，仍需复核本回合对白是否带来位置、记忆、关系、指令、伤势、装备或技艺变化。`;
+        }
+        return `- ${sender}：已匹配 \`社交[${index}]\`，但档案仍缺 ${gaps.join('、')}；本回合必须用 \`set 社交[${index}].字段 = ...\` 或必要的 \`push 社交[${index}].数组字段 = ...\` 补齐，不能继续保留半残“剧情对话人物”档案。`;
+    });
+    return [
+        '【本回合正文对白人物审计】',
+        '- 变量生成必须逐个核对本回合 `【角色名】` 对话框人物；凡是非旁白、非判定、非主角的人物，都必须在 `社交[]` 中有长期可承接档案。',
+        '- 有对白框的人物一律优先视为持续承接对象；未建档就完整建档，半残档就补齐字段。正文中可用代称，但变量里必须落真实姓名，并把代称写入 `曾用名/身份/简介/记忆`。',
+        '- 若该人物已被判定为女性主要角色或长期关系对象，还要按 NPC 协议补齐外貌、身材、衣着、称呼、关系突破、私密档案和名器档案；不要等后续回合再补。',
+        '',
+        ...lines
+    ].join('\n');
+};
+
 const 文本疑似占位 = (value: unknown): boolean => {
     const text = 读取文本(value);
     if (!text) return true;
@@ -384,6 +490,9 @@ export const 执行变量模型校准工作流 = async (
         femboyNsfwEnabled: 启用男娘NSFW内容,
         xianxiaMode: params.openingConfig?.题材模式 === '仙侠'
     });
+    const dialogueNpcAuditPrompt = 构建正文对白人物审计提示(params.parsedResponse, params.baseState, {
+        xianxiaMode: params.openingConfig?.题材模式 === '仙侠'
+    });
     const playerXianxiaAuditPrompt = params.openingConfig?.题材模式 === '仙侠' && 缺少仙侠字段((params.baseState as any)?.角色)
         ? '【当前主角仙侠字段审计】\n- 当前存档为仙侠模式，角色档案需要补齐/修正：灵根、灵根资质、当前灵力、最大灵力、当前神识、最大神识、丹田状态、道基状态、心魔值、功德、业力。'
         : '';
@@ -402,6 +511,7 @@ export const 执行变量模型校准工作流 = async (
             ]
         }).combinedText, runtimeGameConfig),
         按功能开关过滤提示词内容(fandomPromptBundle.同人设定摘要, runtimeGameConfig),
+        dialogueNpcAuditPrompt,
         socialCompletenessAuditPrompt,
         variableRegistryPrompt,
         获取繁体输出指令(runtimeGameConfig),

@@ -13,9 +13,10 @@ import {
     购买拍卖品,
 } from '../../../services/auctionHouse';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
-import type { 接口设置结构 } from '../../../types';
+import type { 接口设置结构, OpeningConfig } from '../../../types';
 import { 生成物品图标 } from '../../../services/ai/itemImageGeneration';
 import { 获取物品已选图标地址 } from '../../../utils/itemImage';
+import { 获取货币显示模式 } from '../../../utils/currencyDisplay';
 
 interface Props {
     character: any;
@@ -27,6 +28,7 @@ interface Props {
     isMobile?: boolean;
     storageScope?: string;
     apiConfig?: 接口设置结构;
+    openingConfig?: OpeningConfig;
 }
 
 type 分类 = '全部' | '装备' | '武器' | '防具' | '饰品' | '消耗品' | '材料' | '秘籍' | '杂物';
@@ -54,6 +56,7 @@ const AuctionHouseModal: React.FC<Props> = ({
     isMobile = false,
     storageScope,
     apiConfig,
+    openingConfig,
 }) => {
     const shellRef = React.useRef<HTMLDivElement | null>(null);
     const [activeCategory, setActiveCategory] = React.useState<分类>('全部');
@@ -88,6 +91,8 @@ const AuctionHouseModal: React.FC<Props> = ({
     }, [previewImage]);
 
     const money = character?.金钱 || {};
+    const 货币模式 = 获取货币显示模式(openingConfig, character);
+    const 货币格式化选项 = React.useMemo(() => ({ 货币模式 }), [货币模式]);
     const totalCopper = 计算金钱铜钱总值(money);
     const playerId = character?.姓名 || 'player';
     const activeAuctions = React.useMemo(
@@ -160,7 +165,7 @@ const AuctionHouseModal: React.FC<Props> = ({
             notify('无法购买', '这是你自己寄售的货品，可以撤回或交给牙行收购。', 'info');
             return;
         }
-        const result = 购买拍卖品(character, auction);
+        const result = 购买拍卖品(character, auction, 货币格式化选项);
         if (!result.ok) {
             notify('购买失败', result.message, 'error');
             return;
@@ -221,7 +226,7 @@ const AuctionHouseModal: React.FC<Props> = ({
         updateAuctionState(nextState);
         onCharacterChange(nextCharacter);
         console.info('[拍卖行交易] 牙行收购', auction.物品?.名称, income, currency);
-        notify('牙行收购', `牙行以 ${格式化拍卖货币(income, currency)} 收走了这件货。`, 'success');
+        notify('牙行收购', `牙行以 ${格式化拍卖货币(income, currency, 货币格式化选项)} 收走了这件货。`, 'success');
     };
 
     const handleGenerateItemImage = async (auction: 拍卖品记录) => {
@@ -283,7 +288,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="hidden max-w-[560px] rounded border border-wuxia-gold/20 bg-[#0f0c08] px-3 py-1.5 text-xs leading-5 text-wuxia-gold/80 sm:block whitespace-normal break-words">
-                            {格式化金钱折算(money)}
+                            {格式化金钱折算(money, 货币格式化选项)}
                         </div>
                         <button type="button" onClick={handleRefresh} className={`rounded-lg border border-emerald-500/40 bg-[#103522] text-xs text-emerald-100 transition-colors hover:border-emerald-300/60 ${isMobile ? 'px-2 py-1.5' : 'px-3 py-1.5'}`}>
                             刷新市场
@@ -344,7 +349,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                                                     <>
                                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                                             <span className={`min-w-0 whitespace-normal break-words ${getRarityNameClass(record.物品?.品质 || '')}`}>{record.物品?.名称 || '无名物品'}</span>
-                                                            <span className="shrink-0 font-mono text-wuxia-gold/80">{格式化拍卖货币(record.一口价 || record.当前价格, record.标价货币)}</span>
+                                                            <span className="shrink-0 font-mono text-wuxia-gold/80">{格式化拍卖货币(record.一口价 || record.当前价格, record.标价货币, 货币格式化选项)}</span>
                                                         </div>
                                                         <div className="mt-1 whitespace-normal break-words text-[10px] leading-4 text-gray-500">{record.卖家名称} → {record.购买者名称 || '买家'}</div>
                                                     </>
@@ -448,7 +453,7 @@ const AuctionHouseModal: React.FC<Props> = ({
                                             </div>
                                         )}
                                         <div className={`mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t border-white/8 pt-3`}>
-                                            <span className={`min-w-0 whitespace-normal break-words font-mono ${isMobile ? 'text-xs' : 'text-sm'} font-semibold leading-5 text-wuxia-gold`}>{格式化拍卖货币(entry.一口价, entry.标价货币)}</span>
+                                            <span className={`min-w-0 whitespace-normal break-words font-mono ${isMobile ? 'text-xs' : 'text-sm'} font-semibold leading-5 text-wuxia-gold`}>{格式化拍卖货币(entry.一口价, entry.标价货币, 货币格式化选项)}</span>
                                             {isPlayerListing ? (
                                                 <div className="flex shrink-0 flex-wrap justify-end gap-2">
                                                     <button type="button" onClick={(event) => { event.stopPropagation(); handleCancelListing(entry); }} className="rounded-lg border border-sky-500/40 bg-[#0b2a3a] px-3 py-1.5 text-xs font-semibold text-sky-100 transition-colors hover:border-sky-300/60">撤回</button>

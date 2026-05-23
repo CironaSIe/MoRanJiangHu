@@ -243,6 +243,13 @@ export const 读取远程图片本地兜底地址 = (remoteUrl: unknown): string
     return 读取图片资源缓存(创建图片资源引用(assetId));
 };
 
+export const 读取图片资源远程兜底地址 = (assetIdOrRef: unknown): string => {
+    const assetId = 解析图片资源引用ID(assetIdOrRef) || 读取文本(assetIdOrRef);
+    if (!assetId) return '';
+    const entry = Object.entries(读取远程图片兜底缓存()).find(([, fallbackId]) => 读取文本(fallbackId) === assetId);
+    return entry?.[0] || '';
+};
+
 export const 读取远程图片兜底资源ID集合 = (): Set<string> => (
     new Set(Object.values(读取远程图片兜底缓存()).map(读取文本).filter(Boolean))
 );
@@ -274,7 +281,12 @@ export const 获取图片资源文本地址 = (value: unknown): string => {
         const localFallback = 读取远程图片本地兜底地址(text);
         if (localFallback) return localFallback;
     }
-    return 是否图片资源引用(text) ? 读取图片资源缓存(text) : text;
+    if (是否图片资源引用(text)) {
+        const local = 读取图片资源缓存(text);
+        if (local) return local;
+        return 读取图片资源远程兜底地址(text);
+    }
+    return text;
 };
 
 export const 压缩图片资源字段 = <T extends 图片资源结构 | null | undefined>(asset: T): T => {

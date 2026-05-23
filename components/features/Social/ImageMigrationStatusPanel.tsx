@@ -78,7 +78,7 @@ const ImageMigrationStatusPanel: React.FC<Props> = ({ status, compact = false })
                     <div>
                         <div className={`${compact ? 'text-base' : 'text-2xl'} text-wuxia-gold font-serif tracking-widest text-shadow-glow`}>旧图迁移</div>
                         <div className="mt-2 text-xs md:text-sm text-gray-400 leading-relaxed">
-                            旧存档中的本地图片会在后台自动上传到图床，并把存档里的图片内容替换成图床链接。无需手动操作；失败时会保留原图并稍后自动重试。
+                            旧存档中的本地图片会在后台自动上传到图床作为备份，游戏内仍优先使用本地图片。无需手动操作；失败时会保留原图并稍后自动重试。
                         </div>
                     </div>
                     <div className={`shrink-0 rounded-full border px-3 py-1 text-xs font-serif tracking-wider ${阶段样式[status.stage]}`}>

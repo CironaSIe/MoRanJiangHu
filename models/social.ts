@@ -108,6 +108,7 @@ export interface 名器档案条目 {
 export interface NPC结构 {
     id: string;
     姓名: string;
+    曾用名?: string[];
     性别: NPC性别;
     年龄: number;
     生日?: string;

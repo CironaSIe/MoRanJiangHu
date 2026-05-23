@@ -19,7 +19,13 @@ const createLocalStorageMock = () => {
 
 vi.mock('../services/dbService', () => ({
     计算存档同步哈希: vi.fn((save: any) => save?.元数据?.存档哈希 || 'abcd1234abcd1234'),
-    读取存档列表: vi.fn(async () => [])
+    读取存档列表: vi.fn(async () => []),
+    读取图片资源: vi.fn(async (ref: string) => (
+        String(ref).includes('player-avatar-local') ? 'data:image/png;base64,LOCAL_AVATAR' : ''
+    )),
+    保存图片资源并返回同步地址: vi.fn(async (_dataUrl: string, preferredId?: string) => (
+        `https://image.example/assets/${preferredId || 'asset'}.png`
+    ))
 }));
 
 vi.mock('../services/saveArchiveService', () => ({
@@ -79,5 +85,87 @@ describe('云端游玩存储模式', () => {
         } as any);
 
         await vi.waitFor(() => expect(syncToObjectStorage).toHaveBeenCalledTimes(1));
+    });
+
+    it('TG 云端存档包只复用已登记可用的头像图床兜底映射，不内嵌图片数据或重复上传图片', async () => {
+        vi.stubGlobal('crypto', {
+            getRandomValues: (bytes: Uint8Array) => bytes.fill(7),
+            subtle: {
+                importKey: vi.fn(async () => ({})),
+                deriveKey: vi.fn(async () => ({})),
+                encrypt: vi.fn(async (_algorithm: unknown, _key: unknown, data: Uint8Array) => data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)),
+                digest: vi.fn(async () => new Uint8Array(32).buffer)
+            }
+        });
+        vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url.includes('/api/image-host/download')) {
+                return new Response(new Uint8Array([137, 80, 78, 71]), { status: 200, headers: { 'Content-Type': 'image/png' } });
+            }
+            return new Response(JSON.stringify({
+                ok: true,
+                user: {
+                    userId: 'u1',
+                    username: 'tg-user',
+                    clientSalt: 'salt',
+                    manifestUrl: 'https://image.example/manifest.json'
+                }
+            }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }));
+        const imageHost = await import('../services/imageHostService');
+        const dbService = await import('../services/dbService');
+        const imageAssets = await import('../utils/imageAssets');
+        imageAssets.注册远程图片兜底引用('https://image.example/assets/player-avatar-local.png', 'player-avatar-local');
+        const uploadedBlobs: Blob[] = [];
+        vi.mocked(imageHost.上传Blob到图床).mockImplementation(async (blob: Blob, options: any) => {
+            uploadedBlobs.push(blob);
+            return { url: `https://image.example/${options?.fileName || uploadedBlobs.length}`, size: blob.size };
+        });
+
+        const service = await import('../services/cloudPlayService');
+        await service.上传单个存档到云端(
+            { userId: 'u1', username: 'tg-user', password: 'pw', clientSalt: 'salt' },
+            {
+                id: 1,
+                类型: 'manual',
+                时间戳: 1779000000000,
+                角色数据: {
+                    姓名: '杨培强',
+                    图片档案: {
+                        已选头像图片ID: 'avatar-1',
+                        生图历史: [
+                            {
+                                id: 'avatar-1',
+                                构图: '头像',
+                                状态: 'success',
+                                本地路径: 'wuxia-asset://player-avatar-local'
+                            }
+                        ]
+                    }
+                },
+                环境信息: { 具体地点: '武馆' },
+                历史记录: [],
+                元数据: { 存档哈希: 'abcd1234abcd1234' }
+            } as any,
+            {
+                format: 'moranjianghu-cloud-play',
+                version: 1,
+                userId: 'u1',
+                username: 'tg-user',
+                updatedAt: new Date().toISOString(),
+                saves: []
+            }
+        );
+
+        const encryptedPackage = JSON.parse(await uploadedBlobs[0].text());
+        const pack = JSON.parse(Buffer.from(encryptedPackage.data, 'base64').toString('utf8'));
+        expect(pack.imageFallbacks).toEqual([
+            {
+                id: 'player-avatar-local',
+                remoteUrl: 'https://image.example/assets/player-avatar-local.png'
+            }
+        ]);
+        expect(JSON.stringify(pack)).not.toContain('LOCAL_AVATAR');
+        expect(dbService.保存图片资源并返回同步地址).not.toHaveBeenCalled();
     });
 });

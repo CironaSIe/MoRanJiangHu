@@ -401,7 +401,10 @@ describe('对象存储同步', () => {
         vi.mocked(dbService.读取存档列表).mockResolvedValueOnce([parent, child]);
         const archiveService = await import('../services/saveArchiveService');
         const exportedBundles: any[][] = [];
-        vi.mocked(archiveService.导出ZIP存档文件).mockImplementation(async ({ saves }: any) => {
+        const exportedOptions: any[] = [];
+        vi.mocked(archiveService.导出ZIP存档文件).mockImplementation(async (options: any) => {
+            const { saves } = options || {};
+            exportedOptions.push(options);
             exportedBundles.push(saves);
             return new Blob([JSON.stringify({ saves })], { type: 'application/zip' });
         });
@@ -436,6 +439,7 @@ describe('对象存储同步', () => {
         expect(result.uploaded).toBe(1);
         expect(exportedBundles).toHaveLength(1);
         expect(exportedBundles[0].map((save) => save.元数据?.存档哈希)).toEqual(['parenthash0001', 'childhash0002']);
+        expect(exportedOptions.some((options) => options?.includeImages === false)).toBe(true);
     });
 
     it('增量导入云包时会恢复包内全部时间树节点', async () => {

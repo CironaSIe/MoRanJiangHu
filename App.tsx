@@ -10,6 +10,7 @@ import LandingPage from './components/layout/LandingPage';
 import InAppConfirmModal, { ConfirmOptions } from './components/ui/InAppConfirmModal';
 import ReleaseNotesModal from './components/ui/ReleaseNotesModal';
 import { useGame } from './hooks/useGame';
+import { use图片资源回源预取 } from './hooks/useImageAssetPrefetch';
 import { 环境时间转标准串 } from './hooks/useGame/timeUtils';
 import { 获取文生图接口配置, 获取生图词组转化器接口配置, 获取记忆精炼接口配置, 接口配置是否可用 } from './utils/apiConfig';
 import { 请求模型文本 } from './services/ai/chatCompletionClient';
@@ -29,6 +30,7 @@ import { 小说拆分后台调度服务 } from './services/novelDecompositionSch
 import { checkForAppUpdate, downloadLatestApkPackage, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
+import { 获取货币显示模式 } from './utils/currencyDisplay';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
 import { 获取本地图片图床迁移状态, 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 读取图片资源兜底地址, 订阅旧存档谱系迁移状态, 订阅本地图片图床迁移状态, type 旧存档谱系迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
@@ -493,6 +495,9 @@ const App: React.FC = () => {
             }, { 允许系统补货: false });
         }
     });
+    const auctionCurrencyOptions = React.useMemo(() => ({
+        货币模式: 获取货币显示模式(state.开局配置, state.角色)
+    }), [state.开局配置, state.角色]);
     const [showMobileMusic, setShowMobileMusic] = React.useState(false);
     const [chatContentHidden, setChatContentHidden] = React.useState(false);
     const [sceneQuickGenHint, setSceneQuickGenHint] = React.useState(false);
@@ -1052,6 +1057,7 @@ const App: React.FC = () => {
             ['UI文字样式']: undefined
         } as typeof state.visualConfig;
     }, [isMobile, state.visualConfig]);
+    use图片资源回源预取(state.角色, effectiveVisualConfig?.背景图片);
     const 当前背景图片地址 = React.useMemo(() => 获取图片资源文本地址(effectiveVisualConfig?.背景图片), [effectiveVisualConfig?.背景图片]);
     const 玩家头像地址 = React.useMemo(() => {
         const archive = state.角色?.图片档案;
@@ -1177,7 +1183,7 @@ const App: React.FC = () => {
         if (auctionSettlementHandledRef.current.has(signature)) return;
         auctionSettlementHandledRef.current.add(signature);
         setAuctionHouseState((prev) => {
-            const settled = 结算玩家寄售(prev, state.角色, latestAssistantMessage.timestamp || Date.now());
+            const settled = 结算玩家寄售(prev, state.角色, latestAssistantMessage.timestamp || Date.now(), auctionCurrencyOptions);
             if (!settled.settledCount) return prev;
             保存拍卖行状态(settled.nextState, auctionHouseScope);
             setters.setCharacter(settled.nextCharacter);
@@ -1185,7 +1191,7 @@ const App: React.FC = () => {
             actions.pushNotification({ title: '寄售成交', message: settled.message, tone: 'success' });
             return settled.nextState;
         });
-    }, [actions, auctionHouseScope, latestAssistantMessage, setters, state.角色]);
+    }, [actions, auctionCurrencyOptions, auctionHouseScope, latestAssistantMessage, setters, state.角色]);
     // [已移除] 拍卖行物品不再从主角剧情正文中提取，改为从世界势力互动事件中自然流出。
     // 旧逻辑：从剧情响应构建拍卖行投放参数列表 → 投放事件拍卖品
     // 新逻辑：世界演化 → 势力互动 → 世界.拍卖行待投放物品 → 从势力互动投放拍卖品
@@ -1776,7 +1782,7 @@ const App: React.FC = () => {
         setShowAuctionHouse(true);
     }, [closeAllPanels]);
     const handleSellBagItemToAuction = React.useCallback((itemId: string) => {
-        const result = 上架背包物品(state.角色, itemId, undefined, '铜钱', auctionHouseState.行情列表 || []);
+        const result = 上架背包物品(state.角色, itemId, undefined, '铜钱', auctionHouseState.行情列表 || [], 1, auctionCurrencyOptions);
         if (!result.ok) {
             actions.pushNotification({ title: '寄售失败', message: result.message, tone: 'error' });
             return { ok: false as const, message: result.message };
@@ -1795,7 +1801,7 @@ const App: React.FC = () => {
         void actions.performAutoSave?.({ role: result.nextCharacter, force: true });
         actions.pushNotification({ title: '已送入拍卖行', message: result.message, tone: 'success' });
         return { ok: true as const, message: result.message };
-    }, [actions, auctionHouseScope, auctionHouseState, setters, state.角色]);
+    }, [actions, auctionCurrencyOptions, auctionHouseScope, auctionHouseState, setters, state.角色]);
     const handleDiscardBagItem = React.useCallback((itemId: string) => {
         const result = 丢弃背包物品(state.角色, itemId);
         if (!result.ok) {
@@ -1821,7 +1827,7 @@ const App: React.FC = () => {
         for (const item of miscItems) {
             const itemId = String(item?.ID || '');
             if (!itemId) continue;
-            const result = 上架背包物品(nextCharacter, itemId, undefined, '铜钱', auctionHouseState.行情列表 || [], Number.POSITIVE_INFINITY);
+            const result = 上架背包物品(nextCharacter, itemId, undefined, '铜钱', auctionHouseState.行情列表 || [], Number.POSITIVE_INFINITY, auctionCurrencyOptions);
             if (!result.ok) continue;
             nextCharacter = result.nextCharacter;
             newAuctions.push(result.auction);
@@ -1847,7 +1853,7 @@ const App: React.FC = () => {
         const message = `已寄售 ${newAuctions.length} 组杂物，下回合自动成交。`;
         actions.pushNotification({ title: '杂物已寄售', message, tone: 'success' });
         return { ok: true as const, message: messages.length > 1 ? message : messages[0] || message };
-    }, [actions, auctionHouseScope, auctionHouseState, setters, state.角色]);
+    }, [actions, auctionCurrencyOptions, auctionHouseScope, auctionHouseState, setters, state.角色]);
     const handleDiscardAllMiscItems = React.useCallback(() => {
         const sourceItems = Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : [];
         const miscItems = sourceItems.filter(是否杂物类物品);
@@ -2192,27 +2198,27 @@ const App: React.FC = () => {
     const handleReleaseNotesOpenGithub = React.useCallback(() => {
         void window.open(RELEASE_INFO.githubRepoUrl, '_blank', 'noopener,noreferrer');
     }, []);
-    const handleReturnToHomeFromSettings = React.useCallback(async () => {
-        const ok = await requestConfirm({
-            title: '返回首页',
-            message: '确定要返回首页吗？未保存的进度将会丢失。',
-            confirmText: '返回',
-            danger: true
-        });
-        if (!ok) return;
-        closeAllPanels();
-        actions.handleReturnToHome();
-        setters.setShowSettings(false);
-    }, [actions, closeAllPanels, requestConfirm, setters]);
     const handleReturnToHomeWithAutoSave = React.useCallback(async () => {
         try {
             await actions.performAutoSave({ force: true });
             closeAllPanels();
             actions.handleReturnToHome();
+            setters.setShowSettings(false);
         } catch (error: any) {
             window.alert(`自动存档失败：${error?.message || '未知错误'}`);
         }
-    }, [actions, closeAllPanels]);
+    }, [actions, closeAllPanels, setters]);
+    const handleReturnToHomeFromSettings = React.useCallback(async () => {
+        const ok = await requestConfirm({
+            title: '返回首页',
+            message: '返回首页前会自动保存当前进度。确定保存并返回吗？',
+            confirmText: '保存并返回',
+            cancelText: '继续游玩',
+            danger: true
+        });
+        if (!ok) return;
+        await handleReturnToHomeWithAutoSave();
+    }, [handleReturnToHomeWithAutoSave, requestConfirm]);
     const openPolishSettings = React.useCallback(() => {
         closeAllPanels();
         setters.setActiveTab('polish');
@@ -2663,6 +2669,7 @@ const App: React.FC = () => {
                                 onUploadAvatar={actions.updatePlayerAvatar}
                                 visualConfig={effectiveVisualConfig}
                                 gameConfig={state.gameConfig}
+                                openingConfig={state.开局配置}
                                 latestCommands={latestAssistantMessage?.structuredResponse?.tavern_commands || []}
                             />
                         </div>
@@ -2813,6 +2820,7 @@ const App: React.FC = () => {
                                 enableKungfu={启用修炼体系}
                                 onSave={openSave}
                                 onLoad={openLoad}
+                                onReturnToHome={() => { void handleReturnToHomeWithAutoSave(); }}
                                 visualConfig={effectiveVisualConfig}
                                 latestChangedSections={latestChangedSections}
                             />
@@ -3483,6 +3491,7 @@ const App: React.FC = () => {
                                 onClose={() => setShowAuctionHouse(false)}
                                 isMobile={isMobile}
                                 apiConfig={state.apiConfig}
+                                openingConfig={state.开局配置}
                             />
                         </懒加载边界>
                     )}
@@ -3493,6 +3502,7 @@ const App: React.FC = () => {
                                 <MobileCharacter
                                     character={state.角色}
                                     gameConfig={state.gameConfig}
+                                    openingConfig={state.开局配置}
                                     apiConfig={state.apiConfig}
                                     playerAnchor={主角锚点}
                                     onGeneratePlayerImage={actions.generatePlayerImageManually}

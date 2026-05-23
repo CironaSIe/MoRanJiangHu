@@ -3,6 +3,7 @@ import {
     角色数据结构,
     游戏设置结构,
     接口设置结构,
+    OpeningConfig,
     角色锚点结构,
     画师串预设结构,
     PNG画风预设结构
@@ -12,10 +13,12 @@ import { 规范化接口设置 } from '../../../utils/apiConfig';
 import { 获取图片展示地址 } from '../../../utils/imageAssets';
 import { use图片资源回源预取 } from '../../../hooks/useImageAssetPrefetch';
 import { 计算角色总气血 } from '../../../utils/characterVitals';
+import { 格式化角色金钱行, 获取货币显示模式 } from '../../../utils/currencyDisplay';
 
 interface Props {
     character: 角色数据结构;
     gameConfig?: 游戏设置结构;
+    openingConfig?: OpeningConfig;
     apiConfig?: 接口设置结构;
     playerAnchor?: 角色锚点结构 | null;
     onGeneratePlayerImage?: (options?: 主角生图选项) => Promise<void> | void;
@@ -110,6 +113,7 @@ const 获取技艺等级颜色 = (level?: string): string => {
 const MobileCharacter: React.FC<Props> = ({
     character,
     gameConfig,
+    openingConfig,
     apiConfig,
     playerAnchor,
     onGeneratePlayerImage,
@@ -134,6 +138,7 @@ const MobileCharacter: React.FC<Props> = ({
         尺寸: ''
     });
     const 金钱 = character.金钱 || { 金元宝: 0, 银子: 0, 铜钱: 0 };
+    const 货币模式 = 获取货币显示模式(openingConfig, character);
     const 玩家BUFF列表 = Array.isArray(character.玩家BUFF) ? character.玩家BUFF : [];
     const 天赋列表 = Array.isArray(character.天赋列表) ? character.天赋列表 : [];
     const 技艺列表 = useMemo(
@@ -481,9 +486,9 @@ const MobileCharacter: React.FC<Props> = ({
                                     <span className="rounded border border-gray-800 bg-black/40 px-2 py-1 text-gray-300">性别 {character.性别}</span>
                                     <span className="rounded border border-gray-800 bg-black/40 px-2 py-1 text-gray-300">年龄 {character.年龄}</span>
                                     <span className="rounded border border-gray-800 bg-black/40 px-2 py-1 font-mono text-gray-300">负重 {character.当前负重}/{character.最大负重}</span>
-                                    <span className="rounded border border-gray-800 bg-black/40 px-2 py-1 font-mono text-gray-300">元宝 {金钱.金元宝}</span>
-                                    <span className="rounded border border-gray-800 bg-black/40 px-2 py-1 font-mono text-gray-300">银子 {金钱.银子}</span>
-                                    <span className="rounded border border-gray-800 bg-black/40 px-2 py-1 font-mono text-gray-300">铜钱 {金钱.铜钱}</span>
+                                    {格式化角色金钱行(金钱, 货币模式).split(' / ').map((item) => (
+                                        <span key={item} className="rounded border border-gray-800 bg-black/40 px-2 py-1 font-mono text-gray-300">{item}</span>
+                                    ))}
                                 </div>
                             </div>
 

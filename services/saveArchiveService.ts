@@ -1,7 +1,7 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import type { 存档结构 } from '../types';
 import * as dbService from './dbService';
-import { 是否图片资源引用 } from '../utils/imageAssets';
+import { 是否图片资源引用, 读取图片资源远程兜底地址 } from '../utils/imageAssets';
 
 const ZIP存档版本 = 1;
 const 图片目录名 = '图片';
@@ -128,10 +128,10 @@ const 读取图片同步链接 = async (source: string): Promise<string> => {
     const normalizedSource = 读取文本(source);
     if (!normalizedSource) return '';
     if (是远程图片地址(normalizedSource)) return normalizedSource;
+    const registeredRemote = 读取图片资源远程兜底地址(normalizedSource);
+    if (registeredRemote) return registeredRemote;
     if (是否图片资源引用(normalizedSource)) {
-        const stored = await dbService.读取图片资源(normalizedSource);
-        if (!stored) return normalizedSource;
-        return 读取图片同步链接(stored);
+        return normalizedSource;
     }
     if (是DataUrl图片(normalizedSource)) {
         return await dbService.保存图片资源(normalizedSource);

@@ -171,4 +171,31 @@ describe('NPC old save compatibility', () => {
 
         expect(list.map((npc: any) => npc.姓名)).toEqual(['苏婉儿']);
     });
+
+    it('repairs social names that are pronoun/prose fragments into short real names', () => {
+        const list = 规范化社交列表([
+            {
+                id: 'npc_bad_name_phrase',
+                姓名: '自己已经没有',
+                性别: '男',
+                身份: '落魄散修',
+                简介: '被模型误把正文短语写进姓名字段。',
+                是否主要角色: true
+            },
+            {
+                id: 'npc_long_role_name',
+                姓名: '慕容氏精锐水鬼',
+                性别: '男',
+                身份: '水鬼精锐',
+                简介: '慕容氏暗线中负责水路伏击的敌手。'
+            }
+        ], { 合并同名: false });
+
+        expect(list).toHaveLength(2);
+        expect(list[0].姓名).not.toBe('自己已经没有');
+        expect(list[0].姓名).toMatch(/^[\u4e00-\u9fa5]{2,4}$/u);
+        expect(list[0].曾用名).toContain('自己已经没有');
+        expect(list[1].姓名).not.toBe('慕容氏精锐水鬼');
+        expect(list[1].姓名.length).toBeLessThanOrEqual(4);
+    });
 });

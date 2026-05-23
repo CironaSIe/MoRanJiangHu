@@ -31,6 +31,7 @@ interface Props {
     enableKungfu?: boolean;
     onSave: () => void;
     onLoad: () => void;
+    onReturnToHome?: () => void;
     visualConfig?: any;
     latestChangedSections?: string[];
 }
@@ -63,6 +64,7 @@ const RightPanel: React.FC<Props> = ({
     enableKungfu = true,
     onSave,
     onLoad,
+    onReturnToHome,
     visualConfig,
     latestChangedSections = []
 }) => {
@@ -120,6 +122,7 @@ const RightPanel: React.FC<Props> = ({
         { label: '保存进度', action: onSave },
         { label: '读取进度', action: onLoad },
         { label: '江湖设置', action: onOpenSettings },
+        ...(onReturnToHome ? [{ label: '返回首页', action: onReturnToHome, className: 'text-red-400/80 hover:text-red-300 hover:border-red-900/70 hover:bg-red-950/10' }] : []),
     ];
 
     return (
@@ -178,7 +181,7 @@ const RightPanel: React.FC<Props> = ({
                     <button
                         key={item.label}
                         onClick={item.action}
-                        className="right-panel-system-button w-full text-center transition-all py-1 uppercase tracking-[0.08em] border border-transparent hover:border-gray-800 hover:bg-white/5 rounded-sm text-gray-500"
+                        className={`right-panel-system-button w-full text-center transition-all py-1 uppercase tracking-[0.08em] border border-transparent hover:border-gray-800 hover:bg-white/5 rounded-sm text-gray-500 ${item.className || ''}`}
                         style={{ fontSize: scaleFont(0.88, 12) }}
                     >
                         [ {item.label} ]

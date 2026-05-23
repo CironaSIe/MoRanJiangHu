@@ -1,7 +1,7 @@
 import { recordDiagnosticLog } from './diagnosticLog';
 
 const IMAGE_HOST_UPLOAD_PROXY_PATH = '/api/image-host/upload';
-const DEFAULT_IMAGE_HOST_BASE = 'https://image.bacon159.pp.ua';
+const DEFAULT_IMAGE_HOST_BASE = 'https://image1.bacon159.pp.ua';
 const DEFAULT_SYNC_API_BASE = 'https://msjh.bacon159.pp.ua';
 const MAX_DIRECT_UPLOAD_BYTES = 1.5 * 1024 * 1024;
 const MAX_MOBILE_UPLOAD_BYTES = 900 * 1024;

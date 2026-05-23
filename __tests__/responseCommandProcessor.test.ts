@@ -104,7 +104,7 @@ describe('responseCommandProcessor current scene presence sync', () => {
 
         expect(result.社交.find((npc: any) => npc.姓名 === '沈若嫣')?.是否在场).toBe(true);
         expect(result.社交.find((npc: any) => npc.姓名 === '水贼头目')?.是否在场).toBe(false);
-        expect(result.社交.find((npc: any) => npc.姓名 === '兵器库守卫')?.是否在场).toBe(false);
+        expect(result.社交.filter((npc: any) => npc.是否在场 === true).map((npc: any) => npc.姓名)).toEqual(['沈若嫣']);
     });
 
     it('treats dialogue speakers as present and explicit offscreen mentions as absent', () => {
@@ -160,13 +160,18 @@ describe('responseCommandProcessor team companion fallback', () => {
 
         const companions = result.社交.filter((npc: any) => npc.是否队友 === true);
         expect(companions).toHaveLength(10);
-        expect(companions.map((npc: any) => npc.姓名).sort((a: string, b: string) => {
-            const ai = Number(a.replace(/\D/g, ''));
-            const bi = Number(b.replace(/\D/g, ''));
-            return ai - bi;
-        })).toEqual(
-            Array.from({ length: 10 }, (_, index) => `随行者${index + 2}`)
-        );
+        expect(companions.map((npc: any) => npc.姓名)).toEqual([
+            '阮清',
+            '尹舟',
+            '青棠',
+            '辛夷',
+            '温竹',
+            '闻溪',
+            '乔霜',
+            '云照',
+            '桑宁',
+            '叶澄'
+        ]);
         expect(result.社交.some((npc: any) => npc.身份 === '随行队伍')).toBe(false);
     });
 
@@ -186,10 +191,9 @@ describe('responseCommandProcessor team companion fallback', () => {
         } as any, state, deps, undefined, { applyState: false });
 
         const companions = result.社交.filter((npc: any) => npc.是否队友 === true);
-        expect(companions).toHaveLength(2);
+        expect(companions).toHaveLength(3);
         expect(companions.some((npc: any) => npc.姓名 === '顾清河')).toBe(true);
-        expect(companions.some((npc: any) => npc.姓名 === '随行者1')).toBe(false);
-        expect(companions.some((npc: any) => npc.姓名 === '随行者2')).toBe(true);
+        expect(companions.every((npc: any) => !/^随行者\d+$/.test(npc.姓名))).toBe(true);
     });
 
     it('does not rename follower placeholders with hostile dialogue senders', () => {
@@ -207,8 +211,8 @@ describe('responseCommandProcessor team companion fallback', () => {
             tavern_commands: []
         } as any, state, deps, undefined, { applyState: false });
 
-        expect(result.社交.find((npc: any) => npc.姓名 === '慕容氏守卫')?.是否队友).toBe(false);
-        expect(result.社交.find((npc: any) => npc.姓名 === '随行者1')?.是否队友).toBe(true);
+        expect(result.社交.find((npc: any) => npc.id === 'npc_enemy_guard')?.是否队友).toBe(false);
+        expect(result.社交.find((npc: any) => npc.id === 'npc_companion_old_1')?.是否队友).toBe(true);
     });
 });
 

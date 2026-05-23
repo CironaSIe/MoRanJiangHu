@@ -32,6 +32,8 @@ const region = readEnv('MORAN_OSS_REGION', 'auto');
 const usePublicReadAcl = readEnv('MORAN_OSS_PUBLIC_READ_ACL', '0') === '1';
 const service = 's3';
 const requestTimeoutMs = Math.max(1000, Number(process.env.MORAN_OSS_TIMEOUT_MS || 10 * 60 * 1000));
+const multipartThresholdBytes = Math.max(5 * 1024 * 1024, Number(process.env.MORAN_OSS_MULTIPART_THRESHOLD_BYTES || 32 * 1024 * 1024));
+const multipartPartBytes = Math.max(5 * 1024 * 1024, Number(process.env.MORAN_OSS_MULTIPART_PART_BYTES || 8 * 1024 * 1024));
 
 if (!bucket || !accessKey || !secretKey) {
   throw new Error('Missing MORAN_OSS_BUCKET, MORAN_OSS_ACCESS_KEY, or MORAN_OSS_SECRET_KEY.');
@@ -96,7 +98,7 @@ const signingKey = (dateStamp) => {
 
 const cacheControl = 'no-store,no-cache,max-age=0,must-revalidate';
 
-const buildSignedHeaders = ({ method, url, body, contentType }) => {
+const buildSignedHeaders = ({ method, url, body, contentType, includeAcl = usePublicReadAcl }) => {
   const { amzDate, dateStamp } = formatAmzDate(new Date());
   const bodyHash = sha256Hex(body);
   const query = Array.from(url.searchParams.entries())
@@ -108,10 +110,10 @@ const buildSignedHeaders = ({ method, url, body, contentType }) => {
     `content-type:${contentType}\n`,
     `host:${url.host}\n`,
     `x-amz-content-sha256:${bodyHash}\n`,
-    usePublicReadAcl ? 'x-amz-acl:public-read\n' : '',
+    includeAcl ? 'x-amz-acl:public-read\n' : '',
     `x-amz-date:${amzDate}\n`
   ].join('');
-  const signedHeaders = usePublicReadAcl
+  const signedHeaders = includeAcl
     ? 'cache-control;content-type;host;x-amz-acl;x-amz-content-sha256;x-amz-date'
     : 'cache-control;content-type;host;x-amz-content-sha256;x-amz-date';
   const canonicalRequest = [
@@ -134,7 +136,7 @@ const buildSignedHeaders = ({ method, url, body, contentType }) => {
   return {
     'Cache-Control': cacheControl,
     'Content-Type': contentType,
-    ...(usePublicReadAcl ? { 'x-amz-acl': 'public-read' } : {}),
+    ...(includeAcl ? { 'x-amz-acl': 'public-read' } : {}),
     'X-Amz-Content-Sha256': bodyHash,
     'X-Amz-Date': amzDate,
     Authorization: `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`
@@ -157,6 +159,7 @@ const requestWithBody = ({ method, url, headers, body }) => new Promise((resolve
       resolve({
         status: response.statusCode || 0,
         ok: (response.statusCode || 0) >= 200 && (response.statusCode || 0) < 300,
+        headers: response.headers,
         text: Buffer.concat(chunks).toString('utf8')
       });
     });
@@ -168,13 +171,118 @@ const requestWithBody = ({ method, url, headers, body }) => new Promise((resolve
   request.end(body);
 });
 
+const encodeXmlText = (value) => String(value || '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
+
+const extractXmlTag = (xml, tag) => {
+  const match = String(xml || '').match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+  return match ? match[1].trim() : '';
+};
+
+const createMultipartUpload = async ({ key, contentType }) => {
+  const url = objectUrl(key);
+  url.searchParams.set('uploads', '');
+  const body = Buffer.alloc(0);
+  const response = await requestWithBody({
+    method: 'POST',
+    url,
+    headers: buildSignedHeaders({ method: 'POST', url, body, contentType, includeAcl: usePublicReadAcl }),
+    body
+  });
+  if (!response.ok) {
+    throw new Error(`Create multipart upload ${key} failed (${response.status}): ${response.text.slice(0, 500)}`);
+  }
+  const uploadId = extractXmlTag(response.text, 'UploadId');
+  if (!uploadId) {
+    throw new Error(`Create multipart upload ${key} did not return UploadId: ${response.text.slice(0, 500)}`);
+  }
+  return uploadId;
+};
+
+const uploadMultipartPart = async ({ key, uploadId, partNumber, body }) => {
+  const url = objectUrl(key);
+  url.searchParams.set('partNumber', String(partNumber));
+  url.searchParams.set('uploadId', uploadId);
+  const response = await requestWithBody({
+    method: 'PUT',
+    url,
+    headers: buildSignedHeaders({ method: 'PUT', url, body, contentType: 'application/octet-stream', includeAcl: false }),
+    body
+  });
+  if (!response.ok) {
+    throw new Error(`Upload multipart part ${key} #${partNumber} failed (${response.status}): ${response.text.slice(0, 500)}`);
+  }
+  const etag = String(response.headers?.etag || response.headers?.ETag || '').trim();
+  if (!etag) {
+    throw new Error(`Upload multipart part ${key} #${partNumber} did not return ETag.`);
+  }
+  return { PartNumber: partNumber, ETag: etag };
+};
+
+const completeMultipartUpload = async ({ key, uploadId, parts }) => {
+  const url = objectUrl(key);
+  url.searchParams.set('uploadId', uploadId);
+  const body = Buffer.from([
+    '<CompleteMultipartUpload>',
+    ...parts
+      .sort((a, b) => a.PartNumber - b.PartNumber)
+      .map((part) => `<Part><PartNumber>${part.PartNumber}</PartNumber><ETag>${encodeXmlText(part.ETag)}</ETag></Part>`),
+    '</CompleteMultipartUpload>'
+  ].join(''), 'utf8');
+  const response = await requestWithBody({
+    method: 'POST',
+    url,
+    headers: buildSignedHeaders({ method: 'POST', url, body, contentType: 'application/xml', includeAcl: false }),
+    body
+  });
+  if (!response.ok) {
+    throw new Error(`Complete multipart upload ${key} failed (${response.status}): ${response.text.slice(0, 500)}`);
+  }
+};
+
+const abortMultipartUpload = async ({ key, uploadId }) => {
+  const url = objectUrl(key);
+  url.searchParams.set('uploadId', uploadId);
+  const body = Buffer.alloc(0);
+  await requestWithBody({
+    method: 'DELETE',
+    url,
+    headers: buildSignedHeaders({ method: 'DELETE', url, body, contentType: 'application/octet-stream', includeAcl: false }),
+    body
+  }).catch(() => null);
+};
+
+const putObjectMultipart = async ({ key, bytes, contentType }) => {
+  const uploadId = await createMultipartUpload({ key, contentType });
+  const parts = [];
+  try {
+    for (let offset = 0, partNumber = 1; offset < bytes.byteLength; offset += multipartPartBytes, partNumber += 1) {
+      const end = Math.min(bytes.byteLength, offset + multipartPartBytes);
+      const partBody = bytes.subarray(offset, end);
+      parts.push(await uploadMultipartPart({ key, uploadId, partNumber, body: partBody }));
+      console.log(`[S3 multipart] ${key} part ${partNumber} uploaded (${end}/${bytes.byteLength})`);
+    }
+    await completeMultipartUpload({ key, uploadId, parts });
+  } catch (error) {
+    await abortMultipartUpload({ key, uploadId });
+    throw error;
+  }
+};
+
 const putObject = async ({ key, filePath, body, contentType }) => {
   const bytes = body || fs.readFileSync(filePath);
+  if (bytes.byteLength >= multipartThresholdBytes) {
+    await putObjectMultipart({ key, bytes, contentType });
+    return;
+  }
   const url = objectUrl(key);
   const response = await requestWithBody({
     method: 'PUT',
     url,
-    headers: buildSignedHeaders({ method: 'PUT', url, body: bytes, contentType }),
+    headers: buildSignedHeaders({ method: 'PUT', url, body: bytes, contentType, includeAcl: usePublicReadAcl }),
     body: bytes
   });
   if (!response.ok) {

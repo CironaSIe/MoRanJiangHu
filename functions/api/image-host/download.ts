@@ -6,7 +6,7 @@ const CORS_HEADERS = {
 
 const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 const MAX_FILE_BYTES = 128 * 1024 * 1024;
-const DEFAULT_IMAGE_HOST_BASE = 'https://image.bacon159.pp.ua';
+const DEFAULT_IMAGE_HOST_BASE = 'https://image1.bacon159.pp.ua';
 
 const buildTextResponse = (message: string, status = 400): Response => (
     new Response(message, {
@@ -22,7 +22,7 @@ const isAllowedImageHostUrl = (value: string): boolean => {
     try {
         const url = new URL(value);
         return /^https?:$/i.test(url.protocol)
-            && /(^|\.)image\.bacon159\.pp\.ua$/i.test(url.hostname)
+            && (/^image1\.bacon159\.pp\.ua$/i.test(url.hostname) || /^image\.bacon159\.pp\.ua$/i.test(url.hostname))
             && (/^\/file\//i.test(url.pathname) || /^\/api\/v1\/file\//i.test(url.pathname) || /\.(png|jpe?g|webp|gif|bmp)$/i.test(url.pathname));
     } catch {
         return false;

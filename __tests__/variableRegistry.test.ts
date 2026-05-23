@@ -87,6 +87,33 @@ describe('variableRegistry', () => {
         }, baseState).allowed).toBe(true);
     });
 
+    it('allows variable generation to repair incomplete dialogue NPC base fields', () => {
+        [
+            ['社交[0].性别', '女'],
+            ['社交[0].年龄', '十八'],
+            ['社交[0].身份', '青云门弟子'],
+            ['社交[0].境界', '炼气一层'],
+            ['社交[0].简介', '本回合对白登场的长期承接人物。'],
+            ['社交[0].是否主要角色', true],
+            ['社交[0].是否在场', true],
+            ['社交[0].天赋列表', []],
+            ['社交[0].出身背景', { 名称: '宗门弟子' }],
+            ['社交[0].当前装备', {}],
+            ['社交[0].背包', []],
+            ['社交[0].BUFF', []],
+            ['社交[0].DEBUFF', []],
+            ['社交[0].技艺', []],
+            ['社交[0].力量', 5],
+            ['社交[0].境界层级', 1]
+        ].forEach(([key, value]) => {
+            expect(校验变量命令是否登记({
+                action: 'set',
+                key: key as string,
+                value
+            }, baseState).allowed).toBe(true);
+        });
+    });
+
     it('blocks writes to deprecated coordinate map fields', () => {
         const result = 校验变量命令是否登记({
             action: 'push',
