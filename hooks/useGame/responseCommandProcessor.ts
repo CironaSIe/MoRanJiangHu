@@ -554,8 +554,23 @@ const 提取响应事实文本 = (response: GameResponse): string => {
 };
 
 const 体内射精事实正则 = /(内射|中出|射(?:进|入|在)(?:了)?(?:[^。！？\n\r]{0,24})?(?:体内|阴道|小穴|蜜穴|子宫|宫口|最深处)|精液(?:[^。！？\n\r]{0,24})?(?:灌入|注入|射入|填满|流入|涌入|进入)(?:[^。！？\n\r]{0,24})?(?:体内|阴道|小穴|蜜穴|子宫|宫口|最深处)|(?:子宫|宫口|最深处)(?:[^。！？\n\r]{0,24})?(?:精液|白浊))/;
-const 初次关系事实正则 = /(破处|初夜|第一次|失身|处子(?:之身)?(?:已|被|给|让)?|不再是处女|不再未经人事|插(?:进|入)|贯穿|进入(?:了)?(?:[^。！？\n\r]{0,24})?(?:小穴|阴道|蜜穴|体内|最深处)|(?:小穴|阴道|蜜穴)(?:[^。！？\n\r]{0,24})?(?:被|已|让)?(?:进入|占有|贯穿|破开)|体内射精|内射|中出)/;
+const 体内射精否定正则 = /(?:未|没|没有|并未|并没有|尚未|不曾|未曾|不要|不许|拒绝|避免|只是在外|体外|没有选择|并非)(?:[^。！？\n\r]{0,18})?(?:内射|中出|射(?:进|入)|精液|体内射精)|(?:内射|中出|体内射精)(?:[^。！？\n\r]{0,18})?(?:未发生|没有发生|并未发生|尚未发生|不成立)/;
+const 初次关系事实正则 = /(破处|初夜|失身|不再是处女|不再未经人事|处子(?:之身)?(?:已|被|给|让)?|(?:初次|第一次|首次|首度)(?:[^。！？\n\r]{0,16})?(?:亲密关系|发生关系|房事|云雨|交合|同房|双修|床笫|肉体关系|性事|性交)|(?:发生|完成|坐实)(?:[^。！？\n\r]{0,16})?(?:初次关系|初次亲密|第一次关系)|(?:插(?:进|入)|贯穿|进入(?:了)?)(?:[^。！？\n\r]{0,24})?(?:小穴|阴道|蜜穴|最深处)|(?:小穴|阴道|蜜穴)(?:[^。！？\n\r]{0,24})?(?:被|已|让)?(?:进入|占有|贯穿|破开)|体内射精|内射|中出)/;
+const 初次关系否定正则 = /(?:未|没|没有|并未|并没有|尚未|不曾|未曾|不要|不许|拒绝|避免|只是|并非|不是|误判)(?:[^。！？\n\r]{0,18})?(?:初夜|破处|失身|发生关系|亲密关系|房事|云雨|交合|同房|双修|床笫|肉体关系|性事|性交)|(?:初夜|破处|失身|发生关系|亲密关系)(?:[^。！？\n\r]{0,18})?(?:未发生|没有发生|并未发生|尚未发生|不成立)/;
 const 私密状态未经历正则 = /(未经人事|未经房事|未曾人事|未曾经人事|尚未人事|尚未完全开发|未完全开发|处子|处女|完璧|无人采撷|未被使用|未曾使用|未开苞|初绽未开)/;
+
+const 句子存在肯定事实 = (text: string, positive: RegExp, negative?: RegExp): boolean => (
+    拆分事实句(text).some((sentence) => {
+        positive.lastIndex = 0;
+        if (!positive.test(sentence)) return false;
+        if (!negative) return true;
+        negative.lastIndex = 0;
+        return !negative.test(sentence);
+    })
+);
+
+const 是否明确体内射精事实 = (text: string): boolean => 句子存在肯定事实(text, 体内射精事实正则, 体内射精否定正则);
+const 是否明确初次关系事实 = (text: string): boolean => 句子存在肯定事实(text, 初次关系事实正则, 初次关系否定正则);
 
 const 是否女性NPC = (npc: any): boolean => (
     typeof npc?.性别 === 'string' && npc.性别.trim() === '女'
@@ -570,7 +585,7 @@ const 读取NPC名称 = (npc: any): string => (
 );
 
 const 提取生理事实相关女性NPC索引 = (responseFactText: string, socialList: any[]): number | null => {
-    if (!体内射精事实正则.test(responseFactText) && !初次关系事实正则.test(responseFactText)) return null;
+    if (!是否明确体内射精事实(responseFactText) && !是否明确初次关系事实(responseFactText)) return null;
 
     const femaleCandidates = (Array.isArray(socialList) ? socialList : [])
         .map((npc: any, index: number) => ({ npc, index, name: 读取NPC名称(npc) }))
@@ -602,8 +617,10 @@ const 构建体内射精记录描述 = (responseFactText: string, playerName?: s
 
 const 构建初夜描述 = (responseFactText: string, playerName?: string): string => {
     const normalized = responseFactText.replace(/\s+/g, ' ').trim();
-    const match = normalized.match(/[^。！？\n\r]{0,36}(?:破处|初夜|第一次|失身|插(?:进|入)|贯穿|进入|内射|中出)[^。！？\n\r]{0,56}[。！？]?/);
-    const detail = (match?.[0] || '').trim();
+    const detail = 拆分事实句(normalized)
+        .find((sentence) => 初次关系事实正则.test(sentence) && !初次关系否定正则.test(sentence))
+        ?.slice(0, 96)
+        .trim() || '';
     const actor = playerName || '主角';
     return detail ? `${actor}与其发生初次亲密关系：${detail}` : `${actor}与其发生初次亲密关系。`;
 };
@@ -635,8 +652,8 @@ const 应用生理事实到女性NPC = (
     const targetIndex = 提取生理事实相关女性NPC索引(responseFactText, socialList);
     if (targetIndex === null) return socialList;
 
-    const hasInternalEjaculation = 体内射精事实正则.test(responseFactText);
-    const hasFirstSexFact = hasInternalEjaculation || 初次关系事实正则.test(responseFactText);
+    const hasInternalEjaculation = 是否明确体内射精事实(responseFactText);
+    const hasFirstSexFact = hasInternalEjaculation || 是否明确初次关系事实(responseFactText);
     const eventDate = 生成临时内射记录日期(envLike);
     const description = 构建体内射精记录描述(responseFactText, playerName);
     const firstNightDescription = 构建初夜描述(responseFactText, playerName);
@@ -934,6 +951,25 @@ const 净化角色装备命令 = (
     return cmd;
 };
 
+const 是否社交生理高风险命令 = (cmd: any): boolean => {
+    const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '');
+    if (!normalizedKey.startsWith('gameState.社交[')) return false;
+    const action = (cmd?.action || 'set') as string;
+    if (/\.初夜(?:夺取者|时间|描述)$/.test(normalizedKey)) return true;
+    if (/\.是否处女$/.test(normalizedKey) && action !== 'delete' && cmd?.value === false) return true;
+    if (/\.子宫\.内射记录(?:$|\[)/.test(normalizedKey) && action !== 'delete') return true;
+    return false;
+};
+
+const 净化社交生理命令 = (
+    cmd: any,
+    responseFactText: string
+): any | null => {
+    if (!是否社交生理高风险命令(cmd)) return cmd;
+    if (是否明确体内射精事实(responseFactText) || 是否明确初次关系事实(responseFactText)) return cmd;
+    return null;
+};
+
 export const 执行响应命令处理 = (
     response: GameResponse,
     currentState: 响应命令处理状态,
@@ -962,7 +998,10 @@ export const 执行响应命令处理 = (
     if (Array.isArray(response.tavern_commands)) {
         response.tavern_commands.forEach(cmd => {
             const safeCmd = sanitizeInventoryCommand(
-                净化角色装备命令(cmd, charBuffer?.装备 || {}, responseFactText),
+                净化社交生理命令(
+                    净化角色装备命令(cmd, charBuffer?.装备 || {}, responseFactText),
+                    responseFactText
+                ),
                 charBuffer,
                 responseFactText
             );

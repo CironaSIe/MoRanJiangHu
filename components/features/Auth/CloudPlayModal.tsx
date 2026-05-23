@@ -39,6 +39,11 @@ import {
 } from '../../../services/objectStorageSync';
 import * as dbService from '../../../services/dbService';
 import { 导出ZIP存档文件 } from '../../../services/saveArchiveService';
+import {
+    构建对象存储云存档时间树,
+    展开对象存储进度线,
+    type 对象存储时间树节点
+} from '../../../utils/cloudPlaySaveTree';
 
 interface Props {
     onClose: () => void;
@@ -72,7 +77,6 @@ const clampPercent = (value: number | undefined): number => {
 };
 
 type 云端时间树节点 = 云端存档摘要 & { children: 云端时间树节点[] };
-type 对象存储时间树节点 = 对象存储云存档元数据 & { children: 对象存储时间树节点[] };
 
 const 估算云端复制进度 = (progress: 云端上传进度 | null): number => {
     if (!progress) return 0;
@@ -101,14 +105,6 @@ const 估算对象存储复制进度 = (progress: 对象存储同步进度 | nul
 };
 
 const buildSeriesKey = (item: 云端存档摘要): string => item.seriesId || item.rootCloudId || item.title || item.cloudId;
-const buildObjectSeriesKey = (item: 对象存储云存档元数据): string => item.seriesId || item.rootHash || item.title || item.id;
-const addHashAliases = <T,>(map: Map<string, T>, hash: string | undefined, value: T): void => {
-    const normalized = typeof hash === 'string' ? hash.trim() : '';
-    if (!normalized) return;
-    map.set(normalized, value);
-    map.set(normalized.slice(0, 16), value);
-    map.set(normalized.slice(-8), value);
-};
 
 const buildCloudSaveTrees = (saves: 云端存档摘要[]): Array<{ key: string; title: string; latest: 云端存档摘要; roots: 云端时间树节点[]; count: number; totalBytes: number }> => {
     const groups = new Map<string, 云端存档摘要[]>();
@@ -142,44 +138,6 @@ const buildCloudSaveTrees = (saves: 云端存档摘要[]): Array<{ key: string; 
     }).sort((a, b) => Number(b.latest?.timestamp || 0) - Number(a.latest?.timestamp || 0));
 };
 
-const buildObjectStorageSaveTrees = (saves: 对象存储云存档元数据[]): Array<{ key: string; title: string; latest: 对象存储云存档元数据; roots: 对象存储时间树节点[]; count: number; totalBytes: number }> => {
-    const groups = new Map<string, 对象存储云存档元数据[]>();
-    saves.forEach((item) => {
-        const key = buildObjectSeriesKey(item);
-        groups.set(key, [...(groups.get(key) || []), item]);
-    });
-    return [...groups.entries()].map(([key, items]) => {
-        const nodeList = items.map((item) => ({ ...item, children: [] } as 对象存储时间树节点));
-        const nodes = new Map<string, 对象存储时间树节点>();
-        nodeList.forEach((node) => {
-            nodes.set(node.id, node);
-            addHashAliases(nodes, node.hash, node);
-        });
-        const roots: 对象存储时间树节点[] = [];
-        nodeList.forEach((node) => {
-            const parent = node.parentHash
-                ? nodes.get(node.parentHash) || nodes.get(node.parentHash.slice(0, 16)) || nodes.get(node.parentHash.slice(-8))
-                : undefined;
-            if (parent) parent.children.push(node);
-            else roots.push(node);
-        });
-        const sortNodes = (list: 对象存储时间树节点[]) => {
-            list.sort((a, b) => Number(a.saveTimestamp || 0) - Number(b.saveTimestamp || 0));
-            list.forEach((node) => sortNodes(node.children));
-        };
-        sortNodes(roots);
-        const latest = [...items].sort((a, b) => Number(b.saveTimestamp || 0) - Number(a.saveTimestamp || 0))[0];
-        return {
-            key,
-            title: latest?.title || '未知角色',
-            latest,
-            roots,
-            count: items.length,
-            totalBytes: items.reduce((sum, item) => sum + Math.max(0, Number(item.size || 0)), 0)
-        };
-    }).sort((a, b) => Number(b.latest?.saveTimestamp || 0) - Number(a.latest?.saveTimestamp || 0));
-};
-
 const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, onConfigureObjectStorage }) => {
     const [riskAccepted, setRiskAccepted] = React.useState(() => 已确认云端游玩风险());
     const [session, setSession] = React.useState<云端游玩账号 | null>(() => 读取云端游玩会话());
@@ -198,7 +156,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
     const [selectedCloudSeriesKey, setSelectedCloudSeriesKey] = React.useState<string | null>(null);
     const [selectedObjectSeriesKey, setSelectedObjectSeriesKey] = React.useState<string | null>(null);
     const cloudSaveTrees = React.useMemo(() => buildCloudSaveTrees(manifest?.saves || []), [manifest]);
-    const objectStorageSaveTrees = React.useMemo(() => buildObjectStorageSaveTrees(objectStorageSaves), [objectStorageSaves]);
+    const objectStorageSaveTrees = React.useMemo(() => 构建对象存储云存档时间树(objectStorageSaves), [objectStorageSaves]);
     const selectedCloudSeries = React.useMemo(
         () => cloudSaveTrees.find((series) => series.key === selectedCloudSeriesKey) || null,
         [cloudSaveTrees, selectedCloudSeriesKey]
@@ -206,6 +164,10 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
     const selectedObjectSeries = React.useMemo(
         () => objectStorageSaveTrees.find((series) => series.key === selectedObjectSeriesKey) || null,
         [objectStorageSaveTrees, selectedObjectSeriesKey]
+    );
+    const selectedObjectTimeline = React.useMemo(
+        () => selectedObjectSeries ? 展开对象存储进度线(selectedObjectSeries.roots) : [],
+        [selectedObjectSeries]
     );
 
     const manifestRef = React.useRef<云端存档清单 | null>(null);
@@ -593,22 +555,19 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
         </div>
     );
 
-    const renderObjectStorageNode = (item: 对象存储时间树节点, root = false): React.ReactNode => (
-        <div key={item.id} className="inline-flex flex-col items-start">
-            <div className="flex items-center">
-                {!root && (
-                    <div className="flex w-14 shrink-0 items-center sm:w-20" aria-hidden="true">
-                        <div className="h-px flex-1 bg-sky-400/40" />
-                        <div className="h-2 w-2 rotate-45 border-r border-t border-sky-300/75" />
-                    </div>
-                )}
-                {renderObjectStorageCard(item)}
-            </div>
-            {item.children.length > 0 && (
-                <div className="ml-28 mt-3 flex items-start gap-4 border-t border-sky-400/20 pt-3 sm:ml-32">
-                    {item.children.map((child) => renderObjectStorageNode(child))}
-                </div>
-            )}
+    const renderObjectStorageTimeline = (items: 对象存储时间树节点[]): React.ReactNode => (
+        <div className="inline-flex min-w-full snap-x snap-mandatory items-start gap-0 px-1">
+            {items.map((item, index) => (
+                <React.Fragment key={item.id || item.hash || index}>
+                    {index > 0 && (
+                        <div className="flex w-14 shrink-0 items-center pt-16 sm:w-20" aria-hidden="true">
+                            <div className="h-px flex-1 bg-sky-400/40" />
+                            <div className="h-2 w-2 rotate-45 border-r border-t border-sky-300/75" />
+                        </div>
+                    )}
+                    {renderObjectStorageCard(item)}
+                </React.Fragment>
+            ))}
         </div>
     );
 
@@ -728,7 +687,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                         <div>
                                             <div className="font-serif text-sm font-bold tracking-[0.12em] text-sky-100">{selectedObjectSeries.title}</div>
                                             <div className="mt-1 text-[11px] text-gray-500">
-                                                时间树 {selectedObjectSeries.count} 个节点 · 云端包合计 {formatBytes(selectedObjectSeries.totalBytes)} · 最新 {formatTime(selectedObjectSeries.latest?.syncedAt || selectedObjectSeries.latest?.savedAt)}
+                                                进度点 {selectedObjectSeries.displayCount} 个 · 云端节点 {selectedObjectSeries.count} 个 · 云端包合计 {formatBytes(selectedObjectSeries.totalBytes)} · 最新 {formatTime(selectedObjectSeries.latest?.syncedAt || selectedObjectSeries.latest?.savedAt)}
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
@@ -741,9 +700,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                         </div>
                                     </div>
                                     <div className="-mx-1 max-w-full overflow-x-auto overscroll-x-contain pb-3 touch-pan-x custom-scrollbar">
-                                        <div className="inline-flex min-w-full snap-x snap-mandatory items-start gap-4 px-1">
-                                            {selectedObjectSeries.roots.map((root) => renderObjectStorageNode(root, true))}
-                                        </div>
+                                        {renderObjectStorageTimeline(selectedObjectTimeline)}
                                     </div>
                                 </div>
                             ) : (
@@ -753,7 +710,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                             <div>
                                                 <div className="font-serif text-sm font-bold tracking-[0.12em] text-sky-100">{series.title}</div>
                                                 <div className="mt-1 text-[11px] text-gray-500">
-                                                    时间树 {series.count} 个节点 · 云端包合计 {formatBytes(series.totalBytes)} · 最新 {formatTime(series.latest?.syncedAt || series.latest?.savedAt)}
+                                                    进度点 {series.displayCount} 个 · 云端节点 {series.count} 个 · 云端包合计 {formatBytes(series.totalBytes)} · 最新 {formatTime(series.latest?.syncedAt || series.latest?.savedAt)}
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
@@ -765,7 +722,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="text-[11px] text-gray-500">同一起始存档已归并为一个系列；选择节点后可读取任意时间树节点。</div>
+                                        <div className="text-[11px] text-gray-500">同一角色的云端节点已整理为连续进度线；重复自动节点会自动收敛。</div>
                                     </div>
                                 ))
                             )}
