@@ -176,7 +176,7 @@ type 存档协调依赖 = {
     规范化游戏设置: (raw?: Partial<游戏设置结构> | null) => 游戏设置结构;
     规范化视觉设置: (raw?: Partial<视觉设置结构> | null) => 视觉设置结构;
     规范化场景图片档案: (raw?: any) => 场景图片档案;
-    规范化角色物品容器映射: (raw?: any, options?: { 当前时间?: unknown; 事件文本?: string }) => 角色数据结构;
+    规范化角色物品容器映射: (raw?: any, options?: { 当前时间?: unknown; 事件文本?: string; 启用饱腹口渴系统?: boolean }) => 角色数据结构;
     规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => any[];
     获取当前提示词池: () => 提示词结构[];
     创建开场空白环境: () => 环境信息结构;
@@ -709,7 +709,10 @@ export const 执行读取存档 = async (
     });
     const loadedRole = shouldTrustPersistedHeavyFields
         ? ((save.角色数据 || {}) as 角色数据结构)
-        : deps.规范化角色物品容器映射(save.角色数据, { 当前时间: normalizedEnv });
+        : deps.规范化角色物品容器映射(save.角色数据, {
+            当前时间: normalizedEnv,
+            启用饱腹口渴系统: saveGameConfig?.启用饱腹口渴系统
+        });
     trace('role.prepare.done', {
         trusted: shouldTrustPersistedHeavyFields,
         roleStats: collectValueStats(loadedRole, 12000),

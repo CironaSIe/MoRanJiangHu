@@ -9,7 +9,6 @@ interface Props {
 
 const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig }) => {
     const 天赋列表 = Array.isArray(character.天赋列表) ? character.天赋列表 : [];
-    const 技艺列表 = Array.isArray((character as any).技艺) ? (character as any).技艺 : [];
     const areaStyle = 构建区域文字样式(visualConfig, '角色档案');
     const profileFontStyle = {
         fontFamily: areaStyle.fontFamily,
@@ -166,29 +165,6 @@ const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig }) => {
                         </div>
                     </div>
 
-                    <div className="border border-[#c7a56a]/35 bg-[#fffdf6] p-4">
-                        <div className="mb-3 flex items-center justify-between gap-2">
-                            <div className="text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]">技艺</div>
-                            <div className="text-[10px] text-[#8a5a2f]">共 {技艺列表.length} 项</div>
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            {技艺列表.length > 0 ? 技艺列表.map((skill: any, index: number) => (
-                                <div
-                                    key={`${skill?.名称 || '技艺'}-${index}`}
-                                    title={skill?.描述 || '技艺会随故事里的学习、实践与突破更新。'}
-                                    className="cursor-help border border-[#d8c4a2] bg-[#fffaf0] px-3 py-2"
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="min-w-0 break-words text-sm font-semibold text-[#7a3f12]">{skill?.名称 || '未命名技艺'}</span>
-                                        <span className="shrink-0 text-xs text-[#8a5a2f]">{skill?.等级 || '未入门'}</span>
-                                    </div>
-                                    <div className="mt-1 font-mono text-xs text-[#b42318]">熟练 {Number(skill?.熟练度 || 0)}</div>
-                                </div>
-                            )) : (
-                                <div className="border border-dashed border-[#d8c4a2] px-3 py-6 text-center text-sm text-[#8a5a2f] sm:col-span-2">暂无技艺记录</div>
-                            )}
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

@@ -414,6 +414,27 @@ export const 获取硬编码仙侠境界名称 = (levelRaw: unknown): string => 
     return [...默认仙侠境界映射].reverse().find((item) => item.level <= level)?.label || '';
 };
 
+export const 获取境界映射名称 = (
+    levelRaw: unknown,
+    options?: {
+        worldPrompt?: string;
+        realmPrompt?: string;
+        openingConfig?: OpeningConfig | null;
+    }
+): string => {
+    const numeric = Number(levelRaw);
+    if (!Number.isFinite(numeric)) return '';
+    const level = Math.max(1, Math.floor(numeric));
+    const schema = 构建同人运行时提示词包({
+        openingConfig: options?.openingConfig,
+        worldPrompt: options?.worldPrompt,
+        realmPrompt: options?.realmPrompt
+    }).境界映射母板;
+    const exact = schema.mapping.find((item) => item.level === level);
+    if (exact) return exact.label;
+    return [...schema.mapping].reverse().find((item) => item.level <= level)?.label || '';
+};
+
 const 清理映射区块正文 = (block: string, schema: 境界映射母板): string => {
     const lines = (block || '')
         .split('\n')

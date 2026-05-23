@@ -130,6 +130,18 @@ describe('stateTransforms 只补一次系统丹药预设', () => {
         expect((normalized as any).已补齐系统丹药预设).toBe(true);
     });
 
+    it('关闭饱腹口渴系统时不会补入辟谷丹，并会清理系统预设辟谷丹', () => {
+        const role: any = {
+            姓名: '测试',
+            物品列表: 补齐自动丹药预设([]),
+            已补齐系统丹药预设: false
+        };
+        const normalized = 规范化角色物品容器映射(role, { 启用饱腹口渴系统: false });
+        const names = normalized.物品列表.map((item: any) => item.名称);
+        expect(names).not.toContain('辟谷丹');
+        expect(names).toEqual(expect.arrayContaining(['回气丹', '凝元丹', '破境丹']));
+    });
+
     it('已经补过的存档即使某丹药被吃完，下一次归一也不会重新塞回', () => {
         const role: any = {
             姓名: '测试',
@@ -139,6 +151,33 @@ describe('stateTransforms 只补一次系统丹药预设', () => {
         const normalized = 规范化角色物品容器映射(role);
         expect(normalized.物品列表.some((item: any) => item.名称 === '回气丹')).toBe(false);
         expect(normalized.物品列表.some((item: any) => item.名称 === '破境丹')).toBe(false);
+    });
+});
+
+describe('储物容器效果归一', () => {
+    it('储物袋不应提供精力增益，而应归一为负重/收纳能力', () => {
+        const normalized = 规范化角色物品容器映射({
+            姓名: '测试',
+            物品列表: [
+                {
+                    ID: 'bag_1',
+                    名称: '储物袋',
+                    描述: '可收纳一百二十斤杂物的小型法宝。',
+                    类型: '法宝',
+                    品质: '良品',
+                    重量: 0.5,
+                    堆叠数量: 1,
+                    词条列表: [{ 属性: '最大精力', 数值: 20 }],
+                    使用效果: [{ 目标属性: '当前精力', 数值: 20 }]
+                }
+            ],
+            已补齐系统丹药预设: true
+        } as any);
+        const bag = normalized.物品列表.find((item: any) => item.名称 === '储物袋');
+        expect(bag?.容器属性?.最大容量).toBeGreaterThan(0);
+        expect(bag?.词条列表.some((entry: any) => String(entry.属性).includes('精力'))).toBe(false);
+        expect(bag?.词条列表.some((entry: any) => entry.属性 === '最大负重')).toBe(true);
+        expect(bag?.使用效果.some((effect: any) => String(effect.目标属性).includes('精力'))).toBe(false);
     });
 });
 

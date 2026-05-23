@@ -274,7 +274,7 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
 
     const generatePlayerImagesAutomatically = async (playerSnapshot?: 角色数据结构) => {
         const imageFeature = deps.读取文生图功能配置();
-        if (!imageFeature?.总开关 || !imageFeature?.NPC开关) return;
+        if (!imageFeature?.总开关) return;
         const targets: 主角生图选项[] = [
             { 构图: '头像', 额外要求: '开局自动生成主角头像，强调面部辨识度、清晰五官与稳定角色特征。' },
             { 构图: '半身', 额外要求: '开局自动生成主角半身像，强调上半身服饰、姿态、气质与身份辨识。' },
@@ -309,7 +309,7 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
 
     const ensurePlayerAvatarEachTurn = async (playerSnapshot?: 角色数据结构) => {
         const imageFeature = deps.读取文生图功能配置();
-        if (!imageFeature?.总开关 || !imageFeature?.NPC开关) return;
+        if (!imageFeature?.总开关) return;
         const player = playerSnapshot || deps.获取角色();
         if (主角已有头像(player)) return;
         const now = Date.now();

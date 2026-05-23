@@ -37,5 +37,18 @@ describe('xianxia hardcoded realm system', () => {
         expect(获取硬编码仙侠境界名称(3)).toBe('炼气三层');
         expect(解析境界映射值('筑基圆满', { openingConfig: 仙侠开局 })).toBe(16);
         expect(获取单位境界显示({ 境界: '开脉境三重', 境界层级: 3, 灵根: '火灵根' }, '未知', { forceXianxia: true })).toBe('炼气三层');
+        expect(获取单位境界显示({ 境界: '未知境界', 境界层级: 13, 灵根: '火灵根' }, '未知', { forceXianxia: true })).toBe('筑基初期');
+        expect(获取单位境界显示({ 境界层级: 17, 当前灵力: 1 }, '未知境界', { forceXianxia: true })).toBe('金丹初期');
+    });
+
+    it('can read a custom realm prompt by level when the stored realm text is missing', () => {
+        const realmPrompt = [
+            '【境界映射母板】',
+            '1 => 凡骨一阶',
+            '2 => 凡骨二阶',
+            '3 => 星火初燃'
+        ].join('\n');
+
+        expect(获取单位境界显示({ 境界: '未知', 境界层级: 3 }, '未知境界', { realmPrompt })).toBe('星火初燃');
     });
 });

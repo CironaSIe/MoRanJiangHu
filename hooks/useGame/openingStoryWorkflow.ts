@@ -176,7 +176,7 @@ type 开场剧情生成依赖 = {
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构;
     规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
     规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
-    规范化角色物品容器映射: (raw?: any) => 角色数据结构;
+    规范化角色物品容器映射: (raw?: any, options?: { 启用饱腹口渴系统?: boolean }) => 角色数据结构;
     规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => any[];
     规范化世界状态: (raw?: any) => 世界数据结构;
     规范化战斗状态: (raw?: any) => 战斗状态结构;
@@ -1473,7 +1473,9 @@ export const 执行开场剧情生成工作流 = async (
         const openingNewNpcList = deps.提取新增NPC列表(commandBaseState.社交, openingStateAfterCommands.社交);
         const hasOpeningCommands = Array.isArray(responseForExecution?.tavern_commands) && responseForExecution.tavern_commands.length > 0;
         if (!hasOpeningCommands) {
-            deps.设置角色(deps.规范化角色物品容器映射(openingStateAfterCommands.角色));
+            deps.设置角色(deps.规范化角色物品容器映射(openingStateAfterCommands.角色, {
+                启用饱腹口渴系统: openingGameConfig.启用饱腹口渴系统
+            }));
             deps.设置环境(deps.规范化环境信息(openingStateAfterCommands.环境));
             deps.设置社交(deps.规范化社交列表(openingStateAfterCommands.社交));
             deps.设置世界(deps.规范化世界状态(openingStateAfterCommands.世界));
