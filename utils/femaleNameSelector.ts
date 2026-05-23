@@ -70,8 +70,7 @@ export const 重命名重复女性NPC列表 = (list: any[]): any[] => {
 
         const shouldRename = !name
             || 占位女性姓名正则.test(name)
-            || usedNames.has(name)
-            || !判断女性姓名来自姓名库(name);
+            || usedNames.has(name);
         if (!shouldRename) {
             usedNames.add(name);
             return { ...npc, 姓名: name };

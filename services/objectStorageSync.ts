@@ -56,6 +56,7 @@ export interface 对象存储云存档元数据 {
     rootHash?: string;
     lineageDepth?: number;
     branchInput?: string;
+    openingSnippet?: string;
     autoNodeId?: string;
     autoSignature?: string;
     bundledSaveCount?: number;
@@ -161,6 +162,33 @@ type 待上传对象存储存档 = 已打包对象存储存档 & {
 const 读取文本 = (value: unknown): string => (
     typeof value === 'string' ? value.trim() : ''
 );
+
+const 提取历史文本 = (item: any): string => {
+    if (!item || typeof item !== 'object') return '';
+    const direct = 读取文本(item.content);
+    if (direct) return direct;
+    const parts = Array.isArray(item.parts) ? item.parts : [];
+    return parts
+        .map((part: any) => 读取文本(part?.text || part?.content))
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+};
+
+const 规范化首回合片段 = (value: unknown, length = 20): string => (
+    读取文本(value)
+        .replace(/<[^>]+>/g, '')
+        .replace(/【[^】]{1,12}】/g, '')
+        .replace(/\s+/g, '')
+        .slice(0, length)
+);
+
+const 读取首回合片段 = (save: Partial<存档结构>, length = 20): string => {
+    const history = Array.isArray(save.历史记录) ? save.历史记录 : [];
+    const firstAssistant = history.find((item: any) => item?.role === 'assistant' && 规范化首回合片段(提取历史文本(item), length));
+    const firstAny = firstAssistant || history.find((item: any) => 规范化首回合片段(提取历史文本(item), length));
+    return 规范化首回合片段(提取历史文本(firstAny), length);
+};
 
 const 深拷贝 = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -929,6 +957,7 @@ const 构建云存档元数据 = async (save: 存档结构, archiveBytes: Uint8A
         rootHash: 读取文本((save.元数据 as any)?.存档根节点哈希) || hash,
         lineageDepth: Math.max(0, Math.floor(Number((save.元数据 as any)?.存档谱系深度 || 0))),
         branchInput: 读取文本((save.元数据 as any)?.存档分支输入) || (读取文本((save.元数据 as any)?.存档父节点哈希) ? '继续游玩' : '开局'),
+        openingSnippet: 读取文本((save.元数据 as any)?.首回合正文片段) || 读取首回合片段(save),
         autoNodeId: 读取文本((save.元数据 as any)?.自动存档节点ID) || undefined,
         autoSignature: 读取文本((save.元数据 as any)?.自动存档签名) || undefined
     };
@@ -1193,6 +1222,7 @@ export const 下载对象存储云存档 = async (
         存档根节点哈希: 读取文本(metadata?.rootHash) || 读取文本(save.元数据?.存档根节点哈希) || 读取文本(metadata?.hash),
         存档谱系深度: Number.isFinite(Number(metadata?.lineageDepth)) ? Math.max(0, Math.floor(Number(metadata?.lineageDepth))) : save.元数据?.存档谱系深度,
         存档分支输入: 读取文本(metadata?.branchInput) || 读取文本(save.元数据?.存档分支输入),
+        首回合正文片段: 读取文本(metadata?.openingSnippet) || 读取文本((save.元数据 as any)?.首回合正文片段),
         存档谱系版本: 1,
         游戏回合数: Number.isFinite(Number(metadata?.turnCount)) ? Math.max(0, Math.floor(Number(metadata?.turnCount))) : 读取存档游玩回合数(save),
         对象存储哈希: metadata?.hash || item.hash,

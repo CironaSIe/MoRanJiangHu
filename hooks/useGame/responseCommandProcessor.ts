@@ -162,7 +162,7 @@ const 补入对白发送者到社交 = (
 
     const existingKeys = new Set(
         (Array.isArray(socialList) ? socialList : [])
-            .flatMap((npc: any) => [npc?.id, npc?.姓名, npc?.名称])
+            .flatMap((npc: any) => [npc?.id, ...读取NPC名称列表(npc)])
             .map(归一化文本键)
             .filter(Boolean)
     );
@@ -179,7 +179,7 @@ const 补入对白发送者到社交 = (
     });
 
     const markedSocialList = (Array.isArray(socialList) ? socialList : []).map((npc: any) => {
-        const keys = [npc?.id, npc?.姓名, npc?.名称].map(归一化文本键).filter(Boolean);
+        const keys = [npc?.id, ...读取NPC名称列表(npc)].map(归一化文本键).filter(Boolean);
         if (!keys.some((key) => dialogueNameKeys.has(key))) return npc;
         return {
             ...npc,
@@ -248,11 +248,11 @@ const 判断NPC本回合是否在场 = (
     responseFactText: string,
     dialogueSenderKeys: Set<string>
 ): boolean | undefined => {
-    const name = 读取NPC名称(npc);
-    const key = 归一化文本键(name);
-    if (key && dialogueSenderKeys.has(key)) return true;
-    if (!name || !responseFactText.includes(name)) return false;
-    const relatedSentences = 拆分事实句(responseFactText).filter((sentence) => sentence.includes(name));
+    const names = 读取NPC名称列表(npc);
+    const keys = names.map(归一化文本键).filter(Boolean);
+    if (keys.some((key) => dialogueSenderKeys.has(key))) return true;
+    if (names.length <= 0 || !names.some((name) => responseFactText.includes(name))) return false;
+    const relatedSentences = 拆分事实句(responseFactText).filter((sentence) => names.some((name) => sentence.includes(name)));
     if (relatedSentences.length <= 0) return false;
     if (relatedSentences.some((sentence) => 现场缺席事实正则.test(sentence))) return false;
     if (relatedSentences.some((sentence) => 现场确认事实正则.test(sentence))) return true;
@@ -584,15 +584,38 @@ const 读取NPC名称 = (npc: any): string => (
             : ''
 );
 
+const 读取NPC名称列表 = (npc: any): string[] => {
+    if (!npc || typeof npc !== 'object') return [];
+    const values = [
+        npc?.姓名,
+        npc?.名称,
+        ...(Array.isArray(npc?.曾用名) ? npc.曾用名 : [])
+    ];
+    const seen = new Set<string>();
+    const result: string[] = [];
+    values.forEach((value) => {
+        const name = typeof value === 'string' ? value.trim() : '';
+        const key = 归一化文本键(name);
+        if (!name || !key || seen.has(key)) return;
+        seen.add(key);
+        result.push(name);
+    });
+    return result;
+};
+
+const 文本包含任一NPC名称 = (text: string, npc: any): boolean => (
+    读取NPC名称列表(npc).some((name) => text.includes(name))
+);
+
 const 提取生理事实相关女性NPC索引 = (responseFactText: string, socialList: any[]): number | null => {
     if (!是否明确体内射精事实(responseFactText) && !是否明确初次关系事实(responseFactText)) return null;
 
     const femaleCandidates = (Array.isArray(socialList) ? socialList : [])
-        .map((npc: any, index: number) => ({ npc, index, name: 读取NPC名称(npc) }))
+        .map((npc: any, index: number) => ({ npc, index, names: 读取NPC名称列表(npc) }))
         .filter((item) => 是否女性NPC(item.npc));
     if (femaleCandidates.length <= 0) return null;
 
-    const mentioned = femaleCandidates.filter((item) => item.name && responseFactText.includes(item.name));
+    const mentioned = femaleCandidates.filter((item) => item.names.some((name) => responseFactText.includes(name)));
     if (mentioned.length === 1) return mentioned[0].index;
     if (mentioned.length > 1) {
         const presentMentioned = mentioned.filter((item) => item.npc?.是否在场 === true);
@@ -758,8 +781,7 @@ const 应用女性关系目标主要角色兜底 = (
     let changed = false;
     const nextList = socialList.map((npc: any) => {
         if (!npc || typeof npc !== 'object' || !是否女性NPC(npc) || npc?.是否主要角色 === true) return npc;
-        const name = 读取NPC名称(npc);
-        const mentionedAsTarget = Boolean(name && factText.includes(name) && hasGlobalTargetFact);
+        const mentionedAsTarget = Boolean(hasGlobalTargetFact && 文本包含任一NPC名称(factText, npc));
         const fieldMarked = NPC字段是否含关系目标语义(npc);
         if (!mentionedAsTarget && !fieldMarked) return npc;
         changed = true;
@@ -780,28 +802,36 @@ const 提取死亡事实句 = (responseFactText: string): string => {
 const 提取死亡事实相关NPC索引 = (deathSentence: string, socialList: any[]): number | null => {
     if (!deathSentence) return null;
     const candidates = (Array.isArray(socialList) ? socialList : [])
-        .map((npc: any, index: number) => ({ npc, index, name: 读取NPC名称(npc) }))
-        .filter((item) => item.name);
-    const mentioned = candidates.filter((item) => deathSentence.includes(item.name));
+        .map((npc: any, index: number) => ({ npc, index, names: 读取NPC名称列表(npc) }))
+        .filter((item) => item.names.length > 0);
+    const mentioned = candidates.filter((item) => item.names.some((name) => deathSentence.includes(name)));
     if (mentioned.length === 1) return mentioned[0].index;
     if (mentioned.length > 1) {
         const scored = mentioned
             .map((item) => {
-                const escapedName = item.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const 被动死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,12}被[^。！？\\n\\r]{0,36}(?:杀死|斩杀|击杀|害死|毙命|贯穿|斩落|刺死|砍死)`).test(deathSentence);
-                const 主体死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,24}(?:死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|再无(?:气息|生机)|心脉(?:断绝|俱断))`).test(deathSentence);
-                const 宾语死亡 = new RegExp(`(?:杀死|斩杀|击杀|害死|刺死|砍死)(?:了)?[^。！？\\n\\r]{0,12}${escapedName}`).test(deathSentence);
-                const 疑似施害者 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,12}(?:杀死|斩杀|击杀|害死|刺死|砍死)`).test(deathSentence);
+                const nameScores = item.names.map((name) => {
+                    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const 被动死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,12}被[^。！？\\n\\r]{0,36}(?:杀死|斩杀|击杀|害死|毙命|贯穿|斩落|刺死|砍死)`).test(deathSentence);
+                    const 主体死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,24}(?:死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|再无(?:气息|生机)|心脉(?:断绝|俱断))`).test(deathSentence);
+                    const 宾语死亡 = new RegExp(`(?:杀死|斩杀|击杀|害死|刺死|砍死)(?:了)?[^。！？\\n\\r]{0,12}${escapedName}`).test(deathSentence);
+                    const 疑似施害者 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,12}(?:杀死|斩杀|击杀|害死|刺死|砍死)`).test(deathSentence);
+                    return {
+                        name,
+                        score: (被动死亡 ? 4 : 0) + (主体死亡 ? 3 : 0) + (宾语死亡 ? 4 : 0) - (疑似施害者 ? 3 : 0)
+                    };
+                }).sort((a, b) => b.score - a.score || deathSentence.indexOf(a.name) - deathSentence.indexOf(b.name));
                 return {
                     ...item,
-                    score: (被动死亡 ? 4 : 0) + (主体死亡 ? 3 : 0) + (宾语死亡 ? 4 : 0) - (疑似施害者 ? 3 : 0)
+                    name: nameScores[0]?.name || item.names[0],
+                    score: nameScores[0]?.score || 0
                 };
             })
             .sort((a, b) => b.score - a.score || deathSentence.indexOf(a.name) - deathSentence.indexOf(b.name));
         if (scored[0]?.score > 0 && scored[0].score > (scored[1]?.score ?? -Infinity)) return scored[0].index;
         const presentMentioned = mentioned.filter((item) => item.npc?.是否在场 === true);
         if (presentMentioned.length === 1) return presentMentioned[0].index;
-        const exactNameFirst = [...mentioned].sort((a, b) => deathSentence.indexOf(a.name) - deathSentence.indexOf(b.name));
+        const firstIndex = (item: { names: string[] }) => Math.min(...item.names.map((name) => deathSentence.indexOf(name)).filter((index) => index >= 0));
+        const exactNameFirst = [...mentioned].sort((a, b) => firstIndex(a) - firstIndex(b));
         return exactNameFirst[0].index;
     }
     return null;

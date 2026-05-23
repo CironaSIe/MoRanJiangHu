@@ -5,7 +5,7 @@ import { 自动装备最佳装备 } from '../../utils/equipmentActions';
 import { 规范化消耗品使用效果 } from '../../utils/itemEffects';
 import { 补齐自动丹药预设 } from '../../utils/autoConsumables';
 import { 归一化六维到境界预算 } from '../../utils/attributeBudget';
-import { 判断女性名称目标, 判断女性姓名来自姓名库, 选择唯一女性姓名, 重命名重复女性NPC列表 } from '../../utils/femaleNameSelector';
+import { 判断女性名称目标, 选择唯一女性姓名, 重命名重复女性NPC列表 } from '../../utils/femaleNameSelector';
 
 const 深拷贝 = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
 const 默认装备模板 = {
