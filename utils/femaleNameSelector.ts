@@ -22,6 +22,8 @@ export const 女性人名选择器列表 = Array.from(new Set(
         .filter((name) => name.length > 0)
 ));
 
+const 女性人名选择器集合 = new Set(女性人名选择器列表);
+
 const 女性性别正则 = /女|女性|女子|少女|女修|姑娘|妇人|夫人|娘子|侍女|丫鬟/;
 const 非女性性别正则 = /男娘|男性|男子|少年|男修|公子|汉子|男/;
 const 占位女性姓名正则 = /^(?:角色|同门|随行者|新NPC|未命名NPC|未命名|未知|无名|女子|少女|女修|姑娘|侍女|丫鬟)\d*$/;
@@ -31,6 +33,11 @@ export const 判断女性名称目标 = (npc: any): boolean => {
     if (!sex) return false;
     if (非女性性别正则.test(sex) && !女性性别正则.test(sex)) return false;
     return 女性性别正则.test(sex);
+};
+
+export const 判断女性姓名来自姓名库 = (value: unknown): boolean => {
+    const name = 规范化姓名键(value);
+    return Boolean(name && 女性人名选择器集合.has(name));
 };
 
 export const 选择唯一女性姓名 = (params?: {
@@ -61,7 +68,10 @@ export const 重命名重复女性NPC列表 = (list: any[]): any[] => {
             return npc;
         }
 
-        const shouldRename = !name || 占位女性姓名正则.test(name) || usedNames.has(name);
+        const shouldRename = !name
+            || 占位女性姓名正则.test(name)
+            || usedNames.has(name)
+            || !判断女性姓名来自姓名库(name);
         if (!shouldRename) {
             usedNames.add(name);
             return { ...npc, 姓名: name };

@@ -81,7 +81,7 @@ const 读取预设名称 = (preset?: 画师串预设结构 | PNG画风预设结�
     typeof preset?.名称 === 'string' && preset.名称.trim() ? preset.名称.trim() : '未命名预设'
 );
 
-const 标签按钮样式 = (active: boolean): string => `inline-flex min-w-[128px] flex-1 items-center justify-center rounded-xl border px-5 py-2.5 text-sm tracking-[0.22em] transition-all ${
+const 标签按钮样式 = (active: boolean): string => `inline-flex min-w-0 flex-1 items-center justify-center rounded-xl border px-3 py-2.5 text-sm tracking-[0.12em] transition-all xl:min-w-[112px] xl:px-5 xl:tracking-[0.22em] ${
     active
         ? 'border-wuxia-gold/60 bg-wuxia-gold/12 text-wuxia-gold shadow-[0_0_18px_rgba(212,175,55,0.15)]'
         : 'border-gray-800 bg-black/35 text-gray-400 hover:border-wuxia-gold/35 hover:text-wuxia-gold/80'
@@ -277,13 +277,13 @@ const CharacterModal: React.FC<Props> = ({
     return (
         <div className="fixed inset-0 z-[200] hidden md:flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm animate-fadeIn">
             <div className="relative flex h-[88vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-wuxia-gold/30 bg-ink-black/95 shadow-[0_0_80px_rgba(0,0,0,0.9)]">
-                <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-b border-gray-800/60 bg-black/40 px-6 py-4">
+                <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,360px)_auto] items-center gap-3 border-b border-gray-800/60 bg-black/40 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)_minmax(40px,1fr)] lg:gap-4 lg:px-6">
                     <div className="min-w-0">
                         <h3 className="text-lg font-bold tracking-[0.25em] text-wuxia-gold">角色档案</h3>
                         <div className="mt-1 text-[11px] text-gray-500">主角信息与影像档案</div>
                     </div>
 
-                    <div className="w-full max-w-[360px]">
+                    <div className="w-full min-w-0 max-w-[360px]">
                         <div className="mx-auto flex w-full items-center justify-center gap-2 rounded-2xl border border-wuxia-gold/15 bg-black/35 p-1.5">
                             <button type="button" onClick={() => setActiveTab('profile')} className={标签按钮样式(activeTab === 'profile')}>档案</button>
                             <button type="button" onClick={() => setActiveTab('skills')} className={标签按钮样式(activeTab === 'skills')}>技艺</button>

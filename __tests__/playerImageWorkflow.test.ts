@@ -58,9 +58,19 @@ describe('playerImageWorkflow', () => {
         warnSpy.mockRestore();
     });
 
-    it('does not run automatic player补图 when NPC automatic image switch is off', async () => {
+    it('keeps automatic player补图 independent from the NPC automatic image switch', async () => {
         const 执行生图 = vi.fn(async () => undefined);
         const workflow = 创建主角图片工作流(创建依赖(执行生图, { NPC开关: false }) as any);
+
+        await workflow.generatePlayerImagesAutomatically({ 姓名: '刀哥', 头像图片URL: '' } as any);
+        await workflow.ensurePlayerAvatarEachTurn({ 姓名: '刀哥', 头像图片URL: '' } as any);
+
+        expect(执行生图).toHaveBeenCalledTimes(4);
+    });
+
+    it('does not run automatic player补图 when the image generation master switch is off', async () => {
+        const 执行生图 = vi.fn(async () => undefined);
+        const workflow = 创建主角图片工作流(创建依赖(执行生图, { 总开关: false, NPC开关: true }) as any);
 
         await workflow.generatePlayerImagesAutomatically({ 姓名: '刀哥', 头像图片URL: '' } as any);
         await workflow.ensurePlayerAvatarEachTurn({ 姓名: '刀哥', 头像图片URL: '' } as any);

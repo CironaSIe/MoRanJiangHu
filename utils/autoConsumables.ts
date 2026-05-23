@@ -10,6 +10,10 @@ type AutoConsumableTemplate = {
     effects: { 目标属性: string; 数值: number }[];
 };
 
+type 自动丹药预设选项 = {
+    启用饱腹口渴系统?: boolean;
+};
+
 const AUTO_CONSUMABLES: AutoConsumableTemplate[] = [
     {
         id: 'auto_pill_bigu',
@@ -84,10 +88,11 @@ const 创建丹药物品 = (template: AutoConsumableTemplate): 游戏物品 => (
     来源描述: '系统按生存与突破规则预设的基础丹药。'
 } as 游戏物品);
 
-export const 补齐自动丹药预设 = (items: any[]): any[] => {
+export const 补齐自动丹药预设 = (items: any[], options?: 自动丹药预设选项): any[] => {
     const next = Array.isArray(items) ? [...items] : [];
     const names = new Set(next.map((item) => 取文本(item?.名称)).filter(Boolean));
     AUTO_CONSUMABLES.forEach((template) => {
+        if (options?.启用饱腹口渴系统 === false && template.name === '辟谷丹') return;
         if (!names.has(template.name)) {
             next.push(创建丹药物品(template));
             names.add(template.name);

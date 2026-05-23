@@ -182,6 +182,20 @@ const SocialModal: React.FC<Props> = ({
         (npc as any).性癖
     );
     const 读取敏感点 = (npc: NPC结构): string => 取首个非空文本((npc as any).敏感点);
+    const 读取名器档案 = (npc: NPC结构): Array<{ 部位: string; 名称: string; 品质: string; 稳定描述: string; 标签: string[] }> => {
+        const source = Array.isArray((npc as any)?.名器档案) ? (npc as any).名器档案 : [];
+        return source
+            .map((item: any) => ({
+                部位: typeof item?.部位 === 'string' ? item.部位.trim() : '',
+                名称: typeof item?.名称 === 'string' ? item.名称.trim() : '',
+                品质: typeof item?.品质 === 'string' ? item.品质.trim() : '',
+                稳定描述: typeof item?.稳定描述 === 'string' ? item.稳定描述.trim() : '',
+                标签: Array.isArray(item?.效果?.标签)
+                    ? item.效果.标签.map((tag: unknown) => typeof tag === 'string' ? tag.trim() : '').filter(Boolean).slice(0, 4)
+                    : []
+            }))
+            .filter((item) => item.部位 && item.名称);
+    };
     const 读取香闺秘档图片结果 = (npc: NPC结构, part: 香闺秘档部位类型) => {
         const source = (npc as any)?.图片档案?.香闺秘档部位档案?.[part];
         return source && typeof source === 'object' ? source : undefined;
@@ -345,6 +359,7 @@ const SocialModal: React.FC<Props> = ({
                 { key: '屁穴', label: '屁穴描述', text: 读取屁穴描述(currentNPC) || '暂无记录' }
             ])
         : [];
+    const 当前名器档案 = currentNPC ? 读取名器档案(currentNPC) : [];
     const 生成香闺部位键 = (npcId: string, part: 香闺秘档部位类型) => `${npcId}_${part}`;
 
     // Helper for Privacy Tags
@@ -1004,6 +1019,34 @@ const SocialModal: React.FC<Props> = ({
                                                         <div className="grid grid-cols-2 gap-3 mb-5">
                                                             <PrivateTag label="性癖" value={读取性癖(currentNPC) || '暂无记录'} color="text-pink-400" />
                                                             <PrivateTag label="敏感点" value={读取敏感点(currentNPC) || '暂无记录'} color="text-red-400" />
+                                                        </div>
+
+                                                        <div className="mb-5 rounded-lg border border-fuchsia-700/35 bg-fuchsia-950/10 p-3">
+                                                            <div className="mb-3 flex items-center justify-between gap-2">
+                                                                <div className="text-[10px] font-bold tracking-[0.22em] text-fuchsia-300">名器标签</div>
+                                                                <div className="text-[9px] font-mono text-fuchsia-300/50">TAGGED PROFILE</div>
+                                                            </div>
+                                                            {当前名器档案.length > 0 ? (
+                                                                <div className="space-y-2">
+                                                                    {当前名器档案.map((item) => (
+                                                                        <div key={`${item.部位}_${item.名称}`} className="rounded border border-fuchsia-800/30 bg-black/35 p-2">
+                                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                                <span className="text-[10px] text-fuchsia-200/70">{item.部位}</span>
+                                                                                <span className="text-sm font-bold text-fuchsia-200">{item.名称}</span>
+                                                                                <span className={`rounded border px-1.5 py-0.5 text-[9px] ${item.品质 === '无' ? 'border-gray-700 text-gray-500' : 'border-wuxia-gold/40 text-wuxia-gold'}`}>{item.品质 || '未定'}</span>
+                                                                                {item.标签.map((tag) => (
+                                                                                    <span key={tag} className="rounded bg-fuchsia-500/10 px-1.5 py-0.5 text-[9px] text-fuchsia-200/80">{tag}</span>
+                                                                                ))}
+                                                                            </div>
+                                                                            {item.稳定描述 && (
+                                                                                <div className="mt-1 text-[11px] leading-relaxed text-fuchsia-100/70">{item.稳定描述}</div>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="rounded border border-dashed border-fuchsia-900/30 bg-black/20 p-3 text-center text-[10px] tracking-widest text-fuchsia-200/40">暂无名器标签</div>
+                                                            )}
                                                         </div>
 
                                                         {/* Womb & Pregnancy Records (New Section) */}
