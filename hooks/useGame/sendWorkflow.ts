@@ -2,6 +2,7 @@ import * as textAIService from '../../services/ai/text';
 import type { GameResponse, OpeningConfig, 聊天记录结构, 记忆系统结构, 角色数据结构, 剧情系统结构, 剧情规划结构, 女主剧情规划结构, 同人剧情规划结构, 同人女主剧情规划结构, 世界书结构, 内置提示词条目结构 } from '../../types';
 import { 获取主剧情接口配置, 获取世界演变接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
+import { 计算正文字数容错字数, 正文字数差距在容错内 } from '../../utils/bodyLengthTolerance';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
 import { 规范化记忆配置, 规范化记忆系统, 构建即时记忆条目, 构建短期记忆条目, 写入四段记忆 } from './memoryUtils';
 import { 提取剧情回忆标签 } from './memoryRecall';
@@ -34,6 +35,9 @@ type 正文润色进度 = {
 type 正文字数不足信息 = {
     actual: number;
     required: number;
+    shortage: number;
+    tolerance: number;
+    withinTolerance: boolean;
     message: string;
 };
 
@@ -93,16 +97,25 @@ export const 获取主剧情正文不足信息 = (response: GameResponse, minLen
     if (required <= 0) return null;
     const actual = 统计正文字符数(response);
     if (actual >= required) return null;
+    const shortage = required - actual;
+    const tolerance = 计算正文字数容错字数(required);
+    const withinTolerance = 正文字数差距在容错内(actual, required);
     return {
         actual,
         required,
-        message: `正文过短：当前约 ${actual} 字，低于设置要求 ${required} 字。`
+        shortage,
+        tolerance,
+        withinTolerance,
+        message: withinTolerance
+            ? `正文略短：当前约 ${actual} 字，低于设置要求 ${required} 字，差 ${shortage} 字（容错 ${tolerance} 字内）。`
+            : `正文过短：当前约 ${actual} 字，低于设置要求 ${required} 字，差 ${shortage} 字。`
     };
 };
 
 export const 校验主剧情正文最低字数 = (response: GameResponse, minLength: number, rawText: string) => {
     const shortage = 获取主剧情正文不足信息(response, minLength);
     if (!shortage) return;
+    if (shortage.withinTolerance) return;
     throw new textAIService.StoryResponseParseError(
         `${shortage.message}请完整重写本回合正文，并保持标签协议完整。`,
         rawText,
@@ -950,11 +963,21 @@ export const 执行主剧情发送工作流 = async (
         const socialBeforeMainCommands = deps.深拷贝(currentState.社交);
         const rawAiText = deps.获取原始AI消息(aiResult.rawText);
         const mainLengthShortage = 获取主剧情正文不足信息(aiData, runtimeGameConfig.字数要求);
-        const allowShortDraftForPolish = Boolean(mainLengthShortage && deps.文章优化功能已开启());
-        if (mainLengthShortage && !allowShortDraftForPolish) {
+        const shortBodyOnlyWarn = runtimeGameConfig.字数不足处理方式 === '仅提示';
+        const shouldRegenerateForLength = Boolean(mainLengthShortage && !mainLengthShortage.withinTolerance && !shortBodyOnlyWarn);
+        const allowShortDraftForPolish = Boolean(shouldRegenerateForLength && deps.文章优化功能已开启());
+        if (mainLengthShortage && !shouldRegenerateForLength) {
+            options?.onPolishProgress?.({
+                phase: "skipped",
+                text: mainLengthShortage.withinTolerance
+                    ? `${mainLengthShortage.message} 已保留本回合正文，仅提示不重新生成。`
+                    : `${mainLengthShortage.message} 已按设置保留本回合正文，仅提示不重新生成。`
+            });
+        }
+        if (mainLengthShortage && shouldRegenerateForLength && !allowShortDraftForPolish) {
             校验主剧情正文最低字数(aiData, runtimeGameConfig.字数要求, rawAiText);
         }
-        if (mainLengthShortage && allowShortDraftForPolish) {
+        if (mainLengthShortage && shouldRegenerateForLength && allowShortDraftForPolish) {
             options?.onPolishProgress?.({
                 phase: "start",
                 text: `${mainLengthShortage.message} 已先保留为剧情大纲，并交给文章优化扩写。`

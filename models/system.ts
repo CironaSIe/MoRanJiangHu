@@ -549,6 +549,7 @@ export interface 酒馆预设条目结构 {
 
 export interface 游戏设置结构 {
     字数要求: number; // Minimum logs body length
+    字数不足处理方式?: '重新生成' | '仅提示'; // Whether short body should trigger regeneration or only a warning
     叙事人称: '第一人称' | '第二人称' | '第三人称';
     启用行动选项: boolean; // Whether to require action_options output
     启用COT伪装注入: boolean; // Inject pseudo historical COT message before latest user input

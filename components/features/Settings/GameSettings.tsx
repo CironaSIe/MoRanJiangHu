@@ -12,7 +12,7 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
     const [form, setForm] = useState<游戏设置结构>(settings);
     const [wordCountDraft, setWordCountDraft] = useState(() => String(settings.字数要求 ?? ''));
     const [showSuccess, setShowSuccess] = useState(false);
-    const [openMenu, setOpenMenu] = useState<'perspective' | 'style' | 'ntl' | 'mainStoryMode' | null>(null);
+    const [openMenu, setOpenMenu] = useState<'perspective' | 'style' | 'ntl' | 'mainStoryMode' | 'shortBodyHandling' | null>(null);
     const rootRef = useRef<HTMLDivElement | null>(null);
 
     const 叙事人称选项: Array<{ value: 游戏设置结构['叙事人称']; label: string }> = [
@@ -38,6 +38,10 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
         { value: 'GPT', label: 'GPT兼容', description: '最后一条 user 使用真实玩家输入。' },
         { value: 'DeepSeek标准', label: 'DeepSeek标准续聊', description: 'DeepSeek 推荐续聊模式，关闭伪装思考，真实 user 直发。' },
         { value: 'DeepSeek锁格式', label: 'DeepSeek锁格式', description: '使用 prefix/prefill 锁定 <正文> 开头；接口不支持时会自动回退到标准模式。' }
+    ];
+    const 字数不足处理选项: Array<{ value: NonNullable<游戏设置结构['字数不足处理方式']>; label: string; description: string }> = [
+        { value: '重新生成', label: '字数不足时重新生成', description: '默认。正文明显短于字数要求时会进入扩写、重试或恢复流程；小幅不足会直接容错提示。' },
+        { value: '仅提示', label: '字数不足时仅提示', description: '正文不足时不阻断本回合，只提示当前字数差距并继续显示正文。' }
     ];
     const 当前主剧情消息模式 = form.主剧情消息模式 || (form.启用GPT模式 ? 'GPT' : 'Gemini模式');
     const 当前DeepSeek策略 = form.DeepSeek策略 || {
@@ -105,7 +109,7 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
     };
 
     const 渲染内置下拉 = (params: {
-        menuKey: 'perspective' | 'style' | 'ntl' | 'mainStoryMode';
+        menuKey: 'perspective' | 'style' | 'ntl' | 'mainStoryMode' | 'shortBodyHandling';
         value: string;
         options: Array<{ value: string; label: string; description?: string }>;
         onChange: (value: string) => void;
@@ -317,6 +321,18 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
                         className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all font-serif tracking-wider"
                         placeholder="例如 450"
                     />
+                    <div className="text-xs text-gray-500">实际校验会保留少量容错；越接近目标，越容易直接通过并只提示。</div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm text-wuxia-cyan font-bold">字数不足处理</label>
+                    {渲染内置下拉({
+                        menuKey: 'shortBodyHandling',
+                        value: form.字数不足处理方式 || '重新生成',
+                        options: 字数不足处理选项,
+                        onChange: (value) => 实时应用更新({ 字数不足处理方式: value as NonNullable<游戏设置结构['字数不足处理方式']> })
+                    })}
+                    <div className="text-xs text-gray-400">{字数不足处理选项.find(option => option.value === (form.字数不足处理方式 || '重新生成'))?.description}</div>
                 </div>
 
                 <div className="space-y-2">

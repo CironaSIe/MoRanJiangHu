@@ -10,6 +10,7 @@ import type {
 import * as textAIService from '../../services/ai/text';
 import { 获取文章优化接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
+import { 计算正文字数容错字数, 正文字数差距在容错内 } from '../../utils/bodyLengthTolerance';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { 默认文章优化提示词 } from '../../prompts/runtime/defaults';
 import { 核心_文章优化思维链 } from '../../prompts/core/cotPolish';
@@ -52,11 +53,11 @@ export const 评估润色长度结果 = (params: {
     const polishedLength = Math.max(0, Math.floor(params.polishedLength || 0));
     const requiredLength = Math.max(50, Math.floor(params.requiredLength || 50));
     if (params.allowExpansionForLength === true) {
-        const requiredEnough = Math.max(requiredLength, Math.ceil(sourceLength * 1.25));
-        if (polishedLength < requiredEnough) {
+        if (!正文字数差距在容错内(polishedLength, requiredLength)) {
+            const tolerance = 计算正文字数容错字数(requiredLength);
             return {
                 ok: false,
-                error: `优化后正文仍偏短：当前约 ${polishedLength} 字，目标至少 ${requiredEnough} 字，已保留原始草稿。`
+                error: `优化后正文仍偏短：当前约 ${polishedLength} 字，目标至少 ${requiredLength} 字（容错 ${tolerance} 字），已保留原始草稿。`
             };
         }
         return { ok: true };
@@ -394,12 +395,13 @@ export const 执行正文润色 = async (
         allowExpansionForLength: options?.allowExpansionForLength
     });
     if (!lengthCheck.ok && options?.allowExpansionForLength === true && !options?.signal?.aborted) {
-        const requiredEnough = Math.max(requiredBodyLength, Math.ceil(sourceLength * 1.25));
+        const requiredEnough = requiredBodyLength;
+        const tolerance = 计算正文字数容错字数(requiredEnough);
         const retryPrompt = [
             effectivePolishPrompt,
             '【自动二次扩写要求】',
-            `上一版优化正文约 ${polishedLength} 字，未达到本回合目标 ${requiredEnough} 字，因此必须重新扩写。`,
-            `这次 <正文> 内可见正文必须不少于 ${requiredEnough} 字；不要只说明“已扩写”，必须把扩写后的正文实际写入 <正文> 标签。`,
+            `上一版优化正文约 ${polishedLength} 字，未达到本回合目标 ${requiredEnough} 字，且超出 ${tolerance} 字容错，因此必须重新扩写。`,
+            `这次 <正文> 内可见正文尽量不少于 ${requiredEnough} 字；若只差 ${tolerance} 字以内可以接受，但不要只说明“已扩写”，必须把扩写后的正文实际写入 <正文> 标签。`,
             '只能沿用原始正文已经成立的事实补足动作过程、感官反馈、环境承接、NPC反应和结果余波；不得新增判定、改写结果或跳到新事件。'
         ].join('\n\n');
         const retryResult = await textAIService.generatePolishedBody(
@@ -429,7 +431,7 @@ export const 执行正文润色 = async (
         } else if (!retryCheck.ok) {
             lengthCheck = {
                 ok: false,
-                error: `文章优化未应用：二次扩写后正文仍偏短（当前约 ${retryLength} 字，目标至少 ${requiredEnough} 字），已保留原始正文。`
+                error: `文章优化未应用：二次扩写后正文仍偏短（当前约 ${retryLength} 字，目标至少 ${requiredEnough} 字，容错 ${tolerance} 字），已保留原始正文。`
             };
         }
     }

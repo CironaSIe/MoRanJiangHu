@@ -46,6 +46,15 @@ const 规范化字数要求 = (value: unknown, fallback: number): number => {
     return Math.max(最低字数要求, Math.floor(fallback));
 };
 
+const 规范化字数不足处理方式 = (
+    value: unknown,
+    fallback: 游戏设置结构['字数不足处理方式']
+): NonNullable<游戏设置结构['字数不足处理方式']> => (
+    value === '仅提示' || value === '重新生成'
+        ? value
+        : fallback === '仅提示' ? '仅提示' : '重新生成'
+);
+
 const 规范化叙事人称 = (
     value: unknown,
     fallback: 游戏设置结构['叙事人称']
@@ -163,6 +172,7 @@ const 规范化独立APIGPT模式设置 = (
 
 export const 默认游戏设置: 游戏设置结构 = {
     字数要求: 650,
+    字数不足处理方式: '重新生成',
     叙事人称: '第二人称',
     启用行动选项: true,
     启用COT伪装注入: true,
@@ -263,6 +273,7 @@ export const 规范化游戏设置 = (
         ...fallback,
         ...source,
         字数要求: 规范化字数要求(source.字数要求, fallback.字数要求),
+        字数不足处理方式: 规范化字数不足处理方式(source.字数不足处理方式, fallback.字数不足处理方式),
         叙事人称: 规范化叙事人称(source.叙事人称, fallback.叙事人称),
         启用行动选项: 读取布尔(source.启用行动选项, fallback.启用行动选项 !== false),
         启用COT伪装注入: 读取布尔(source.启用COT伪装注入, fallback.启用COT伪装注入 !== false),

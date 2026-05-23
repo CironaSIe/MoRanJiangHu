@@ -1,15 +1,26 @@
 {
-  "versionCode": 293,
-  "versionName": "1.0.292",
+  "versionCode": 294,
+  "versionName": "1.0.293",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复正文扩写不够长时会被误判为已成功的问题，现在会自动再补一次，尽量把内容真正扩到可读长度。",
-    "修复功法表现不一致的问题，绝世等高品质功法现在会更稳定匹配描述、效果和数值，不再只剩名头。",
-    "修复 NPC 指令和去向记忆不稳的问题，玩家交代的行动会更容易跨回合记住并继续执行。",
+    "优化正文字数校验：正文只差少量字数时会正常显示并提示略短，不再因为几十字差距中断本回合。",
+    "新增字数不足处理设置，可选择“字数不足时重新生成”或“字数不足时仅提示”，默认仍保持自动重试/扩写。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.292。"
+    "同步更新 Web、APK 与更新清单到 v1.0.293。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.292",
+      "versionCode": 293,
+      "publishedAt": "2026-05-23T14:13:44+08:00",
+      "changes": [
+        "修复正文扩写不够长时会被误判为已成功的问题，现在会自动再补一次，尽量把内容真正扩到可读长度。",
+        "修复功法表现不一致的问题，绝世等高品质功法现在会更稳定匹配描述、效果和数值，不再只剩名头。",
+        "修复 NPC 指令和去向记忆不稳的问题，玩家交代的行动会更容易跨回合记住并继续执行。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.292。"
+      ]
+    },
     {
       "versionName": "1.0.291",
       "versionCode": 292,
@@ -2876,7 +2887,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-23T14:13:44+08:00",
+  "releasePublishedAt": "2026-05-23T16:28:27+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

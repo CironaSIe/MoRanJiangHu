@@ -31,6 +31,25 @@ describe('主剧情正文字数校验', () => {
         });
     });
 
+    it('正文只差少量字数时会落入容错并保留为提示', () => {
+        expect(获取主剧情正文不足信息({
+            logs: [
+                { sender: '旁白', text: 'x'.repeat(1934) }
+            ]
+        }, 2000)).toMatchObject({
+            actual: 1934,
+            required: 2000,
+            shortage: 66,
+            withinTolerance: true
+        });
+
+        expect(() => 校验主剧情正文最低字数({
+            logs: [
+                { sender: '旁白', text: 'x'.repeat(1934) }
+            ]
+        }, 2000, '<正文>略短但可读</正文>')).not.toThrow();
+    });
+
     it('正文达到最低字数时通过', () => {
         expect(() => 校验主剧情正文最低字数({
             logs: [
@@ -47,7 +66,14 @@ describe('主剧情正文字数校验', () => {
         })).toMatchObject({ ok: false });
     });
 
-    it('短正文交给文章优化扩写时必须达到字数目标', () => {
+    it('短正文交给文章优化扩写时会按容错接受接近目标的结果', () => {
+        expect(评估润色长度结果({
+            sourceLength: 1800,
+            polishedLength: 1934,
+            requiredLength: 2000,
+            allowExpansionForLength: true
+        })).toMatchObject({ ok: true });
+
         expect(评估润色长度结果({
             sourceLength: 120,
             polishedLength: 180,
