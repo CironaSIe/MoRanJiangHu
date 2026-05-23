@@ -1,15 +1,27 @@
 {
-  "versionCode": 295,
-  "versionName": "1.0.294",
+  "versionCode": 296,
+  "versionName": "1.0.295",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复手机版云端游玩缺少清晰节点选择的问题：现在可先选存档系列，再选择具体时间树节点继续游玩。",
-    "修复对象存储新谱系存档误分叉的问题：同一回合自动存档会更新原云端节点，不再把一条线拆成多行。",
-    "已兼容收敛旧清单中同系列、同回合、同地点、同游戏时间的重复自动存档节点，刷新后会优先保留最新节点。",
+    "修复香闺秘档误把普通“第一次透露权限、初次回报、初次合作”等剧情识别成初夜的问题；没有明确亲密/房事事实时，不会改写处女状态、初夜时间、初夜描述或内射记录。",
+    "强化变量生成与本地命令保护，AI 即使返回了不合证据的私密状态命令，也会在落盘前被拦截，减少货不对板的角色档案。",
+    "优化手机版对象存储云端游玩：同一角色的云端节点会整理成连续进度线，重复自动节点会收敛，读取最新和选择历史节点更清楚。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.294。"
+    "同步更新 Web、APK 与更新清单到 v1.0.295。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.294",
+      "versionCode": 295,
+      "publishedAt": "2026-05-23T18:25:31+08:00",
+      "changes": [
+        "修复手机版云端游玩缺少清晰节点选择的问题：现在可先选存档系列，再选择具体时间树节点继续游玩。",
+        "修复对象存储新谱系存档误分叉的问题：同一回合自动存档会更新原云端节点，不再把一条线拆成多行。",
+        "已兼容收敛旧清单中同系列、同回合、同地点、同游戏时间的重复自动存档节点，刷新后会优先保留最新节点。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.294。"
+      ]
+    },
     {
       "versionName": "1.0.293",
       "versionCode": 294,
@@ -2899,7 +2911,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-23T18:25:31+08:00",
+  "releasePublishedAt": "2026-05-23T19:23:41+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

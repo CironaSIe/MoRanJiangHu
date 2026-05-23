@@ -556,6 +556,43 @@ describe('responseCommandProcessor NSFW female state fallback', () => {
         expect(result.社交[0].子宫.内射记录).toHaveLength(1);
     });
 
+    it('does not treat ordinary first-time disclosure text as first-night evidence, even if commands try to write it', () => {
+        const state = 构建基础状态();
+        state.环境 = { 时间: '1:01:12:08:00' } as any;
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_shen_ruoyan',
+                姓名: '沈若嫣',
+                性别: '女',
+                年龄: 20,
+                身份: '书院弟子',
+                是否在场: true,
+                是否主要角色: true,
+                是否处女: true,
+                初夜夺取者: '',
+                初夜时间: '',
+                初夜描述: ''
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '这算是她给出的实质性回报，也是她第一次主动向你透露书院内部的权限变动。' }
+            ],
+            tavern_commands: [
+                { action: 'set', key: '社交[0].是否处女', value: false },
+                { action: 'set', key: '社交[0].初夜夺取者', value: '杨培强' },
+                { action: 'set', key: '社交[0].初夜时间', value: '1:01:12:08:00' },
+                { action: 'set', key: '社交[0].初夜描述', value: '杨培强与其发生初次亲密关系：这算是她给出的实质性回报，也是她第一次主动向你透露书院内部的权限变动。' }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交[0].是否处女).toBe(true);
+        expect(result.社交[0].初夜夺取者).toBe('');
+        expect(result.社交[0].初夜时间).toBe('');
+        expect(result.社交[0].初夜描述).toBe('');
+    });
+
     it('updates first-night and private part state for explicit intercourse facts without ejaculation', () => {
         const state = 构建基础状态();
         state.环境 = { 时间: '三月十六日 清晨' } as any;
