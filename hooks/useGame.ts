@@ -2356,7 +2356,7 @@ export const useGame = () => {
     const 执行正文润色 = async (
         baseResponse: GameResponse,
         rawText: string,
-        options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal }
+        options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal; allowExpansionForLength?: boolean; minLength?: number }
     ): Promise<{ response: GameResponse; applied: boolean; error?: string; rawText?: string }> => 执行正文润色工作流(
         baseResponse,
         rawText,

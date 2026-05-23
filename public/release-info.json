@@ -1,15 +1,36 @@
 {
-  "versionCode": 290,
-  "versionName": "1.0.289",
+  "versionCode": 292,
+  "versionName": "1.0.291",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "新增扶她相关 NSFW 档案支持；NSFW 模式下可为男娘/扶她主要角色维护扶她设定、肉棒描述、屁穴描述、性癖与敏感点，并同步用于私密特写生成。",
-    "首页与更新说明新增“点击注册公益站支持开发项目”入口；承诺所有通过邀请获得的 aff 额度都会用于开发本项目。",
-    "公益站入口：FreeModel（https://freemodel.dev/invite/FRE-fa0068d9，只有 gmail.com、qq.com、163.com、outlook.com、126.com、linux.do、yahoo.com、sina.com、foxmail.com 邮箱注册时双方获得额度）、DenXio（https://api.denxio.top/register?aff=5U5Q，暂时关闭注册，可注册时间看网站首页）、Cooree（https://new.cooree.de/register?aff=0p3B）。",
+    "修复正文低于字数要求时直接失败、看不到内容的问题；现在会先保留可用剧情大纲，并交给文章优化继续扩写。",
+    "优化文章润色保护：正常长正文不会被压缩成摘要，功法效果、人物设定、NPC互动和关键细节会更稳定保留。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.289。"
+    "同步更新 Web 与更新清单到 v1.0.291。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.291",
+      "versionCode": 292,
+      "publishedAt": "2026-05-23T13:01:35+08:00",
+      "changes": [
+        "修复正文低于字数要求时直接失败、看不到内容的问题；现在会先保留可用剧情大纲，并交给文章优化继续扩写。",
+        "优化文章润色保护：正常长正文不会被压缩成摘要，功法效果、人物设定、NPC互动和关键细节会更稳定保留。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web 与更新清单到 v1.0.291。"
+      ]
+    },
+    {
+      "versionName": "1.0.290",
+      "versionCode": 291,
+      "publishedAt": "-",
+      "changes": [
+        "修复正文低于字数要求时直接失败、看不到内容的问题；现在会先保留可用剧情大纲，并交给文章优化继续扩写。",
+        "优化文章润色保护：正常长正文不会被压缩成摘要，功法效果、人物设定、NPC互动和关键细节会更稳定保留。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web 与更新清单到 v1.0.290。"
+      ]
+    },
     {
       "versionName": "1.0.289",
       "versionCode": 290,
@@ -2854,7 +2875,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-23T10:58:46+08:00",
+  "releasePublishedAt": "2026-05-23T13:01:35+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

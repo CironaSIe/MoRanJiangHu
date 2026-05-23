@@ -31,6 +31,12 @@ type 正文润色进度 = {
     commandTexts?: string[];
 };
 
+type 正文字数不足信息 = {
+    actual: number;
+    required: number;
+    message: string;
+};
+
 type 变量生成进度 = {
     phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
     text?: string;
@@ -82,15 +88,25 @@ export const 统计正文字符数 = (response: GameResponse): number => (
         .length
 );
 
-export const 校验主剧情正文最低字数 = (response: GameResponse, minLength: number, rawText: string) => {
+export const 获取主剧情正文不足信息 = (response: GameResponse, minLength: number): 正文字数不足信息 | null => {
     const required = Number.isFinite(minLength) ? Math.max(50, Math.floor(minLength)) : 0;
-    if (required <= 0) return;
+    if (required <= 0) return null;
     const actual = 统计正文字符数(response);
-    if (actual >= required) return;
+    if (actual >= required) return null;
+    return {
+        actual,
+        required,
+        message: `正文过短：当前约 ${actual} 字，低于设置要求 ${required} 字。`
+    };
+};
+
+export const 校验主剧情正文最低字数 = (response: GameResponse, minLength: number, rawText: string) => {
+    const shortage = 获取主剧情正文不足信息(response, minLength);
+    if (!shortage) return;
     throw new textAIService.StoryResponseParseError(
-        `正文过短：当前约 ${actual} 字，低于设置要求 ${required} 字。请完整重写本回合正文，并保持标签协议完整。`,
+        `${shortage.message}请完整重写本回合正文，并保持标签协议完整。`,
         rawText,
-        `正文过短：当前约 ${actual} 字，低于设置要求 ${required} 字。`
+        shortage.message
     );
 };
 
@@ -367,7 +383,7 @@ type 主剧情发送依赖 = {
     执行正文润色: (
         baseResponse: GameResponse,
         rawText: string,
-        options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal }
+        options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal; allowExpansionForLength?: boolean; minLength?: number }
     ) => Promise<{ response: GameResponse; applied: boolean; error?: string; rawText?: string }>;
     执行世界演变更新: (params?: 世界演变触发参数) => Promise<世界演变执行结果>;
     触发新增NPC自动生图: (npcs: any[]) => void;
@@ -933,7 +949,17 @@ export const 执行主剧情发送工作流 = async (
 
         const socialBeforeMainCommands = deps.深拷贝(currentState.社交);
         const rawAiText = deps.获取原始AI消息(aiResult.rawText);
-        校验主剧情正文最低字数(aiData, runtimeGameConfig.字数要求, rawAiText);
+        const mainLengthShortage = 获取主剧情正文不足信息(aiData, runtimeGameConfig.字数要求);
+        const allowShortDraftForPolish = Boolean(mainLengthShortage && deps.文章优化功能已开启());
+        if (mainLengthShortage && !allowShortDraftForPolish) {
+            校验主剧情正文最低字数(aiData, runtimeGameConfig.字数要求, rawAiText);
+        }
+        if (mainLengthShortage && allowShortDraftForPolish) {
+            options?.onPolishProgress?.({
+                phase: "start",
+                text: `${mainLengthShortage.message} 已先保留为剧情大纲，并交给文章优化扩写。`
+            });
+        }
 
         if (!deps.文章优化功能已开启()) {
             options?.onPolishProgress?.({
@@ -1130,7 +1156,12 @@ export const 执行主剧情发送工作流 = async (
                         run: () => deps.执行正文润色(
                             aiData,
                             rawAiText,
-                            { playerInput: sendInput, signal: controller.signal }
+                            {
+                                playerInput: sendInput,
+                                signal: controller.signal,
+                                allowExpansionForLength: allowShortDraftForPolish,
+                                minLength: runtimeGameConfig.字数要求
+                            }
                         ),
                         onError: (errorText) => {
                             options?.onPolishProgress?.({

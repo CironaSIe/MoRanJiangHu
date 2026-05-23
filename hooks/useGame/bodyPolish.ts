@@ -34,6 +34,42 @@ type 正文润色依赖 = {
     深拷贝: <T,>(data: T) => T;
 };
 
+export const 统计润色正文字符数 = (logs: 正文日志结构): number => (
+    (Array.isArray(logs) ? logs : [])
+        .map((log) => (typeof log?.text === 'string' ? log.text : ''))
+        .join('')
+        .replace(/\s+/g, '')
+        .length
+);
+
+export const 评估润色长度结果 = (params: {
+    sourceLength: number;
+    polishedLength: number;
+    requiredLength: number;
+    allowExpansionForLength?: boolean;
+}): { ok: true } | { ok: false; error: string } => {
+    const sourceLength = Math.max(0, Math.floor(params.sourceLength || 0));
+    const polishedLength = Math.max(0, Math.floor(params.polishedLength || 0));
+    const requiredLength = Math.max(50, Math.floor(params.requiredLength || 50));
+    if (params.allowExpansionForLength === true) {
+        const requiredEnough = Math.max(requiredLength, Math.ceil(sourceLength * 1.25));
+        if (polishedLength < requiredEnough) {
+            return {
+                ok: false,
+                error: `优化后正文仍偏短：当前约 ${polishedLength} 字，目标至少 ${requiredEnough} 字，已保留原始草稿。`
+            };
+        }
+        return { ok: true };
+    }
+    if (sourceLength >= requiredLength && polishedLength < Math.max(50, Math.floor(sourceLength * 0.75))) {
+        return {
+            ok: false,
+            error: `优化后正文被明显压缩：原文约 ${sourceLength} 字，优化后约 ${polishedLength} 字，已保留原文。`
+        };
+    }
+    return { ok: true };
+};
+
 const 剥离首尾思考区段 = (text: string): string => {
     const source = typeof text === 'string' ? text : '';
     if (!source) return '';
@@ -169,7 +205,7 @@ export const 执行正文润色 = async (
     baseResponse: GameResponse,
     rawText: string,
     deps: 正文润色依赖,
-    options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal }
+    options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal; allowExpansionForLength?: boolean; minLength?: number }
 ): Promise<{ response: GameResponse; applied: boolean; error?: string; rawText?: string }> => {
     if (!deps.文章优化已开启) {
         return { response: baseResponse, applied: false, error: '文章优化已关闭。' };
@@ -262,7 +298,20 @@ export const 执行正文润色 = async (
         }
         return `第二人称：主角统一使用“你”，不得混入“我/他/她”作为主角叙述；若主角直接发言，发言标签统一使用【${playerDisplayName}】，不得写成【你】或【我】。`;
     })();
-    const polishLengthRule = `字数要求：<正文>标签内总字数应不少于${Math.max(50, Number(runtimeGameConfig.字数要求) || 450)}字。`;
+    const requiredBodyLength = Math.max(50, Number(options?.minLength ?? runtimeGameConfig.字数要求) || 450);
+    const polishLengthRule = [
+        `字数要求：<正文>标签内总字数应不少于${requiredBodyLength}字。`,
+        options?.allowExpansionForLength === true
+            ? [
+                '本次原始正文低于字数要求，但仍是可用剧情大纲；你必须把它当作“已发生事实大纲”展开成完整正文。',
+                '展开时只能补足原大纲已经指向的动作过程、感官反馈、环境承接、NPC反应和结果余波，不得新增新事件、新判定、新地点、新角色或改变结果。',
+                '不得只复述大纲、不得用摘要/设定条目/概述式语言收束，必须写成可直接阅读的小说正文。'
+            ].join('\n')
+            : [
+                '正常润色不得压缩原文信息量；润色后正文可略短，但不能把完整正文改写成大纲、摘要或设定说明。',
+                '若字数要求与“同等信息量”冲突，优先保持完整可读正文，不要为了简洁牺牲动作、效果、人物设定和NPC互动细节。'
+            ].join('\n')
+    ].join('\n');
     const polishActionRule = [
         '主角动作守恒：不得新增、删除、替换主角关键动作。',
         '主角动作结构：尽量写成“起手动作 -> 执行动作 -> 结果反馈”。',
@@ -335,6 +384,22 @@ export const 执行正文润色 = async (
     ));
     if (polishedLogs.length === 0) {
         return { response: baseResponse, applied: false, error: '优化后正文为空，已保留原文。', rawText: polishedResult.rawText };
+    }
+    const sourceLength = 统计润色正文字符数(sourceLogs);
+    const polishedLength = 统计润色正文字符数(polishedLogs);
+    const lengthCheck = 评估润色长度结果({
+        sourceLength,
+        polishedLength,
+        requiredLength: requiredBodyLength,
+        allowExpansionForLength: options?.allowExpansionForLength
+    });
+    if (!lengthCheck.ok) {
+        return {
+            response: baseResponse,
+            applied: false,
+            error: lengthCheck.error,
+            rawText: polishedResult.rawText
+        };
     }
 
     return {
