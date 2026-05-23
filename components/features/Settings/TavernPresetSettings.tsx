@@ -5,6 +5,7 @@ import GameButton from '../../ui/GameButton';
 import { parseJsonWithRepair } from '../../../utils/jsonRepair';
 import { 酒馆提示词后处理选项 } from '../../../utils/gameSettings';
 import { 规范化酒馆预设, 获取酒馆预设角色ID列表, 获取酒馆预设顺序 } from '../../../utils/tavernPreset';
+import { 内置酒馆预设列表, 加载内置酒馆预设 } from '../../../data/bundledTavernPresets';
 
 interface Props {
     settings: 游戏设置结构;
@@ -256,6 +257,40 @@ const TavernPresetSettings: React.FC<Props> = ({ settings, onSave }) => {
         应用配置(nextConfig, { autoSave: true, tip: `已删除预设，当前切换为：${nextEntry.名称}` });
     };
 
+    const 导入内置预设 = async (builtinId: string) => {
+        const bundled = 内置酒馆预设列表.find((item) => item.id === builtinId);
+        if (!bundled) return;
+        try {
+            const normalized = await 加载内置酒馆预设(bundled);
+            const existing = presetList.find((item) => item.id === bundled.id);
+            const nextEntry = {
+                id: bundled.id,
+                名称: bundled.名称,
+                预设: normalized,
+                角色ID: 解析角色ID(normalized, existing?.角色ID ?? null),
+                导入时间: existing?.导入时间 || Date.now()
+            };
+            const nextList = existing
+                ? presetList.map((item) => item.id === bundled.id ? nextEntry : item)
+                : [...presetList, nextEntry];
+            const nextConfig: 游戏设置结构 = {
+                ...form,
+                启用酒馆预设模式: true,
+                酒馆预设列表: nextList,
+                当前酒馆预设ID: nextEntry.id,
+                酒馆预设: nextEntry.预设,
+                酒馆预设角色ID: nextEntry.角色ID ?? null,
+                酒馆预设名称: nextEntry.名称
+            };
+            应用配置(nextConfig, {
+                autoSave: true,
+                tip: existing ? `已刷新并切换到内置预设：${bundled.名称}` : `已导入并切换到内置预设：${bundled.名称}`
+            });
+        } catch (error: any) {
+            setMessage(`导入内置预设失败：${error?.message || '未知错误'}`);
+        }
+    };
+
     return (
         <div className="space-y-6 text-sm animate-fadeIn">
             <div className="flex justify-between items-center border-b border-wuxia-gold/30 pb-3 mb-6">
@@ -283,6 +318,16 @@ const TavernPresetSettings: React.FC<Props> = ({ settings, onSave }) => {
                     >
                         导入酒馆预设
                     </GameButton>
+                    {内置酒馆预设列表.map((item) => (
+                        <GameButton
+                            key={item.id}
+                            onClick={() => { void 导入内置预设(item.id); }}
+                            variant="secondary"
+                            className="px-4 py-2 text-xs"
+                        >
+                            导入内置 {item.名称}
+                        </GameButton>
+                    ))}
                     <GameButton
                         onClick={删除当前预设}
                         variant="secondary"

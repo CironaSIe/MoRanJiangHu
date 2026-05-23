@@ -538,14 +538,14 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
             <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
                 <div className="flex items-center justify-between gap-4">
                     <div>
-                        <div className="text-sm text-wuxia-cyan font-bold">男娘相关 NSFW 内容</div>
-                        <div className="text-xs text-gray-400 mt-1">开启后，NSFW 模式下会为男性/男娘主要角色补齐男娘设定、肉棒描述、屁穴描述等档案，并允许相关私密特写；关闭后不再提示生成，也隐藏相关入口。</div>
+                        <div className="text-sm text-wuxia-cyan font-bold">男娘 / 扶她相关 NSFW 内容</div>
+                        <div className="text-xs text-gray-400 mt-1">开启后，NSFW 模式下会为男性、男娘、扶她主要角色补齐男娘设定、扶她设定、肉棒描述、屁穴描述等档案，并允许相关私密特写；关闭后不再提示生成，也隐藏相关入口。</div>
                     </div>
                     <ToggleSwitch
                         checked={form.启用男娘NSFW内容 !== false}
                         onChange={(next) => 实时应用更新({ 启用男娘NSFW内容: next })}
                         disabled={form.启用NSFW模式 !== true}
-                        ariaLabel="切换男娘相关NSFW内容"
+                        ariaLabel="切换男娘/扶她相关NSFW内容"
                     />
                 </div>
             </div>

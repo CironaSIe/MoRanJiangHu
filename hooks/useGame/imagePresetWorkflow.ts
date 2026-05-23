@@ -84,14 +84,16 @@ export const 提取NPC生图基础数据附带私密描述 = (
     const anus = 读取描述('屁穴描述');
     const penis = 读取描述('肉棒描述');
     const femboy = 读取描述('男娘设定');
-    if (!chest && !vulva && !anus && !penis && !femboy) return baseData;
+    const futa = 读取描述('扶她设定');
+    if (!chest && !vulva && !anus && !penis && !femboy && !futa) return baseData;
     return {
         ...baseData,
         ...(chest ? { 胸部描述: chest } : {}),
         ...(vulva ? { 小穴描述: vulva } : {}),
         ...(anus ? { 屁穴描述: anus } : {}),
         ...(penis ? { 肉棒描述: penis } : {}),
-        ...(femboy ? { 男娘设定: femboy } : {})
+        ...(femboy ? { 男娘设定: femboy } : {}),
+        ...(futa ? { 扶她设定: futa } : {})
     };
 };
 

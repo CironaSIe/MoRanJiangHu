@@ -44,6 +44,7 @@ const 获取NPC名称 = (npc: any): string => (
 
 const 女性香闺秘档部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴'];
 const 男性香闺秘档部位列表: 香闺秘档部位类型[] = ['肉棒', '屁穴'];
+const 扶她香闺秘档部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴', '肉棒'];
 const 全部香闺秘档部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴', '肉棒'];
 
 const NPC是否男性或男娘 = (npc: any): boolean => {
@@ -51,7 +52,14 @@ const NPC是否男性或男娘 = (npc: any): boolean => {
     return gender === '男'
         || gender === '男性'
         || gender.includes('男娘')
-        || Boolean(String(npc?.男娘设定 || '').trim());
+        || gender.includes('扶她')
+        || Boolean(String(npc?.男娘设定 || '').trim())
+        || Boolean(String(npc?.扶她设定 || '').trim());
+};
+
+const NPC是否扶她 = (npc: any): boolean => {
+    const gender = String(npc?.性别 || '').trim();
+    return gender.includes('扶她') || Boolean(String(npc?.扶她设定 || '').trim());
 };
 
 const NPC是否女性 = (npc: any): boolean => {
@@ -60,14 +68,19 @@ const NPC是否女性 = (npc: any): boolean => {
 };
 
 const 读取NPC香闺秘档部位列表 = (npc: any): 香闺秘档部位类型[] => (
-    NPC是否男性或男娘(npc) ? 男性香闺秘档部位列表 : 女性香闺秘档部位列表
+    NPC是否扶她(npc)
+        ? 扶她香闺秘档部位列表
+        : NPC是否男性或男娘(npc)
+            ? 男性香闺秘档部位列表
+            : 女性香闺秘档部位列表
 );
 
 const NPC是否允许私密部位生图 = (
     npc: any,
     options?: { femboyNsfwEnabled?: boolean }
 ): boolean => (
-    NPC是否女性(npc)
+    (NPC是否扶她(npc) && options?.femboyNsfwEnabled === true)
+    || (!NPC是否扶她(npc) && NPC是否女性(npc))
     || (options?.femboyNsfwEnabled === true && NPC是否男性或男娘(npc))
 );
 
@@ -201,7 +214,7 @@ export const 创建手动图片动作工作流 = (deps: 手动图片动作工作
         if (!nsfwEnabled) {
             deps.推送右下角提示({
                 title: '私密特写未启用',
-                message: '当前已关闭 NSFW 模式，男性/男娘角色不会生成私密部位特写。',
+                message: '当前已关闭 NSFW 模式，男性/男娘/扶她角色不会生成私密部位特写。',
                 tone: 'info'
             });
             return;
@@ -209,7 +222,7 @@ export const 创建手动图片动作工作流 = (deps: 手动图片动作工作
         if (!NPC是否允许私密部位生图(targetNpc, { femboyNsfwEnabled })) {
             deps.推送右下角提示({
                 title: '私密特写未启用',
-                message: '当前已关闭男娘相关 NSFW 内容，男性/男娘角色不会生成私密部位特写。',
+                message: '当前已关闭男娘 / 扶她相关 NSFW 内容，男性/男娘/扶她角色不会生成私密部位特写。',
                 tone: 'info'
             });
             return;

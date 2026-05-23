@@ -79,6 +79,24 @@ const actionButtonStyle: React.CSSProperties = {
     lineHeight: 'var(--ui-按钮-line-height, 1.2)'
 };
 
+const 公益站支持入口 = [
+    {
+        名称: 'FreeModel',
+        url: 'https://freemodel.dev/invite/FRE-fa0068d9',
+        说明: '仅 gmail.com、qq.com、163.com、outlook.com、126.com、linux.do、yahoo.com、sina.com、foxmail.com 邮箱注册时双方获得额度。'
+    },
+    {
+        名称: 'DenXio',
+        url: 'https://api.denxio.top/register?aff=5U5Q',
+        说明: '暂时关闭注册，可注册时间请看网站首页。'
+    },
+    {
+        名称: 'Cooree',
+        url: 'https://new.cooree.de/register?aff=0p3B',
+        说明: '通过邀请入口注册可支持本项目后续开发。'
+    }
+];
+
 const LandingPage: React.FC<Props> = ({
     onStart,
     onLoad,
@@ -325,6 +343,29 @@ const LandingPage: React.FC<Props> = ({
                     >
                         预设图反馈
                     </button>
+                </div>
+
+                <div className="mt-5 border-t border-wuxia-gold/10 pt-4">
+                    <div className="text-sm font-serif tracking-[0.2em] text-wuxia-gold">
+                        点击注册公益站支持开发项目
+                    </div>
+                    <div className="mt-2 text-xs leading-6 text-gray-300">
+                        承诺：所有通过邀请获得的 aff 额度都会用于开发本项目。
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        {公益站支持入口.map((item) => (
+                            <button
+                                key={item.url}
+                                type="button"
+                                onClick={() => { void openExternalUrl(item.url); }}
+                                className="min-h-[44px] border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-left text-xs text-amber-100 transition-colors hover:bg-amber-500/15"
+                                title={item.说明}
+                            >
+                                <span className="block font-bold tracking-[0.16em] text-amber-200">{item.名称}</span>
+                                <span className="mt-1 block leading-5 text-amber-50/75">{item.说明}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 

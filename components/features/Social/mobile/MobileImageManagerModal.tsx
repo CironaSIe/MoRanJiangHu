@@ -190,7 +190,9 @@ const NPC是否男性或男娘 = (npc?: any): boolean => {
     return gender === '男'
         || gender === '男性'
         || gender.includes('男娘')
-        || Boolean(String(npc?.男娘设定 || '').trim());
+        || gender.includes('扶她')
+        || Boolean(String(npc?.男娘设定 || '').trim())
+        || Boolean(String(npc?.扶她设定 || '').trim());
 };
 
 const 格式化时间 = (timestamp?: number): string => {

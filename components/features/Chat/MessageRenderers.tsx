@@ -4,6 +4,7 @@ import { JudgmentThoughtBlock, NPC结构, 视觉设置结构 } from '../../../ty
 import { use图片资源回源预取 } from '../../../hooks/useImageAssetPrefetch';
 import { 构建区域文字样式 } from '../../../utils/visualSettings';
 import { 获取图片展示地址, 获取图片资源文本地址 } from '../../../utils/imageAssets';
+import { 根据差额校正判定结果 } from '../../../utils/judgmentFormat';
 import { IconHeart, IconEye, IconBattery, IconShield, IconCompass, IconExplosion, IconDice } from '../../ui/Icons';
 
 type JudgmentModifier = {
@@ -462,13 +463,13 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
     
     const scoreValue = parsed.score;
     const difficultyValue = parsed.difficulty;
-    const result = parsed.result;
-    const style = 构建区域文字样式(visualConfig, '判定');
     const hasScorePair = Number.isFinite(scoreValue) && Number.isFinite(difficultyValue) && (scoreValue !== 0 || difficultyValue !== 0);
+    const scoreDelta = hasScorePair ? scoreValue - difficultyValue : null;
+    const result = 根据差额校正判定结果(parsed.result, scoreDelta);
+    const style = 构建区域文字样式(visualConfig, '判定');
     const displayCategory = parsed.category !== '判定'
         ? parsed.category
         : (提取判定前缀名称(prefix) || parsed.category);
-    const scoreDelta = hasScorePair ? scoreValue - difficultyValue : null;
     const scoreBreakdownItems = thoughtBreakdowns.score.length > 0
         ? thoughtBreakdowns.score
         : parsed.modifiers.map(modifierToBreakdownItem);

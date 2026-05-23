@@ -1,15 +1,27 @@
 {
-  "versionCode": 289,
-  "versionName": "1.0.288",
+  "versionCode": 290,
+  "versionName": "1.0.289",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复手机端应用内更新下载失败：当版本化 APK 下载地址返回 404 时，会自动改用稳定的 latest.apk 下载入口，不再卡在“下载更新失败，HTTP 404”。",
-    "修复网页端更新日志不同步的问题：首页更新弹窗、更新日志页、主站与备用站都会显示本次真实更新内容。",
-    "同步新版和旧版 APK 更新清单，保留旧版下载入口兼容，让仍在旧安装包里的用户也能检测并下载到最新版本。",
+    "新增扶她相关 NSFW 档案支持；NSFW 模式下可为男娘/扶她主要角色维护扶她设定、肉棒描述、屁穴描述、性癖与敏感点，并同步用于私密特写生成。",
+    "首页与更新说明新增“点击注册公益站支持开发项目”入口；承诺所有通过邀请获得的 aff 额度都会用于开发本项目。",
+    "公益站入口：FreeModel（https://freemodel.dev/invite/FRE-fa0068d9，只有 gmail.com、qq.com、163.com、outlook.com、126.com、linux.do、yahoo.com、sina.com、foxmail.com 邮箱注册时双方获得额度）、DenXio（https://api.denxio.top/register?aff=5U5Q，暂时关闭注册，可注册时间看网站首页）、Cooree（https://new.cooree.de/register?aff=0p3B）。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.288。"
+    "同步更新 Web、APK 与更新清单到 v1.0.289。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.289",
+      "versionCode": 290,
+      "publishedAt": "2026-05-23T10:58:46+08:00",
+      "changes": [
+        "新增扶她相关 NSFW 档案支持；NSFW 模式下可为男娘/扶她主要角色维护扶她设定、肉棒描述、屁穴描述、性癖与敏感点，并同步用于私密特写生成。",
+        "首页与更新说明新增“点击注册公益站支持开发项目”入口；承诺所有通过邀请获得的 aff 额度都会用于开发本项目。",
+        "公益站入口：FreeModel（https://freemodel.dev/invite/FRE-fa0068d9，只有 gmail.com、qq.com、163.com、outlook.com、126.com、linux.do、yahoo.com、sina.com、foxmail.com 邮箱注册时双方获得额度）、DenXio（https://api.denxio.top/register?aff=5U5Q，暂时关闭注册，可注册时间看网站首页）、Cooree（https://new.cooree.de/register?aff=0p3B）。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.289。"
+      ]
+    },
     {
       "versionName": "1.0.288",
       "versionCode": 289,
@@ -18,6 +30,9 @@
         "修复手机端应用内更新下载失败：当版本化 APK 下载地址返回 404 时，会自动改用稳定的 latest.apk 下载入口，不再卡在“下载更新失败，HTTP 404”。",
         "修复网页端更新日志不同步的问题：首页更新弹窗、更新日志页、主站与备用站都会显示本次真实更新内容。",
         "同步新版和旧版 APK 更新清单，保留旧版下载入口兼容，让仍在旧安装包里的用户也能检测并下载到最新版本。",
+        "新增扶她相关 NSFW 档案支持；NSFW 模式下可为男娘/扶她主要角色维护扶她设定、肉棒描述、屁穴描述、性癖与敏感点，并同步用于私密特写生成。",
+        "首页与更新说明新增“点击注册公益站支持开发项目”入口；承诺所有通过邀请获得的 aff 额度都会用于开发本项目。",
+        "公益站入口：FreeModel（https://freemodel.dev/invite/FRE-fa0068d9，只有 gmail.com、qq.com、163.com、outlook.com、126.com、linux.do、yahoo.com、sina.com、foxmail.com 邮箱注册时双方获得额度）、DenXio（https://api.denxio.top/register?aff=5U5Q，暂时关闭注册，可注册时间看网站首页）、Cooree（https://new.cooree.de/register?aff=0p3B）。",
         "官网：https://msjh.bacon159.pp.ua/",
         "同步更新 Web、APK 与更新清单到 v1.0.288。"
       ]
@@ -2839,7 +2854,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-23T02:40:23+08:00",
+  "releasePublishedAt": "2026-05-23T10:58:46+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

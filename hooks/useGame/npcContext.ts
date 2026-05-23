@@ -119,6 +119,7 @@ export const 提取NPC香闺秘档部位生图数据 = (npc: any, part: '胸部'
         屁穴描述: part === '屁穴' ? 读取文本(npc, '屁穴描述') : undefined,
         肉棒描述: part === '肉棒' ? 读取文本(npc, '肉棒描述') : undefined,
         男娘设定: 读取文本(npc, '男娘设定'),
+        扶她设定: 读取文本(npc, '扶她设定'),
         目标部位: part,
         目标描述字段: 描述字段,
         目标描述文本: 读取文本(npc, 描述字段),
@@ -431,6 +432,10 @@ export const 构建NPC上下文 = (
         return 读取文本(npc, '男娘设定');
     };
 
+    const 读取扶她设定 = (npc: any): string => {
+        return 读取文本(npc, '扶她设定');
+    };
+
     const 读取性癖 = (npc: any): string => {
         return 读取文本(npc, '性癖');
     };
@@ -505,6 +510,7 @@ export const 构建NPC上下文 = (
             屁穴描述: 读取屁穴描述(npc) || undefined,
             肉棒描述: 读取肉棒描述(npc) || undefined,
             男娘设定: 读取男娘设定(npc) || undefined,
+            扶她设定: 读取扶她设定(npc) || undefined,
             名器档案: 标准化名器档案(npc),
             性癖: 读取性癖(npc) || undefined,
             敏感点: 读取敏感点(npc) || undefined,

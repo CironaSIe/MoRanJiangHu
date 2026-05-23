@@ -76,6 +76,12 @@ describe('variableRegistry', () => {
 
         expect(校验变量命令是否登记({
             action: 'set',
+            key: '社交[0].扶她设定',
+            value: '扶她设定：扶她身份与身体结构明确。'
+        }, baseState).allowed).toBe(true);
+
+        expect(校验变量命令是否登记({
+            action: 'set',
             key: '社交[0].肉棒描述',
             value: '稳定私密档案描述'
         }, baseState).allowed).toBe(true);

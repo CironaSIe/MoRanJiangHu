@@ -1903,7 +1903,7 @@ export const useGame = () => {
         options?: { source?: 生图任务来源类型; 画风?: 当前可用接口结构['画风']; 画师串?: string; 画师串预设ID?: string; PNG画风预设ID?: string; 额外要求?: string; 尺寸?: string }
     ) => {
         if ((part === '肉棒' || (part === '屁穴' && NPC是否男性或男娘(npc))) && !男娘NSFW内容已启用()) {
-            throw new Error('男娘相关 NSFW 内容未启用，已阻止男性/男娘私密特写生成。');
+            throw new Error('男娘 / 扶她相关 NSFW 内容未启用，已阻止男性/男娘/扶她私密特写生成。');
         }
         await 确保NPC生图前角色锚点(npc);
         const { 执行NPC香闺秘档部位生图工作流 } = await 加载NPC香闺秘档生图工作流();
@@ -1978,7 +1978,14 @@ export const useGame = () => {
         return gender === '男'
             || gender === '男性'
             || gender.includes('男娘')
-            || Boolean(读取NPC文本字段(npc, '男娘设定'));
+            || gender.includes('扶她')
+            || Boolean(读取NPC文本字段(npc, '男娘设定'))
+            || Boolean(读取NPC文本字段(npc, '扶她设定'));
+    };
+
+    const NPC是否扶她 = (npc: any): boolean => {
+        const gender = 读取NPC文本字段(npc, '性别');
+        return gender.includes('扶她') || Boolean(读取NPC文本字段(npc, '扶她设定'));
     };
 
     const NPC是否女性 = (npc: any): boolean => (
@@ -2039,6 +2046,7 @@ export const useGame = () => {
 
     const 女性香闺秘档自动部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴'];
     const 男性香闺秘档自动部位列表: 香闺秘档部位类型[] = ['肉棒', '屁穴'];
+    const 扶她香闺秘档自动部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴', '肉棒'];
 
     const NPC是否成人女性主要角色 = (npc: any): boolean => (
         npc?.是否主要角色 === true
@@ -2058,7 +2066,9 @@ export const useGame = () => {
 
     const 读取NPC香闺秘档缺失部位 = (npc: any): 香闺秘档部位类型[] => {
         if (gameConfig?.启用NSFW模式 !== true) return [];
-        const parts = NPC是否成人女性主要角色(npc)
+        const parts = NPC是否扶她(npc)
+            ? (npc?.是否主要角色 === true && 男娘NSFW内容已启用() ? 扶她香闺秘档自动部位列表 : [])
+            : NPC是否成人女性主要角色(npc)
             ? 女性香闺秘档自动部位列表
             : NPC是否成人男性主要角色(npc)
                 ? 男性香闺秘档自动部位列表

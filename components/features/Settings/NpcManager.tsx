@@ -300,7 +300,7 @@ const NpcManager: React.FC<Props> = ({
                                 <div className="text-sm font-bold text-paper-white">图片槽位</div>
                                 <div className="mt-1 text-xs text-gray-500">
                                     上传后的图片会直接写入 NPC 图片档案并绑定对应槽位。
-                                    男性主要角色也可维护 NSFW 档案；可在完整 JSON 中填写“男娘设定 / 肉棒描述 / 屁穴描述”等字段。
+                                    男性、男娘、扶她主要角色也可维护 NSFW 档案；可在完整 JSON 中填写“男娘设定 / 扶她设定 / 肉棒描述 / 屁穴描述”等字段。
                                 </div>
                             </div>
                             <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={handleUploadFile} />

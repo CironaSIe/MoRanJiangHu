@@ -6,8 +6,8 @@ const getInstalledApkInfoMock = vi.fn(async () => ({ sha256: 'old-sha', fileSize
 
 vi.mock('../data/releaseInfo', () => ({
     RELEASE_INFO: {
-        versionCode: 289,
-        versionName: '1.0.288',
+        versionCode: 290,
+        versionName: '1.0.289',
         updateManifestUrl: 'https://msjh.bacon159.pp.ua/api/apk/latest.json',
         apkDownloadUrl: 'https://msjh.bacon159.pp.ua/api/apk/latest.apk',
         releaseNotes: []
@@ -20,7 +20,7 @@ vi.mock('../utils/nativeRuntime', () => ({
 
 vi.mock('@capacitor/app', () => ({
     App: {
-        getInfo: vi.fn(async () => ({ build: '288', version: '1.0.287' }))
+        getInfo: vi.fn(async () => ({ build: '289', version: '1.0.288' }))
     }
 }));
 
@@ -72,25 +72,25 @@ describe('appUpdate native APK download', () => {
     it('falls back to latest.apk when the versioned APK candidate fails', async () => {
         vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
             latest: {
-                versionCode: 289,
-                versionName: '1.0.288',
+                versionCode: 290,
+                versionName: '1.0.289',
                 apkSha256: 'new-sha',
                 apkSize: 123456,
-                directApkUrl: 'https://msjh.bacon159.pp.ua/api/apk/version/MoRanJiangHu-v1.0.288.apk',
+                directApkUrl: 'https://msjh.bacon159.pp.ua/api/apk/version/MoRanJiangHu-v1.0.289.apk',
                 latestApkUrl: 'https://msjh.bacon159.pp.ua/api/apk/latest.apk',
                 changes: ['测试更新']
             }
         }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
         downloadAndInstallMock
             .mockRejectedValueOnce(new Error('下载更新失败，HTTP 404'))
-            .mockResolvedValueOnce({ filePath: '/tmp/latest.apk', versionName: '1.0.288' });
+            .mockResolvedValueOnce({ filePath: '/tmp/latest.apk', versionName: '1.0.289' });
 
         const { checkForAppUpdate } = await import('../services/appUpdate');
         const result = await checkForAppUpdate();
 
         expect(result.opened).toBe(true);
         expect(downloadAndInstallMock).toHaveBeenCalledTimes(2);
-        expect(downloadAndInstallMock.mock.calls[0][0].url).toBe('https://msjh.bacon159.pp.ua/api/apk/version/MoRanJiangHu-v1.0.288.apk');
+        expect(downloadAndInstallMock.mock.calls[0][0].url).toBe('https://msjh.bacon159.pp.ua/api/apk/version/MoRanJiangHu-v1.0.289.apk');
         expect(downloadAndInstallMock.mock.calls[1][0].url).toBe('https://msjh.bacon159.pp.ua/api/apk/latest.apk');
     });
 });

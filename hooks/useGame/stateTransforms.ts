@@ -1094,6 +1094,10 @@ const 读取男娘设定 = (obj: any): string | undefined => {
     return 取字段文本(obj, '男娘设定');
 };
 
+const 读取扶她设定 = (obj: any): string | undefined => {
+    return 取字段文本(obj, '扶她设定');
+};
+
 const 读取性癖 = (obj: any): string | undefined => {
     return 取字段文本(obj, '性癖');
 };
@@ -2241,6 +2245,7 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
     const 屁穴描述 = 读取屁穴描述(npc);
     const 肉棒描述 = 读取肉棒描述(npc);
     const 男娘设定 = 读取男娘设定(npc);
+    const 扶她设定 = 读取扶她设定(npc);
     const 性癖 = 读取性癖(npc);
     const 敏感点 = 读取敏感点(npc);
     const 子宫 = 标准化子宫档案对象(npc?.子宫 ?? npc?.子宫档案);
@@ -2337,6 +2342,7 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
         ...(屁穴描述 ? { 屁穴描述 } : {}),
         ...(肉棒描述 ? { 肉棒描述 } : {}),
         ...(男娘设定 ? { 男娘设定 } : {}),
+        ...(扶她设定 ? { 扶她设定 } : {}),
         ...(性癖 ? { 性癖 } : {}),
         ...(敏感点 ? { 敏感点 } : {}),
         ...(子宫 ? { 子宫 } : {}),
@@ -2489,6 +2495,7 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
         屁穴描述: 取更优文本(读取屁穴描述(left), 读取屁穴描述(right)),
         肉棒描述: 取更优文本(读取肉棒描述(left), 读取肉棒描述(right)),
         男娘设定: 取更优文本(读取男娘设定(left), 读取男娘设定(right)),
+        扶她设定: 取更优文本(读取扶她设定(left), 读取扶她设定(right)),
         性癖: 取更优文本(读取性癖(left), 读取性癖(right)),
         敏感点: 取更优文本(读取敏感点(left), 读取敏感点(right)),
         子宫: mergedWomb,

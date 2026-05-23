@@ -111,9 +111,14 @@ const SocialModal: React.FC<Props> = ({
         [currentNPC]
     );
     const 当前角色是女性 = 是女性角色(currentNPC);
-    const 当前角色是男性 = currentNPC?.性别 === '男';
+    const 当前角色性别 = String(currentNPC?.性别 || '').trim();
+    const 当前角色是扶她 = 当前角色性别.includes('扶她') || Boolean(String((currentNPC as any)?.扶她设定 || '').trim());
+    const 当前角色是男性 = currentNPC?.性别 === '男'
+        || 当前角色性别.includes('男娘')
+        || 当前角色是扶她
+        || Boolean(String((currentNPC as any)?.男娘设定 || '').trim());
     const 当前角色已死亡 = NPC是否死亡(currentNPC);
-    const 展示女性扩展 = 当前角色是女性 && Boolean(currentNPC?.是否主要角色);
+    const 展示女性扩展 = 当前角色是女性 && !当前角色是扶她 && Boolean(currentNPC?.是否主要角色);
     const 展示女性私密档案 = 展示女性扩展 && nsfwEnabled;
     const 展示男性私密档案 = 当前角色是男性 && Boolean(currentNPC?.是否主要角色) && nsfwEnabled && femboyNsfwEnabled;
     const 取首个非空文本 = (...values: unknown[]): string => {
@@ -169,6 +174,9 @@ const SocialModal: React.FC<Props> = ({
     };
     const 读取男娘设定 = (npc: NPC结构): string => {
         return 取首个非空文本((npc as any).男娘设定);
+    };
+    const 读取扶她设定 = (npc: NPC结构): string => {
+        return 取首个非空文本((npc as any).扶她设定);
     };
     const 读取性癖 = (npc: NPC结构): string => 取首个非空文本(
         (npc as any).性癖
@@ -319,7 +327,14 @@ const SocialModal: React.FC<Props> = ({
     }, [imageViewer]);
 
     const 香闺部位列表: Array<{ key: 香闺秘档部位类型; label: string; text: string }> = currentNPC
-        ? (当前角色是男性
+        ? (当前角色是扶她
+            ? [
+                { key: '胸部', label: '胸部描述', text: 读取胸部描述(currentNPC) || '暂无记录' },
+                { key: '小穴', label: '小穴描述', text: 读取小穴描述(currentNPC) || '暂无记录' },
+                { key: '屁穴', label: '屁穴描述', text: 读取屁穴描述(currentNPC) || '暂无记录' },
+                { key: '肉棒', label: '肉棒描述', text: 读取肉棒描述(currentNPC) || '暂无记录' }
+            ]
+            : 当前角色是男性
             ? [
                 { key: '肉棒', label: '肉棒描述', text: 读取肉棒描述(currentNPC) || '暂无记录' },
                 { key: '屁穴', label: '屁穴描述', text: 读取屁穴描述(currentNPC) || '暂无记录' }
@@ -1049,6 +1064,7 @@ const SocialModal: React.FC<Props> = ({
                                                     </h4>
                                                     <div className="space-y-3">
                                                         <PrivateTag label="男娘设定" value={读取男娘设定(currentNPC) || '暂无记录'} color="text-sky-300" />
+                                                        <PrivateTag label="扶她设定" value={读取扶她设定(currentNPC) || '暂无记录'} color="text-sky-300" />
                                                         <div className="grid grid-cols-2 gap-3">
                                                             {香闺部位列表.map((item) => {
                                                                 const result = 读取香闺秘档图片结果(currentNPC, item.key);
