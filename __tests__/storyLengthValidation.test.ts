@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { 校验主剧情正文最低字数, 获取主剧情正文不足信息, 统计正文字符数 } from '../hooks/useGame/sendWorkflow';
 import { 评估润色长度结果 } from '../hooks/useGame/bodyPolish';
+import { 构建主剧情请求参数, type 主剧情系统上下文 } from '../hooks/useGame/mainStoryRequest';
+import { 构建字数要求提示词 } from '../prompts/runtime/protocolDirectives';
+import { 默认游戏设置 } from '../utils/gameSettings';
 
 describe('主剧情正文字数校验', () => {
     it('统计正文日志的可见字符数', () => {
@@ -87,5 +90,70 @@ describe('主剧情正文字数校验', () => {
             requiredLength: 300,
             allowExpansionForLength: true
         })).toMatchObject({ ok: true });
+    });
+
+    it('主剧情有序消息会把动态最低字数要求放到最终任务前', () => {
+        const lengthPrompt = 构建字数要求提示词(1500);
+        const builtContext: 主剧情系统上下文 = {
+            shortMemoryContext: '',
+            contextPieces: {
+                AI角色声明: '你是墨染江湖叙事模型。',
+                worldPrompt: '',
+                地图建筑状态: '',
+                同人设定摘要: '',
+                境界体系提示词: '',
+                离场NPC档案: '',
+                otherPrompts: '',
+                难度设置提示词: '',
+                叙事人称提示词: '',
+                字数设置提示词: '<字数>本次<正文>内的正文必须达到动态注入的最低字数要求。</字数>',
+                长期记忆: '',
+                中期记忆: '',
+                在场NPC档案: '',
+                剧情安排: '',
+                女主剧情规划状态: '',
+                世界状态: '',
+                环境状态: '',
+                角色状态: '',
+                战斗状态: '',
+                门派状态: '',
+                任务状态: '',
+                约定状态: '',
+                COT提示词: '',
+                格式提示词: '<正文>...</正文>',
+                字数要求提示词: lengthPrompt,
+                免责声明输出提示词: '',
+                输出协议提示词: ''
+            }
+        };
+
+        const result = 构建主剧情请求参数({
+            gameConfig: {
+                ...默认游戏设置,
+                字数要求: 1500,
+                启用GPT模式: true,
+                主剧情消息模式: 'GPT'
+            },
+            apiConfig: {
+                apiKey: 'test-key',
+                baseUrl: 'https://example.test/v1',
+                model: 'gemini-test'
+            } as any,
+            builtContext,
+            updatedContextHistory: [],
+            updatedMemSys: {} as any,
+            sendInput: '继续剧情。'
+        });
+
+        const finalLengthEntryIndex = result.messageEntries.findIndex((entry) => entry.id === 'length_requirement_final');
+        const startTaskIndex = result.messageEntries.findIndex((entry) => entry.id === 'start_task');
+
+        expect(finalLengthEntryIndex).toBeGreaterThanOrEqual(0);
+        expect(startTaskIndex).toBeGreaterThan(finalLengthEntryIndex);
+        expect(result.messageEntries[finalLengthEntryIndex]).toMatchObject({
+            role: 'user',
+            content: expect.stringContaining('1500字以上')
+        });
+        expect(result.orderedMessages.some((message) => message.content.includes(lengthPrompt))).toBe(true);
     });
 });

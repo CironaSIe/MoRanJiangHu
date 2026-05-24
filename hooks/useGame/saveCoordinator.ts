@@ -617,13 +617,13 @@ export const 执行自动存档 = async (
     currentState: 存档协调当前状态,
     deps: 存档协调依赖,
     snapshot?: 自动存档快照结构
-): Promise<void> => {
+): Promise<存档结构 | null> => {
     const historySource = Array.isArray(snapshot?.history)
         ? snapshot.history
         : (Array.isArray(currentState.历史记录) ? currentState.历史记录 : []);
     const 显式携带历史快照 = Array.isArray(snapshot?.history);
     const forceSave = snapshot?.force === true;
-    if (!forceSave && (!Array.isArray(historySource) || historySource.length === 0)) return;
+    if (!forceSave && (!Array.isArray(historySource) || historySource.length === 0)) return null;
 
     const signature = 构建自动存档签名(snapshot, currentState, deps);
     const now = Date.now();
@@ -634,7 +634,7 @@ export const 执行自动存档 = async (
         && deps.最近自动存档时间戳Ref.current > 0
         && now - deps.最近自动存档时间戳Ref.current < deps.自动存档最小间隔毫秒
     ) {
-        return;
+        return null;
     }
 
     try {
@@ -650,8 +650,11 @@ export const 执行自动存档 = async (
         deps.最近自动存档签名Ref.current = signature;
         deps.最近自动存档时间戳Ref.current = now;
         deps.setHasSave(true);
+        return persistedSave;
     } catch (error) {
         console.error('自动存档失败', error);
+        if (forceSave) throw error;
+        return null;
     }
 };
 

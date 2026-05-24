@@ -2035,9 +2035,15 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
                                                 <input value={partnerGender} onChange={e => setPartnerGender(e.target.value)} placeholder="输入自定义性别称谓" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
                                             )}
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <input type="number" min={1} max={12} value={partnerBirthMonth} onChange={e => setPartnerBirthMonth(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))} className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
-                                            <input type="number" min={1} max={30} value={partnerBirthDay} onChange={e => setPartnerBirthDay(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))} className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-2">
+                                                <label className="text-xs text-wuxia-cyan font-bold">出生月份</label>
+                                                <input type="number" min={1} max={12} value={partnerBirthMonth} onChange={e => setPartnerBirthMonth(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))} aria-label="同伴出生月份" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs text-wuxia-cyan font-bold">出生日期</label>
+                                                <input type="number" min={1} max={30} value={partnerBirthDay} onChange={e => setPartnerBirthDay(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))} aria-label="同伴出生日期" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm text-wuxia-cyan font-bold">与主角关系</label>

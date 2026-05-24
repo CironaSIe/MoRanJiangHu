@@ -1744,7 +1744,33 @@ export const generateStoryResponse = async (
     });
 
     if (orderedMessages.length > 0) {
-        const rawText = await 请求模型文本(apiConfig, orderedMessages, {
+        const lengthRequirementPrompt = typeof requestOptions?.lengthRequirementPrompt === 'string'
+            ? requestOptions.lengthRequirementPrompt.trim()
+            : '';
+        const messagesWithRuntimeRequirements = (() => {
+            if (!lengthRequirementPrompt) return orderedMessages;
+            if (orderedMessages.some((message) => message.content.includes(lengthRequirementPrompt))) {
+                return orderedMessages;
+            }
+            const lengthMessage = {
+                role: 'user' as const,
+                content: lengthRequirementPrompt
+            };
+            const tail = orderedMessages[orderedMessages.length - 1];
+            if (tail?.role === 'assistant' && tail.prefix === true) {
+                return [
+                    ...orderedMessages.slice(0, -1),
+                    lengthMessage,
+                    tail
+                ];
+            }
+            return [
+                ...orderedMessages,
+                lengthMessage
+            ];
+        })();
+
+        const rawText = await 请求模型文本(apiConfig, messagesWithRuntimeRequirements, {
             temperature: 0.7,
             signal,
             streamOptions,
