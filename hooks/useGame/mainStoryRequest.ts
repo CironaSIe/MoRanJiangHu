@@ -30,6 +30,7 @@ export type 有序消息角色 = 'system' | 'user' | 'assistant';
 export type 有序消息 = {
     role: 有序消息角色;
     content: string;
+    prefix?: boolean;
 };
 
 type 主剧情上下文片段 = {
@@ -277,6 +278,13 @@ export const 构建主剧情请求参数 = (
         pushEntry('disclaimer_requirement', '免责声明输出要求', '用户', 'user', disclaimerRequirementPrompt || '');
         pushEntry('format_prompt', '输出格式提示词', '系统', 'system', params.builtContext.contextPieces.格式提示词);
         pushEntry('cot_core', 'COT提示词', '系统', 'system', params.builtContext.contextPieces.COT提示词);
+        pushEntry(
+            'length_requirement_final',
+            '本回合硬性字数要求',
+            '用户',
+            'user',
+            lengthRequirementPrompt
+        );
         if (!runtimeGptMode) {
             pushEntry(
                 'player_input_as_model',

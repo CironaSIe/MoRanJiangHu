@@ -941,6 +941,36 @@ export const 等待云端后台同步完成 = async (): Promise<void> => {
     await 后台同步队列;
 };
 
+export const 确保本地存档已同步到云端 = async (save: 存档结构): Promise<'local' | 'object' | 'tg'> => {
+    const mode = 读取云端游玩存储模式();
+    if (!mode) return 'local';
+
+    if (mode === 'object') {
+        const objectStorageConfig = await 读取对象存储云端游玩配置();
+        if (!objectStorageConfig) throw new Error('对象存储云端游玩已开启，但未读取到对象存储配置。');
+        await 增量同步到对象存储(objectStorageConfig, [save]);
+        return 'object';
+    }
+
+    const session = 读取云端游玩会话();
+    if (!session) throw new Error('TG 图床云端游玩已开启，但登录会话已失效。');
+    const result = await 上传单个存档到云端(session, save);
+    if (result.session) 保存会话(result.session);
+    return 'tg';
+};
+
+export const 确保最新本地存档已同步到云端 = async (): Promise<'local' | 'object' | 'tg' | 'none'> => {
+    const mode = 读取云端游玩存储模式();
+    if (!mode) return 'local';
+
+    const saves = await dbService.读取存档列表();
+    const latestSave = [...saves]
+        .sort((a, b) => Number(b?.时间戳 || 0) - Number(a?.时间戳 || 0))[0];
+    if (!latestSave) return 'none';
+
+    return 确保本地存档已同步到云端(latestSave);
+};
+
 export const 复制全部本地存档到云端 = async (
     session: 云端游玩账号,
     onProgress?: (progress: 云端上传进度) => void

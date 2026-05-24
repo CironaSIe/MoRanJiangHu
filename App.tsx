@@ -35,7 +35,7 @@ import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolu
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
 import { 获取本地图片图床迁移状态, 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 读取图片资源兜底地址, 订阅旧存档谱系迁移状态, 订阅本地图片图床迁移状态, type 旧存档谱系迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
 import { startOnlinePresenceHeartbeat } from './services/onlinePresence';
-import { 等待云端后台同步完成, 读取云端游玩存储模式 } from './services/cloudPlayService';
+import { 等待云端后台同步完成, 确保本地存档已同步到云端, 确保最新本地存档已同步到云端, 读取云端游玩存储模式 } from './services/cloudPlayService';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 import type { 游戏物品 } from './models/item';
@@ -2218,13 +2218,18 @@ const App: React.FC = () => {
             tone: 'info'
         });
         try {
-            await actions.performAutoSave({ force: true });
+            const returnHomeSave = await actions.performAutoSave({ force: true });
             await 等待云端后台同步完成();
+            if (returnHomeSave) {
+                await 确保本地存档已同步到云端(returnHomeSave);
+            } else {
+                await 确保最新本地存档已同步到云端();
+            }
             closeAllPanels();
             actions.handleReturnToHome();
             setters.setShowSettings(false);
         } catch (error: any) {
-            window.alert(`自动存档失败：${error?.message || '未知错误'}`);
+            window.alert(`保存或云端同步失败：${error?.message || '未知错误'}`);
         } finally {
             setReturnHomeSaving(false);
         }
