@@ -194,10 +194,6 @@ const 是可信谱系根 = (item: Partial<存档结构>): boolean => (
     && Number((item.元数据 as any)?.存档谱系深度 || 0) === 0
 );
 
-const 构建恢复系列ID = (seriesId: string, rootHash: string): string => (
-    `${seriesId}-root-${rootHash.slice(0, 12)}`
-);
-
 const 收集谱系子树 = <T extends Partial<存档结构>>(
     root: T,
     childrenByParent: Map<string, T[]>
@@ -227,6 +223,7 @@ const 写入谱系节点元数据 = <T extends Partial<存档结构>>(
     ordered.forEach((save, offset) => {
         const metadata = save.元数据 as any;
         const index = startIndex + offset;
+        const nextGameRound = 读取存档游玩回合数(save);
         const nextParentHash = index === 0 ? '' : (offset === 0 ? parentBeforeFirst : 读取存档谱系哈希(ordered[offset - 1]));
         const nextBranchInput = index === 0 ? '开局' : (readText(metadata.存档分支输入) || 读取历史用户输入(save, 0) || '继续游玩');
         if (
@@ -234,7 +231,7 @@ const 写入谱系节点元数据 = <T extends Partial<存档结构>>(
             || metadata.存档根节点哈希 !== rootHash
             || metadata.存档父节点哈希 !== nextParentHash
             || metadata.存档谱系深度 !== index
-            || metadata.游戏回合数 !== index
+            || metadata.游戏回合数 !== nextGameRound
             || metadata.存档分支输入 !== nextBranchInput
             || metadata.存档谱系版本 !== 1
         ) {
@@ -244,7 +241,7 @@ const 写入谱系节点元数据 = <T extends Partial<存档结构>>(
         metadata.存档根节点哈希 = rootHash;
         metadata.存档父节点哈希 = nextParentHash;
         metadata.存档谱系深度 = index;
-        metadata.游戏回合数 = index;
+        metadata.游戏回合数 = nextGameRound;
         metadata.存档分支输入 = nextBranchInput;
         metadata.存档谱系版本 = 1;
     });
@@ -286,7 +283,6 @@ export const 修复本地存档谱系列表 = <T extends Partial<存档结构>>(
             const rootHash = 读取存档谱系哈希(first);
             const seriesId = readText((first?.元数据 as any)?.存档系列ID);
             if (!rootHash || !seriesId) return;
-            if (ordered.length <= 1 && 读取谱系回合数(first) > 0) return;
             const groupChanged = 写入谱系节点元数据(ordered, rootHash, seriesId, 0, '');
             if (groupChanged > 0) {
                 repairedNodes += groupChanged;
@@ -295,23 +291,14 @@ export const 修复本地存档谱系列表 = <T extends Partial<存档结构>>(
             return;
         }
 
-        const used = new Set<string>();
-        let groupChanged = 0;
-        trueRoots.forEach((root, rootIndex) => {
-            const rootHash = 读取存档谱系哈希(root);
-            if (!rootHash) return;
-            const component = 收集谱系子树(root, childrenByParent);
-            component.forEach((item) => used.add(读取存档谱系哈希(item)));
-            const currentSeriesId = readText((root.元数据 as any)?.存档系列ID);
-            const nextSeriesId = trueRoots.length > 1 && rootIndex > 0
-                ? 构建恢复系列ID(currentSeriesId, rootHash)
-                : currentSeriesId;
-            groupChanged += 写入谱系节点元数据(component, rootHash, nextSeriesId, 0, '');
-        });
-
         const primaryRoot = trueRoots[0];
         const primaryRootHash = 读取存档谱系哈希(primaryRoot);
         const primarySeriesId = readText((primaryRoot.元数据 as any)?.存档系列ID);
+        const used = new Set<string>();
+        let groupChanged = 0;
+        const primaryComponent = 收集谱系子树(primaryRoot, childrenByParent);
+        primaryComponent.forEach((item) => used.add(读取存档谱系哈希(item)));
+        groupChanged += 写入谱系节点元数据(primaryComponent, primaryRootHash, primarySeriesId, 0, '');
         const unattachedRoots = items
             .filter((item) => {
                 const hash = 读取存档谱系哈希(item);
@@ -322,7 +309,7 @@ export const 修复本地存档谱系列表 = <T extends Partial<存档结构>>(
             })
             .sort(比较谱系顺序);
         let previousHash = primaryRootHash;
-        let nextIndex = 收集谱系子树(primaryRoot, childrenByParent).length;
+        let nextIndex = primaryComponent.length;
         unattachedRoots.forEach((root) => {
             if (!primaryRootHash || !previousHash) return;
             const component = 收集谱系子树(root, childrenByParent);

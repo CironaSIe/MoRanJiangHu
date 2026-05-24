@@ -1,7 +1,4 @@
 import { 聊天记录结构, 提示词结构 } from '../types';
-import { Tiktoken } from 'js-tiktoken/lite';
-import cl100k_base from 'js-tiktoken/ranks/cl100k_base';
-import o200k_base from 'js-tiktoken/ranks/o200k_base';
 
 type OpenAI编码名称 = 'cl100k_base' | 'o200k_base';
 
@@ -10,7 +7,6 @@ const OpenAI名称额外开销 = 1;
 const OpenAI回复预留开销 = 3;
 const 文本Token缓存上限 = 256;
 
-const 分词器缓存: Partial<Record<OpenAI编码名称, Tiktoken>> = {};
 const 文本Token缓存 = new Map<string, number>();
 
 const 归一化模型名 = (model?: string): string => (
@@ -49,18 +45,6 @@ export const 解析OpenAI编码名称 = (model?: string): OpenAI编码名称 => 
     return 'o200k_base';
 };
 
-const 获取OpenAI分词器 = (encodingOrModel?: OpenAI编码名称 | string): Tiktoken => {
-    const encoding = encodingOrModel === 'cl100k_base' || encodingOrModel === 'o200k_base'
-        ? encodingOrModel
-        : 解析OpenAI编码名称(encodingOrModel);
-    const cached = 分词器缓存[encoding];
-    if (cached) return cached;
-
-    const next = new Tiktoken(encoding === 'cl100k_base' ? cl100k_base : o200k_base);
-    分词器缓存[encoding] = next;
-    return next;
-};
-
 const 读取文本Token缓存 = (key: string): number | undefined => {
     const hit = 文本Token缓存.get(key);
     if (hit === undefined) return undefined;
@@ -81,13 +65,38 @@ const 写入文本Token缓存 = (key: string, value: number): void => {
     }
 };
 
+const 估算文本Token数量 = (text: string, encoding: OpenAI编码名称): number => {
+    const src = typeof text === 'string' ? text : '';
+    if (src.length === 0) return 0;
+
+    const cjkMatches = src.match(/[\u3400-\u9fff\uf900-\ufaff]/g) || [];
+    const latinWordMatches = src.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) || [];
+    const numberMatches = src.match(/\d+(?:\.\d+)?/g) || [];
+    const whitespaceMatches = src.match(/\s+/g) || [];
+    const noSpaceChars = src.replace(/\s+/g, '').length;
+    const cjkChars = cjkMatches.length;
+    const latinChars = latinWordMatches.join('').length;
+    const numberChars = numberMatches.join('').replace(/\./g, '').length;
+    const symbolChars = Math.max(0, noSpaceChars - cjkChars - latinChars - numberChars);
+    const whitespaceChars = whitespaceMatches.join('').length;
+    const encodingFactor = encoding === 'o200k_base' ? 0.96 : 1;
+
+    return Math.max(1, Math.ceil((
+        cjkChars * 1.05 +
+        latinChars / 4 +
+        numberChars / 3 +
+        symbolChars * 0.72 +
+        whitespaceChars / 12
+    ) * encodingFactor));
+};
+
 const 按编码统计文本Token = (text: string, encoding: OpenAI编码名称): number => {
     const src = typeof text === 'string' ? text : '';
     if (src.length === 0) return 0;
     const cacheKey = `${encoding}\u0000${src}`;
     const cached = 读取文本Token缓存(cacheKey);
     if (cached !== undefined) return cached;
-    const tokenCount = 获取OpenAI分词器(encoding).encode(src).length;
+    const tokenCount = 估算文本Token数量(src, encoding);
     写入文本Token缓存(cacheKey, tokenCount);
     return tokenCount;
 };

@@ -31,6 +31,12 @@ const clickByTexts = async (page, texts) => {
     return false;
 };
 
+const loadSingleSaveSeries = async (page) => {
+    const card = page.locator('div.cursor-pointer', { hasText: '点击本系列会直接读取最新存档' }).first();
+    await card.click({ timeout: 10000, position: { x: 24, y: 80 }, force: true });
+    await page.getByRole('button', { name: /^读取$/ }).last().click({ timeout: 5000, force: true });
+};
+
 const makePlaceholderNpcSave = () => {
     const save = structuredClone(baseSave);
     save.id = 902601;
@@ -172,10 +178,7 @@ test('占位名 NPC 后续得名后在真实社交面板中保持单一档案', 
 
     await injectSaveAndReload(page);
     await clickByTexts(page, ['重入江湖', '读取进度', '继续游戏', '读取', '载入']);
-    await page.waitForTimeout(700);
-    await clickByTexts(page, ['NPC占位名合并端到端测试', '902601', '手动快照']);
-    await page.waitForTimeout(300);
-    await clickByTexts(page, ['加载此存档', '读取此存档', '载入存档', '确认读取', '读取', '进入江湖']);
+    await loadSingleSaveSeries(page);
     await page.waitForTimeout(1800);
     await clickByTexts(page, ['社交']);
 

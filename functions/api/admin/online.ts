@@ -33,6 +33,19 @@ type OnlineRegistry = {
     sessions: OnlineSessionRecord[];
 };
 
+type OnlineHourlyHistoryPoint = {
+    hour: string;
+    onlineCount: number;
+    totalRecentCount: number;
+    onlineSessionCount: number;
+    sampledAt: string;
+};
+
+type OnlineHourlyHistory = {
+    updatedAt: string;
+    points: OnlineHourlyHistoryPoint[];
+};
+
 type MigrationStatusSummary = {
     stage?: string;
     totalAssets?: number;
@@ -106,9 +119,11 @@ type CloudPlayAdminRecord = CloudPlayUserRecord & {
 
 const ONLINE_R2_PREFIX = 'moranjianghu/online';
 const REGISTRY_FILE = 'sessions.json';
+const HOURLY_HISTORY_FILE = 'hourly-history.json';
 const SESSION_TTL_MS = 2 * 60 * 1000;
 const SESSION_RETENTION_MS = 24 * 60 * 60 * 1000;
 const MAX_SESSIONS = 500;
+const MAX_HOURLY_HISTORY_POINTS = 72;
 const HEARTBEAT_MIN_INTERVAL_MS = 20 * 1000;
 const CLOUD_PLAY_R2_PREFIX = 'moranjianghu/cloud-play';
 const MAX_CLOUD_PLAY_USERS = 300;
@@ -158,6 +173,8 @@ const getCloudPlayPrefix = (env: any): string => (
 ).replace(/^\/+|\/+$/g, '') || CLOUD_PLAY_R2_PREFIX;
 
 const getRegistryKey = (env: any): string => `${getPrefix(env)}/${REGISTRY_FILE}`;
+
+const getHourlyHistoryKey = (env: any): string => `${getPrefix(env)}/${HOURLY_HISTORY_FILE}`;
 
 const getSessionTtlMs = (env: any): number => Math.max(30, toPositiveInt(env?.ONLINE_SESSION_TTL_SECONDS, SESSION_TTL_MS / 1000)) * 1000;
 
@@ -241,6 +258,98 @@ const writeRegistry = async (env: any, registry: OnlineRegistry): Promise<void> 
     await bucket.put(getRegistryKey(env), JSON.stringify(registry), {
         httpMetadata: { contentType: 'application/json; charset=utf-8' }
     });
+};
+
+let lastHourlySampleAttemptHour = '';
+
+const getHourStartIso = (timeMs: number): string => {
+    const date = new Date(timeMs);
+    date.setUTCMinutes(0, 0, 0);
+    return date.toISOString();
+};
+
+const readHourlyHistory = async (env: any): Promise<OnlineHourlyHistory> => {
+    const bucket = getBucket(env);
+    if (!bucket) return { updatedAt: '', points: [] };
+    const object = await bucket.get(getHourlyHistoryKey(env));
+    if (!object) return { updatedAt: '', points: [] };
+    try {
+        const parsed = await object.json() as Partial<OnlineHourlyHistory>;
+        const points = Array.isArray(parsed.points)
+            ? parsed.points
+                .map((item: any) => ({
+                    hour: readString(item?.hour),
+                    onlineCount: toNonNegativeInt(item?.onlineCount),
+                    totalRecentCount: toNonNegativeInt(item?.totalRecentCount),
+                    onlineSessionCount: toNonNegativeInt(item?.onlineSessionCount),
+                    sampledAt: readString(item?.sampledAt)
+                }))
+                .filter((item) => item.hour)
+            : [];
+        return {
+            updatedAt: readString(parsed.updatedAt),
+            points: points
+                .sort((left, right) => left.hour.localeCompare(right.hour))
+                .slice(-MAX_HOURLY_HISTORY_POINTS)
+        };
+    } catch {
+        return { updatedAt: '', points: [] };
+    }
+};
+
+const writeHourlyHistory = async (env: any, history: OnlineHourlyHistory): Promise<void> => {
+    const bucket = getBucket(env);
+    if (!bucket) return;
+    await bucket.put(getHourlyHistoryKey(env), JSON.stringify(history), {
+        httpMetadata: { contentType: 'application/json; charset=utf-8' }
+    });
+};
+
+const buildPublicStatsPayload = async (env: any, nowMs: number) => {
+    const ttlMs = getSessionTtlMs(env);
+    const registry = await readRegistry(env);
+    const sessions = cleanupSessions(registry.sessions, nowMs);
+    const onlineSessions = sessions.filter((item) => {
+        const lastSeenMs = Date.parse(item.lastSeenAt || '');
+        return Number.isFinite(lastSeenMs) && nowMs - lastSeenMs <= ttlMs;
+    });
+    const users = aggregateUsersByIp(sessions, nowMs, ttlMs);
+    const onlineUsers = users.filter((item) => item.online);
+    return {
+        serverTime: new Date(nowMs).toISOString(),
+        onlineCount: onlineUsers.length,
+        totalRecentCount: users.length,
+        onlineSessionCount: onlineSessions.length,
+        ttlSeconds: Math.round(ttlMs / 1000)
+    };
+};
+
+const maybeRecordHourlySample = async (env: any, nowMs: number): Promise<OnlineHourlyHistory> => {
+    const hour = getHourStartIso(nowMs);
+    if (lastHourlySampleAttemptHour === hour) {
+        return readHourlyHistory(env);
+    }
+    lastHourlySampleAttemptHour = hour;
+
+    const history = await readHourlyHistory(env);
+    if (history.points.some((item) => item.hour === hour)) return history;
+
+    const stats = await buildPublicStatsPayload(env, nowMs);
+    const nextPoint: OnlineHourlyHistoryPoint = {
+        hour,
+        onlineCount: stats.onlineCount,
+        totalRecentCount: stats.totalRecentCount,
+        onlineSessionCount: stats.onlineSessionCount,
+        sampledAt: stats.serverTime
+    };
+    const nextHistory = {
+        updatedAt: stats.serverTime,
+        points: [...history.points.filter((item) => item.hour !== hour), nextPoint]
+            .sort((left, right) => left.hour.localeCompare(right.hour))
+            .slice(-MAX_HOURLY_HISTORY_POINTS)
+    };
+    await writeHourlyHistory(env, nextHistory);
+    return nextHistory;
 };
 
 const sanitizeSessionId = (value: unknown): string => (
@@ -551,22 +660,12 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
     const publicStats = url.searchParams.get('public') === '1' || url.searchParams.get('summary') === '1';
     if (publicStats) {
         const nowMs = Date.now();
-        const ttlMs = getSessionTtlMs(env);
-        const registry = await readRegistry(env);
-        const sessions = cleanupSessions(registry.sessions, nowMs);
-        const onlineSessions = sessions.filter((item) => {
-            const lastSeenMs = Date.parse(item.lastSeenAt || '');
-            return Number.isFinite(lastSeenMs) && nowMs - lastSeenMs <= ttlMs;
-        });
-        const users = aggregateUsersByIp(sessions, nowMs, ttlMs);
-        const onlineUsers = users.filter((item) => item.online);
+        const stats = await buildPublicStatsPayload(env, nowMs);
+        const history = await maybeRecordHourlySample(env, nowMs);
         return buildJsonResponse({
             success: true,
-            serverTime: new Date(nowMs).toISOString(),
-            onlineCount: onlineUsers.length,
-            totalRecentCount: users.length,
-            onlineSessionCount: onlineSessions.length,
-            ttlSeconds: Math.round(ttlMs / 1000)
+            ...stats,
+            hourlyHistory: history.points
         });
     }
 
@@ -605,6 +704,9 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
     try {
         const body = await readRequestJson(request);
         const result = await upsertSessionHeartbeat(request, env, body);
+        if (result.accepted) {
+            await maybeRecordHourlySample(env, Date.parse(result.serverTime) || Date.now()).catch(() => undefined);
+        }
         return buildJsonResponse({
             success: true,
             ...result

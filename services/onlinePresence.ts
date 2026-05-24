@@ -172,6 +172,13 @@ export interface OnlinePresencePublicStats {
     onlineSessionCount: number;
     ttlSeconds: number;
     serverTime: string;
+    hourlyHistory: Array<{
+        hour: string;
+        onlineCount: number;
+        totalRecentCount: number;
+        onlineSessionCount: number;
+        sampledAt: string;
+    }>;
 }
 
 export const fetchOnlinePresencePublicStats = async (): Promise<OnlinePresencePublicStats | null> => {
@@ -187,7 +194,18 @@ export const fetchOnlinePresencePublicStats = async (): Promise<OnlinePresencePu
             totalRecentCount: Math.max(0, Number(payload.totalRecentCount) || 0),
             onlineSessionCount: Math.max(0, Number(payload.onlineSessionCount) || 0),
             ttlSeconds: Math.max(0, Number(payload.ttlSeconds) || 0),
-            serverTime: typeof payload.serverTime === 'string' ? payload.serverTime : ''
+            serverTime: typeof payload.serverTime === 'string' ? payload.serverTime : '',
+            hourlyHistory: Array.isArray(payload.hourlyHistory)
+                ? payload.hourlyHistory
+                    .map((item: any) => ({
+                        hour: typeof item?.hour === 'string' ? item.hour : '',
+                        onlineCount: Math.max(0, Number(item?.onlineCount) || 0),
+                        totalRecentCount: Math.max(0, Number(item?.totalRecentCount) || 0),
+                        onlineSessionCount: Math.max(0, Number(item?.onlineSessionCount) || 0),
+                        sampledAt: typeof item?.sampledAt === 'string' ? item.sampledAt : ''
+                    }))
+                    .filter((item: any) => item.hour)
+                : []
         };
     } catch {
         return null;

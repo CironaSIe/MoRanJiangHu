@@ -19,7 +19,7 @@ interface Props {
 
 type 存档列表项 = dbService.存档摘要结构;
 type 本地时间树节点 = 存档列表项 & { children: 本地时间树节点[] };
-type 本地时间树系列 = { key: string; hash: string; title: string; latest: 存档列表项; roots: 本地时间树节点[]; count: number };
+type 本地时间树系列 = { key: string; hash: string; title: string; latest: 存档列表项; roots: 本地时间树节点[]; count: number; manualCount: number; autoCount: number };
 
 const 需要刷新回合数摘要 = (save: 存档列表项): boolean => (
     !Boolean((save.元数据 as any)?.摘要缺失)
@@ -28,11 +28,14 @@ const 需要刷新回合数摘要 = (save: 存档列表项): boolean => (
     && Number(save.元数据?.历史记录条数 || 0) > 0
 );
 
-const 读取本地系列Key = (save: 存档列表项): string => (
-    save.元数据?.存档系列ID
-    || save.元数据?.存档根节点哈希
-    || `${save.角色数据?.姓名 || '未知角色'}-${save.类型 || 'manual'}`
-);
+const 读取本地系列Key = (save: 存档列表项): string => {
+    const metadataSeriesId = typeof save.元数据?.存档系列ID === 'string' ? save.元数据.存档系列ID.trim() : '';
+    if (metadataSeriesId) return metadataSeriesId;
+    const rootHash = typeof save.元数据?.存档根节点哈希 === 'string' ? save.元数据.存档根节点哈希.trim() : '';
+    if (rootHash) return rootHash;
+    const roleName = typeof save.角色数据?.姓名 === 'string' && save.角色数据.姓名.trim() ? save.角色数据.姓名.trim() : '未知角色';
+    return `legacy-${roleName}`;
+};
 
 const 计算文本短哈希 = (text: string): string => {
     let hash = 2166136261;
@@ -45,7 +48,6 @@ const 计算文本短哈希 = (text: string): string => {
 
 const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode, requestConfirm }) => {
     const [saves, setSaves] = useState<存档列表项[]>([]);
-    const [activeTab, setActiveTab] = useState<'auto' | 'manual'>('manual');
     const pageSize = isNativeCapacitorEnvironment() ? 24 : 80;
     const [visibleSaveCount, setVisibleSaveCount] = useState(pageSize);
     const [hasMoreSaves, setHasMoreSaves] = useState(false);
@@ -104,7 +106,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             hydratedSummaryCountRef.current += 1;
             recordSaveLoadTrace('modal.summaryHydrate.start', {
                 id,
-                activeTab,
+                view: 'combined',
                 native,
                 count: hydratedSummaryCountRef.current
             });
@@ -124,11 +126,11 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                     setSaves((current) => current.map((item) => item.id === id ? summary : item));
                 })
                 .catch((error) => {
-                    recordSaveLoadError('modal.summaryHydrate.error', error, { id, activeTab });
+                    recordSaveLoadError('modal.summaryHydrate.error', error, { id, view: 'combined' });
                     console.warn('补全旧存档摘要失败:', error);
                 })
                 .finally(() => {
-                    recordSaveLoadTrace('modal.summaryHydrate.finally', { id, activeTab });
+                    recordSaveLoadTrace('modal.summaryHydrate.finally', { id, view: 'combined' });
                     hydrateRunningRef.current = false;
                 });
         }, native ? 260 : 80);
@@ -141,11 +143,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
     useEffect(() => {
         setVisibleSaveCount(pageSize);
-    }, [activeTab, pageSize, saves.length]);
-
-    useEffect(() => {
-        void loadSaves(true);
-    }, [activeTab]);
+    }, [pageSize, saves.length]);
 
     const loadSaves = async (reset = true) => {
         setLoading(true);
@@ -153,23 +151,22 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         try {
             const usePagedNativeList = isNativeCapacitorEnvironment();
             const offset = reset ? 0 : saves.length;
-            const type = activeTab === 'auto' ? 'auto' : 'manual';
             recordSaveLoadTrace('modal.list.start', {
                 reset,
-                activeTab,
+                view: 'combined',
                 offset,
                 pageSize,
                 usePagedNativeList
             });
             const [list, protect] = await Promise.all([
                 usePagedNativeList
-                    ? dbService.读取存档摘要列表({ limit: pageSize, offset, 类型: type })
+                    ? dbService.读取存档摘要列表({ limit: pageSize, offset })
                     : dbService.读取存档摘要列表(),
                 dbService.读取存档保护状态()
             ]);
             recordSaveLoadTrace('modal.list.done', {
                 reset,
-                activeTab,
+                view: 'combined',
                 count: list.length,
                 missingSummaryCount: list.filter((item) => 是旧版缺摘要存档(item)).length,
                 firstId: list[0]?.id,
@@ -182,7 +179,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         } catch (error) {
             recordSaveLoadError('modal.list.error', error, {
                 reset,
-                activeTab,
+                view: 'combined',
                 elapsedMs: Date.now() - startAt
             });
             console.error(error);
@@ -303,7 +300,16 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 root: latest?.元数据?.存档根节点哈希 || '',
                 nodes: nodes.map((node) => 读取存档短哈希(node)).sort()
             });
-            return { key, hash: 计算文本短哈希(hashSource), title: 构建存档标题(latest), latest, roots, count: list.length };
+            return {
+                key,
+                hash: 计算文本短哈希(hashSource),
+                title: 构建存档标题(latest),
+                latest,
+                roots,
+                count: list.length,
+                manualCount: list.filter((item) => item.类型 !== 'auto').length,
+                autoCount: list.filter((item) => item.类型 === 'auto').length
+            };
         }).sort((a, b) => Number(b.latest?.元数据?.现实保存时间戳 || b.latest?.时间戳 || 0) - Number(a.latest?.元数据?.现实保存时间戳 || a.latest?.时间戳 || 0));
     };
 
@@ -335,7 +341,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             id,
             type: save.类型,
             listHistoryCount: save.元数据?.历史记录条数,
-            activeTab
+            view: 'combined'
         });
         const fullSave = await dbService.读取存档(id);
         if (!fullSave) throw new Error('存档不存在或已被删除。');
@@ -354,7 +360,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         recordSaveLoadTrace('modal.loadClick.start', {
             id,
             type: save.类型,
-            activeTab,
+            view: 'combined',
             listHistoryCount: save.元数据?.历史记录条数,
             missingSummary: 是旧版缺摘要存档(save)
         });
@@ -404,7 +410,6 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         setTransferMessage('');
         try {
             await Promise.resolve(onSaveGame());
-            setActiveTab('manual');
             await loadSaves();
         } catch (error: any) {
             console.error(error);
@@ -582,7 +587,6 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
             const result = await dbService.导入存档数据(payload, { 覆盖现有: false });
             await loadSaves();
-            setActiveTab('manual');
 
             setTransferMessage(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条。`);
             alert(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条。${repairedTip}`);
@@ -597,11 +601,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
     const 是旧版缺摘要存档 = (save: 存档列表项): boolean => Boolean((save.元数据 as any)?.摘要缺失);
 
-    const filteredSaves = saves.filter((save) => {
-        if (是旧版缺摘要存档(save)) return true;
-        if (activeTab === 'auto') return save.类型 === 'auto';
-        return save.类型 !== 'auto';
-    });
+    const filteredSaves = saves;
     const saveTrees = 构建本地时间树(filteredSaves);
     const visibleSaveTrees = saveTrees.slice(0, visibleSaveCount);
     const 展平本地时间树 = (nodes: 本地时间树节点[]): 本地时间树节点[] => nodes.flatMap((node) => [node, ...展平本地时间树(node.children)]);
@@ -754,31 +754,21 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const renderSeriesTimeline = (series: 本地时间树系列): React.ReactNode => {
         const roots = series.roots.length > 0 ? series.roots : [];
         if (roots.length <= 0) return null;
-        const hasExplicitBranches = roots.some((root) => root.children.length > 0);
-        if (!hasExplicitBranches && roots.length > 1) {
-            const ordered = [...roots].sort((a, b) => Number(a.元数据?.现实保存时间戳 || a.时间戳 || 0) - Number(b.元数据?.现实保存时间戳 || b.时间戳 || 0));
-            return (
-                <div className="-mx-1 max-w-full overflow-x-auto overscroll-x-contain pb-4 touch-pan-x custom-scrollbar">
-                    <div className="inline-flex min-w-full snap-x snap-mandatory items-center gap-0 px-1 pr-8">
-                        {ordered.map((node, index) => (
-                            <React.Fragment key={node.id}>
-                                {index > 0 && (
-                                    <div className="flex w-14 shrink-0 items-center sm:w-20" aria-hidden="true">
-                                        <div className="h-px flex-1 bg-wuxia-gold/45" />
-                                        <div className="h-2 w-2 rotate-45 border-r border-t border-wuxia-gold/75" />
-                                    </div>
-                                )}
-                                {renderLocalCard(node)}
-                            </React.Fragment>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
+        const ordered = 展平本地时间树(roots);
         return (
             <div className="-mx-1 max-w-full overflow-x-auto overscroll-x-contain pb-4 touch-pan-x custom-scrollbar">
-                <div className="inline-flex min-w-full snap-x snap-mandatory items-start gap-4 px-1 pr-8">
-                    {roots.map((root) => renderLocalTimelineNode(root, true))}
+                <div className="inline-flex min-w-full snap-x snap-mandatory items-center gap-0 px-1 pr-8">
+                    {ordered.map((node, index) => (
+                        <React.Fragment key={node.id}>
+                            {index > 0 && (
+                                <div className="flex w-14 shrink-0 items-center sm:w-20" aria-hidden="true">
+                                    <div className="h-px flex-1 bg-wuxia-gold/45" />
+                                    <div className="h-2 w-2 rotate-45 border-r border-t border-wuxia-gold/75" />
+                                </div>
+                            )}
+                            {renderLocalCard(node)}
+                        </React.Fragment>
+                    ))}
                 </div>
             </div>
         );
@@ -798,7 +788,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 <div className="min-h-0 flex-1 flex flex-col overflow-hidden sm:flex-row">
                     {mode === 'save' && (
                         <div className="shrink-0 bg-black/20 border-b border-gray-800/50 p-4 flex flex-col gap-3 sm:w-[30%] sm:border-b-0 sm:border-r sm:p-6 sm:gap-4">
-                            <h4 className="text-wuxia-gold font-bold text-sm uppercase tracking-widest" style={{ fontFamily: 'var(--ui-分组标题-font-family, inherit)', fontSize: 'var(--ui-分组标题-font-size, 18px)' }}>手动存档</h4>
+                            <h4 className="text-wuxia-gold font-bold text-sm uppercase tracking-widest" style={{ fontFamily: 'var(--ui-分组标题-font-family, inherit)', fontSize: 'var(--ui-分组标题-font-size, 18px)' }}>铭刻当前进度</h4>
                             <p className="text-xs text-gray-400 leading-relaxed" style={{ fontFamily: 'var(--ui-辅助文本-font-family, inherit)', fontSize: 'var(--ui-辅助文本-font-size, 12px)', lineHeight: 'var(--ui-辅助文本-line-height, 1.5)' }}>
                                 手动与自动存档会写入同一起始进度的时间树谱系信息；本地保留可独立读取的完整存档，云端同步会优先使用谱系差分压缩。导出时会按 ZIP 拆分为图片、聊天记录、游戏数据三个目录。
                             </p>
@@ -882,21 +872,9 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                             </div>
                         )}
 
-                        <div className="max-w-full overflow-x-auto overscroll-x-contain border-b border-gray-800/50 touch-pan-x custom-scrollbar">
-                            <div className="flex min-w-max sm:min-w-full">
-                            <button
-                                onClick={() => setActiveTab('manual')}
-                                className={`min-w-40 flex-1 px-5 py-3 text-sm font-bold tracking-widest transition-colors ${activeTab === 'manual' ? 'bg-wuxia-gold/10 text-wuxia-gold border-b-2 border-wuxia-gold' : 'text-gray-500 hover:text-gray-300'}`}
-                            >
-                                手动存档
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('auto')}
-                                className={`min-w-40 flex-1 px-5 py-3 text-sm font-bold tracking-widest transition-colors ${activeTab === 'auto' ? 'bg-wuxia-gold/10 text-wuxia-gold border-b-2 border-wuxia-gold' : 'text-gray-500 hover:text-gray-300'}`}
-                            >
-                                自动存档
-                            </button>
-                            </div>
+                        <div className="border-b border-gray-800/50 px-4 py-3 text-xs leading-5 text-gray-400 sm:px-6">
+                            <span className="font-semibold tracking-[0.16em] text-wuxia-gold">全部时光节点</span>
+                            <span className="ml-3">自动与手动存档合并在同一棵时间树中，每个节点会单独标注来源。</span>
                         </div>
 
                         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain touch-pan-y custom-scrollbar p-4 space-y-3 sm:p-6">
@@ -913,7 +891,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                         <div>
                                             <div className="font-serif text-base font-bold tracking-[0.12em] text-wuxia-gold">{selectedSeries.title}</div>
                                             <div className="mt-1 text-[11px] text-gray-500">
-                                                时间树 {selectedSeries.count} 个节点 · #{selectedSeries.hash} · 最新 {读取存档回合标签(selectedSeries.latest)} · {读取现实保存时间文本(selectedSeries.latest)} · {读取地点文本(selectedSeries.latest)}
+                                                时间树 {selectedSeries.count} 个节点（手动 {selectedSeries.manualCount} / 自动 {selectedSeries.autoCount}） · #{selectedSeries.hash} · 最新 {读取存档回合标签(selectedSeries.latest)} · {读取现实保存时间文本(selectedSeries.latest)} · {读取地点文本(selectedSeries.latest)}
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
@@ -956,7 +934,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                             <div>
                                                 <div className="font-serif text-sm font-bold tracking-[0.12em] text-wuxia-gold">{series.title}</div>
                                                 <div className="mt-1 text-[11px] text-gray-500">
-                                                    时间树 {series.count} 个节点 · #{series.hash} · 最新 {读取存档回合标签(series.latest)} · {读取现实保存时间文本(series.latest)} · {读取地点文本(series.latest)}
+                                                    时间树 {series.count} 个节点（手动 {series.manualCount} / 自动 {series.autoCount}） · #{series.hash} · 最新 {读取存档回合标签(series.latest)} · {读取现实保存时间文本(series.latest)} · {读取地点文本(series.latest)}
                                                 </div>
                                             </div>
                                             <div className="text-[11px] text-wuxia-cyan">{series.count > 1 ? '展开时间树选择存档' : '查看时间树'}</div>

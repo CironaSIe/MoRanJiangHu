@@ -54,23 +54,7 @@ const normalizedHistory: ReleaseEntry[] = [
 }, []);
 
 const CNB_GUIDE_URL = RELEASE_INFO.cnbGuideUrl || 'https://msjh.bacon.de5.net/cnb-comfyui-guide.html';
-const 公益站支持入口 = [
-    {
-        名称: 'FreeModel',
-        url: 'https://freemodel.dev/invite/FRE-fa0068d9',
-        说明: '仅 gmail.com、qq.com、163.com、outlook.com、126.com、linux.do、yahoo.com、sina.com、foxmail.com 邮箱注册时双方获得额度。'
-    },
-    {
-        名称: 'DenXio',
-        url: 'https://api.denxio.top/register?aff=5U5Q',
-        说明: '暂时关闭注册，可注册时间请看网站首页。'
-    },
-    {
-        名称: 'Cooree',
-        url: 'https://new.cooree.de/register?aff=0p3B',
-        说明: '通过邀请入口注册可支持本项目后续开发。'
-    }
-];
+const API共享说明 = '也欢迎愿意支持项目的客户共享可用于开发测试的 API 地址和密钥。我承诺：客户提供的 API key 只会用于本项目开发，不会用于其他用途。目前我已为本项目共享 10 元用于 2 个 Plus 号接码，若长期完全自费可能难以为继。';
 
 const ReleaseNotesModal: React.FC<Props> = ({
     open,
@@ -161,24 +145,13 @@ const ReleaseNotesModal: React.FC<Props> = ({
 
                             <div className="mt-5 rounded-2xl border border-amber-400/20 bg-amber-500/8 p-4">
                                 <div className="text-sm font-semibold tracking-[0.18em] text-amber-200">
-                                    点击注册公益站支持开发项目
+                                    API 共享支持
                                 </div>
                                 <div className="mt-2 text-xs leading-6 text-amber-50/80">
-                                    承诺：所有通过邀请获得的 aff 额度都会用于开发本项目。
+                                    首页已撤下所有第三方站点入口，不再展示或推荐相关服务。
                                 </div>
-                                <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                                    {公益站支持入口.map((item) => (
-                                        <button
-                                            key={item.url}
-                                            type="button"
-                                            onClick={() => { void openExternalUrl(item.url); }}
-                                            className="rounded-xl border border-amber-300/20 bg-black/25 px-3 py-2 text-left text-xs text-amber-50 transition-colors hover:border-amber-300/40 hover:bg-black/40"
-                                            title={item.说明}
-                                        >
-                                            <span className="block font-semibold text-amber-200">{item.名称}</span>
-                                            <span className="mt-1 block leading-5 text-amber-50/70">{item.说明}</span>
-                                        </button>
-                                    ))}
+                                <div className="mt-2 text-xs leading-6 text-amber-50/80">
+                                    {API共享说明}
                                 </div>
                             </div>
                         </div>

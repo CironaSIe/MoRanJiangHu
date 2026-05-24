@@ -35,20 +35,30 @@ const injectSaveAndReload = async (page) => {
     await page.goto('http://127.0.0.1:4173', { waitUntil: 'networkidle' });
     await closeReleaseNotesIfOpen(page);
     await page.evaluate(async (payload) => {
-        const req = indexedDB.open('WuxiaGameDB', 2);
+        const req = indexedDB.open('WuxiaGameDB', 3);
         const db = await new Promise((resolve, reject) => {
             req.onerror = () => reject(req.error);
             req.onsuccess = () => resolve(req.result);
             req.onupgradeneeded = () => {
                 const db = req.result;
                 if (!db.objectStoreNames.contains('saves')) db.createObjectStore('saves', { keyPath: 'id', autoIncrement: true });
+                if (!db.objectStoreNames.contains('save_summaries')) db.createObjectStore('save_summaries', { keyPath: 'id' });
                 if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
                 if (!db.objectStoreNames.contains('image_assets')) db.createObjectStore('image_assets', { keyPath: 'id' });
             };
         });
         await new Promise((resolve, reject) => {
-            const tx = db.transaction(['saves'], 'readwrite');
+            const tx = db.transaction(['saves', 'save_summaries'], 'readwrite');
             tx.objectStore('saves').put(payload);
+            tx.objectStore('save_summaries').put({
+                id: payload.id,
+                类型: payload.类型 === 'auto' ? 'auto' : 'manual',
+                时间戳: Math.max(0, Math.floor(Number(payload.时间戳) || Date.now())),
+                元数据: payload.元数据,
+                游戏初始时间: payload.游戏初始时间,
+                角色数据: payload.角色数据,
+                环境信息: payload.环境信息
+            });
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error);
         });
@@ -66,13 +76,14 @@ test('B11 主题修改后刷新仍然保留，不会被 day 覆盖', async ({ pa
     await page.goto('http://127.0.0.1:4173', { waitUntil: 'networkidle' });
     await closeReleaseNotesIfOpen(page);
     await page.evaluate(async () => {
-        const req = indexedDB.open('WuxiaGameDB', 2);
+        const req = indexedDB.open('WuxiaGameDB', 3);
         const db = await new Promise((resolve, reject) => {
             req.onerror = () => reject(req.error);
             req.onsuccess = () => resolve(req.result);
             req.onupgradeneeded = () => {
                 const db = req.result;
                 if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
+                if (!db.objectStoreNames.contains('save_summaries')) db.createObjectStore('save_summaries', { keyPath: 'id' });
             };
         });
         await new Promise((resolve, reject) => {
@@ -88,7 +99,7 @@ test('B11 主题修改后刷新仍然保留，不会被 day 覆盖', async ({ pa
     // 再读 IDB，确认 app_theme 仍然是 'ink'（修复前会被 'day' 覆盖）
     const persistedTheme = await page.evaluate(() => {
         return new Promise((resolve, reject) => {
-            const req = indexedDB.open('WuxiaGameDB', 2);
+            const req = indexedDB.open('WuxiaGameDB', 3);
             req.onerror = () => reject(req.error);
             req.onsuccess = () => {
                 const db = req.result;

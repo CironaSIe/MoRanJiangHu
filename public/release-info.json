@@ -1,13 +1,12 @@
 {
-  "versionCode": 308,
-  "versionName": "1.0.307",
+  "versionCode": 309,
+  "versionName": "1.0.308",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复新存档时间树断线问题：新产生的手动/自动存档会先继承同一开局的上一节点系列，再接到正确父节点，减少换地点后另开一条线的情况。",
-    "保存流程改为在读取到本地已有存档后再补全谱系，避免提前按当前地点生成新的本地系列。",
-    "已用本地浏览器 IndexedDB 模拟连续保存验证：跨“培强院、英道、山门、藏经阁”等地点后，父节点、根节点、回合数和深度保持连续。",
+    "首页撤下全部第三方站点入口，不再展示或推荐相关服务。",
+    "保留 API 共享说明：愿意支持项目的客户可自愿提供 API 地址和密钥，承诺客户提供的 API key 只用于本项目开发，不用于其他用途。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.307。"
+    "同步更新 Web、APK 与更新清单到 v1.0.308。"
   ],
   "releaseHistory": [
     {
@@ -161,8 +160,6 @@
       "publishedAt": "2026-05-23T10:58:46+08:00",
       "changes": [
         "新增扶她相关 NSFW 档案支持；NSFW 模式下可为男娘/扶她主要角色维护扶她设定、肉棒描述、屁穴描述、性癖与敏感点，并同步用于私密特写生成。",
-        "首页与更新说明新增“点击注册公益站支持开发项目”入口；承诺所有通过邀请获得的 aff 额度都会用于开发本项目。",
-        "公益站入口：FreeModel（https://freemodel.dev/invite/FRE-fa0068d9，只有 gmail.com、qq.com、163.com、outlook.com、126.com、linux.do、yahoo.com、sina.com、foxmail.com 邮箱注册时双方获得额度）、DenXio（https://api.denxio.top/register?aff=5U5Q，暂时关闭注册，可注册时间看网站首页）、Cooree（https://new.cooree.de/register?aff=0p3B）。",
         "官网：https://msjh.bacon159.pp.ua/",
         "同步更新 Web、APK 与更新清单到 v1.0.289。"
       ]
@@ -176,8 +173,6 @@
         "修复网页端更新日志不同步的问题：首页更新弹窗、更新日志页、主站与备用站都会显示本次真实更新内容。",
         "同步新版和旧版 APK 更新清单，保留旧版下载入口兼容，让仍在旧安装包里的用户也能检测并下载到最新版本。",
         "新增扶她相关 NSFW 档案支持；NSFW 模式下可为男娘/扶她主要角色维护扶她设定、肉棒描述、屁穴描述、性癖与敏感点，并同步用于私密特写生成。",
-        "首页与更新说明新增“点击注册公益站支持开发项目”入口；承诺所有通过邀请获得的 aff 额度都会用于开发本项目。",
-        "公益站入口：FreeModel（https://freemodel.dev/invite/FRE-fa0068d9，只有 gmail.com、qq.com、163.com、outlook.com、126.com、linux.do、yahoo.com、sina.com、foxmail.com 邮箱注册时双方获得额度）、DenXio（https://api.denxio.top/register?aff=5U5Q，暂时关闭注册，可注册时间看网站首页）、Cooree（https://new.cooree.de/register?aff=0p3B）。",
         "官网：https://msjh.bacon159.pp.ua/",
         "同步更新 Web、APK 与更新清单到 v1.0.288。"
       ]
@@ -2999,7 +2994,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-24T15:35:07+08:00",
+  "releasePublishedAt": "2026-05-24T18:28:15+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

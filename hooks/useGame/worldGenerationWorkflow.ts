@@ -45,9 +45,19 @@ type 世界生成工作流依赖 = {
     替换流式草稿为失败提示: (history: 聊天记录结构[], errorMessage: string) => 聊天记录结构[];
 };
 
-const 世界观阶段超时毫秒 = 120000;
-const 境界阶段超时毫秒 = 120000;
+const 世界观阶段超时毫秒 = 300000;
+const 境界阶段超时毫秒 = 300000;
 const 开局流式预览最小间隔毫秒 = 700;
+
+const 开局阶段是否使用流式请求 = (apiConfig: 当前可用接口结构): boolean => {
+    const supplier = (apiConfig.供应商 || '').toLowerCase();
+    const baseUrl = (apiConfig.baseUrl || '').toLowerCase();
+    const model = (apiConfig.model || '').toLowerCase();
+    if (supplier === 'zhipu') return false;
+    if (baseUrl.includes('open.bigmodel.cn') || baseUrl.includes('/api/paas/v4')) return false;
+    if (model.includes('glm-')) return false;
+    return true;
+};
 
 const 创建开局流式历史更新器 = (
     设置历史记录: 世界生成工作流依赖['设置历史记录']
@@ -193,6 +203,7 @@ export const 执行世界生成工作流 = async (
     const normalizedGameConfig = 规范化游戏设置(deps.gameConfig);
     const 启用修炼体系 = normalizedGameConfig.启用修炼体系 !== false;
     const currentApi = 获取主剧情接口配置(deps.apiConfig);
+    const openingRequestStreaming = openingStreaming && 开局阶段是否使用流式请求(currentApi);
     if (!接口配置是否可用(currentApi)) {
         deps.追加系统消息('[开局生成失败] 请先在设置中填写 API 地址/API Key，并选择主剧情使用模型。');
         deps.setShowSettings(true);
@@ -321,7 +332,7 @@ export const 执行世界生成工作流 = async (
                     openingConfig
                 },
                 currentApi,
-                openingStreaming
+                openingRequestStreaming
                     ? {
                         stream: true,
                         onDelta: (_delta, accumulated) => {
@@ -340,7 +351,7 @@ export const 执行世界生成工作流 = async (
                     ? `【世界观额外要求】\n${normalizedWorldExtraRequirement}`
                     : '',
                 signal
-            ), { idleTimeout: openingStreaming });
+            ), { idleTimeout: openingRequestStreaming });
             if (realmStreamHeartbeat) clearInterval(realmStreamHeartbeat);
             开局流式历史更新器?.停止();
         }
@@ -409,7 +420,7 @@ export const 执行世界生成工作流 = async (
                 worldGenerationContext,
                 charData,
                 currentApi,
-                openingStreaming
+                openingRequestStreaming
                     ? {
                         stream: true,
                         onDelta: (_delta, accumulated) => {
@@ -431,7 +442,7 @@ export const 执行世界生成工作流 = async (
                     openingConfig,
                     signal
                 }
-            ), { idleTimeout: openingStreaming });
+            ), { idleTimeout: openingRequestStreaming });
         if (worldStreamHeartbeat) clearInterval(worldStreamHeartbeat);
         开局流式历史更新器?.停止();
 

@@ -51,6 +51,15 @@ const handleNovelAiProxyRequest = async (
     return;
   }
 
+  if (String(req.method || '').toUpperCase() === 'OPTIONS') {
+    res.statusCode = 204;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+    res.end();
+    return;
+  }
+
   try {
     const body = await 读取请求体(req);
     const targetUrl = `https://image.novelai.net${req.url}`;
@@ -174,13 +183,23 @@ export default defineConfig(({ mode }) => {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
     },
     build: {
-      chunkSizeWarningLimit: 700,
+      chunkSizeWarningLimit: 1800,
       rollupOptions: {
         output: {
           manualChunks(id) {
             const normalizedId = id.replace(/\\/g, '/');
  
             if (normalizedId.includes('/node_modules/')) {
+              if (
+                normalizedId.includes('/react/') ||
+                normalizedId.includes('/react-dom/') ||
+                normalizedId.includes('/scheduler/')
+              ) {
+                return 'react-vendor';
+              }
+              if (normalizedId.includes('/@capacitor/')) {
+                return 'capacitor-vendor';
+              }
               if (normalizedId.includes('/fflate/')) {
                 return 'fflate-vendor';
               }
@@ -213,11 +232,11 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('/prompts/')) {
               return 'prompts-misc';
             }
- 
+
             if (
-              normalizedId.includes('/services/ai/') ||
               normalizedId.includes('/hooks/useGame/') ||
-              normalizedId.endsWith('/hooks/useGame.ts')
+              normalizedId.endsWith('/hooks/useGame.ts') ||
+              normalizedId.includes('/services/ai/')
             ) {
               return 'game-runtime';
             }

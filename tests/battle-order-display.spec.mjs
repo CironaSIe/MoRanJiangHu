@@ -31,9 +31,15 @@ const clickByTexts = async (page, texts) => {
     return false;
 };
 
+const loadSingleSaveSeries = async (page) => {
+    const card = page.locator('div.cursor-pointer', { hasText: '点击本系列会直接读取最新存档' }).first();
+    await card.click({ timeout: 10000, position: { x: 24, y: 80 }, force: true });
+    await page.getByRole('button', { name: /^读取$/ }).last().click({ timeout: 5000, force: true });
+};
+
 const makeBattleSave = () => {
     const save = structuredClone(baseSave);
-    save.id = 'battle-order-display-e2e';
+    save.id = 902602;
     save.元数据 = {
         ...(save.元数据 || {}),
         名称: '战斗顺序显示验证'
@@ -78,22 +84,34 @@ const injectSaveAndReload = async (page) => {
     await page.goto('http://127.0.0.1:4173', { waitUntil: 'networkidle' });
     await closeReleaseNotesIfOpen(page);
     await page.evaluate(async (payload) => {
-        const req = indexedDB.open('WuxiaGameDB', 2);
+        const req = indexedDB.open('WuxiaGameDB', 3);
         const db = await new Promise((resolve, reject) => {
             req.onerror = () => reject(req.error);
             req.onsuccess = () => resolve(req.result);
             req.onupgradeneeded = () => {
                 const db = req.result;
                 if (!db.objectStoreNames.contains('saves')) db.createObjectStore('saves', { keyPath: 'id', autoIncrement: true });
+                if (!db.objectStoreNames.contains('save_summaries')) db.createObjectStore('save_summaries', { keyPath: 'id' });
                 if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
                 if (!db.objectStoreNames.contains('image_assets')) db.createObjectStore('image_assets', { keyPath: 'id' });
             };
         });
         await new Promise((resolve, reject) => {
-            const tx = db.transaction(['saves'], 'readwrite');
+            const tx = db.transaction(['saves', 'save_summaries'], 'readwrite');
             const store = tx.objectStore('saves');
+            const summaryStore = tx.objectStore('save_summaries');
             store.clear();
+            summaryStore.clear();
             store.put(payload);
+            summaryStore.put({
+                id: payload.id,
+                类型: payload.类型 === 'auto' ? 'auto' : 'manual',
+                时间戳: Math.max(0, Math.floor(Number(payload.时间戳) || Date.now())),
+                元数据: payload.元数据,
+                游戏初始时间: payload.游戏初始时间,
+                角色数据: payload.角色数据,
+                环境信息: payload.环境信息
+            });
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error);
         });
@@ -110,10 +128,7 @@ test('战斗面板展示按身法排序的具体行动顺序', async ({ page }) 
 
     await injectSaveAndReload(page);
     await expect.poll(() => clickByTexts(page, ['重入江湖', '读取进度', '继续游戏', '读取', '载入'])).toBe(true);
-    await page.waitForTimeout(700);
-    await page.locator('[class*="cursor-pointer"]', { hasText: /MANUAL|手动快照/ }).first().click({ timeout: 5000, force: true });
-    await page.waitForTimeout(300);
-    await expect.poll(() => clickByTexts(page, ['加载此存档', '读取此存档', '载入存档', '确认读取', '读取', '进入江湖'])).toBe(true);
+    await loadSingleSaveSeries(page);
     await page.waitForTimeout(2500);
     await expect.poll(() => clickByTexts(page, ['战斗'])).toBe(true);
 

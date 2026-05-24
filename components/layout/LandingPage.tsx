@@ -80,45 +80,14 @@ const actionButtonStyle: React.CSSProperties = {
 };
 
 const DISCORD_PROJECT_THREAD_URL = 'https://discord.com/channels/1380075940285124724/1507996890304872630';
+const HOME_BACKGROUND_ASSETS = [
+    '/assets/home/wuxia-bg-rain-gate.webp',
+    '/assets/home/wuxia-bg-mountain-mist.webp',
+    '/assets/home/wuxia-bg-snow-inn.webp'
+];
 const DISCORD_PROJECT_THREAD_TOOLTIP = '本项目已开独立贴，请点赞支持；反馈问题也请去这里。';
 
-const 公益站支持入口 = [
-    {
-        名称: 'Telegram 支持',
-        url: 'https://t.me/+kJrkNKRHmZk0ZDk9',
-        说明: '邀请 1 位客户，可获得 1 个 Plus 日抛号。'
-    },
-    {
-        名称: 'FreeModel',
-        url: 'https://freemodel.dev/invite/FRE-fa0068d9',
-        说明: '注册可得 1 个月 Pro，双方各得 5 美元额度；Pro 额度按 5 小时和 7 天窗口刷新。'
-    },
-    {
-        名称: 'DenXio',
-        url: 'https://api.denxio.top/register?tbe_invite_code=5U5Q',
-        说明: '注册后进群按兑换码可得 20 美元，我方可得 10 美元，倍率 0.2。'
-    },
-    {
-        名称: 'Cooree',
-        url: 'https://new.cooree.de/register?aff=0p3B',
-        说明: '客户注册约得 50 美元，我方得 5 美元；低于 2 美元可到 nc.cooree.de 自助补。'
-    }
-];
-
-const 友情链接 = [
-    {
-        名称: '域管家',
-        url: 'https://sanpin.ltd/',
-        图像: 'https://sanpin.ltd/favicon.svg?v=1.9.119',
-        说明: '一个美观且实用的域名管理平台'
-    },
-    {
-        名称: '追更宝',
-        url: 'https://quark.bacon123.eu.org/',
-        图像: 'https://cdn.nodeimage.com/i/qbOErTgaVwIXG2tHNWikXjHZuLHG0qEw.webp',
-        说明: '夸克自动追更下载'
-    }
-];
+const API共享说明 = '也欢迎愿意支持项目的客户共享可用于开发测试的 API 地址和密钥。我承诺：客户提供的 API key 只会用于本项目开发，不会用于其他用途。目前我已为本项目共享 10 元用于 2 个 Plus 号接码，若长期完全自费可能难以为继。';
 
 type 在线人数小时点 = {
     hour: string;
@@ -379,6 +348,15 @@ const LandingPage: React.FC<Props> = ({
     const [isCheckingUpdate, setIsCheckingUpdate] = React.useState(false);
     const [presenceStats, setPresenceStats] = React.useState<OnlinePresencePublicStats | null>(null);
     const [presenceHistory, setPresenceHistory] = React.useState<在线人数小时点[]>([]);
+    const [supportDetailsOpen, setSupportDetailsOpen] = React.useState(false);
+    const [backgroundIndex, setBackgroundIndex] = React.useState(0);
+
+    React.useEffect(() => {
+        const timer = window.setInterval(() => {
+            setBackgroundIndex((current) => (current + 1) % HOME_BACKGROUND_ASSETS.length);
+        }, 16000);
+        return () => window.clearInterval(timer);
+    }, []);
 
     React.useEffect(() => {
         const syncSystemBars = () => {
@@ -434,14 +412,22 @@ const LandingPage: React.FC<Props> = ({
     };
 
     return (
-        <div className="relative z-40 flex h-full w-full flex-col items-center overflow-y-auto rounded-xl bg-black px-4 pt-[max(var(--app-safe-top,env(safe-area-inset-top,0px)),12px)] pb-[calc(var(--app-safe-bottom,env(safe-area-inset-bottom,0px))+16px)]">
-            <div className="absolute inset-0 bg-black" />
+        <div className="landing-page relative z-40 flex h-full w-full flex-col items-center overflow-y-auto rounded-xl bg-black px-4 pt-[max(var(--app-safe-top,env(safe-area-inset-top,0px)),12px)] pb-[calc(var(--app-safe-bottom,env(safe-area-inset-bottom,0px))+16px)]">
+            <div className="landing-bg absolute inset-0" aria-hidden="true">
+                <div
+                    className="landing-bg-art absolute inset-0"
+                    style={{ '--landing-bg-image': `url("${HOME_BACKGROUND_ASSETS[backgroundIndex]}")` } as React.CSSProperties}
+                />
+                <div className="landing-bg-ink absolute inset-0" />
+                <div className="landing-bg-vignette absolute inset-0" />
+                <div className="landing-bg-grid absolute inset-x-0 bottom-0" />
+            </div>
 
-            <div className="relative z-20 mb-3 flex w-full max-w-6xl flex-wrap items-center justify-center gap-2 pt-2 sm:justify-end md:mb-4">
+            <div className="landing-topbar relative z-20 mb-3 flex w-full max-w-6xl flex-wrap items-center justify-center gap-2 pt-2 sm:justify-end md:mb-4">
                 <button
                     type="button"
                     onClick={() => { void openExternalUrl(DISCORD_PROJECT_THREAD_URL); }}
-                    className="landing-discord-thread-button min-h-[40px] border px-3 py-2 text-xs font-serif tracking-[0.16em] shadow-[0_0_18px_rgba(99,102,241,0.16)] transition-colors md:text-sm"
+                    className="landing-discord-thread-button landing-topbar-button min-h-[40px] border px-3 py-2 text-xs font-serif tracking-[0.16em] shadow-[0_0_18px_rgba(99,102,241,0.16)] transition-colors md:text-sm"
                     style={actionButtonStyle}
                     title={DISCORD_PROJECT_THREAD_TOOLTIP}
                     aria-label={DISCORD_PROJECT_THREAD_TOOLTIP}
@@ -455,7 +441,7 @@ const LandingPage: React.FC<Props> = ({
                     <button
                         type="button"
                         onClick={() => { void handleCheckUpdate(); }}
-                        className="min-h-[40px] border border-wuxia-gold/40 bg-black/60 px-3 py-2 text-xs font-serif tracking-[0.18em] text-wuxia-gold transition-colors hover:bg-black/80 md:text-sm"
+                    className="landing-topbar-button min-h-[40px] border border-wuxia-gold/40 bg-black/60 px-3 py-2 text-xs font-serif tracking-[0.18em] text-wuxia-gold transition-colors hover:bg-black/80 md:text-sm"
                         style={actionButtonStyle}
                         title="检查 APK 更新"
                     >
@@ -466,7 +452,7 @@ const LandingPage: React.FC<Props> = ({
                 <button
                     type="button"
                     onClick={() => onThemeChange(currentTheme === 'day' ? 'ink' : 'day')}
-                    className="min-h-[40px] border border-wuxia-cyan/40 bg-black/60 px-3 py-2 text-xs font-serif tracking-[0.18em] text-wuxia-cyan transition-colors hover:bg-black/80 md:text-sm"
+                    className="landing-topbar-button min-h-[40px] border border-wuxia-cyan/40 bg-black/60 px-3 py-2 text-xs font-serif tracking-[0.18em] text-wuxia-cyan transition-colors hover:bg-black/80 md:text-sm"
                     style={actionButtonStyle}
                     title={currentTheme === 'day' ? '切换到黑夜模式' : '切换到白天模式'}
                 >
@@ -476,7 +462,7 @@ const LandingPage: React.FC<Props> = ({
                 <button
                     type="button"
                     onClick={() => { void requestBrowserFullscreen(); }}
-                    className="min-h-[40px] border border-wuxia-gold/40 bg-black/60 px-3 py-2 text-xs font-serif tracking-[0.2em] text-wuxia-gold transition-colors hover:bg-black/80 md:text-sm"
+                    className="landing-topbar-button min-h-[40px] border border-wuxia-gold/40 bg-black/60 px-3 py-2 text-xs font-serif tracking-[0.2em] text-wuxia-gold transition-colors hover:bg-black/80 md:text-sm"
                     style={actionButtonStyle}
                     title="切换全屏"
                 >
@@ -484,14 +470,14 @@ const LandingPage: React.FC<Props> = ({
                 </button>
             </div>
 
-            <div className="relative z-10 flex w-full max-w-[2200px] flex-1 flex-col items-center gap-6 pb-2 lg:block">
+            <div className="landing-stage relative z-10 flex w-full max-w-[2200px] flex-1 flex-col items-center gap-6 pb-2 lg:block">
                 <section className="landing-hero-section flex min-h-[calc(100vh-210px)] min-w-0 flex-col items-center justify-center animate-fadeIn lg:absolute lg:left-1/2 lg:top-[40%] lg:-translate-x-1/2 lg:-translate-y-1/2">
-                    <div className="relative mb-8 flex w-full flex-col items-center">
-                        <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-wuxia-gold/5 blur-3xl" />
+                    <div className="relative mb-7 flex w-full flex-col items-center">
+                        <div className="landing-title-glow absolute -top-20 left-1/2 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-wuxia-gold/5 blur-3xl" />
 
                         <h1
                             onClick={() => { void requestBrowserFullscreen(); }}
-                            className="mb-6 cursor-pointer select-none bg-gradient-to-b from-gray-100 to-gray-500 bg-clip-text text-center font-serif text-7xl font-black tracking-[0.1em] text-transparent drop-shadow-2xl md:text-9xl"
+                            className="landing-title mb-4 cursor-pointer select-none bg-gradient-to-b from-gray-100 to-gray-500 bg-clip-text text-center font-serif text-7xl font-black tracking-[0.1em] text-transparent drop-shadow-2xl md:text-9xl"
                             style={{
                                 fontFamily: 'var(--ui-页面标题-font-family, inherit)',
                                 fontSize: 'var(--ui-页面标题-font-size, clamp(3rem,8vw,6rem))',
@@ -504,7 +490,7 @@ const LandingPage: React.FC<Props> = ({
                         </h1>
 
                         <div
-                            className="-mt-3 mb-4 text-[10px] font-mono tracking-[0.3em] text-gray-600 opacity-60"
+                            className="landing-version-badge mb-4 inline-flex items-center border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-mono tracking-[0.3em] text-gray-400/80 backdrop-blur-md"
                             style={{
                                 fontFamily: 'var(--ui-等宽信息-font-family, inherit)',
                                 fontSize: 'var(--ui-等宽信息-font-size, 12px)',
@@ -514,7 +500,7 @@ const LandingPage: React.FC<Props> = ({
                             VER {RELEASE_INFO.versionName} · APK {RELEASE_INFO.versionCode}
                         </div>
 
-                        <div className="flex items-center gap-6 opacity-80">
+                        <div className="landing-subtitle-row flex items-center gap-6 opacity-90">
                             <div className="h-px w-16 bg-gradient-to-r from-transparent to-wuxia-red" />
                             <h2
                                 className="text-shadow-sm text-xl font-bold uppercase tracking-[0.5em] text-wuxia-red md:text-2xl"
@@ -528,8 +514,8 @@ const LandingPage: React.FC<Props> = ({
                             <div className="h-px w-16 bg-gradient-to-l from-transparent to-wuxia-red" />
                         </div>
 
-                        <div className="mt-8 w-full max-w-2xl border-2 border-amber-400/70 bg-amber-950/35 px-4 py-4 text-center shadow-[0_0_28px_rgba(251,191,36,0.16)]">
-                            <div className="text-sm font-bold tracking-[0.24em] text-amber-200 md:text-base">
+                        <div className="landing-edition-card mt-7 w-full max-w-2xl border-2 border-amber-400/70 bg-amber-950/35 px-4 py-4 text-center shadow-[0_0_28px_rgba(251,191,36,0.16)]">
+                            <div className="landing-edition-kicker text-sm font-bold tracking-[0.24em] text-amber-200 md:text-base">
                                 bacon159 二创版本
                             </div>
                             <div className="mt-2 text-xs leading-6 text-amber-50/90 md:text-sm">
@@ -541,7 +527,7 @@ const LandingPage: React.FC<Props> = ({
                         </div>
                     </div>
 
-                    <div className="flex w-64 flex-col gap-3 animate-slide-in delay-100">
+                    <div className="landing-action-group flex w-64 flex-col gap-3 animate-slide-in delay-100">
                         <GameButton onClick={onStart} variant="primary" className="py-4 text-lg shadow-lg">
                             踏入江湖
                         </GameButton>
@@ -577,8 +563,8 @@ const LandingPage: React.FC<Props> = ({
                     </div>
                 </section>
 
-                <div className="landing-dashboard-row relative z-10 grid w-full max-w-[1440px] grid-cols-1 items-stretch gap-4 overflow-hidden animate-fadeIn lg:absolute lg:bottom-16 lg:left-1/2 lg:h-[224px] lg:max-h-[224px] lg:-translate-x-1/2 lg:grid-cols-[minmax(300px,400px)_minmax(380px,1fr)_minmax(300px,400px)]">
-                    <aside className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-wuxia-gold/15 bg-black/45 px-4 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.45)] backdrop-blur-sm">
+                <div className="landing-dashboard-row relative z-10 grid w-full max-w-[1020px] grid-cols-1 items-stretch gap-4 overflow-hidden animate-fadeIn lg:absolute lg:bottom-16 lg:left-1/2 lg:h-[224px] lg:max-h-[224px] lg:-translate-x-1/2 lg:grid-cols-[minmax(300px,400px)_minmax(420px,1fr)]">
+                    <aside className="landing-card landing-release-card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-wuxia-gold/15 bg-black/45 px-4 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.45)] backdrop-blur-sm">
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-wuxia-gold/10 pb-2">
                             <div>
                                 <div className="text-sm font-serif tracking-[0.24em] text-wuxia-gold">发布信息</div>
@@ -591,7 +577,7 @@ const LandingPage: React.FC<Props> = ({
                             </div>
                         </div>
 
-                        <div className="mt-2 grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
+                        <div className="landing-release-actions mt-2 grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
                             <button
                                 type="button"
                                 onClick={() => { void openExternalUrl(RELEASE_INFO.githubRepoUrl); }}
@@ -636,51 +622,53 @@ const LandingPage: React.FC<Props> = ({
                         <在线人数折线图 data={presenceHistory} current={presenceStats} />
                     </div>
 
-                    <aside className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-amber-500/20 bg-black/45 px-3 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.45)] backdrop-blur-sm">
-                        <div className="text-xs font-serif tracking-[0.14em] text-wuxia-gold">
-                            点击注册公益站支持开发项目
-                        </div>
-                        <div className="mt-1 text-[11px] leading-4 text-gray-300">
-                            承诺：所有通过邀请获得的 aff 额度都会用于开发本项目。
-                        </div>
-                        <div className="mt-2 grid min-h-0 flex-1 grid-cols-4 gap-1.5 overflow-hidden">
-                            {公益站支持入口.map((item) => (
-                                <button
-                                    key={item.url}
-                                    type="button"
-                                    onClick={() => { void openExternalUrl(item.url); }}
-                                    className="min-h-0 border border-amber-500/25 bg-amber-500/10 px-2 py-2 text-left text-[10px] text-amber-100 transition-colors hover:bg-amber-500/15"
-                                    title={item.说明}
-                                >
-                                    <span className="block font-bold tracking-[0.04em] text-amber-200">{item.名称}</span>
-                                    <span className="mt-1 block leading-[14px] text-amber-50/80">{item.说明}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </aside>
                 </div>
             </div>
 
             <div className="landing-friend-links relative z-10 mt-1 w-full max-w-6xl border-t border-white/10 pt-1.5 lg:absolute lg:bottom-3 lg:left-1/2 lg:h-[38px] lg:-translate-x-1/2">
                 <div className="flex h-full flex-wrap items-center justify-center gap-2 overflow-visible">
-                    <span className="text-[11px] tracking-[0.22em] text-gray-500">友情链接</span>
-                    {友情链接.map((item) => (
-                        <button
-                            key={item.url}
-                            type="button"
-                            onClick={() => { void openExternalUrl(item.url); }}
-                            className="inline-flex h-[28px] items-center gap-2 border border-white/10 bg-white/[0.04] px-2.5 text-left transition-colors hover:border-wuxia-gold/35 hover:bg-white/[0.07]"
-                            title={item.说明}
-                        >
-                            <img src={item.图像} alt="" className="h-4 w-4 rounded object-cover" loading="lazy" />
-                            <span className="text-xs font-bold tracking-[0.16em] text-gray-100">{item.名称}</span>
-                        </button>
-                    ))}
+                    <button
+                        type="button"
+                        onClick={() => setSupportDetailsOpen(true)}
+                        className="landing-support-link inline-flex h-[28px] items-center border border-amber-400/25 bg-amber-500/10 px-3 text-xs font-bold tracking-[0.12em] text-amber-100 transition-colors hover:border-amber-300/45 hover:bg-amber-500/18"
+                        title="查看 API 共享支持说明"
+                    >
+                        API 共享说明
+                    </button>
                 </div>
             </div>
 
-            <div className="absolute top-10 right-20 h-32 w-32 rounded-full bg-black/50 opacity-40 blur-2xl" />
-            <div className="absolute bottom-20 left-10 h-48 w-48 rounded-full bg-black/60 opacity-30 blur-3xl" />
+            {supportDetailsOpen && (
+                <div className="fixed inset-0 z-[420] flex items-center justify-center bg-black/75 px-4 py-6 backdrop-blur-sm animate-fadeIn" onClick={() => setSupportDetailsOpen(false)}>
+                    <div
+                        className="landing-support-modal max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-amber-400/25 bg-[linear-gradient(180deg,rgba(25,18,8,0.98),rgba(6,6,6,0.98))] p-5 shadow-[0_26px_90px_rgba(0,0,0,0.65)] md:p-6"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <div className="text-lg font-serif font-bold tracking-[0.16em] text-amber-200">
+                                    API 共享支持
+                                </div>
+                                <div className="mt-2 text-sm leading-6 text-amber-50/78">
+                                    首页已撤下所有第三方站点入口，不再展示或推荐相关服务。
+                                </div>
+                                <div className="mt-2 text-sm leading-6 text-amber-50/78">
+                                    {API共享说明}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setSupportDetailsOpen(false)}
+                                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-300/25 bg-black/30 text-xl text-amber-100 transition-colors hover:border-amber-300/50 hover:text-white"
+                                aria-label="关闭 API 共享说明"
+                                title="关闭"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
