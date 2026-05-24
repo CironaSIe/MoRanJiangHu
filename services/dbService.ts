@@ -733,7 +733,7 @@ const 清洗导入存档 = (raw: any): Omit<存档结构, 'id'> | null => {
         游戏回合数: 读取存档游玩回合数(normalized),
         存档哈希: 计算存档同步哈希(normalized)
     };
-    return 补全存档谱系元数据(normalized);
+    return normalized;
 };
 
 export const 初始化数据库 = (): Promise<IDBDatabase> => {
