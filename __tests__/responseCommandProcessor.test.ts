@@ -235,7 +235,7 @@ describe('responseCommandProcessor female relationship target major role fallbac
             ]
         } as any, state, deps, undefined, { applyState: false });
 
-        expect(result.社交.find((npc: any) => npc.姓名 === '苏晚晴')?.是否主要角色).toBe(true);
+        expect(result.社交.find((npc: any) => npc.id === 'npc_su_wanqing')?.是否主要角色).toBe(true);
     });
 
     it('marks an existing female NPC as major when relationship is established by story fact', () => {

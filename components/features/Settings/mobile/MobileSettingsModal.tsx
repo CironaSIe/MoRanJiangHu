@@ -95,6 +95,7 @@ interface Props {
     onThemeChange: (theme: ThemePreset) => void;
     onReturnToHome?: () => void;
     isHome?: boolean;
+    returnHomeSaving?: boolean;
     requestConfirm?: (options: { title?: string; message: string; confirmText?: string; cancelText?: string; danger?: boolean }) => Promise<boolean>;
 }
 
@@ -102,7 +103,7 @@ const MobileSettingsModal: React.FC<Props> = ({
     activeTab, onTabChange, onClose,
     apiConfig, visualConfig, gameConfig, memoryConfig, prompts, festivals, currentTheme, history, memorySystem, socialList, runtimeState, currentStory, openingConfig, contextSnapshot,
     onSaveApi, onSaveVisual, onSaveGame, onSaveMemory, onDeleteMemory, onRefineMemories, onRegenerateMapFromMemory, onCreateNpc, onSaveNpc, onDeleteNpc, onStartNpcMemorySummary, onUploadNpcImage, onReplaceVariableSection, onApplyVariableCommand, onUpdatePrompts, onUpdateFestivals, onThemeChange,
-    onReturnToHome, isHome, requestConfirm
+    onReturnToHome, isHome, returnHomeSaving = false, requestConfirm
 }) => {
     const tabItems = [
         { id: 'game', label: '游戏' },
@@ -240,9 +241,10 @@ const MobileSettingsModal: React.FC<Props> = ({
                             {!isHome && onReturnToHome && (
                                 <button
                                     onClick={onReturnToHome}
-                                    className="px-2.5 py-1 text-[10px] rounded border border-red-900/60 text-red-400 bg-red-900/10"
+                                    disabled={returnHomeSaving}
+                                    className="px-2.5 py-1 text-[10px] rounded border border-red-900/60 text-red-400 bg-red-900/10 disabled:cursor-wait disabled:opacity-70"
                                 >
-                                    返回
+                                    {returnHomeSaving ? '保存中' : '返回'}
                                 </button>
                             )}
                             <button

@@ -13,6 +13,7 @@ import type { 响应命令处理状态 } from './responseCommandProcessor';
 import { 构建同人运行时提示词包 } from '../../prompts/runtime/fandom';
 import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 构建变量路径登记提示, 校验变量命令是否登记 } from '../../utils/variableRegistry';
+import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
 
 type 变量模型基态 = Pick<
     响应命令处理状态,
@@ -497,6 +498,18 @@ export const 执行变量模型校准工作流 = async (
         ? '【当前主角仙侠字段审计】\n- 当前存档为仙侠模式，角色档案需要补齐/修正：灵根、灵根资质、当前灵力、最大灵力、当前神识、最大神识、丹田状态、道基状态、心魔值、功德、业力。'
         : '';
     const variableRegistryPrompt = 构建变量路径登记提示(params.baseState as any);
+    const femaleNameCandidatePrompt = 构建女性姓名候选提示词({
+        usedNames: 收集女性姓名候选已用名(params.baseState),
+        seed: [
+            params.baseState?.角色?.姓名,
+            params.baseState?.环境?.时间,
+            params.baseState?.环境?.大地点,
+            params.baseState?.环境?.中地点,
+            params.baseState?.环境?.小地点,
+            params.baseState?.环境?.具体地点
+        ].filter(Boolean).join('|'),
+        count: 100
+    });
     const mergedExtraPrompt = [
         runtimeExtraPrompt,
         playerXianxiaAuditPrompt,
@@ -513,6 +526,7 @@ export const 执行变量模型校准工作流 = async (
         按功能开关过滤提示词内容(fandomPromptBundle.同人设定摘要, runtimeGameConfig),
         dialogueNpcAuditPrompt,
         socialCompletenessAuditPrompt,
+        femaleNameCandidatePrompt,
         variableRegistryPrompt,
         获取繁体输出指令(runtimeGameConfig),
         按功能开关过滤提示词内容((params.extraPromptAppend || '').trim(), runtimeGameConfig)

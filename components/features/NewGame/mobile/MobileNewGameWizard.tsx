@@ -19,6 +19,7 @@ import {
     属性最小值,
     创建默认属性分配,
     新开局步骤列表,
+    默认初始伙伴配置,
     默认开局配置,
     获取难度设定,
     获取难度总属性点,
@@ -192,6 +193,19 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
     const [stats, setStats] = useState<属性结构>(创建默认属性分配);
     const [openingConfig, setOpeningConfig] = useState<OpeningConfig>(默认开局配置);
     const [openingConfigEnabled, setOpeningConfigEnabled] = useState(true);
+    const [partnerEnabled, setPartnerEnabled] = useState(true);
+    const [partnerName, setPartnerName] = useState('');
+    const [partnerGender, setPartnerGender] = useState('女');
+    const [partnerAge, setPartnerAge] = useState(18);
+    const [partnerBirthMonth, setPartnerBirthMonth] = useState(1);
+    const [partnerBirthDay, setPartnerBirthDay] = useState(1);
+    const [partnerAppearance, setPartnerAppearance] = useState('眉眼清亮，衣着利落，随身带着惯用行囊。');
+    const [partnerPersonality, setPartnerPersonality] = useState('稳重可靠，重诺守信，遇事会主动提醒主角风险。');
+    const [partnerRelation, setPartnerRelation] = useState('自幼相识的同行伙伴');
+    const [partnerNote, setPartnerNote] = useState('');
+    const [partnerStats, setPartnerStats] = useState<属性结构>(创建默认属性分配);
+    const [partnerBackground, setPartnerBackground] = useState<背景结构>(预设背景[0]);
+    const [partnerTalents, setPartnerTalents] = useState<天赋结构[]>([]);
 
     // Talents & Background
     const [selectedBackground, setSelectedBackground] = useState<背景结构>(预设背景[0]);
@@ -508,8 +522,26 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
         setSelectedBackground(nextBackground);
         setSelectedTalents(nextTalents);
         const normalizedOpeningConfig = 规范化可选开局配置(preset.openingConfig);
-        setOpeningConfigEnabled(Boolean(normalizedOpeningConfig));
+        const normalizedPartner = normalizedOpeningConfig?.初始伙伴 || 默认初始伙伴配置();
+        setOpeningConfigEnabled(Boolean(normalizedOpeningConfig) && normalizedOpeningConfig?.配置约束启用 !== false);
         setOpeningConfig(normalizedOpeningConfig || 默认开局配置());
+        setPartnerEnabled(normalizedPartner.enabled !== false);
+        setPartnerName(normalizedPartner.姓名);
+        setPartnerGender(normalizedPartner.性别);
+        setPartnerAge(normalizedPartner.年龄);
+        setPartnerBirthMonth(normalizedPartner.出生月);
+        setPartnerBirthDay(normalizedPartner.出生日);
+        setPartnerAppearance(normalizedPartner.外貌);
+        setPartnerPersonality(normalizedPartner.性格);
+        setPartnerRelation(normalizedPartner.关系);
+        setPartnerNote(normalizedPartner.备注);
+        setPartnerStats(normalizedPartner.属性);
+        setPartnerBackground({
+            名称: normalizedPartner.背景名称 || 预设背景[0].名称,
+            描述: normalizedPartner.背景描述 || 预设背景[0].描述,
+            效果: normalizedPartner.背景效果 || 预设背景[0].效果
+        });
+        setPartnerTalents(normalizedPartner.天赋列表 as 天赋结构[]);
         setOpeningExtraRequirement(preset.openingExtraRequirement || '');
         setStep(1);
     };
@@ -523,10 +555,22 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
         }
         setCharGender(next);
     };
+    const 当前伙伴性别模式: '男' | '女' | '自定义' = partnerGender.trim() === '男' || partnerGender.trim() === '女'
+        ? partnerGender.trim() as '男' | '女'
+        : '自定义';
+    const 选择伙伴性别 = (next: '男' | '女' | '自定义') => {
+        if (next === '自定义') {
+            setPartnerGender(prev => (prev.trim() === '男' || prev.trim() === '女') ? '' : prev);
+            return;
+        }
+        setPartnerGender(next);
+    };
 
     const totalStatBudget = useMemo(() => 获取难度总属性点(worldConfig.difficulty), [worldConfig.difficulty]);
     const usedPoints = Object.values(stats).reduce((a, b) => a + b, 0);
     const remainingPoints = totalStatBudget - usedPoints;
+    const partnerUsedPoints = Object.values(partnerStats).reduce((a, b) => a + b, 0);
+    const partnerRemainingPoints = totalStatBudget - partnerUsedPoints;
     const stepProgress = ((step + 1) / STEPS.length) * 100;
     const currentStepLabel = STEPS[step] || '创建';
     const 当前难度设定 = useMemo(() => 获取难度设定(worldConfig.difficulty), [worldConfig.difficulty]);
@@ -781,12 +825,66 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
             setStep(1);
             return false;
         }
+        if (partnerEnabled && partnerRemainingPoints < 0) {
+            alert(`开局伙伴属性总点数超过 ${worldConfig.difficulty.toUpperCase()} 难度上限，请先回收 ${Math.abs(partnerRemainingPoints)} 点。`);
+            setStep(3);
+            return false;
+        }
         return true;
     };
 
     const handleNextStep = () => {
         if (step === 1 && !校验属性点是否合法()) return;
+        if (step === 3 && !校验属性点是否合法()) return;
         setStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+    };
+
+    const togglePartnerTalent = (t: 天赋结构) => {
+        if (partnerTalents.find(x => x.名称 === t.名称)) {
+            setPartnerTalents(partnerTalents.filter(x => x.名称 !== t.名称));
+        } else {
+            if (partnerTalents.length >= 3) {
+                alert("伙伴最多选择3个天赋");
+                return;
+            }
+            setPartnerTalents([...partnerTalents, t]);
+        }
+    };
+
+    const 更新伙伴属性 = (key: keyof 属性结构, value: number) => {
+        setPartnerStats(prev => ({ ...prev, [key]: Math.max(属性最小值, Math.min(属性最大值, value)) }));
+    };
+
+    const 构建伙伴开局配置 = () => {
+        const fallback = 默认初始伙伴配置();
+        return {
+            ...fallback,
+            enabled: partnerEnabled,
+            姓名: partnerName.trim(),
+            性别: partnerGender.trim(),
+            年龄: partnerAge,
+            出生月: partnerBirthMonth,
+            出生日: partnerBirthDay,
+            外貌: partnerAppearance.trim(),
+            性格: partnerPersonality.trim(),
+            属性: partnerStats,
+            背景名称: partnerBackground.名称,
+            背景描述: partnerBackground.描述,
+            背景效果: partnerBackground.效果,
+            天赋列表: partnerTalents,
+            关系: partnerRelation.trim(),
+            备注: partnerNote.trim()
+        };
+    };
+
+    const 构建有效开局配置 = (): OpeningConfig | undefined => {
+        if (!openingConfigEnabled && !partnerEnabled) return undefined;
+        const base = openingConfigEnabled ? openingConfig : 默认开局配置();
+        return 规范化开局配置({
+            ...base,
+            配置约束启用: openingConfigEnabled,
+            初始伙伴: 构建伙伴开局配置()
+        });
     };
 
     const toggleTalent = (t: 天赋结构) => {
@@ -921,7 +1019,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
             背景名称: selectedBackground?.名称 || '',
             天赋名称列表: selectedTalents.map(item => item.名称).slice(0, 3)
         },
-        openingConfig: openingConfigEnabled ? 规范化开局配置(openingConfig) : undefined,
+        openingConfig: 构建有效开局配置(),
         openingStreaming: true,
         openingExtraRequirement: openingExtraRequirement.trim()
     });
@@ -964,7 +1062,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
         setCustomPresetMeta({ 名称: preset.名称, 简介: preset.简介 || '' });
         set正在编辑开局预设ID(preset.id);
         setShowCustomPresetEditor(true);
-        setStep(4);
+        setStep(5);
     };
 
     const 用当前配置覆盖开局方案 = async (preset: 开局预设方案结构) => {
@@ -993,7 +1091,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
         const effectiveWorldConfig = preset ? { ...worldConfig, ...preset.worldConfig } : worldConfig;
         const effectiveOpeningConfig = preset
             ? 规范化可选开局配置(preset.openingConfig)
-            : (openingConfigEnabled ? 规范化开局配置(openingConfig) : undefined);
+            : 构建有效开局配置();
         const effectiveName = preset?.character.姓名 ?? charName;
         const effectiveGender = preset?.character.性别 ?? charGender;
         const effectiveRoleReplaceRules = 获取同人角色替换规则列表(effectiveOpeningConfig, effectiveName);
@@ -1008,9 +1106,19 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
             return;
         }
         if (!preset && !校验属性点是否合法()) return;
+        if (!preset && partnerEnabled && !partnerName.trim()) {
+            alert("已启用开局伙伴，请先填写伙伴姓名，或关闭伙伴。");
+            setStep(3);
+            return;
+        }
+        if (!preset && partnerEnabled && !partnerGender.trim()) {
+            alert("已启用开局伙伴，请先填写伙伴性别，或关闭伙伴。");
+            setStep(3);
+            return;
+        }
         if (effectiveOpeningConfig?.同人融合.enabled && !effectiveOpeningConfig.同人融合.作品名.trim()) {
             alert('已启用同人融合，请先填写作品名。');
-            setStep(3);
+            setStep(4);
             return;
         }
         if (
@@ -1019,7 +1127,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
             && !effectiveOpeningConfig.同人融合.附加小说数据集ID.trim()
         ) {
             alert('已启用附加小说，请先选择一个小说分解数据集。');
-            setStep(3);
+            setStep(4);
             return;
         }
         if (
@@ -1028,7 +1136,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
             && effectiveRoleReplaceRules.length <= 0
         ) {
             alert('已启用同人角色替换，请先填写至少一条有效替换规则。');
-            setStep(3);
+            setStep(4);
             return;
         }
         const charData = preset
@@ -1815,8 +1923,127 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
                         </div>
                     )}
 
-                    {/* STEP 4: OPENING CONFIG */}
+                    {/* STEP 4: COMPANION */}
                     {step === 3 && (
+                        <div className="space-y-5 animate-slide-in max-w-5xl mx-auto">
+                            <OrnateBorder className="p-4">
+                                <div className="flex items-center justify-between gap-4 rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
+                                    <div>
+                                        <div className="text-sm text-gray-200">启用开局伙伴</div>
+                                        <div className="text-[11px] text-gray-500 mt-1">开启后会把同伴作为第0回合已成立的主要 NPC 写入开局初始化。</div>
+                                    </div>
+                                    <开关按钮
+                                        checked={partnerEnabled}
+                                        label={partnerEnabled ? '已启用' : '已关闭'}
+                                        onToggle={() => setPartnerEnabled((prev) => !prev)}
+                                    />
+                                </div>
+                            </OrnateBorder>
+
+                            {partnerEnabled ? (
+                                <>
+                                    <OrnateBorder className="p-4 space-y-4">
+                                        <div className="border-b border-wuxia-gold/30 pb-3">
+                                            <div className="text-[10px] uppercase tracking-[0.32em] text-wuxia-cyan/70 font-mono">Companion Profile</div>
+                                            <h3 className="text-xl font-serif font-bold text-wuxia-gold mt-2">同伴基础</h3>
+                                            <p className="text-[11px] text-gray-400 mt-2 leading-6">同伴会和主角一起进入初始社交档案，不再需要写进最后的额外要求。</p>
+                                        </div>
+                                        <input value={partnerName} onChange={e => setPartnerName(e.target.value)} placeholder="同伴姓名" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all font-serif tracking-wider" />
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <button onClick={() => 选择伙伴性别('男')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '男' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男</button>
+                                            <button onClick={() => 选择伙伴性别('女')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '女' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>女</button>
+                                            <button onClick={() => 选择伙伴性别('自定义')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '自定义' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>自定义</button>
+                                        </div>
+                                        {当前伙伴性别模式 === '自定义' && (
+                                            <input value={partnerGender} onChange={e => setPartnerGender(e.target.value)} placeholder="输入自定义性别称谓" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
+                                        )}
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <input type="number" min={1} max={120} value={partnerAge} onChange={e => setPartnerAge(Math.max(1, Math.min(120, parseInt(e.target.value) || 18)))} className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
+                                            <input type="number" min={1} max={12} value={partnerBirthMonth} onChange={e => setPartnerBirthMonth(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))} className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
+                                            <input type="number" min={1} max={30} value={partnerBirthDay} onChange={e => setPartnerBirthDay(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))} className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
+                                        </div>
+                                        <input value={partnerRelation} onChange={e => setPartnerRelation(e.target.value)} placeholder="与主角关系，例如青梅竹马、同门、好友" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
+                                        <textarea value={partnerAppearance} onChange={e => setPartnerAppearance(e.target.value)} placeholder="外貌" className="w-full h-24 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all resize-none" />
+                                        <textarea value={partnerPersonality} onChange={e => setPartnerPersonality(e.target.value)} placeholder="性格" className="w-full h-24 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all resize-none" />
+                                    </OrnateBorder>
+
+                                    <OrnateBorder className="p-4 space-y-4">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-gray-400">伙伴属性点</span>
+                                            <span className={partnerRemainingPoints < 0 ? 'text-red-400' : 'text-wuxia-gold'}>{partnerUsedPoints}/{totalStatBudget}</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {Object.entries(partnerStats).map(([key, value]) => (
+                                                <div key={key} className="rounded-xl border border-gray-800 bg-black/25 p-3">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-sm text-gray-300">{key}</span>
+                                                        <span className="font-mono text-wuxia-gold">{value}</span>
+                                                    </div>
+                                                    <input type="range" min={属性最小值} max={属性最大值} value={value} onChange={e => 更新伙伴属性(key as keyof 属性结构, parseInt(e.target.value) || 属性最小值)} className="w-full accent-wuxia-gold" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {partnerRemainingPoints < 0 && (
+                                            <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">
+                                                当前伙伴属性超过难度上限，请回收 {Math.abs(partnerRemainingPoints)} 点。
+                                            </div>
+                                        )}
+                                    </OrnateBorder>
+
+                                    <OrnateBorder className="p-4 space-y-4">
+                                        <h3 className="text-lg font-serif font-bold text-wuxia-gold">同伴出身</h3>
+                                        <div className="grid gap-3">
+                                            {全部背景选项.map((bg) => {
+                                                const isSelected = partnerBackground.名称 === bg.名称;
+                                                return (
+                                                    <div
+                                                        key={bg.名称}
+                                                        onClick={() => setPartnerBackground(bg)}
+                                                        className={`rounded-2xl border p-4 cursor-pointer transition-all ${isSelected ? 'border-wuxia-gold bg-wuxia-gold/10' : 'border-gray-700 bg-black/25 active:border-wuxia-gold/45'}`}
+                                                    >
+                                                        <div className="font-bold text-gray-100">{bg.名称}</div>
+                                                        <div className="mt-2 text-sm text-gray-400 leading-6">{bg.描述}</div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </OrnateBorder>
+
+                                    <OrnateBorder className="p-4 space-y-4">
+                                        <div>
+                                            <h3 className="text-lg font-serif font-bold text-wuxia-gold">同伴天赋</h3>
+                                            <div className="text-[11px] text-gray-500 mt-1">最多选择 3 个，和主角一样受开局规则约束。</div>
+                                        </div>
+                                        <div className="grid gap-3">
+                                            {全部天赋选项.map((t) => {
+                                                const isSelected = !!partnerTalents.find(x => x.名称 === t.名称);
+                                                return (
+                                                    <div
+                                                        key={t.名称}
+                                                        onClick={() => togglePartnerTalent(t)}
+                                                        className={`rounded-2xl border p-4 cursor-pointer transition-all ${isSelected ? 'border-wuxia-red bg-wuxia-red/10' : 'border-gray-700 bg-black/25 active:border-wuxia-red/45'}`}
+                                                    >
+                                                        <div className="font-bold text-gray-100">{t.名称}</div>
+                                                        <div className="mt-2 text-sm text-gray-400 leading-6">{t.描述}</div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <textarea value={partnerNote} onChange={e => setPartnerNote(e.target.value)} placeholder="其他备注，例如同行目标、不能改写的设定、初始状态" className="w-full h-24 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all resize-none" />
+                                    </OrnateBorder>
+                                </>
+                            ) : (
+                                <OrnateBorder className="p-4">
+                                    <div className="text-sm text-gray-300 leading-7">
+                                        本次不开局指定同伴。玩家仍可在额外要求里描述剧情倾向，但不会强制写入初始社交档案。
+                                    </div>
+                                </OrnateBorder>
+                            )}
+                        </div>
+                    )}
+
+                    {/* STEP 5: OPENING CONFIG */}
+                    {step === 4 && (
                         <div className="space-y-5 animate-slide-in max-w-5xl mx-auto">
                             <OrnateBorder className="p-4">
                                 <div className="flex items-center justify-between gap-4 rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
@@ -2163,8 +2390,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
                         </div>
                     )}
 
-                    {/* STEP 5: CONFIRMATION */}
-                    {step === 4 && (
+                    {/* STEP 6: CONFIRMATION */}
+                    {step === 5 && (
                         <div className="h-full flex flex-col items-center justify-center animate-fadeIn space-y-8">
                             <div className="text-center">
                                 <h2 className="text-3xl font-serif font-black text-wuxia-gold mb-2">天道既定</h2>
@@ -2183,6 +2410,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
                                     <p>性格: <span className="text-white">{charPersonality.trim() || '未填写'}</span></p>
                                     <p>身份: <span className="text-white">{selectedBackground.名称}</span></p>
                                     <p>天赋: <span className="text-white">{selectedTalents.map(t => t.名称).join(', ') || '无'}</span></p>
+                                    <p>开局伙伴: <span className="text-white">{partnerEnabled ? `${partnerName.trim() || '未填写姓名'} (${partnerGender.trim() || '未填写性别'}, ${partnerAge}岁)` : '关闭'}</span></p>
+                                    {partnerEnabled && <p>伙伴关系: <span className="text-white">{partnerRelation.trim() || '未填写'}</span></p>}
                                     <p>开局配置: <span className="text-white">{openingConfigEnabled ? '已启用' : '未启用'}</span></p>
                                     <p>题材模式: <span className="text-white">{openingConfigEnabled ? openingConfig.题材模式 : '未设置'}</span></p>
                                     <p>关系侧重: <span className="text-white">{openingConfigEnabled ? (openingConfig.关系侧重.join('、') || '无') : '未设置'}</span></p>

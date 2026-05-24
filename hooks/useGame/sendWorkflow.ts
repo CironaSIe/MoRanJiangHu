@@ -1133,26 +1133,6 @@ export const 执行主剧情发送工作流 = async (
         }
 
         const 回合结束自动存档已开启 = 规范化游戏设置(immediateState.gameConfig || currentState.gameConfig).启用回合结束自动存档 !== false;
-        if (回合结束自动存档已开启) {
-            void deps.performAutoSave({
-                history: [...updatedDisplayHistory, newAiMsg],
-                role: immediateState.角色,
-                env: immediateState.环境,
-                social: immediateState.社交,
-                world: immediateState.世界,
-                battle: immediateState.战斗,
-                sect: immediateState.玩家门派,
-                tasks: immediateState.任务列表,
-                agreements: immediateState.约定列表,
-                story: immediateState.剧情,
-                storyPlan: immediateState.剧情规划,
-                heroinePlan: immediateState.女主剧情规划,
-                fandomStoryPlan: immediateState.同人剧情规划,
-                fandomHeroinePlan: immediateState.同人女主剧情规划,
-                memory: nextMemory,
-                force: true
-            });
-        }
 
         deps.set后台队列处理中(true);
         后台队列已启动 = true;

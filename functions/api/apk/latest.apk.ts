@@ -1,9 +1,13 @@
 import {
     APK_CORS_HEADERS,
     APK_LATEST_CACHE_CONTROL,
+    buildR2ApkResponse,
     buildSignedObjectUrl,
+    buildVersionedApkFileName,
     buildTextResponse,
     normalizeObjectKey,
+    pickApkProvider,
+    readManifestPayload,
     readReleaseObjectPrefix
 } from './_shared';
 
@@ -11,9 +15,20 @@ export function onRequestOptions(): Response {
     return new Response(null, { status: 204, headers: APK_CORS_HEADERS });
 }
 
-export async function onRequestGet({ env }: any): Promise<Response> {
+export async function onRequestGet({ request, env }: any): Promise<Response> {
     try {
-        const key = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/latest.apk`);
+        const manifest = await readManifestPayload(env);
+        const versionedFileName = buildVersionedApkFileName(manifest?.payload?.latest?.versionName);
+        const fileName = versionedFileName || 'MoRanJiangHu-latest.apk';
+        const prefix = readReleaseObjectPrefix(env);
+        const versionedKey = normalizeObjectKey(`${prefix}/${versionedFileName || 'latest.apk'}`);
+        const latestKey = normalizeObjectKey(`${prefix}/latest.apk`);
+        const selectedProvider = pickApkProvider(request, manifest?.payload);
+        const key = selectedProvider === 'hi168' ? latestKey : versionedKey;
+        if (selectedProvider === 'r2' && versionedFileName) {
+            const r2Response = await buildR2ApkResponse(env, key, fileName, 'GET', 'r2-preferred');
+            if (r2Response) return r2Response;
+        }
         try {
             const signedUrl = await buildSignedObjectUrl(env, key, 1800);
             return new Response(null, {
@@ -23,7 +38,7 @@ export async function onRequestGet({ env }: any): Promise<Response> {
                     'Cache-Control': APK_LATEST_CACHE_CONTROL,
                     'Content-Type': 'application/vnd.android.package-archive',
                     'Content-Disposition': 'attachment; filename="MoRanJiangHu-latest.apk"',
-                    'X-Moran-Apk-Source': 'hi168-redirect',
+                    'X-Moran-Apk-Source': versionedFileName ? 'hi168-versioned-redirect' : 'hi168-redirect',
                     ...APK_CORS_HEADERS
                 }
             });
@@ -48,9 +63,20 @@ export async function onRequestGet({ env }: any): Promise<Response> {
     }
 }
 
-export async function onRequestHead({ env }: any): Promise<Response> {
+export async function onRequestHead({ request, env }: any): Promise<Response> {
     try {
-        const key = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/latest.apk`);
+        const manifest = await readManifestPayload(env);
+        const versionedFileName = buildVersionedApkFileName(manifest?.payload?.latest?.versionName);
+        const fileName = versionedFileName || 'MoRanJiangHu-latest.apk';
+        const prefix = readReleaseObjectPrefix(env);
+        const versionedKey = normalizeObjectKey(`${prefix}/${versionedFileName || 'latest.apk'}`);
+        const latestKey = normalizeObjectKey(`${prefix}/latest.apk`);
+        const selectedProvider = pickApkProvider(request, manifest?.payload);
+        const key = selectedProvider === 'hi168' ? latestKey : versionedKey;
+        if (selectedProvider === 'r2' && versionedFileName) {
+            const r2Response = await buildR2ApkResponse(env, key, fileName, 'HEAD', 'r2-preferred');
+            if (r2Response) return r2Response;
+        }
         const signedUrl = await buildSignedObjectUrl(env, key, 1800, 'HEAD');
         return new Response(null, {
             status: 302,
@@ -59,7 +85,7 @@ export async function onRequestHead({ env }: any): Promise<Response> {
                 'Cache-Control': APK_LATEST_CACHE_CONTROL,
                 'Content-Type': 'application/vnd.android.package-archive',
                 'Content-Disposition': 'attachment; filename="MoRanJiangHu-latest.apk"',
-                'X-Moran-Apk-Source': 'hi168-redirect',
+                'X-Moran-Apk-Source': versionedFileName ? 'hi168-versioned-redirect' : 'hi168-redirect',
                 ...APK_CORS_HEADERS
             }
         });

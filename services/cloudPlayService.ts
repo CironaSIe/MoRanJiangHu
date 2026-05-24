@@ -597,7 +597,7 @@ const 保存会话 = (session: 云端游玩账号): void => {
     localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
 };
 
-export const 设置云端游玩存储模式 = (mode: 云端游玩存储模式): void => {
+export const 设置云端游玩存储模式 = (mode: 云端游玩存储模式 | 'local'): void => {
     localStorage.setItem(OBJECT_STORAGE_MODE_KEY, mode);
 };
 
@@ -643,6 +643,7 @@ export const 已启用对象存储云端游玩模式 = (): boolean => {
 
 export const 读取云端游玩存储模式 = (): 云端游玩存储模式 | null => {
     const stored = localStorage.getItem(OBJECT_STORAGE_MODE_KEY);
+    if (stored === 'local') return null;
     if (stored === 'object' || stored === 'true') return 'object';
     if (stored === 'tg') return 读取云端游玩会话() ? 'tg' : null;
     return 读取云端游玩会话() ? 'tg' : null;
@@ -964,6 +965,26 @@ export const 复制全部本地存档到云端 = async (
     }
     保存会话(activeSession);
     return { uploaded, skipped, total: localSaves.length, session: activeSession };
+};
+
+export const 上传本地存档到云端 = async (
+    session: 云端游玩账号,
+    save: 存档结构,
+    onProgress?: (progress: 云端上传进度) => void
+): Promise<{ uploaded: boolean; session: 云端游玩账号; manifest: 云端存档清单 }> => {
+    onProgress?.({ stage: 'manifest', current: 0, total: 1, percent: 3, message: '正在读取云端存档清单' });
+    const manifest = await 读取云端存档清单(session);
+    const syncHash = dbService.计算存档同步哈希(save);
+    if (manifest.saves.some((item) => item.syncHash === syncHash)) {
+        保存会话(session);
+        onProgress?.({ stage: 'done', current: 1, total: 1, percent: 100, message: '云端已有相同存档，已直接切换到云端游玩。' });
+        return { uploaded: false, session, manifest };
+    }
+    const result = await 上传单个存档到云端(session, save, manifest, (progress) => {
+        onProgress?.({ ...progress, current: 1, total: 1 });
+    });
+    保存会话(result.session);
+    return result;
 };
 
 const 下载并解密云端存档字节 = async (

@@ -159,6 +159,19 @@ const 格式化在线人数时间标签 = (hour: string, includeDate: boolean) =
     return includeDate ? `${month}/${day} ${time}` : time;
 };
 
+const 格式化在线人数小时短标签 = (hour: string) => {
+    const date = new Date(hour);
+    return Number.isNaN(date.getTime()) ? '--' : String(date.getHours());
+};
+
+const 格式化在线人数日期标签 = (hour: string) => {
+    const date = new Date(hour);
+    if (Number.isNaN(date.getTime())) return '';
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${date.getFullYear()}${month}${day}`;
+};
+
 const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?: OnlinePresencePublicStats | null }> = ({ data, current }) => {
     const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
     const points = data.length > 0
@@ -168,14 +181,14 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
         const date = new Date(item.hour);
         return Number.isNaN(date.getTime()) ? item.hour : `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
     };
-    const dayKeys = new Set(points.map(pointDayKey));
-    const showDate = dayKeys.size > 1;
     const width = 280;
-    const height = 112;
+    const height = 120;
     const padX = 16;
     const padY = 12;
-    const chartBottom = 78;
-    const labelY = 101;
+    const chartBottom = 72;
+    const hourLabelY = 90;
+    const braceY = 97;
+    const dateLabelY = 112;
     const maxCount = Math.max(1, ...points.map((item) => item.count));
     const pointPosition = (item: 在线人数小时点, index: number) => {
         const x = points.length <= 1
@@ -190,20 +203,16 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
     }).join(' ');
     const hoveredPoint = hoveredIndex !== null ? points[hoveredIndex] : null;
     const hoveredPosition = hoveredPoint ? pointPosition(hoveredPoint, hoveredIndex ?? 0) : null;
-    const formatAxisLabel = (item: 在线人数小时点, index: number) => {
-        if (item.hour === 'empty') return { top: '', bottom: item.label };
-        const date = new Date(item.hour);
-        if (Number.isNaN(date.getTime())) return { top: '', bottom: item.label };
-        if (!showDate) return { top: '', bottom: 格式化在线人数时间标签(item.hour, false) };
-        const previousPoint = points[index - 1];
-        const startsNewDateGroup = index === 0 || !previousPoint || pointDayKey(previousPoint) !== pointDayKey(item);
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        return {
-            top: startsNewDateGroup ? `${month}/${day}` : '',
-            bottom: 格式化在线人数时间标签(item.hour, false)
-        };
-    };
+    const dateGroups = points.reduce<Array<{ key: string; start: number; end: number; label: string }>>((groups, item, index) => {
+        const key = pointDayKey(item);
+        const last = groups[groups.length - 1];
+        if (last && last.key === key) {
+            last.end = index;
+            return groups;
+        }
+        groups.push({ key, start: index, end: index, label: 格式化在线人数日期标签(item.hour) || item.label });
+        return groups;
+    }, []);
 
     return (
         <div className="landing-presence-panel relative z-10 flex h-full w-full flex-col items-center border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-center shadow-[0_12px_28px_rgba(0,0,0,0.3)]">
@@ -246,7 +255,7 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                             x1={hoveredPosition.x}
                             y1={hoveredPosition.y}
                             x2={hoveredPosition.x}
-                            y2={labelY - 4}
+                            y2={hourLabelY - 4}
                             className="landing-presence-hover-line"
                             strokeWidth="1.2"
                             strokeDasharray="3 3"
@@ -271,7 +280,6 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                 )}
                 {points.map((item, index) => {
                     const { x, y } = pointPosition(item, index);
-                    const axisLabel = formatAxisLabel(item, index);
                     const active = hoveredIndex === index;
                     return (
                         <g key={item.hour}>
@@ -315,13 +323,28 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                                     className="pointer-events-none transition-all"
                                 />
                             )}
-                            {axisLabel.top && (
-                                <text x={x} y={labelY - 9} textAnchor="middle" className="landing-presence-axis-date font-mono text-[7px]">
-                                    {axisLabel.top}
-                                </text>
-                            )}
-                            <text x={x} y={labelY} textAnchor="middle" className={`landing-presence-axis-label font-mono ${showDate ? 'text-[8px]' : 'text-[9px]'}`}>
-                                {axisLabel.bottom}
+                            <text x={x} y={hourLabelY} textAnchor="middle" className="landing-presence-axis-label font-mono text-[9px]">
+                                {item.hour === 'empty' ? item.label : 格式化在线人数小时短标签(item.hour)}
+                            </text>
+                        </g>
+                    );
+                })}
+                {dateGroups.map((group) => {
+                    const start = pointPosition(points[group.start], group.start).x;
+                    const end = pointPosition(points[group.end], group.end).x;
+                    const left = Math.max(padX, start - 8);
+                    const right = Math.min(width - padX, end + 8);
+                    const center = (left + right) / 2;
+                    return (
+                        <g key={group.key} className="pointer-events-none">
+                            <path
+                                d={`M ${left.toFixed(1)} ${braceY - 4} Q ${left.toFixed(1)} ${braceY} ${(left + Math.min(center, left + 10)).toFixed(1)} ${braceY} L ${(right - Math.min(10, Math.max(0, (right - left) / 3))).toFixed(1)} ${braceY} Q ${right.toFixed(1)} ${braceY} ${right.toFixed(1)} ${braceY - 4}`}
+                                fill="none"
+                                className="landing-presence-date-brace"
+                                strokeWidth="1.1"
+                            />
+                            <text x={center} y={dateLabelY} textAnchor="middle" className="landing-presence-axis-date font-mono text-[8px]">
+                                {group.label}
                             </text>
                         </g>
                     );

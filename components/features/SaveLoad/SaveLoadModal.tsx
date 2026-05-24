@@ -1,6 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as dbService from '../../../services/dbService';
-import { 读取云端游玩存储模式 } from '../../../services/cloudPlayService';
+import {
+    读取云端游玩会话,
+    读取云端游玩存储模式,
+    设置云端游玩存储模式,
+    上传本地存档到云端
+} from '../../../services/cloudPlayService';
+import { 增量同步到对象存储, 读取对象存储同步配置 } from '../../../services/objectStorageSync';
 import { 导出ZIP存档文件, 解析ZIP存档文件 } from '../../../services/saveArchiveService';
 import { 存档结构 } from '../../../types';
 import { parseJsonWithRepair } from '../../../utils/jsonRepair';
@@ -545,6 +551,51 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         }
     };
 
+    const handleConvertLocalToCloudPlay = async (save: 存档列表项, event?: React.MouseEvent) => {
+        event?.stopPropagation();
+        if (syncing) return;
+        const accepted = requestConfirm
+            ? await requestConfirm({
+                title: '转为云端游玩',
+                message: '会先把此存档上传到当前云端存储，然后读取该节点进入云端游玩。确定继续吗？',
+                confirmText: '上传并游玩',
+                cancelText: '取消'
+            })
+            : window.confirm('会先把此存档上传到当前云端存储，然后读取该节点进入云端游玩。确定继续吗？');
+        if (!accepted) return;
+        setSyncing(true);
+        setTransferMessage('正在准备转换为云端存档...');
+        try {
+            const fullSave = await 读取完整存档(save);
+            const mode = 读取云端游玩存储模式();
+            if (mode === 'object') {
+                const config = await 读取对象存储同步配置();
+                await 增量同步到对象存储(config, [fullSave], (progress) => setTransferMessage(progress.message));
+                设置云端游玩存储模式('object');
+                setCloudPlayMode('object');
+                setTransferMessage('已转换为对象存储云端存档，正在进入云端游玩...');
+                await Promise.resolve(onLoadGame(fullSave));
+                onClose();
+                return;
+            }
+            const session = 读取云端游玩会话();
+            if (session) {
+                await 上传本地存档到云端(session, fullSave, (progress) => setTransferMessage(progress.message));
+                设置云端游玩存储模式('tg');
+                setCloudPlayMode('tg');
+                setTransferMessage('已转换为 TG 图床云端存档，正在进入云端游玩...');
+                await Promise.resolve(onLoadGame(fullSave));
+                onClose();
+                return;
+            }
+            throw new Error('尚未启用云端游玩。请先在“云端游玩”里登录或配置对象存储，再转换此存档。');
+        } catch (error: any) {
+            setTransferMessage(`转换失败：${error?.message || '未知错误'}`);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
     const handleTriggerImport = () => {
         if (syncing) return;
         setTransferMessage('请选择要导入的 ZIP 或 JSON 存档文件。');
@@ -668,6 +719,14 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 >
                     导出此档
                 </button>
+                <button
+                    onClick={(event) => { void handleConvertLocalToCloudPlay(save, event); }}
+                    className="absolute bottom-4 right-24 rounded border border-emerald-400/35 bg-black/50 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-emerald-100 opacity-0 transition-all hover:border-emerald-300 hover:bg-emerald-500/15 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    title="上传此档并切换为云端游玩"
+                    disabled={busy}
+                >
+                    转云端游玩
+                </button>
 
                 <button
                     onClick={(e) => { void handleDelete(save.id, e); }}
@@ -717,6 +776,14 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 disabled={busy}
             >
                 导出此档
+            </button>
+            <button
+                onClick={(event) => { void handleConvertLocalToCloudPlay(save, event); }}
+                className="absolute bottom-4 right-24 rounded border border-emerald-400/35 bg-black/50 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-emerald-100 opacity-0 transition-all hover:border-emerald-300 hover:bg-emerald-500/15 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                title="上传此档并切换为云端游玩"
+                disabled={busy}
+            >
+                转云端游玩
             </button>
             <button
                 onClick={(e) => { void handleDelete(save.id, e); }}
@@ -780,7 +847,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
                 <div className="h-14 shrink-0 border-b border-gray-800/50 bg-black/40 flex items-center justify-between px-4 relative z-50 sm:h-16 sm:px-6">
                     <h3 className="text-wuxia-gold font-serif font-bold text-xl tracking-[0.22em] drop-shadow-md sm:text-2xl sm:tracking-[0.3em]" style={{ fontFamily: 'var(--ui-页面标题-font-family, inherit)', lineHeight: 'var(--ui-页面标题-line-height, 1.2)' }}>
-                        {mode === 'save' ? '铭刻时光' : '时光回溯'}
+                        {mode === 'save' ? '铭刻时光' : '本地存档'}
                     </h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors text-2xl" style={{ fontFamily: 'var(--ui-按钮-font-family, inherit)' }}>×</button>
                 </div>
@@ -873,8 +940,8 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                         )}
 
                         <div className="border-b border-gray-800/50 px-4 py-3 text-xs leading-5 text-gray-400 sm:px-6">
-                            <span className="font-semibold tracking-[0.16em] text-wuxia-gold">全部时光节点</span>
-                            <span className="ml-3">自动与手动存档合并在同一棵时间树中，每个节点会单独标注来源。</span>
+                            <span className="font-semibold tracking-[0.16em] text-wuxia-gold">本地存档节点</span>
+                            <span className="ml-3">这里显示设备本地存档；云端游玩时，自动与手动存档也会先落本地，再同步到云端。自动与手动节点合并在同一棵时间树中，并单独标注来源。</span>
                         </div>
 
                         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain touch-pan-y custom-scrollbar p-4 space-y-3 sm:p-6">
@@ -901,6 +968,14 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                                 className="rounded border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs font-semibold text-wuxia-gold hover:bg-wuxia-gold/20"
                                             >
                                                 读取最新存档
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(event) => { void handleConvertLocalToCloudPlay(selectedSeries.latest, event); }}
+                                                disabled={busy}
+                                                className="rounded border border-emerald-500/35 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                转为云端存档并云端游玩
                                             </button>
                                             <button
                                                 type="button"
@@ -955,6 +1030,15 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                                     disabled={busy}
                                                 >
                                                     导出此档
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => { void handleConvertLocalToCloudPlay(series.latest, event); }}
+                                                    disabled={busy}
+                                                    className="rounded border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-emerald-100 transition-colors hover:border-emerald-500 hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+                                                    title="上传此档并切换为云端游玩"
+                                                >
+                                                    转云端游玩
                                                 </button>
                                                 <button
                                                     type="button"

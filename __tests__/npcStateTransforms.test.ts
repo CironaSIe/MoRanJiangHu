@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { 规范化社交列表 } from '../hooks/useGame/stateTransforms';
+import { 判断女性姓名来自姓名库 } from '../utils/femaleNameSelector';
 
 describe('NPC old save compatibility', () => {
     it('repairs teammate combat caps, equipment and bag from legacy placeholders', () => {
@@ -165,13 +166,15 @@ describe('NPC old save compatibility', () => {
                 id: 'npc_su_waner',
                 姓名: '苏婉儿',
                 性别: '女',
-                身份: '贴身侍女'
+                身份: '贴身侍女',
+                是否主要角色: true
             }
         ], { 合并同名: false });
 
         expect(list).toHaveLength(1);
-        expect(list[0].姓名).toBe('苏婉儿');
-        expect(list[0].曾用名).toBeUndefined();
+        expect(list[0].姓名).not.toBe('苏婉儿');
+        expect(判断女性姓名来自姓名库(list[0].姓名)).toBe(true);
+        expect(list[0].曾用名).toContain('苏婉儿');
     });
 
     it('repairs social names that are pronoun/prose fragments into short real names', () => {
@@ -241,7 +244,7 @@ describe('NPC old save compatibility', () => {
         expect(npc.图片档案?.最近生图结果?.构图).toBe('部位特写');
     });
 
-    it('keeps stable female major names and completes artifact tags', () => {
+    it('rewrites template-like female major names and completes artifact tags', () => {
         const [npc] = 规范化社交列表([
             {
                 id: 'npc_major_waner',
@@ -256,8 +259,9 @@ describe('NPC old save compatibility', () => {
             }
         ], { 合并同名: false });
 
-        expect(npc.姓名).toBe('婉儿');
-        expect(npc.曾用名).toBeUndefined();
+        expect(npc.姓名).not.toBe('婉儿');
+        expect(判断女性姓名来自姓名库(npc.姓名)).toBe(true);
+        expect(npc.曾用名).toContain('婉儿');
         expect(npc.名器档案).toHaveLength(3);
         expect(npc.名器档案.map((item: any) => item.部位)).toEqual(['胸部', '小穴', '屁穴']);
         expect(npc.名器档案.some((item: any) => item.品质 !== '无')).toBe(true);

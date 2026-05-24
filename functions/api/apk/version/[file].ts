@@ -1,10 +1,12 @@
 import {
     APK_CORS_HEADERS,
     APK_LATEST_CACHE_CONTROL,
-    APK_VERSIONED_CACHE_CONTROL,
+    buildR2ApkResponse,
     buildSignedObjectUrl,
+    buildVersionedApkHeaders,
     buildTextResponse,
     normalizeObjectKey,
+    pickApkProvider,
     readManifestPayload,
     readReleaseObjectPrefix
 } from '../_shared';
@@ -12,23 +14,6 @@ import {
 export function onRequestOptions(): Response {
     return new Response(null, { status: 204, headers: APK_CORS_HEADERS });
 }
-
-const buildVersionedApkHeaders = (fileName: string, sourceHeaders?: Headers, source = 'hi168'): Headers => {
-    const headers = new Headers({
-        'Content-Type': 'application/vnd.android.package-archive',
-        'Cache-Control': APK_VERSIONED_CACHE_CONTROL,
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-        'X-Moran-Apk-Source': source,
-        ...APK_CORS_HEADERS
-    });
-    const contentLength = sourceHeaders?.get('Content-Length');
-    if (contentLength) headers.set('Content-Length', contentLength);
-    const etag = sourceHeaders?.get('ETag');
-    if (etag) headers.set('ETag', etag);
-    const lastModified = sourceHeaders?.get('Last-Modified');
-    if (lastModified) headers.set('Last-Modified', lastModified);
-    return headers;
-};
 
 const toHeadResponse = (response: Response): Response => (
     new Response(null, { status: response.status, statusText: response.statusText, headers: response.headers })
@@ -51,6 +36,22 @@ const buildLatestApkRedirect = async (env: any, fileName: string, method: 'GET' 
             'Cache-Control': APK_LATEST_CACHE_CONTROL,
             'Content-Disposition': `attachment; filename="${fileName}"`,
             'X-Moran-Apk-Source': 'hi168-latest-fallback',
+            ...APK_CORS_HEADERS
+        }
+    });
+};
+
+const buildHi168LatestApkRedirect = async (env: any, fileName: string, method: 'GET' | 'HEAD'): Promise<Response> => {
+    const key = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/latest.apk`);
+    const signedUrl = await buildSignedObjectUrl(env, key, 1800, method);
+    return new Response(null, {
+        status: 302,
+        headers: {
+            Location: signedUrl,
+            'Content-Type': 'application/vnd.android.package-archive',
+            'Cache-Control': APK_LATEST_CACHE_CONTROL,
+            'Content-Disposition': `attachment; filename="${fileName}"`,
+            'X-Moran-Apk-Source': 'hi168-latest-redirect',
             ...APK_CORS_HEADERS
         }
     });
@@ -80,6 +81,14 @@ const handleVersionedApkRequest = async (context: any, method: 'GET' | 'HEAD'): 
         }
 
         const key = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/${fileName}`);
+        const preferredProvider = pickApkProvider(request, manifest?.payload);
+        if (preferredProvider === 'r2') {
+            const r2Response = await buildR2ApkResponse(env, key, fileName, method, 'r2-preferred');
+            if (r2Response) return r2Response;
+        }
+        if (preferredProvider === 'hi168') {
+            return buildHi168LatestApkRedirect(env, fileName, method);
+        }
         try {
             const signedUrl = await buildSignedObjectUrl(env, key, 1800, method);
             if (!(await objectExists(env, key))) {
@@ -97,14 +106,8 @@ const handleVersionedApkRequest = async (context: any, method: 'GET' | 'HEAD'): 
             console.warn('Versioned APK object storage download failed, falling back to R2:', error);
         }
 
-        const r2Object = env?.CNB_SYNC_R2 ? await env.CNB_SYNC_R2.get(key) : null;
-        if (r2Object) {
-            const headers = buildVersionedApkHeaders(fileName, undefined, 'r2-fallback');
-            r2Object.writeHttpMetadata?.(headers);
-            if (r2Object.etag) headers.set('ETag', r2Object.etag);
-            const response = new Response(r2Object.body, { status: 200, headers });
-            return method === 'HEAD' ? toHeadResponse(response) : response;
-        }
+        const r2Response = await buildR2ApkResponse(env, key, fileName, method, 'r2-fallback');
+        if (r2Response) return r2Response;
 
         return buildTextResponse('APK version not found', 404);
     } catch (error: any) {

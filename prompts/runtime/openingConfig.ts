@@ -26,6 +26,7 @@ export const 构建题材模式提示词 = (openingConfig?: OpeningConfig | null
 
 export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null): string => {
     if (!openingConfig) return '';
+    if (openingConfig.配置约束启用 === false) return '';
     const 关系侧重 = Array.isArray(openingConfig.关系侧重) && openingConfig.关系侧重.length > 0
         ? openingConfig.关系侧重.join('、')
         : '无';

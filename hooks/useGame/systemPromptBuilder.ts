@@ -63,6 +63,7 @@ import { 构建女主剧情规划协议 } from '../../prompts/core/heroinePlan';
 import { 构建女主规划专项提示词 } from '../../prompts/core/heroinePlanCot';
 import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 构建题材模式提示词 } from '../../prompts/runtime/openingConfig';
+import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
 
 export type 运行时提示词状态 = {
     当前启用: boolean;
@@ -1507,6 +1508,21 @@ export const 构建系统提示词 = ({
         worldPrompt.trim(),
         contextMapAndBuilding,
         npcContext.离场数据块,
+        构建女性姓名候选提示词({
+            usedNames: 收集女性姓名候选已用名({
+                ...(statePayload || {}),
+                社交: Array.isArray(socialData) ? socialData : statePayload?.社交
+            }),
+            seed: [
+                statePayload?.角色?.姓名,
+                statePayload?.环境?.时间,
+                statePayload?.环境?.大地点,
+                statePayload?.环境?.中地点,
+                statePayload?.环境?.小地点,
+                statePayload?.环境?.具体地点
+            ].filter(Boolean).join('|'),
+            count: 100
+        }),
         fandomSummaryPrompt,
         genreModePrompt,
         realmTemplatePrompt,

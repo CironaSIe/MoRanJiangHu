@@ -965,6 +965,7 @@ html[data-theme="day"] .sect-modal-body {
   --landing-presence-hover-line: rgba(236, 253, 245, 0.42);
   --landing-presence-tooltip-bg: rgba(5, 12, 10, 0.86);
   --landing-presence-tooltip-text: #ecfdf5;
+  --landing-presence-date-brace: rgba(236, 253, 245, 0.3);
 }
 
 .landing-presence-metric {
@@ -983,6 +984,10 @@ html[data-theme="day"] .sect-modal-body {
 
 .landing-presence-axis-date {
   fill: rgba(236, 253, 245, 0.46);
+}
+
+.landing-presence-date-brace {
+  stroke: var(--landing-presence-date-brace);
 }
 
 .landing-presence-hover-line {
@@ -1103,6 +1108,7 @@ html[data-theme="day"] .landing-presence-panel {
   --landing-presence-hover-line: rgba(6, 95, 70, 0.38);
   --landing-presence-tooltip-bg: rgba(255, 252, 244, 0.96);
   --landing-presence-tooltip-text: #065f46;
+  --landing-presence-date-brace: rgba(6, 95, 70, 0.34);
   background: rgba(236, 253, 245, 0.5) !important;
   background-color: rgba(236, 253, 245, 0.5) !important;
   border-color: rgba(5, 150, 105, 0.32) !important;

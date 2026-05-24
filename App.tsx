@@ -35,7 +35,7 @@ import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolu
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
 import { 获取本地图片图床迁移状态, 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 读取图片资源兜底地址, 订阅旧存档谱系迁移状态, 订阅本地图片图床迁移状态, type 旧存档谱系迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
 import { startOnlinePresenceHeartbeat } from './services/onlinePresence';
-import { 等待云端后台同步完成 } from './services/cloudPlayService';
+import { 等待云端后台同步完成, 读取云端游玩存储模式 } from './services/cloudPlayService';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 import type { 游戏物品 } from './models/item';
@@ -506,6 +506,7 @@ const App: React.FC = () => {
     const [contextSnapshot, setContextSnapshot] = React.useState<Awaited<ReturnType<typeof actions.getContextSnapshot>> | undefined>(undefined);
     const [showReleaseNotes, setShowReleaseNotes] = React.useState(false);
     const [suppressReleaseNotesForToday, setSuppressReleaseNotesForToday] = React.useState(false);
+    const [returnHomeSaving, setReturnHomeSaving] = React.useState(false);
     const [appUpdateProgress, setAppUpdateProgress] = React.useState<AppUpdateProgressState | null>(null);
     const [legacyImageMigrationStatus, setLegacyImageMigrationStatus] = React.useState(() => 获取本地图片图床迁移状态());
     const [legacyImageMigrationNoticeClosed, setLegacyImageMigrationNoticeClosed] = React.useState(false);
@@ -1493,6 +1494,15 @@ const App: React.FC = () => {
     const desktopRightDetailClass = state.view === 'game' && !isMobile
         ? `desktop-right-detail-modal desktop-right-detail-modal--${desktopRightDetailId}${desktopDetailFullscreen ? ' desktop-right-detail-modal--fullscreen' : ''}`
         : undefined;
+    const currentCloudPlayMode = 读取云端游玩存储模式();
+    const playModeLabel = currentCloudPlayMode === 'object'
+        ? '云端游玩：对象存储'
+        : currentCloudPlayMode === 'tg'
+            ? '云端游玩：TG图床'
+            : '本地游玩';
+    const playModeHint = currentCloudPlayMode
+        ? '当前进度会先保存到本地，再后台同步到云端'
+        : '当前进度仅保存到本地';
     const desktopRightDetailWidth = React.useMemo(() => clampDesktopDetailWidth(
         desktopDetailWidths[desktopRightDetailId] ?? getDesktopDetailDefaultWidth(desktopRightDetailId)
     ), [desktopDetailWidths, desktopRightDetailId, viewportWidth]);
@@ -2200,6 +2210,13 @@ const App: React.FC = () => {
         void window.open(RELEASE_INFO.githubRepoUrl, '_blank', 'noopener,noreferrer');
     }, []);
     const handleReturnToHomeWithAutoSave = React.useCallback(async () => {
+        if (returnHomeSaving) return;
+        setReturnHomeSaving(true);
+        actions.pushNotification({
+            title: '正在保存存档',
+            message: '正在保存当前进度并同步存档，请稍候。',
+            tone: 'info'
+        });
         try {
             await actions.performAutoSave({ force: true });
             await 等待云端后台同步完成();
@@ -2208,8 +2225,10 @@ const App: React.FC = () => {
             setters.setShowSettings(false);
         } catch (error: any) {
             window.alert(`自动存档失败：${error?.message || '未知错误'}`);
+        } finally {
+            setReturnHomeSaving(false);
         }
-    }, [actions, closeAllPanels, setters]);
+    }, [actions, closeAllPanels, returnHomeSaving, setters]);
     const handleReturnToHomeFromSettings = React.useCallback(async () => {
         const ok = await requestConfirm({
             title: '返回首页',
@@ -2635,15 +2654,20 @@ const App: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => { void handleReturnToHomeWithAutoSave(); }}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-sky-400/35 bg-black/75 text-[0px] text-sky-100 shadow-[0_6px_18px_rgba(0,0,0,0.35)] backdrop-blur-sm"
-                                aria-label="自动存档后返回主界面"
-                                title="自动存档后返回主界面"
+                                disabled={returnHomeSaving}
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-sky-400/35 bg-black/75 text-[0px] text-sky-100 shadow-[0_6px_18px_rgba(0,0,0,0.35)] backdrop-blur-sm disabled:cursor-wait disabled:opacity-70"
+                                aria-label={returnHomeSaving ? '正在保存存档中' : '自动存档后返回主界面'}
+                                title={returnHomeSaving ? '正在保存存档中' : '自动存档后返回主界面'}
                             >
-                                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 7 5 12l5 5" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h9a5 5 0 0 1 5 5" />
-                                </svg>
-                                返回主页
+                                {returnHomeSaving ? (
+                                    <span className="h-3 w-3 animate-spin rounded-full border border-sky-100/35 border-t-sky-100" aria-hidden="true" />
+                                ) : (
+                                    <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 7 5 12l5 5" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h9a5 5 0 0 1 5 5" />
+                                    </svg>
+                                )}
+                                {returnHomeSaving ? '正在保存存档中' : '返回主页'}
                             </button>
                         </div>
                     )}
@@ -2692,6 +2716,18 @@ const App: React.FC = () => {
                                 }`}
                             ></div>
                               <div className={isMobile ? 'fixed right-2 top-[calc(var(--app-safe-top,env(safe-area-inset-top,0px))+72px)] z-[91] flex items-center gap-2' : 'absolute right-3 top-3 z-30 flex items-center gap-2'}>
+                                  <div
+                                      className={`hidden items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] shadow-[0_8px_20px_rgba(0,0,0,0.35)] backdrop-blur sm:inline-flex ${
+                                          currentCloudPlayMode === 'object'
+                                              ? 'border-sky-300/45 bg-sky-950/75 text-sky-100'
+                                              : currentCloudPlayMode === 'tg'
+                                                  ? 'border-emerald-300/45 bg-emerald-950/75 text-emerald-100'
+                                                  : 'border-wuxia-gold/40 bg-black/65 text-wuxia-gold'
+                                      }`}
+                                      title={playModeHint}
+                                  >
+                                      {playModeLabel}
+                                  </div>
                                   {chatContentHidden && (
                                       <button
                                           type="button"
@@ -2823,6 +2859,7 @@ const App: React.FC = () => {
                                 onSave={openSave}
                                 onLoad={openLoad}
                                 onReturnToHome={() => { void handleReturnToHomeWithAutoSave(); }}
+                                returnHomeSaving={returnHomeSaving}
                                 visualConfig={effectiveVisualConfig}
                                 latestChangedSections={latestChangedSections}
                             />
@@ -2878,6 +2915,16 @@ const App: React.FC = () => {
                                 </button>
                             )}
                         </>
+                    )}
+
+                    {returnHomeSaving && (
+                        <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-[#f8f4e8]/72 px-6 py-10 text-center text-stone-900 backdrop-blur-[2px]">
+                            <div className="max-w-sm rounded-lg border border-amber-900/20 bg-[#fff9ec]/95 px-6 py-5 shadow-[0_18px_50px_rgba(70,45,15,0.22)]">
+                                <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-amber-900/25 border-t-amber-800" aria-hidden="true" />
+                                <div className="font-serif text-lg font-bold text-amber-950">正在保存存档中</div>
+                                <div className="mt-2 text-sm leading-6 text-stone-700">正在保存当前进度并同步存档，完成后会自动返回首页。</div>
+                            </div>
+                        </div>
                     )}
 
                     {meta.notifications && meta.notifications.length > 0 && (
@@ -3101,6 +3148,7 @@ const App: React.FC = () => {
                             requestConfirm={requestConfirm}
                             onReturnToHome={handleReturnToHomeFromSettings}
                             isHome={state.view === 'home'}
+                            returnHomeSaving={returnHomeSaving}
                         />
                     ) : (
                         <SettingsModal
@@ -3141,6 +3189,7 @@ const App: React.FC = () => {
                             requestConfirm={requestConfirm}
                             onReturnToHome={handleReturnToHomeFromSettings}
                             isHome={state.view === 'home'}
+                            returnHomeSaving={returnHomeSaving}
                         />
                     )}
                 </懒加载边界>

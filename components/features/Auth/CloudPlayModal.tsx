@@ -305,6 +305,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
 
     const handleLoadCloudSave = async (item: 云端存档摘要) => {
         if (!session) return;
+        设置云端游玩存储模式('tg');
         setBusy(`load:${item.cloudId}`);
         setDownloadProgress(null);
         setMessage('正在下载并解密云端存档...');
@@ -322,6 +323,32 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
             onClose();
         } catch (error: any) {
             setMessage(`载入失败：${error?.message || '未知错误'}`);
+        } finally {
+            setDownloadProgress(null);
+            setBusy('');
+        }
+    };
+
+    const handleConvertCloudSaveToLocalPlay = async (item: 云端存档摘要) => {
+        if (!session) return;
+        setBusy(`local:${item.cloudId}`);
+        setDownloadProgress(null);
+        setMessage('正在下载云端存档并转换为本地游玩...');
+        try {
+            const payload = await 下载云端存档包(session, item, (progress) => {
+                setDownloadProgress(progress);
+                setMessage(progress.message);
+            });
+            const save = payload.saves[0];
+            if (!save) throw new Error('云端存档包内没有可读取的存档。');
+            await dbService.导入存档数据({ saves: payload.saves }, { 覆盖现有: false });
+            设置云端游玩存储模式('local');
+            setStorageMode('tg');
+            setMessage('已转换为本地存档，正在进入本地游玩...');
+            await Promise.resolve(onLoadGame(save));
+            onClose();
+        } catch (error: any) {
+            setMessage(`转换为本地游玩失败：${error?.message || '未知错误'}`);
         } finally {
             setDownloadProgress(null);
             setBusy('');
@@ -415,6 +442,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
 
     const handleLoadObjectStorageSave = async (item: 对象存储云存档元数据) => {
         if (!objectStorageConfig) return;
+        设置云端游玩存储模式('object');
         setBusy(`object-load:${item.id}`);
         setMessage('正在读取对象存储云端存档...');
         try {
@@ -426,6 +454,25 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
             onClose();
         } catch (error: any) {
             setMessage(`载入失败：${error?.message || '未知错误'}`);
+        } finally {
+            setBusy('');
+        }
+    };
+
+    const handleConvertObjectStorageSaveToLocalPlay = async (item: 对象存储云存档元数据) => {
+        if (!objectStorageConfig) return;
+        setBusy(`object-local:${item.id}`);
+        setMessage('正在下载对象存储云端存档并转换为本地游玩...');
+        try {
+            const { save, saves } = await 下载对象存储云存档(objectStorageConfig, item, (progress) => setMessage(progress.message));
+            await dbService.导入存档数据({ saves: saves.length > 0 ? saves : [save] }, { 覆盖现有: false });
+            设置云端游玩存储模式('local');
+            setStorageMode('tg');
+            setMessage('已转换为本地存档，正在进入本地游玩...');
+            await Promise.resolve(onLoadGame(save));
+            onClose();
+        } catch (error: any) {
+            setMessage(`转换为本地游玩失败：${error?.message || '未知错误'}`);
         } finally {
             setBusy('');
         }
@@ -512,6 +559,9 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                 <button type="button" disabled={busy === `object-import:${item.id}`} onClick={() => { void handleImportObjectStorageSave(item); }} className="border border-emerald-400/30 px-2.5 py-1.5 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
                     导入
                 </button>
+                <button type="button" disabled={busy === `object-local:${item.id}`} onClick={() => { void handleConvertObjectStorageSaveToLocalPlay(item); }} className="border border-amber-300/35 bg-amber-400/10 px-2.5 py-1.5 text-xs text-amber-100 hover:bg-amber-400/15 disabled:opacity-50">
+                    {busy === `object-local:${item.id}` ? '转换中...' : '转本地游玩'}
+                </button>
                 <button type="button" disabled={busy === `object-export:${item.id}`} onClick={() => { void handleExportObjectStorageSave(item); }} className="border border-sky-400/30 px-2.5 py-1.5 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
                     下载
                 </button>
@@ -544,6 +594,9 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                 </button>
                 <button type="button" disabled={busy === `import:${item.cloudId}`} onClick={() => { void handleImportCloudSave(item); }} className="border border-emerald-400/30 px-2.5 py-1.5 text-xs text-emerald-100 hover:bg-emerald-500/10 disabled:opacity-50">
                     导入
+                </button>
+                <button type="button" disabled={busy === `local:${item.cloudId}`} onClick={() => { void handleConvertCloudSaveToLocalPlay(item); }} className="border border-amber-300/35 bg-amber-400/10 px-2.5 py-1.5 text-xs text-amber-100 hover:bg-amber-400/15 disabled:opacity-50">
+                    {busy === `local:${item.cloudId}` ? '转换中...' : '转本地游玩'}
                 </button>
                 <button type="button" disabled={busy === `export:${item.cloudId}`} onClick={() => { void handleExportCloudSave(item); }} className="border border-sky-400/30 px-2.5 py-1.5 text-xs text-sky-100 hover:bg-sky-500/10 disabled:opacity-50">
                     下载
@@ -597,7 +650,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
             <div className="flex items-center justify-between border-b border-wuxia-gold/20 px-5 py-4">
                 <div>
                     <div className="font-serif text-lg font-bold tracking-[0.2em] text-wuxia-gold">云端游玩</div>
-                    <div className="mt-1 text-xs text-gray-400">自动同步存档，可从云端选择进度继续游玩</div>
+                    <div className="mt-1 text-xs text-gray-400">这里只显示云端存档；保存时会先写入本地，再后台同步到云端。</div>
                 </div>
                 <button
                     type="button"
@@ -674,7 +727,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                         <div className="grid gap-4">
                             {objectStorageSaveTrees.length <= 0 ? (
                                 <div className="border border-dashed border-sky-400/25 px-4 py-8 text-center text-sm text-gray-400">
-                                    对象存储云端暂无存档。可以开启新存档，或先把本地存档复制到对象存储。
+                                    对象存储云端暂无存档。这里不混入本地存档；可以开启新存档，或先把本地存档复制到对象存储。
                                     {onStartNewGame && (
                                         <button type="button" onClick={onStartNewGame} className="mx-auto mt-4 block border border-wuxia-gold/40 bg-wuxia-gold/10 px-4 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold/20">
                                             开启新存档
@@ -693,6 +746,9 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                         <div className="flex flex-wrap gap-2">
                                             <button type="button" onClick={() => { void handleLoadObjectStorageSave(selectedObjectSeries.latest); }} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold/20">
                                                 读取最新
+                                            </button>
+                                            <button type="button" onClick={() => { void handleConvertObjectStorageSaveToLocalPlay(selectedObjectSeries.latest); }} className="border border-amber-300/35 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-100 hover:bg-amber-400/15">
+                                                转为本地存档并本地游玩
                                             </button>
                                             <button type="button" onClick={() => setSelectedObjectSeriesKey(null)} className="border border-gray-500/40 px-3 py-2 text-xs text-gray-200 hover:bg-white/5">
                                                 返回系列列表
@@ -717,12 +773,15 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                                 <button type="button" onClick={() => { void handleLoadObjectStorageSave(series.latest); }} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold/20">
                                                     读取最新
                                                 </button>
+                                                <button type="button" onClick={() => { void handleConvertObjectStorageSaveToLocalPlay(series.latest); }} className="border border-amber-300/35 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-100 hover:bg-amber-400/15">
+                                                    转本地游玩
+                                                </button>
                                                 <button type="button" onClick={() => setSelectedObjectSeriesKey(series.key)} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10">
                                                     选择节点
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="text-[11px] text-gray-500">同一角色的云端节点已整理为连续进度线；重复自动节点会自动收敛。</div>
+                                        <div className="text-[11px] text-gray-500">同一角色的对象存储云端节点已整理为连续进度线；此处不显示本地存档，重复自动节点会自动收敛。</div>
                                     </div>
                                 ))
                             )}
@@ -814,7 +873,7 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                         <div className="grid gap-4">
                             {cloudSaveTrees.length <= 0 ? (
                                 <div className="border border-dashed border-wuxia-gold/25 px-4 py-8 text-center text-sm text-gray-400">
-                                    暂无云端存档。可以开启新存档，或先把本地存档复制到云端。
+                                    暂无云端存档。这里不混入本地存档；可以开启新存档，或先把本地存档复制到云端。
                                     {onStartNewGame && (
                                         <button type="button" onClick={onStartNewGame} className="mx-auto mt-4 block border border-wuxia-gold/40 bg-wuxia-gold/10 px-4 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold/20">
                                             开启新存档
@@ -833,6 +892,9 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                         <div className="flex flex-wrap gap-2">
                                             <button type="button" onClick={() => { void handleLoadCloudSave(selectedCloudSeries.latest); }} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold/20">
                                                 读取最新
+                                            </button>
+                                            <button type="button" onClick={() => { void handleConvertCloudSaveToLocalPlay(selectedCloudSeries.latest); }} className="border border-amber-300/35 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-100 hover:bg-amber-400/15">
+                                                转为本地存档并本地游玩
                                             </button>
                                             <button type="button" onClick={() => setSelectedCloudSeriesKey(null)} className="border border-gray-500/40 px-3 py-2 text-xs text-gray-200 hover:bg-white/5">
                                                 返回系列列表
@@ -859,12 +921,15 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                                 <button type="button" onClick={() => { void handleLoadCloudSave(series.latest); }} className="border border-wuxia-gold/40 bg-wuxia-gold/10 px-3 py-2 text-xs font-bold text-wuxia-gold hover:bg-wuxia-gold/20">
                                                     读取最新
                                                 </button>
+                                                <button type="button" onClick={() => { void handleConvertCloudSaveToLocalPlay(series.latest); }} className="border border-amber-300/35 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-100 hover:bg-amber-400/15">
+                                                    转本地游玩
+                                                </button>
                                                 <button type="button" onClick={() => setSelectedCloudSeriesKey(series.key)} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10">
                                                     选择节点
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="text-[11px] text-gray-500">同一起始存档已归并为一个系列；选择节点后可读取任意时间树节点。</div>
+                                        <div className="text-[11px] text-gray-500">同一起始存档已归并为一个云端系列；此处不显示本地存档，选择节点后可读取任意时间树节点。</div>
                                     </div>
                                 ))
                             )}

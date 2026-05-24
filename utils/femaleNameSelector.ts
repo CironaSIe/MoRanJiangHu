@@ -27,6 +27,7 @@ const 女性人名选择器集合 = new Set(女性人名选择器列表);
 const 女性性别正则 = /女|女性|女子|少女|女修|姑娘|妇人|夫人|娘子|侍女|丫鬟/;
 const 非女性性别正则 = /男娘|男性|男子|少年|男修|公子|汉子|男/;
 const 占位女性姓名正则 = /^(?:角色|同门|随行者|新NPC|未命名NPC|未命名|未知|无名|女子|少女|女修|姑娘|侍女|丫鬟)\d*$/;
+const 模板化女性姓名正则 = /^(?:苏婉儿|婉儿|林清雪|清雪|柳若嫣|若嫣|灵儿|月儿|芷若|小雅|小柔|小蝶|小环|小翠)$/;
 
 export const 判断女性名称目标 = (npc: any): boolean => {
     const sex = 规范化姓名键(npc?.性别 ?? npc?.gender);
@@ -57,6 +58,33 @@ export const 选择唯一女性姓名 = (params?: {
     return `${base}${suffix}`;
 };
 
+export const 选择女性姓名候选列表 = (params?: {
+    usedNames?: Iterable<string>;
+    seed?: string;
+    count?: number;
+}): string[] => {
+    const used = new Set(Array.from(params?.usedNames || []).map(规范化姓名键).filter(Boolean));
+    const count = Math.max(1, Math.min(
+        Number.isFinite(Number(params?.count)) ? Math.floor(Number(params?.count)) : 100,
+        女性人名选择器列表.length || 1
+    ));
+    if (女性人名选择器列表.length === 0) return [];
+    const start = 稳定哈希(params?.seed || `female-candidates-${used.size}`) % 女性人名选择器列表.length;
+    const candidates: string[] = [];
+    for (let offset = 0; offset < 女性人名选择器列表.length && candidates.length < count; offset += 1) {
+        const candidate = 女性人名选择器列表[(start + offset) % 女性人名选择器列表.length];
+        if (!candidate || used.has(candidate) || candidates.includes(candidate)) continue;
+        candidates.push(candidate);
+    }
+    if (candidates.length >= count) return candidates;
+    for (const candidate of 女性人名选择器列表) {
+        if (candidates.length >= count) break;
+        if (!candidate || used.has(candidate) || candidates.includes(candidate)) continue;
+        candidates.push(candidate);
+    }
+    return candidates;
+};
+
 export const 重命名重复女性NPC列表 = (list: any[]): any[] => {
     if (!Array.isArray(list)) return [];
     const usedNames = new Set<string>();
@@ -70,6 +98,8 @@ export const 重命名重复女性NPC列表 = (list: any[]): any[] => {
 
         const shouldRename = !name
             || 占位女性姓名正则.test(name)
+            || 模板化女性姓名正则.test(name)
+            || (npc?.是否主要角色 === true && !判断女性姓名来自姓名库(name))
             || usedNames.has(name);
         if (!shouldRename) {
             usedNames.add(name);

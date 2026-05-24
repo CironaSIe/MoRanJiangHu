@@ -550,3 +550,16 @@
   - `hooks/useGame/responseCommandProcessor.ts`
 - 验证：`npm.cmd run build` 已通过。构建再次因 `release:sync` 触碰 release 元数据；本次不是发布，已恢复 `data/releaseInfo.ts` 与 `public/release-info.json`。
 - 本次修复未触发任何部署（遵守"禁止自动部署规则"）。下次发布时面向客户的更新日志建议措辞："修复 AI 在游玩中偶尔把游戏内日期/历程天数重置成现实时间前一天的问题——新增时间锚点硬约束、每回合向 AI 同步开局时间与已游玩天数，并在命令落地前拦截一切时间回退/重置写入。"
+
+## 2026-05-24 端到端测试外部 AI 接口
+
+- 后续需要真实 AI 返回的端到端测试，统一读取本机环境变量中的 OpenAI 兼容外部测试接口：
+  - `MORAN_E2E_AI_BASE_URL`
+  - `MORAN_E2E_AI_API_KEY`
+  - `MORAN_E2E_AI_MODEL`
+- 当前非密钥配置记录：
+  - Base URL：`https://ai.bacon123.eu.org/v1`
+  - 模型：`流式抗截断/gemini-3.1-pro-preview-search`
+- API key 只能保存在本机用户环境变量 `MORAN_E2E_AI_API_KEY` 中。
+- 不要把密钥写入仓库文件、提交、日志、截图、客户更新说明或聊天总结。
+- 测试调用方式按 OpenAI 兼容 Chat Completions 处理，并从上述环境变量读取配置。

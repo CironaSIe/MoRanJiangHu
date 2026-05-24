@@ -105,6 +105,7 @@ interface Props {
     
     onReturnToHome?: () => void;
     isHome?: boolean;
+    returnHomeSaving?: boolean;
     requestConfirm?: (options: { title?: string; message: string; confirmText?: string; cancelText?: string; danger?: boolean }) => Promise<boolean>;
 }
 
@@ -112,7 +113,7 @@ const SettingsModal: React.FC<Props> = ({
     activeTab, onTabChange, onClose,
     apiConfig, visualConfig, gameConfig, memoryConfig, prompts, festivals, currentTheme, history, memorySystem, socialList, runtimeState, currentStory, openingConfig, contextSnapshot,
     onSaveApi, onSaveVisual, onSaveGame, onSaveMemory, onDeleteMemory, onRefineMemories, onRegenerateMapFromMemory, onCreateNpc, onSaveNpc, onDeleteNpc, onStartNpcMemorySummary, onUploadNpcImage, onReplaceVariableSection, onApplyVariableCommand, onUpdatePrompts, onUpdateFestivals, onThemeChange,
-    onReturnToHome, isHome, requestConfirm
+    onReturnToHome, isHome, returnHomeSaving = false, requestConfirm
 }) => {
     const tabItems = [
         { id: 'game', label: '游戏设定' },
@@ -260,12 +261,17 @@ const SettingsModal: React.FC<Props> = ({
                             {!isHome && onReturnToHome && (
                                 <button 
                                     onClick={onReturnToHome}
-                                    className="w-full py-3 border border-red-900/50 text-red-500 hover:bg-red-900/10 hover:text-red-400 hover:border-red-500 text-xs tracking-[0.2em] transition-all flex items-center justify-center gap-2 group"
+                                    disabled={returnHomeSaving}
+                                    className="w-full py-3 border border-red-900/50 text-red-500 hover:bg-red-900/10 hover:text-red-400 hover:border-red-500 text-xs tracking-[0.2em] transition-all flex items-center justify-center gap-2 group disabled:cursor-wait disabled:opacity-70"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 group-hover:-translate-x-1 transition-transform">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-                                    </svg>
-                                    返回首页
+                                    {returnHomeSaving ? (
+                                        <span className="h-4 w-4 animate-spin rounded-full border border-red-400/35 border-t-red-400" aria-hidden="true" />
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 group-hover:-translate-x-1 transition-transform">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                                        </svg>
+                                    )}
+                                    {returnHomeSaving ? '正在保存存档中' : '返回首页'}
                                 </button>
                             )}
                             
@@ -287,9 +293,10 @@ const SettingsModal: React.FC<Props> = ({
                                     {!isHome && onReturnToHome && (
                                         <button
                                             onClick={onReturnToHome}
-                                            className="px-2 py-1 text-[10px] border border-red-900/60 text-red-400 rounded"
+                                            disabled={returnHomeSaving}
+                                            className="px-2 py-1 text-[10px] border border-red-900/60 text-red-400 rounded disabled:cursor-wait disabled:opacity-70"
                                         >
-                                            返回
+                                            {returnHomeSaving ? '保存中' : '返回'}
                                         </button>
                                     )}
                                     <button

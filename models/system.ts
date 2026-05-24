@@ -492,13 +492,44 @@ export interface 同人融合配置结构 {
     附加小说数据集ID: string;
 }
 
+export interface 初始伙伴配置结构 {
+    enabled: boolean;
+    姓名: string;
+    性别: string;
+    年龄: number;
+    出生月: number;
+    出生日: number;
+    外貌: string;
+    性格: string;
+    属性: {
+        力量: number;
+        敏捷: number;
+        体质: number;
+        根骨: number;
+        悟性: number;
+        福源: number;
+    };
+    背景名称: string;
+    背景描述: string;
+    背景效果: string;
+    天赋列表: Array<{
+        名称: string;
+        描述: string;
+        效果: string;
+    }>;
+    关系: string;
+    备注: string;
+}
+
 export interface OpeningConfig {
+    配置约束启用?: boolean;
     题材模式: 题材模式类型;
     初始关系模板: 初始关系模板类型;
     关系侧重: 关系侧重类型[];
     开局切入偏好: 开局切入偏好类型;
     开局生成门派: boolean;
     开局生成同门: boolean;
+    初始伙伴?: 初始伙伴配置结构;
     同人融合: 同人融合配置结构;
 }
 

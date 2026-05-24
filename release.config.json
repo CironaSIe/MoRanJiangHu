@@ -1,12 +1,17 @@
 {
-  "versionCode": 309,
-  "versionName": "1.0.308",
+  "versionCode": 312,
+  "versionName": "1.0.311",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "首页撤下全部第三方站点入口，不再展示或推荐相关服务。",
-    "保留 API 共享说明：愿意支持项目的客户可自愿提供 API 地址和密钥，承诺客户提供的 API key 只用于本项目开发，不用于其他用途。",
+    "新开局新增“开局伙伴”页面：玩家可以直接创建随行同伴，默认开启，也可以关闭。",
+    "开局伙伴支持设置姓名、性别、年龄、生日、外貌、性格、关系、属性、出身、天赋和备注，并和主角一样受到当前难度属性点限制。",
+    "生成开局时，已启用的伙伴会作为第 0 回合已成立、可互动的主要 NPC 写入初始社交档案，不再需要塞到最后一步额外要求里。",
+    "主要女角色姓名改为先提供 100 个姓名库候选给 AI 选择，并保留本地兜底改名，减少固定出现“苏婉儿”等模板名的问题。",
+    "修复角色面板钱财显示换行问题，灵石/货币会保持在同一行展示。",
+    "优化 APK 包体：安卓包不再内置大体积预设物品 PNG，改用已配置的图床预置图，安装包体积大幅降低。",
+    "APK 下载发布链路改为 R2 与 hi168 双源上传，并支持通过 Worker 测速后选择更快下载源。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.308。"
+    "同步更新 Web、APK 与更新清单到 v1.0.311。"
   ],
   "releaseHistory": [
     {
@@ -2994,7 +2999,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-24T18:28:15+08:00",
+  "releasePublishedAt": "2026-05-24T22:12:09+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

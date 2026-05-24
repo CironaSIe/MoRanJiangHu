@@ -45,14 +45,26 @@ const hi168VersionedApkUrl = s3PublicUrl(`${s3Prefix}/MoRanJiangHu-v${releaseInf
 const hi168LatestApkUrl = s3PublicUrl(`${s3Prefix}/latest.apk`);
 const websiteBaseUrl = String(releaseInfo.websiteUrl || '').replace(/\/+$/, '');
 const versionedApkFileName = `MoRanJiangHu-v${releaseInfo.versionName}.apk`;
+const r2VersionedApkKey = `${prefix}/${versionedApkFileName}`;
+const r2LatestApkKey = `${prefix}/latest.apk`;
+const r2VersionedApkUrl = `${legacyDownloadBaseUrl}/${encodeURIComponent(versionedApkFileName)}`;
+const r2LatestApkUrl = `${legacyDownloadBaseUrl}/latest.apk`;
 const versionedApkUrl = readEnv(
   'MORAN_RELEASE_VERSIONED_APK_URL',
   websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedApkFileName)}` : (releaseInfo.apkDownloadUrl || hi168VersionedApkUrl)
 );
 const legacyLatestApkUrl = readEnv('MORAN_RELEASE_LATEST_APK_URL', releaseInfo.apkDownloadUrl || hi168LatestApkUrl);
+const preferredApkProvider = readEnv('MORAN_RELEASE_PREFERRED_APK_PROVIDER', 'r2') === 'hi168' ? 'hi168' : 'r2';
 const apkBuffer = fs.readFileSync(apkPath);
 const apkSha256 = crypto.createHash('sha256').update(apkBuffer).digest('hex');
 const apkSize = apkBuffer.byteLength;
+const providerApkUrls = {
+  r2: websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedApkFileName)}?provider=r2` : r2VersionedApkUrl,
+  hi168: websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedApkFileName)}?provider=hi168` : hi168VersionedApkUrl
+};
+const orderedProviderUrls = preferredApkProvider === 'r2'
+  ? [providerApkUrls.r2, providerApkUrls.hi168]
+  : [providerApkUrls.hi168, providerApkUrls.r2];
 
 const manifest = {
   latest: {
@@ -67,9 +79,15 @@ const manifest = {
     apkUrl: versionedApkUrl,
     latestApkUrl: legacyLatestApkUrl,
     directApkUrl: legacyLatestApkUrl,
+    preferredApkProvider,
+    r2ApkUrl: providerApkUrls.r2,
+    hi168ApkUrl: providerApkUrls.hi168,
+    r2DirectApkUrl: r2VersionedApkUrl,
+    hi168DirectApkUrl: hi168VersionedApkUrl,
     apkUrls: [
       legacyLatestApkUrl,
-      versionedApkUrl
+      versionedApkUrl,
+      ...orderedProviderUrls
     ].filter(Boolean),
     manifestUrl: legacyManifestUrl,
     publishedAt: releaseInfo.releasePublishedAt || new Date().toISOString(),
@@ -215,6 +233,22 @@ if (!versionedApkUrl) {
 }
 
 runWrangler([
+  'r2', 'object', 'put', `${bucket}/${r2VersionedApkKey}`,
+  '--file', apkPath,
+  '--content-type', 'application/vnd.android.package-archive',
+  '--cache-control', 'public,max-age=31536000,immutable',
+  '--remote'
+]);
+
+runWrangler([
+  'r2', 'object', 'put', `${bucket}/${r2LatestApkKey}`,
+  '--file', apkPath,
+  '--content-type', 'application/vnd.android.package-archive',
+  '--cache-control', 'no-store,no-cache,max-age=0,must-revalidate',
+  '--remote'
+]);
+
+runWrangler([
   'r2', 'object', 'put', manifestKey,
   '--file', manifestPath,
   '--content-type', 'application/json',
@@ -269,10 +303,13 @@ for (const item of staleVersionedApks) {
 console.log(`R2 publish complete:
 - latest APK URL: ${legacyLatestApkUrl}
 - versioned APK URL: ${versionedApkUrl}
+- preferredApkProvider=${preferredApkProvider}
+- r2VersionedApkUrl=${r2VersionedApkUrl}
+- hi168VersionedApkUrl=${hi168VersionedApkUrl}
 - ${releaseInfo.updateManifestUrl}
 - apkSha256=${apkSha256}
 - apkSize=${apkSize}
-- uploadedApkBinaryToR2=false
+- uploadedApkBinaryToR2=true
 - keptVersionedApks=${Array.from(keptVersionNames).join(', ')}
 - existingVersionedApks=${existingVersionedApks ? existingVersionedApks.length : 'unknown'}
 - staleVersionedApksDeleted=${deletedCount}`);

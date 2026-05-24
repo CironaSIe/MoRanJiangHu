@@ -333,9 +333,9 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
                 )}
                 <FlatBar label="经验" current={角色.当前经验} max={角色.升级经验} type="exp" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前经验')} />
             </div>
-            <div className="mb-2 shrink-0 border border-gray-800/60 bg-black/30 px-2 py-1 flex items-center justify-between font-mono" style={{ color: 'rgba(209,213,219,1)', fontSize: 缩放字号(1, 14) }}>
-                <span className="text-gray-500">钱财</span>
-                <span className="text-right">
+            <div className="mb-2 shrink-0 border border-gray-800/60 bg-black/30 px-2 py-1 flex items-center justify-between gap-2 overflow-hidden font-mono" style={{ color: 'rgba(209,213,219,1)', fontSize: 缩放字号(1, 14) }}>
+                <span className="shrink-0 whitespace-nowrap text-gray-500">钱财</span>
+                <span className="min-w-0 overflow-x-auto whitespace-nowrap text-right custom-scrollbar">
                     {获取货币单位标签('金元宝', 货币模式)} {金钱变化.金元宝 !== null && <span className={金钱变化.金元宝 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.金元宝 > 0 ? '+' : ''}{金钱变化.金元宝})</span>} {金钱.金元宝}
                     {' / '}{获取货币单位标签('银子', 货币模式)} {金钱变化.银子 !== null && <span className={金钱变化.银子 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.银子 > 0 ? '+' : ''}{金钱变化.银子})</span>} {金钱.银子}
                     {' / '}{获取货币单位标签('铜钱', 货币模式)} {金钱变化.铜钱 !== null && <span className={金钱变化.铜钱 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.铜钱 > 0 ? '+' : ''}{金钱变化.铜钱})</span>} {金钱.铜钱}

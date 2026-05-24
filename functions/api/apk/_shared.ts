@@ -124,6 +124,52 @@ export const buildVersionedApkFileName = (versionName: unknown): string => {
     return safeVersion ? `MoRanJiangHu-v${safeVersion}.apk` : '';
 };
 
+export const pickApkProvider = (request: Request, manifestPayload: any): 'r2' | 'hi168' => {
+    const url = new URL(request.url);
+    const queryProvider = url.searchParams.get('provider') || url.searchParams.get('source');
+    if (queryProvider === 'r2' || queryProvider === 'hi168') return queryProvider;
+    const preferred = String(manifestPayload?.latest?.preferredApkProvider || '').trim();
+    return preferred === 'r2' ? 'r2' : 'hi168';
+};
+
+export const buildVersionedApkHeaders = (
+    fileName: string,
+    sourceHeaders?: Headers,
+    source = 'hi168'
+): Headers => {
+    const headers = new Headers({
+        'Content-Type': 'application/vnd.android.package-archive',
+        'Cache-Control': APK_VERSIONED_CACHE_CONTROL,
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'X-Moran-Apk-Source': source,
+        ...APK_CORS_HEADERS
+    });
+    const contentLength = sourceHeaders?.get('Content-Length');
+    if (contentLength) headers.set('Content-Length', contentLength);
+    const etag = sourceHeaders?.get('ETag');
+    if (etag) headers.set('ETag', etag);
+    const lastModified = sourceHeaders?.get('Last-Modified');
+    if (lastModified) headers.set('Last-Modified', lastModified);
+    return headers;
+};
+
+export const buildR2ApkResponse = async (
+    env: any,
+    key: string,
+    fileName: string,
+    method: 'GET' | 'HEAD',
+    source = 'r2'
+): Promise<Response | null> => {
+    const r2Object = env?.CNB_SYNC_R2 ? await env.CNB_SYNC_R2.get(key) : null;
+    if (!r2Object) return null;
+    const sourceHeaders = new Headers();
+    r2Object.writeHttpMetadata?.(sourceHeaders);
+    if (r2Object.size) sourceHeaders.set('Content-Length', String(r2Object.size));
+    if (r2Object.etag) sourceHeaders.set('ETag', r2Object.etag);
+    const headers = buildVersionedApkHeaders(fileName, sourceHeaders, source);
+    return new Response(method === 'HEAD' ? null : r2Object.body, { status: 200, headers });
+};
+
 export const readManifestPayload = async (env: any): Promise<{ payload: any; sourceHeaders: Headers; etag?: string } | null> => {
     const prefix = readReleaseObjectPrefix(env);
     const key = normalizeObjectKey(`${prefix}/latest.json`);

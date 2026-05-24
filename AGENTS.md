@@ -557,3 +557,16 @@ If the task is "confirm this UI works" and the opening flow depends on external 
   - `hooks/useGame/responseCommandProcessor.ts`
 - Verification: `npm.cmd run build` passed. Build again touched release metadata via `release:sync`; `data/releaseInfo.ts` and `public/release-info.json` were restored because this was not a release task.
 - No deploy was triggered for this fix (per the No Auto-Deploy Rule). Customer-facing changelog text proposed for the next release: "修复 AI 在游玩中偶尔把游戏内日期/历程天数重置成现实时间前一天的问题——新增时间锚点硬约束、每回合向 AI 同步开局时间与已游玩天数，并在命令落地前拦截一切时间回退/重置写入。"
+
+## 2026-05-24 E2E External AI Test Endpoint
+
+- For future end-to-end tests that need a real AI response, use the OpenAI-compatible external test endpoint from local environment variables:
+  - `MORAN_E2E_AI_BASE_URL`
+  - `MORAN_E2E_AI_API_KEY`
+  - `MORAN_E2E_AI_MODEL`
+- Current non-secret endpoint/model memory:
+  - Base URL: `https://ai.bacon123.eu.org/v1`
+  - Model: `流式抗截断/gemini-3.1-pro-preview-search`
+- The API key must stay only in the local user environment variable `MORAN_E2E_AI_API_KEY`.
+- Never write the key into repository files, commits, logs, screenshots, customer changelogs, or chat summaries.
+- Test calls should treat the endpoint as OpenAI-compatible Chat Completions and read configuration from the variables above.

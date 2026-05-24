@@ -32,8 +32,10 @@ const region = readEnv('MORAN_OSS_REGION', 'auto');
 const usePublicReadAcl = readEnv('MORAN_OSS_PUBLIC_READ_ACL', '0') === '1';
 const service = 's3';
 const requestTimeoutMs = Math.max(1000, Number(process.env.MORAN_OSS_TIMEOUT_MS || 10 * 60 * 1000));
-const multipartThresholdBytes = Math.max(5 * 1024 * 1024, Number(process.env.MORAN_OSS_MULTIPART_THRESHOLD_BYTES || 32 * 1024 * 1024));
+const multipartThresholdBytes = Math.max(5 * 1024 * 1024, Number(process.env.MORAN_OSS_MULTIPART_THRESHOLD_BYTES || 512 * 1024 * 1024));
 const multipartPartBytes = Math.max(5 * 1024 * 1024, Number(process.env.MORAN_OSS_MULTIPART_PART_BYTES || 8 * 1024 * 1024));
+const uploadLatestApk = readEnv('MORAN_OSS_UPLOAD_LATEST_APK', '0') === '1';
+const skipApkUpload = readEnv('MORAN_OSS_SKIP_APK_UPLOAD', '0') === '1';
 
 if (!bucket || !accessKey || !secretKey) {
   throw new Error('Missing MORAN_OSS_BUCKET, MORAN_OSS_ACCESS_KEY, or MORAN_OSS_SECRET_KEY.');
@@ -51,6 +53,16 @@ const latestKey = normalizeKey(`${prefix}/latest.apk`);
 const versionedKey = normalizeKey(`${prefix}/MoRanJiangHu-v${releaseInfo.versionName}.apk`);
 const versionedFileName = path.basename(versionedKey);
 const manifestKey = normalizeKey(`${prefix}/latest.json`);
+const websiteBaseUrl = String(releaseInfo.websiteUrl || '').replace(/\/+$/, '');
+const r2PublicBaseUrl = readEnv('MORAN_R2_PUBLIC_BASE_URL', `https://download.bacon.de5.net/${releaseInfo.r2Prefix || 'moranjianghu'}`).replace(/\/+$/, '');
+const preferredApkProvider = readEnv('MORAN_RELEASE_PREFERRED_APK_PROVIDER', 'r2') === 'hi168' ? 'hi168' : 'r2';
+const providerApkUrls = {
+  r2: websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}?provider=r2` : `${r2PublicBaseUrl}/${encodeURIComponent(versionedFileName)}`,
+  hi168: websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}?provider=hi168` : publicUrl(versionedKey)
+};
+const orderedProviderUrls = preferredApkProvider === 'r2'
+  ? [providerApkUrls.r2, providerApkUrls.hi168]
+  : [providerApkUrls.hi168, providerApkUrls.r2];
 const apkBuffer = fs.readFileSync(apkPath);
 const apkSha256 = crypto.createHash('sha256').update(apkBuffer).digest('hex');
 const apkSize = apkBuffer.byteLength;
@@ -65,12 +77,18 @@ const manifest = {
     websiteUrl: releaseInfo.websiteUrl,
     githubRepoUrl: releaseInfo.githubRepoUrl,
     releaseNotesUrl: releaseInfo.releaseNotesUrl,
-    apkUrl: `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/version/${encodeURIComponent(versionedFileName)}`,
-    latestApkUrl: `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/latest.apk`,
-    directApkUrl: `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/latest.apk`,
+    apkUrl: `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}`,
+    latestApkUrl: `${websiteBaseUrl}/api/apk/latest.apk`,
+    directApkUrl: `${websiteBaseUrl}/api/apk/latest.apk`,
+    preferredApkProvider,
+    r2ApkUrl: providerApkUrls.r2,
+    hi168ApkUrl: providerApkUrls.hi168,
+    r2DirectApkUrl: `${r2PublicBaseUrl}/${encodeURIComponent(versionedFileName)}`,
+    hi168DirectApkUrl: publicUrl(versionedKey),
     apkUrls: [
-      `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/latest.apk`,
-      `${String(releaseInfo.websiteUrl || '').replace(/\/+$/, '')}/api/apk/version/${encodeURIComponent(versionedFileName)}`
+      `${websiteBaseUrl}/api/apk/latest.apk`,
+      `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}`,
+      ...orderedProviderUrls
     ],
     manifestUrl: publicUrl(manifestKey),
     publishedAt: releaseInfo.releasePublishedAt || new Date().toISOString(),
@@ -290,16 +308,22 @@ const putObject = async ({ key, filePath, body, contentType }) => {
   }
 };
 
-await putObject({
-  key: latestKey,
-  filePath: apkPath,
-  contentType: 'application/vnd.android.package-archive'
-});
-await putObject({
-  key: versionedKey,
-  filePath: apkPath,
-  contentType: 'application/vnd.android.package-archive'
-});
+if (skipApkUpload) {
+  console.log(`[S3] APK upload skipped by MORAN_OSS_SKIP_APK_UPLOAD=1: ${versionedKey}`);
+} else {
+  await putObject({
+    key: versionedKey,
+    filePath: apkPath,
+    contentType: 'application/vnd.android.package-archive'
+  });
+  if (uploadLatestApk) {
+    await putObject({
+      key: latestKey,
+      filePath: apkPath,
+      contentType: 'application/vnd.android.package-archive'
+    });
+  }
+}
 await putObject({
   key: manifestKey,
   filePath: manifestPath,
@@ -307,8 +331,8 @@ await putObject({
 });
 
 console.log(`S3 publish complete:
-- ${publicUrl(latestKey)}
 - ${publicUrl(manifestKey)}
 - ${publicUrl(versionedKey)}
+- latest.apk object upload=${uploadLatestApk ? 'enabled' : 'skipped; website latest endpoint redirects to the versioned APK'}
 - apkSha256=${apkSha256}
 - apkSize=${apkSize}`);

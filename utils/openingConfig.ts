@@ -1,5 +1,6 @@
 import type {
     OpeningConfig,
+    初始伙伴配置结构,
     同人角色替换规则结构,
     游戏难度,
     初始关系模板类型,
@@ -10,7 +11,7 @@ import type {
     同人融合强度类型
 } from '../types';
 
-export const 新开局步骤列表 = ['世界观', '角色基础', '天赋背景', '开局配置', '确认生成'] as const;
+export const 新开局步骤列表 = ['世界观', '角色基础', '天赋背景', '开局伙伴', '开局配置', '确认生成'] as const;
 
 export const 属性键列表 = ['力量', '敏捷', '体质', '根骨', '悟性', '福源'] as const;
 export const 默认属性值 = 3;
@@ -156,12 +157,14 @@ export const 同人融合强度选项: Array<{ value: 同人融合强度类型; 
 ];
 
 export const 默认开局配置 = (): OpeningConfig => ({
+    配置约束启用: true,
     题材模式: '武侠',
     初始关系模板: '师门牵引',
     关系侧重: ['师门', '友情'],
     开局切入偏好: '日常低压',
     开局生成门派: true,
     开局生成同门: true,
+    初始伙伴: 默认初始伙伴配置(),
     同人融合: {
         enabled: false,
         作品名: '',
@@ -175,6 +178,24 @@ export const 默认开局配置 = (): OpeningConfig => ({
         启用附加小说: false,
         附加小说数据集ID: ''
     }
+});
+
+export const 默认初始伙伴配置 = (): 初始伙伴配置结构 => ({
+    enabled: true,
+    姓名: '',
+    性别: '女',
+    年龄: 18,
+    出生月: 1,
+    出生日: 1,
+    外貌: '眉眼清亮，衣着利落，随身带着惯用行囊。',
+    性格: '稳重可靠，重诺守信，遇事会主动提醒主角风险。',
+    属性: 创建默认属性分配(),
+    背景名称: '',
+    背景描述: '',
+    背景效果: '',
+    天赋列表: [],
+    关系: '自幼相识的同行伙伴',
+    备注: ''
 });
 
 const 读取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
@@ -255,6 +276,52 @@ export const 创建默认属性分配 = () => ({
     福源: 默认属性值
 });
 
+const 规范化属性分配 = (value: any) => {
+    const fallback = 创建默认属性分配();
+    const result = { ...fallback };
+    属性键列表.forEach((key) => {
+        const num = Number(value?.[key]);
+        result[key] = Number.isFinite(num)
+            ? Math.max(属性最小值, Math.min(属性最大值, Math.floor(num)))
+            : fallback[key];
+    });
+    return result;
+};
+
+const 规范化天赋列表 = (value: unknown): 初始伙伴配置结构['天赋列表'] => (
+    Array.isArray(value)
+        ? value
+            .map((item: any) => ({
+                名称: 读取文本(item?.名称),
+                描述: 读取文本(item?.描述),
+                效果: 读取文本(item?.效果)
+            }))
+            .filter((item) => item.名称 && item.描述 && item.效果)
+            .slice(0, 3)
+        : []
+);
+
+export const 规范化初始伙伴配置 = (raw?: any): 初始伙伴配置结构 => {
+    const fallback = 默认初始伙伴配置();
+    return {
+        enabled: raw?.enabled !== false,
+        姓名: 读取文本(raw?.姓名),
+        性别: 读取文本(raw?.性别) || fallback.性别,
+        年龄: Number.isFinite(Number(raw?.年龄)) ? Math.max(1, Math.floor(Number(raw.年龄))) : fallback.年龄,
+        出生月: Number.isFinite(Number(raw?.出生月)) ? Math.max(1, Math.min(12, Math.floor(Number(raw.出生月)))) : fallback.出生月,
+        出生日: Number.isFinite(Number(raw?.出生日)) ? Math.max(1, Math.min(30, Math.floor(Number(raw.出生日)))) : fallback.出生日,
+        外貌: 读取文本(raw?.外貌) || fallback.外貌,
+        性格: 读取文本(raw?.性格) || fallback.性格,
+        属性: 规范化属性分配(raw?.属性),
+        背景名称: 读取文本(raw?.背景名称),
+        背景描述: 读取文本(raw?.背景描述),
+        背景效果: 读取文本(raw?.背景效果),
+        天赋列表: 规范化天赋列表(raw?.天赋列表),
+        关系: 读取文本(raw?.关系) || fallback.关系,
+        备注: 读取文本(raw?.备注)
+    };
+};
+
 export const 规范化开局配置 = (raw?: any): OpeningConfig => {
     const fallback = 默认开局配置();
     const 题材模式 = 题材模式选项.some((item) => item.value === raw?.题材模式)
@@ -280,12 +347,14 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
         : fallback.同人融合.融合强度;
 
     return {
+        配置约束启用: raw?.配置约束启用 !== false,
         题材模式,
         初始关系模板,
         关系侧重: 关系侧重.length > 0 ? 关系侧重 : fallback.关系侧重,
         开局切入偏好,
         开局生成门派: raw?.开局生成门派 !== false,
         开局生成同门: raw?.开局生成同门 !== false,
+        初始伙伴: 规范化初始伙伴配置(raw?.初始伙伴 ?? fallback.初始伙伴),
         同人融合: {
             enabled: raw?.同人融合?.enabled === true,
             作品名: 读取文本(raw?.同人融合?.作品名),

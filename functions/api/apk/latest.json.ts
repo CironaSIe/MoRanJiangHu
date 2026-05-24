@@ -36,6 +36,12 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
             : `${baseUrl}/api/apk/latest.apk`;
         const stableManifestUrl = `${baseUrl}/api/apk/latest.json`;
         const latestApkUrl = `${baseUrl}/api/apk/latest.apk`;
+        const r2ApkUrl = versionedFileName
+            ? `${baseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}?provider=r2`
+            : `${baseUrl}/api/apk/latest.apk?provider=r2`;
+        const hi168ApkUrl = versionedFileName
+            ? `${baseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}?provider=hi168`
+            : `${baseUrl}/api/apk/latest.apk?provider=hi168`;
         const nextPayload = {
             ...payload,
             latest: {
@@ -44,8 +50,12 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
                 directApkUrl: latestApkUrl,
                 apkUrls: [
                     latestApkUrl,
-                    stableApkUrl
+                    stableApkUrl,
+                    r2ApkUrl,
+                    hi168ApkUrl
                 ].filter(Boolean),
+                r2ApkUrl,
+                hi168ApkUrl,
                 latestApkUrl,
                 manifestUrl: stableManifestUrl
             }
