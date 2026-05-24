@@ -829,6 +829,163 @@ html[data-theme="day"] .sect-modal-body {
   background-color: rgba(255, 252, 244, 0.78) !important;
 }
 
+.landing-presence-panel {
+  --landing-presence-line-start: #34d399;
+  --landing-presence-line-end: #38bdf8;
+  --landing-presence-area: #34d399;
+  --landing-presence-grid: rgba(255, 255, 255, 0.08);
+  --landing-presence-dot: #6ee7b7;
+  --landing-presence-current-dot: #fef3c7;
+  --landing-presence-selected-fill: rgba(8, 12, 10, 0.72);
+  --landing-presence-selected-stroke: #ecfdf5;
+  --landing-presence-hover-line: rgba(236, 253, 245, 0.42);
+  --landing-presence-tooltip-bg: rgba(5, 12, 10, 0.86);
+  --landing-presence-tooltip-text: #ecfdf5;
+}
+
+.landing-presence-metric {
+  min-width: 0;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+}
+
+.landing-presence-axis-label {
+  fill: rgba(236, 253, 245, 0.62);
+}
+
+.landing-presence-axis-date {
+  fill: rgba(236, 253, 245, 0.46);
+}
+
+.landing-presence-hover-line {
+  stroke: var(--landing-presence-hover-line);
+}
+
+.landing-presence-tooltip-bg {
+  fill: var(--landing-presence-tooltip-bg);
+}
+
+.landing-presence-tooltip-text {
+  fill: var(--landing-presence-tooltip-text);
+}
+
+.landing-discord-thread-button {
+  border-color: rgba(129, 140, 248, 0.45);
+  background-color: rgba(99, 102, 241, 0.16);
+  color: #e0e7ff;
+}
+
+.landing-discord-thread-button:hover {
+  background-color: rgba(99, 102, 241, 0.26);
+}
+
+html[data-theme="day"] .landing-discord-thread-button {
+  border-color: rgba(67, 56, 202, 0.42) !important;
+  background-color: rgba(224, 231, 255, 0.78) !important;
+  color: #3730a3 !important;
+  box-shadow: 0 8px 18px rgba(67, 56, 202, 0.14) !important;
+}
+
+html[data-theme="day"] .landing-discord-thread-button:hover {
+  background-color: rgba(199, 210, 254, 0.92) !important;
+  color: #312e81 !important;
+}
+
+html[data-theme="day"] .landing-presence-panel {
+  --landing-presence-line-start: #047857;
+  --landing-presence-line-end: #0369a1;
+  --landing-presence-area: #047857;
+  --landing-presence-grid: rgba(6, 95, 70, 0.18);
+  --landing-presence-dot: #047857;
+  --landing-presence-current-dot: #b45309;
+  --landing-presence-selected-fill: rgba(255, 252, 244, 0.92);
+  --landing-presence-selected-stroke: #065f46;
+  --landing-presence-hover-line: rgba(6, 95, 70, 0.38);
+  --landing-presence-tooltip-bg: rgba(255, 252, 244, 0.96);
+  --landing-presence-tooltip-text: #065f46;
+  background: rgba(236, 253, 245, 0.5) !important;
+  background-color: rgba(236, 253, 245, 0.5) !important;
+  border-color: rgba(5, 150, 105, 0.32) !important;
+  box-shadow: 0 10px 26px rgba(15, 118, 110, 0.12) !important;
+}
+
+html[data-theme="day"] .landing-presence-label {
+  color: #047857 !important;
+}
+
+html[data-theme="day"] .landing-presence-label--recent,
+html[data-theme="day"] .landing-presence-recent {
+  color: #0369a1 !important;
+}
+
+html[data-theme="day"] .landing-presence-online,
+html[data-theme="day"] .landing-presence-peak-value {
+  color: #065f46 !important;
+}
+
+html[data-theme="day"] .landing-presence-label--peak {
+  color: #047857 !important;
+}
+
+html[data-theme="day"] .landing-presence-axis-label {
+  fill: rgba(55, 65, 81, 0.78) !important;
+}
+
+html[data-theme="day"] .landing-presence-axis-date {
+  fill: rgba(75, 85, 99, 0.68) !important;
+}
+
+@media (min-width: 1024px) and (max-height: 900px) {
+  .landing-hero-section,
+  .landing-dashboard-row,
+  .landing-friend-links {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+  }
+
+  .landing-hero-section {
+    min-height: auto !important;
+    margin-top: 0.5rem;
+  }
+
+  .landing-hero-section > div:first-child {
+    margin-bottom: 1rem !important;
+  }
+
+  .landing-hero-section > div:last-child {
+    gap: 0.5rem !important;
+  }
+
+  .landing-hero-section > div:last-child button {
+    padding-top: 0.6rem !important;
+    padding-bottom: 0.6rem !important;
+  }
+
+  .landing-dashboard-row {
+    height: auto !important;
+    max-height: none !important;
+    margin-top: 1rem;
+    overflow: visible !important;
+  }
+
+  .landing-dashboard-row > * {
+    min-height: 212px;
+  }
+
+  .landing-friend-links {
+    height: auto !important;
+    margin-top: 1rem;
+  }
+}
+
 html[data-theme="day"] .mobile-chat-message-bubble,
 html[data-theme="day"] .mobile-chat-message-bubble *,
 html[data-theme="day"] .mobile-chat-dialogue-bubble,

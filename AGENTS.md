@@ -77,6 +77,7 @@
 - If the only meaningful change is documentation or static guide content, and the user explicitly asks to deploy without updating the version number, do not bump `versionName`, `versionCode`, or `releasePublishedAt`.
 - This exception applies to documentation-only changes such as `public/cnb-comfyui-guide.html`, changelog wording, README/AGENTS updates, or other customer-facing guide text that does not change app behavior, APK contents, update manifest, or runtime code.
 - For documentation-only deploys, still run a local build, deploy the website/Worker with proxy variables cleared, verify the updated public guide URL over HTTPS, and report that the version number was intentionally unchanged because it was a documentation-only deployment.
+- This exception also applies to non-game-content support/link updates, such as homepage or release-modal support entries, invitation/referral links, benefit descriptions, sponsorship wording, or external help links, when the user explicitly says they do not belong to game content and asks to deploy without a version bump or release notes.
 - For future documentation-only deploy requests, follow this rule by default once the user explicitly asks to deploy.
 
 ## Local File Reference Rules
@@ -95,6 +96,25 @@
 ## Local UI Debug Path
 
 When the target is UI verification, layout validation, mobile top-bar checks, or APK/web consistency checks, do not block on model or API configuration first. Prefer entering a real in-game view from an existing save.
+
+## Screenshot Preview Rule
+
+- Before capturing homepage or UI preview screenshots for the user, close or dismiss the release notes/update log modal first.
+- If the modal still appears after localStorage setup or reload, actively click its close/dismiss control before taking the screenshot.
+- Do not show the user a screenshot where the update log blocks the layout being reviewed unless the modal itself is the subject of the check.
+
+## Homepage Layout Overlap Rule
+
+- Homepage panels, sidebars, online stats, release info, support links, friend links, and footer blocks must not overlap the original centered title/menu column.
+- Before showing or deploying homepage layout changes, verify at the default `2560x1440` viewport that the bottom info row does not cover the `设置` button or any other main menu button.
+- If content is too tall, reduce panel density, add internal scrolling, or move the panel; never allow visible UI elements to stack on top of each other.
+
+## Frontend Day Mode Readability Rule
+
+- For every frontend/UI change, check white/day mode readability before treating the task as done.
+- New buttons, links, panels, badges, tooltips, chart labels, and helper text must have sufficient contrast in `day` theme as well as dark themes.
+- If using Tailwind semantic colors such as indigo, violet, sky, amber, or low-opacity text/backgrounds, add explicit `html[data-theme="day"]` overrides or stable component classes when needed.
+- Before deploying frontend changes, include at least one local browser/Playwright check in day mode for the changed surface and confirm text is readable.
 
 ## UI Loading Background Rule
 

@@ -1,16 +1,36 @@
 {
-  "versionCode": 305,
-  "versionName": "1.0.304",
+  "versionCode": 307,
+  "versionName": "1.0.306",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "本地存档时间树同步修复：从对象存储增量导入全部存档后，本地会立即校正谱系，不再出现同一存档被拆成多行或中途另开一条线。",
-    "新谱系自动存档不再被旧的“只保留少量自动档”规则清掉，历史节点会完整保留，方便回看和选择回合。",
-    "导入旧对象存储存档时会自动处理断父节点、多个第 0 回合根节点、半截旧节点等情况；可确定属于同一开局的会接回连续时间树，无法确认的会拆成独立本地谱系，避免互相串线。",
-    "已用浏览器端到端验证：对象存储云端 76 条存档可完整增量导入本地，本地保留 76 条，所有本地谱系均从第 0 回合连续开始，无缺父节点。",
+    "修复首页白天模式下 Discord 独立贴入口颜色过浅、文字不清晰的问题。",
+    "首页右上角保留 Discord 独立贴入口，玩家可直接前往点赞支持项目，也可集中反馈问题。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.304。"
+    "同步更新 Web、APK 与更新清单到 v1.0.306。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.306",
+      "versionCode": 307,
+      "publishedAt": "2026-05-24T15:18:29+08:00",
+      "changes": [
+        "修复首页白天模式下 Discord 独立贴入口颜色过浅、文字不清晰的问题。",
+        "首页右上角保留 Discord 独立贴入口，玩家可直接前往点赞支持项目，也可集中反馈问题。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.306。"
+      ]
+    },
+    {
+      "versionName": "1.0.305",
+      "versionCode": 306,
+      "publishedAt": "2026-05-24T15:11:53+08:00",
+      "changes": [
+        "首页右上角新增 Discord 独立贴入口，玩家可直接前往点赞支持项目，也可集中反馈问题。",
+        "优化项目反馈入口提示，减少玩家找不到反馈渠道的情况。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web 与更新信息到 v1.0.305。"
+      ]
+    },
     {
       "versionName": "1.0.304",
       "versionCode": 305,
@@ -2966,7 +2986,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-24T03:42:32+08:00",
+  "releasePublishedAt": "2026-05-24T15:18:29+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
