@@ -15,6 +15,29 @@ const 读取历史用户输入 = (save: Partial<存档结构>, startIndex = 0): 
     return 截断连线文本((user as any)?.content || '');
 };
 
+const 读取历史长度 = (save: Partial<存档结构>): number => (
+    Array.isArray(save.历史记录) ? save.历史记录.length : 0
+);
+
+const 读取首条历史签名 = (save: Partial<存档结构>): string => {
+    const history = Array.isArray(save.历史记录) ? save.历史记录 : [];
+    return JSON.stringify(history[0] || null);
+};
+
+const 是同一开局候选 = (save: Partial<存档结构>, candidate: Partial<存档结构>): boolean => {
+    const currentName = readText(save.角色数据?.姓名);
+    const candidateName = readText(candidate.角色数据?.姓名);
+    if (currentName && candidateName && currentName !== candidateName) return false;
+
+    const currentInitialTime = readText(save.游戏初始时间);
+    const candidateInitialTime = readText(candidate.游戏初始时间);
+    if (currentInitialTime && candidateInitialTime) return currentInitialTime === candidateInitialTime;
+
+    const currentFirstHistory = 读取首条历史签名(save);
+    const candidateFirstHistory = 读取首条历史签名(candidate);
+    return currentFirstHistory === candidateFirstHistory;
+};
+
 const 读取谱系回合数 = (save: Partial<存档结构>): number => {
     const explicit = Number((save.元数据 as any)?.游戏回合数);
     if (Number.isFinite(explicit) && explicit >= 0) return Math.floor(explicit);
@@ -80,6 +103,28 @@ export const 选择存档父节点 = (
         })[0] || null;
 };
 
+const 选择可继承系列父节点 = (
+    save: Partial<存档结构>,
+    candidates: Array<Partial<存档结构>>
+): Partial<存档结构> | null => {
+    const currentHash = 读取存档谱系哈希(save);
+    const currentAutoNodeId = readText((save.元数据 as any)?.自动存档节点ID);
+    const historyCount = 读取历史长度(save);
+    const timestamp = Number(save.时间戳 || 0);
+    return candidates
+        .filter((item) => 读取存档谱系哈希(item) && 读取存档谱系哈希(item) !== currentHash)
+        .filter((item) => readText((item.元数据 as any)?.存档系列ID))
+        .filter((item) => !currentAutoNodeId || readText((item.元数据 as any)?.自动存档节点ID) !== currentAutoNodeId)
+        .filter((item) => 是同一开局候选(save, item))
+        .filter((item) => 读取历史长度(item) <= historyCount)
+        .filter((item) => Number(item.时间戳 || 0) <= timestamp || timestamp <= 0)
+        .sort((a, b) => {
+            const byHistory = 读取历史长度(b) - 读取历史长度(a);
+            if (byHistory !== 0) return byHistory;
+            return Number(b.时间戳 || 0) - Number(a.时间戳 || 0);
+        })[0] || null;
+};
+
 export const 补全存档谱系元数据 = <T extends Partial<存档结构>>(
     save: T,
     candidates: Array<Partial<存档结构>> = []
@@ -87,7 +132,11 @@ export const 补全存档谱系元数据 = <T extends Partial<存档结构>>(
     const metadata: Record<string, unknown> = {
         ...((save.元数据 && typeof save.元数据 === 'object') ? save.元数据 : {})
     };
-    const seriesId = readText(metadata.存档系列ID) || 读取存档系列ID({ ...save, 元数据: metadata } as Partial<存档结构>);
+    const inheritedParent = !readText(metadata.存档系列ID)
+        ? 选择可继承系列父节点({ ...save, 元数据: metadata } as Partial<存档结构>, candidates)
+        : null;
+    const inheritedSeriesId = readText((inheritedParent?.元数据 as any)?.存档系列ID);
+    const seriesId = readText(metadata.存档系列ID) || inheritedSeriesId || 读取存档系列ID({ ...save, 元数据: metadata } as Partial<存档结构>);
     metadata.存档系列ID = seriesId;
     const explicitParentHash = readText(metadata.存档父节点哈希);
     const explicitRootHash = readText(metadata.存档根节点哈希);

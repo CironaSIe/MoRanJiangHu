@@ -1,14 +1,27 @@
 {
-  "versionCode": 307,
-  "versionName": "1.0.306",
+  "versionCode": 308,
+  "versionName": "1.0.307",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复首页白天模式下 Discord 独立贴入口颜色过浅、文字不清晰的问题。",
-    "首页右上角保留 Discord 独立贴入口，玩家可直接前往点赞支持项目，也可集中反馈问题。",
+    "修复新存档时间树断线问题：新产生的手动/自动存档会先继承同一开局的上一节点系列，再接到正确父节点，减少换地点后另开一条线的情况。",
+    "保存流程改为在读取到本地已有存档后再补全谱系，避免提前按当前地点生成新的本地系列。",
+    "已用本地浏览器 IndexedDB 模拟连续保存验证：跨“培强院、英道、山门、藏经阁”等地点后，父节点、根节点、回合数和深度保持连续。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.306。"
+    "同步更新 Web、APK 与更新清单到 v1.0.307。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.307",
+      "versionCode": 308,
+      "publishedAt": "2026-05-24T15:35:07+08:00",
+      "changes": [
+        "修复新存档时间树断线问题：新产生的手动/自动存档会先继承同一开局的上一节点系列，再接到正确父节点，减少换地点后另开一条线的情况。",
+        "保存流程改为在读取到本地已有存档后再补全谱系，避免提前按当前地点生成新的本地系列。",
+        "已用本地浏览器 IndexedDB 模拟连续保存验证：跨“培强院、英道、山门、藏经阁”等地点后，父节点、根节点、回合数和深度保持连续。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "同步更新 Web、APK 与更新清单到 v1.0.307。"
+      ]
+    },
     {
       "versionName": "1.0.306",
       "versionCode": 307,
@@ -2986,7 +2999,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-24T15:18:29+08:00",
+  "releasePublishedAt": "2026-05-24T15:35:07+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

@@ -114,6 +114,58 @@ describe('存档谱系补全', () => {
         }));
     });
 
+    it('新存档当前地点变化时，会继承已有父节点系列并连续接上', () => {
+        const root: any = {
+            id: 1,
+            类型: 'manual',
+            时间戳: 1779000000000,
+            游戏初始时间: '1:01:01:08:00',
+            角色数据: { 姓名: '杨培强' },
+            环境信息: { 具体地点: '培强院' },
+            历史记录: [
+                { role: 'assistant', structuredResponse: { logs: [] } },
+                { role: 'user', content: '出门去英道' }
+            ],
+            元数据: {
+                存档哈希: 'aaaaaaaaaaaaaaaa',
+                存档系列ID: 'series-stable-root',
+                存档根节点哈希: 'aaaaaaaaaaaaaaaa',
+                存档父节点哈希: '',
+                存档谱系版本: 1,
+                存档谱系深度: 0,
+                游戏回合数: 0,
+                存档分支输入: '开局'
+            }
+        };
+        const next: any = {
+            类型: 'auto',
+            时间戳: 1779000005000,
+            游戏初始时间: '1:01:01:08:00',
+            角色数据: { 姓名: '杨培强' },
+            环境信息: { 具体地点: '英道' },
+            历史记录: [
+                { role: 'assistant', structuredResponse: { logs: [] } },
+                { role: 'user', content: '出门去英道' },
+                { role: 'assistant', structuredResponse: { logs: [] } },
+                { role: 'user', content: '继续前行' }
+            ],
+            元数据: {
+                存档哈希: 'bbbbbbbbbbbbbbbb',
+                游戏回合数: 1
+            }
+        };
+
+        const normalized = 补全存档谱系元数据(next, [root]);
+
+        expect(normalized.元数据).toEqual(expect.objectContaining({
+            存档系列ID: 'series-stable-root',
+            存档根节点哈希: 'aaaaaaaaaaaaaaaa',
+            存档父节点哈希: 'aaaaaaaaaaaaaaaa',
+            存档谱系深度: 1,
+            存档分支输入: '继续前行'
+        }));
+    });
+
     it('本地只下载到缺父节点的半截谱系时，不会硬修成新根', () => {
         const childOnly: any = {
             id: 2,
