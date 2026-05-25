@@ -181,6 +181,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
     const [charAge, setCharAge] = useState(18);
     const [charAppearance, setCharAppearance] = useState('黑发黑眸，面容清秀，衣着朴素利落。');
     const [charPersonality, setCharPersonality] = useState('外冷内热，谨慎克制，遇事先观察再出手。');
+    const [charAvatarUrl, setCharAvatarUrl] = useState('');
+    const [charPortraitUrl, setCharPortraitUrl] = useState('');
     const [birthMonth, setBirthMonth] = useState(1);
     const [birthDay, setBirthDay] = useState(1);
     const [monthOpen, setMonthOpen] = useState(false);
@@ -201,6 +203,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
     const [partnerBirthDay, setPartnerBirthDay] = useState(1);
     const [partnerAppearance, setPartnerAppearance] = useState('眉眼清亮，衣着利落，随身带着惯用行囊。');
     const [partnerPersonality, setPartnerPersonality] = useState('稳重可靠，重诺守信，遇事会主动提醒主角风险。');
+    const [partnerAvatarUrl, setPartnerAvatarUrl] = useState('');
+    const [partnerPortraitUrl, setPartnerPortraitUrl] = useState('');
     const [partnerRelation, setPartnerRelation] = useState('自幼相识的同行伙伴');
     const [partnerNote, setPartnerNote] = useState('');
     const [partnerStats, setPartnerStats] = useState<属性结构>(创建默认属性分配);
@@ -347,6 +351,26 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
             .filter((item): item is 天赋结构 => Boolean(item))
             .slice(0, 3)
     );
+    const 读取图片文件 = (file: File, setter: (value: string) => void) => {
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = () => setter(typeof reader.result === 'string' ? reader.result : '');
+        reader.readAsDataURL(file);
+    };
+    const 构建开局图片档案 = (avatarUrl: string, portraitUrl: string, prefix: string) => {
+        const history: any[] = [];
+        const avatar = avatarUrl.trim();
+        const portrait = portraitUrl.trim();
+        if (avatar) {
+            history.push({ id: `${prefix}_avatar`, 构图: '头像', 状态: 'success', 图片URL: avatar, 本地路径: avatar, 生图词组: '开局前玩家设置头像', 原始描述: '开局前玩家设置头像', 使用模型: 'manual-upload', 生成时间: Date.now() });
+        }
+        if (portrait) {
+            history.push({ id: `${prefix}_portrait`, 构图: '立绘', 状态: 'success', 图片URL: portrait, 本地路径: portrait, 生图词组: '开局前玩家设置立绘', 原始描述: '开局前玩家设置立绘', 使用模型: 'manual-upload', 生成时间: Date.now() - 1 });
+        }
+        return history.length > 0
+            ? { 最近生图结果: history[0], 生图历史: history, ...(avatar ? { 已选头像图片ID: `${prefix}_avatar` } : {}), ...(portrait ? { 已选立绘图片ID: `${prefix}_portrait` } : {}) }
+            : undefined;
+    };
     const 构建角色数据 = (params?: {
         角色名?: string;
         性别?: string;
@@ -475,8 +499,13 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
             总最大血量 - 头部最大血量 - 胸部最大血量 - 腹部最大血量 - 左手最大血量 - 右手最大血量 - 左腿最大血量
         );
 
+        const avatarUrl = charAvatarUrl.trim();
+        const portraitUrl = charPortraitUrl.trim();
+        const imageArchive = 构建开局图片档案(avatarUrl, portraitUrl, 'opening_player');
         return {
             出生日期: `${params?.出生月 ?? birthMonth}月${params?.出生日 ?? birthDay}日`,
+            ...(avatarUrl ? { 头像图片URL: avatarUrl } : {}),
+            ...(imageArchive ? { 图片档案: imageArchive, 最近生图结果: imageArchive.最近生图结果 } : {}),
             ...(最终属性 as any),
             姓名: (params?.角色名 ?? charName).trim(),
             性别: (params?.性别 ?? charGender).trim() || '未设定',
@@ -533,6 +562,9 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
         setPartnerBirthDay(normalizedPartner.出生日);
         setPartnerAppearance(normalizedPartner.外貌);
         setPartnerPersonality(normalizedPartner.性格);
+        setPartnerAvatarUrl(normalizedPartner.头像图片URL || '');
+        const partnerHistory = Array.isArray(normalizedPartner.图片档案?.生图历史) ? normalizedPartner.图片档案.生图历史 : [];
+        setPartnerPortraitUrl(String(partnerHistory.find((item: any) => item?.id === normalizedPartner.图片档案?.已选立绘图片ID)?.图片URL || partnerHistory.find((item: any) => item?.构图 === '立绘')?.图片URL || ''));
         setPartnerRelation(normalizedPartner.关系);
         setPartnerNote(normalizedPartner.备注);
         setPartnerStats(normalizedPartner.属性);
@@ -868,6 +900,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
             外貌: partnerAppearance.trim(),
             性格: partnerPersonality.trim(),
             属性: partnerStats,
+            头像图片URL: partnerAvatarUrl.trim(),
+            图片档案: 构建开局图片档案(partnerAvatarUrl, partnerPortraitUrl, 'opening_partner'),
             背景名称: partnerBackground.名称,
             背景描述: partnerBackground.描述,
             背景效果: partnerBackground.效果,
@@ -1613,6 +1647,29 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
                                             </div>
                                         </div>
                                     </OrnateBorder>
+                                    <OrnateBorder className="p-6">
+                                        <div className="space-y-3">
+                                            <label className="text-sm text-wuxia-cyan font-bold">开局影像</label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-2">
+                                                    <div className="aspect-square rounded-lg border border-wuxia-gold/25 bg-black/40 overflow-hidden flex items-center justify-center text-xs text-gray-500">
+                                                        {charAvatarUrl ? <img src={charAvatarUrl} alt="主角头像预览" className="h-full w-full object-cover" /> : '头像'}
+                                                    </div>
+                                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && 读取图片文件(e.target.files[0], setCharAvatarUrl)} className="text-[11px] text-gray-400 file:mr-2 file:rounded file:border-0 file:bg-wuxia-gold/20 file:px-2 file:py-1 file:text-wuxia-gold" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="aspect-square rounded-lg border border-wuxia-gold/25 bg-black/40 overflow-hidden flex items-center justify-center text-xs text-gray-500">
+                                                        {charPortraitUrl ? <img src={charPortraitUrl} alt="主角立绘预览" className="h-full w-full object-contain" /> : '立绘'}
+                                                    </div>
+                                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && 读取图片文件(e.target.files[0], setCharPortraitUrl)} className="text-[11px] text-gray-400 file:mr-2 file:rounded file:border-0 file:bg-wuxia-gold/20 file:px-2 file:py-1 file:text-wuxia-gold" />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input value={charAvatarUrl.startsWith('data:') ? '' : charAvatarUrl} onChange={(e) => setCharAvatarUrl(e.target.value)} placeholder="头像 URL，可选" className="w-full bg-black/50 border border-gray-700 focus:border-wuxia-gold p-2 text-xs text-white outline-none rounded" />
+                                                <input value={charPortraitUrl.startsWith('data:') ? '' : charPortraitUrl} onChange={(e) => setCharPortraitUrl(e.target.value)} placeholder="立绘 URL，可选" className="w-full bg-black/50 border border-gray-700 focus:border-wuxia-gold p-2 text-xs text-white outline-none rounded" />
+                                            </div>
+                                        </div>
+                                    </OrnateBorder>
                                 </div>
 
                                 {/* Right: Stats */}
@@ -1974,6 +2031,23 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, r
                                         <input value={partnerRelation} onChange={e => setPartnerRelation(e.target.value)} placeholder="与主角关系，例如青梅竹马、同门、好友" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
                                         <textarea value={partnerAppearance} onChange={e => setPartnerAppearance(e.target.value)} placeholder="外貌" className="w-full h-24 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all resize-none" />
                                         <textarea value={partnerPersonality} onChange={e => setPartnerPersonality(e.target.value)} placeholder="性格" className="w-full h-24 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all resize-none" />
+                                        <div className="rounded-2xl border border-wuxia-gold/20 bg-black/25 p-3 space-y-3">
+                                            <div className="text-sm text-wuxia-cyan font-bold">开局影像</div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-2">
+                                                    <div className="aspect-square rounded-xl border border-gray-700 bg-black/30 overflow-hidden flex items-center justify-center text-xs text-gray-500">{partnerAvatarUrl ? <img src={partnerAvatarUrl} alt="同伴头像预览" className="h-full w-full object-cover" /> : '头像'}</div>
+                                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && 读取图片文件(e.target.files[0], setPartnerAvatarUrl)} className="text-[11px] text-gray-400 file:mr-2 file:rounded file:border-0 file:bg-wuxia-gold/20 file:px-2 file:py-1 file:text-wuxia-gold" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="aspect-square rounded-xl border border-gray-700 bg-black/30 overflow-hidden flex items-center justify-center text-xs text-gray-500">{partnerPortraitUrl ? <img src={partnerPortraitUrl} alt="同伴立绘预览" className="h-full w-full object-cover" /> : '立绘'}</div>
+                                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && 读取图片文件(e.target.files[0], setPartnerPortraitUrl)} className="text-[11px] text-gray-400 file:mr-2 file:rounded file:border-0 file:bg-wuxia-gold/20 file:px-2 file:py-1 file:text-wuxia-gold" />
+                                                </div>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <input value={partnerAvatarUrl.startsWith('data:') ? '' : partnerAvatarUrl} onChange={(e) => setPartnerAvatarUrl(e.target.value)} placeholder="头像 URL，可选" className="w-full bg-black/50 border border-gray-700 focus:border-wuxia-gold p-2 text-xs text-white outline-none rounded" />
+                                                <input value={partnerPortraitUrl.startsWith('data:') ? '' : partnerPortraitUrl} onChange={(e) => setPartnerPortraitUrl(e.target.value)} placeholder="立绘 URL，可选" className="w-full bg-black/50 border border-gray-700 focus:border-wuxia-gold p-2 text-xs text-white outline-none rounded" />
+                                            </div>
+                                        </div>
                                     </OrnateBorder>
 
                                     <OrnateBorder className="p-4 space-y-4">

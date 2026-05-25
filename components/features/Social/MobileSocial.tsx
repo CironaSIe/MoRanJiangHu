@@ -21,7 +21,7 @@ interface Props {
     onDeleteNpc?: (npcId: string) => void;
     onLearnSkill?: (npc: NPC结构, skill: any) => void;
     onRecruitToSect?: (npc: NPC结构) => void;
-    onStealFromNpc?: (npc: NPC结构) => void;
+    onStealFromNpc?: (npc: NPC结构, target?: string) => void;
 }
 
 const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)?.性别 || '').trim() === '女';
@@ -91,6 +91,7 @@ const MobileSocial: React.FC<Props> = ({
     const [showFullBackground, setShowFullBackground] = useState<boolean>(false);
     const [imageViewer, setImageViewer] = useState<{ src: string; alt: string } | null>(null);
     const [imageViewerZoom, setImageViewerZoom] = useState(1);
+    const [stealTargets, setStealTargets] = useState<Record<string, string>>({});
 
     const filteredSocialList = React.useMemo(() => {
         const keyword = searchKeyword.trim().toLowerCase();
@@ -280,6 +281,30 @@ const MobileSocial: React.FC<Props> = ({
         Array.isArray((npc as any)?.技艺) ? (npc as any).技艺 : []
     ).filter((item: any) => item && typeof item === 'object');
     const 可请求学艺 = (skill: any): boolean => Number.isFinite(Number(skill?.熟练度));
+    const 构建偷窃目标列表 = (npc: NPC结构): string[] => {
+        const bagTargets = 读取NPC背包(npc).map((item) => item.名称).filter(Boolean).slice(0, 8);
+        return Array.from(new Set([
+            '随机随身物品',
+            '钱袋/灵石袋',
+            ...bagTargets,
+            '贴身信物',
+            '内衣/贴身衣物',
+            '自定义目标'
+        ]));
+    };
+    const 读取偷窃目标 = (npc: NPC结构): string => {
+        const npcKey = String(npc?.id || (npc as any)?.ID || npc?.姓名 || 'npc');
+        return stealTargets[npcKey] || '随机随身物品';
+    };
+    const 写入偷窃目标 = (npc: NPC结构, target: string) => {
+        const npcKey = String(npc?.id || (npc as any)?.ID || npc?.姓名 || 'npc');
+        if (target === '自定义目标') {
+            const custom = window.prompt(`想从「${npc.姓名 || '目标'}」身上偷什么？`, '内衣/贴身衣物');
+            setStealTargets(prev => ({ ...prev, [npcKey]: (custom || '随机随身物品').trim() || '随机随身物品' }));
+            return;
+        }
+        setStealTargets(prev => ({ ...prev, [npcKey]: target }));
+    };
     const 展示关系驱动面板 = 展示女性扩展;
     const 当前关系网 = currentNPC ? 读取关系网(currentNPC) : [];
     const 当前子宫档案 = currentNPC ? 读取当前子宫档案(currentNPC) : undefined;
@@ -844,18 +869,28 @@ const MobileSocial: React.FC<Props> = ({
                                                     </button>
                                                 )}
                                                 {onStealFromNpc && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => onStealFromNpc(currentNPC)}
-                                                        disabled={当前角色已死亡}
-                                                        className={`flex h-[2.7rem] w-full items-center justify-center rounded-[1.35rem] border px-4 text-sm font-serif tracking-[0.04em] transition-colors ${
-                                                            当前角色已死亡
-                                                                ? 'cursor-not-allowed border-gray-800 bg-black/45 text-gray-600'
-                                                                : 'border-amber-500/35 bg-amber-950/15 text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:bg-amber-900/25'
-                                                        }`}
-                                                    >
-                                                        偷窃
-                                                    </button>
+                                                    <div className="flex w-full overflow-hidden rounded-[1.35rem] border border-amber-500/35 bg-amber-950/15 text-amber-100">
+                                                        <select
+                                                            value={读取偷窃目标(currentNPC)}
+                                                            onChange={(event) => 写入偷窃目标(currentNPC, event.target.value)}
+                                                            disabled={当前角色已死亡}
+                                                            className="h-[2.7rem] min-w-0 flex-1 bg-black/45 px-3 text-sm text-amber-100 outline-none"
+                                                        >
+                                                            {构建偷窃目标列表(currentNPC).map(target => <option key={target} value={target}>{target}</option>)}
+                                                        </select>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onStealFromNpc(currentNPC, 读取偷窃目标(currentNPC))}
+                                                            disabled={当前角色已死亡}
+                                                            className={`h-[2.7rem] shrink-0 border-l px-4 text-sm font-serif tracking-[0.04em] transition-colors ${
+                                                                当前角色已死亡
+                                                                    ? 'cursor-not-allowed border-gray-800 text-gray-600'
+                                                                    : 'border-amber-500/35 active:bg-amber-900/25'
+                                                            }`}
+                                                        >
+                                                            偷窃
+                                                        </button>
+                                                    </div>
                                                 )}
                                                 {/* 删除角色按钮：
                                                     功能：删除当前 NPC。

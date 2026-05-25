@@ -15,6 +15,7 @@ import { applyStateCommand, normalizeStateCommandKey } from '../../utils/stateHe
 import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
 import { sanitizeInventoryCommand } from './inventoryCommandGuard';
 import { 判断女性姓名需要兜底重命名 } from '../../utils/femaleNameSelector';
+import { 姓名含已知中文姓氏 } from '../../utils/chineseName';
 
 const 占位开局时间 = '1:01:01:00:00';
 
@@ -127,6 +128,7 @@ const 是否噪声对白发送者 = (sender: string): boolean => {
     const name = (sender || '').trim();
     if (!name) return true;
     if (/[，。！？；：、,.!?;:\s\n\r]/.test(name)) return true;
+    if (/^[\u4e00-\u9fa5]{2,4}$/u.test(name) && !姓名含已知中文姓氏(name)) return true;
     if (噪声对白发送者完整短语正则.test(name)) return true;
     if (/^(?:他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人).{1,10}$/.test(name) && 噪声对白发送者片段正则.test(name)) return true;
     if (name.length >= 4 && 噪声对白发送者收尾正则.test(name) && 噪声对白发送者片段正则.test(name)) return true;
@@ -139,6 +141,7 @@ const 是否对白NPC发送者 = (senderRaw: unknown, playerNameRaw: unknown): b
     if (/^【?(?:旁白|判定|NSFW判定|免责声明|系统|旁述|叙述|作者|提示|错误)】?$/i.test(sender)) return false;
     if (/^(?:disclaimer|system|narrator|assistant|user)$/i.test(sender)) return false;
     if (是否噪声对白发送者(sender)) return false;
+    if (/^[\u4e00-\u9fa5]{2,4}$/u.test(sender) && !姓名含已知中文姓氏(sender)) return false;
     const playerName = 归一化文本键(playerNameRaw);
     if (playerName && 归一化文本键(sender) === playerName) return false;
     return sender.length <= 16;

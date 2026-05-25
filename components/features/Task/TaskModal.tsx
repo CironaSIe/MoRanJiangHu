@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { 任务结构, 任务类型 } from '../../../models/task';
+import { 任务分类列表, 任务结构, 任务类型 } from '../../../models/task';
 import { IconBackpack, IconTarget, IconCoins, IconScroll } from '../../ui/Icons';
 import { 规范化任务列表自动结算 } from '../../../utils/taskCompat';
 
@@ -40,6 +40,8 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
             case '支线': return { text: 'text-blue-300', border: 'border-blue-900/50', bg: 'bg-blue-900/20', shadow: 'shadow-[0_0_10px_rgba(59,130,246,0.1)]' };
             case '门派': return { text: 'text-emerald-300', border: 'border-emerald-900/50', bg: 'bg-emerald-900/20', shadow: 'shadow-[0_0_10px_rgba(16,185,129,0.1)]' };
             case '奇遇': return { text: 'text-purple-300', border: 'border-purple-900/50', bg: 'bg-purple-900/20', shadow: 'shadow-[0_0_10px_rgba(168,85,247,0.1)]' };
+            case '悬赏': return { text: 'text-orange-300', border: 'border-orange-900/50', bg: 'bg-orange-900/20', shadow: 'shadow-[0_0_10px_rgba(249,115,22,0.1)]' };
+            case '传闻': return { text: 'text-cyan-300', border: 'border-cyan-900/50', bg: 'bg-cyan-900/20', shadow: 'shadow-[0_0_10px_rgba(34,211,238,0.1)]' };
             default: return { text: 'text-gray-400', border: 'border-gray-700/50', bg: 'bg-gray-800/40', shadow: '' };
         }
     };
@@ -82,7 +84,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
                         {/* 过滤分类 */}
                         <div className="p-3 border-b border-wuxia-gold/10 bg-black/60 shadow-md">
                             <div className="flex flex-wrap gap-1.5 pb-1">
-                                {['全部', '主线', '支线', '门派', '奇遇'].map(t => (
+                                {(['全部', ...任务分类列表] as Array<任务类型 | '全部'>).map(t => (
                                     <button
                                         key={t}
                                         onClick={() => { setFilter(t as any); setSelectedIdx(0); }}

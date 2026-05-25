@@ -11,7 +11,18 @@ const 默认拍卖物品图片映射: Record<string, string> = {
     南荒毒砂: '/assets/auction-items/nanhuang-dusha.png',
     白玉鱼佩: '/assets/auction-items/baiyu-yupei.png',
     破军弩机: '/assets/auction-items/pojun-nuji.png',
-    药王谷旧丹方: '/assets/auction-items/yaowanggu-jiudanfang.png'
+    药王谷旧丹方: '/assets/auction-items/yaowanggu-jiudanfang.png',
+    青玉飞剑: '/assets/auction-items/qingyu-feijian.png',
+    赤纹丹炉: '/assets/auction-items/chiwen-danlu.png',
+    下品灵石袋: '/assets/auction-items/xiapin-lingshidai.png',
+    雷击桃木: '/assets/auction-items/leiji-taomu.png',
+    清心符箓: '/assets/auction-items/qingxin-fulu.png',
+    筑基丹残瓶: '/assets/auction-items/zhuji-dan-canping.png',
+    碧水阵盘: '/assets/auction-items/bishui-zhenpan.png',
+    储物戒: '/assets/auction-items/chuwu-jie.png',
+    星砂一撮: '/assets/auction-items/xingsha-yicuo.png',
+    云纹法袍: '/assets/auction-items/yunwen-fapao.png',
+    火鸦羽: '/assets/auction-items/huoya-yu.png'
 };
 
 export const 获取默认拍卖物品图片档案 = (itemName: string): 物品图片档案 | undefined => {

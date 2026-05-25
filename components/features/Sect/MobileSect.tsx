@@ -1,41 +1,18 @@
 import React, { useState } from 'react';
-import { 详细门派结构, 门派任务, 职位等级排序 } from '../../../models/sect';
-import { 游戏时间格式 } from '../../../models/world';
+import { 详细门派结构, 职位等级排序 } from '../../../models/sect';
 
 interface Props {
     sectData: 详细门派结构;
-    currentTime: 游戏时间格式;
     onClose: () => void;
     onOpenNpc?: (npc: any) => void;
     onLearnBook?: (book: any) => void;
     learnedBookIds?: string[];
-    onAcceptMission?: (mission: 门派任务) => void;
 }
 
-type Tab = 'hall' | 'missions' | 'exchange' | 'library' | 'members';
+type Tab = 'hall' | 'exchange' | 'library' | 'members';
 
-const MobileSect: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc, onLearnBook, learnedBookIds = [], onAcceptMission }) => {
+const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook, learnedBookIds = [] }) => {
     const [activeTab, setActiveTab] = useState<Tab>('hall');
-    const [missionFilter, setMissionFilter] = useState<'all' | 'active' | 'available'>('all');
-
-    const isTimeAfter = (t1: string, t2: string) => t1 > t2;
-
-    const getMissionStatusColor = (status: string) => {
-        switch (status) {
-            case '可接取': return 'text-green-400 border-green-500/50';
-            case '进行中': return 'text-wuxia-gold border-wuxia-gold/50';
-            case '已完成': return 'text-gray-400 border-gray-600';
-            case '已过期': return 'text-red-500 border-red-500';
-            default: return 'text-gray-500 border-gray-600';
-        }
-    };
-
-    const filteredMissions = sectData.任务列表.filter(m => {
-        if (missionFilter === 'all') return true;
-        if (missionFilter === 'active') return m.当前状态 === '进行中';
-        if (missionFilter === 'available') return m.当前状态 === '可接取';
-        return true;
-    });
     const 累计贡献 = Math.max(sectData.玩家贡献 || 0, sectData.累计贡献 || 0);
     const 职位折扣: Record<string, number> = {
         杂役弟子: 0,
@@ -91,7 +68,6 @@ const MobileSect: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc
                     <div className="flex gap-2">
                         {[
                             { id: 'hall', label: '宗门' },
-                            { id: 'missions', label: '任务' },
                             { id: 'exchange', label: '兑换' },
                             { id: 'library', label: '藏经' },
                             { id: 'members', label: '同门' },
@@ -187,60 +163,6 @@ const MobileSect: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc
                                             );
                                         })}
                                 </div>
-                            </div>
-                        </>
-                    )}
-
-                    {activeTab === 'missions' && (
-                        <>
-                            <div className="flex gap-2">
-                                {['all', 'available', 'active'].map(f => (
-                                    <button
-                                        key={f}
-                                        onClick={() => setMissionFilter(f as any)}
-                                        className={`px-3 py-1.5 text-[11px] rounded-full border transition-all ${
-                                            missionFilter === f ? 'bg-wuxia-gold/15 border-wuxia-gold text-wuxia-gold' : 'border-gray-800 text-gray-500'
-                                        }`}
-                                    >
-                                        {f === 'all' ? '全部' : f === 'available' ? '可接取' : '进行中'}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="space-y-3">
-                                {filteredMissions.map(mission => {
-                                    const statusColor = getMissionStatusColor(mission.当前状态);
-                                    const isExpired = isTimeAfter(currentTime, mission.截止日期) && mission.当前状态 !== '已完成';
-                                    return (
-                                        <div key={mission.id} className="bg-black/40 border border-gray-800 rounded-xl p-4">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div>
-                                                    <div className="text-sm text-gray-200 font-bold">{mission.标题}</div>
-                                                    <div className="text-[10px] text-gray-500 mt-1">{mission.描述}</div>
-                                                </div>
-                                                <span className={`text-[10px] px-2 py-0.5 rounded border ${statusColor}`}>
-                                                    {isExpired ? '已过期' : mission.当前状态}
-                                                </span>
-                                            </div>
-                                            <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-gray-500 font-mono">
-                                                <span>发布 {mission.发布日期}</span>
-                                                <span className={isExpired ? 'text-red-400' : ''}>截止 {mission.截止日期}</span>
-                                            </div>
-                                            <div className="mt-3 flex items-center justify-between text-[11px]">
-                                                <span className="text-wuxia-gold font-mono">+{mission.奖励贡献} 贡献</span>
-                                                {mission.当前状态 === '可接取' && !isExpired && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => onAcceptMission?.(mission)}
-                                                        className="px-3 py-1 text-[10px] rounded border border-wuxia-gold text-wuxia-gold hover:bg-wuxia-gold/10"
-                                                    >
-                                                        接取任务
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
                             </div>
                         </>
                     )}

@@ -131,6 +131,11 @@ const 读取图片同步链接 = async (source: string): Promise<string> => {
     const registeredRemote = 读取图片资源远程兜底地址(normalizedSource);
     if (registeredRemote) return registeredRemote;
     if (是否图片资源引用(normalizedSource)) {
+        const assetId = normalizedSource.match(/^wuxia-asset:\/\/(.+)$/i)?.[1] || '';
+        const dataUrl = await dbService.读取图片资源(normalizedSource).catch(() => '');
+        if (dataUrl) {
+            return await dbService.保存图片资源并返回同步地址(dataUrl, assetId || undefined);
+        }
         return normalizedSource;
     }
     if (是DataUrl图片(normalizedSource)) {

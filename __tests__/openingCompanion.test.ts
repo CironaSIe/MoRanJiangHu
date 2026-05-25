@@ -67,6 +67,34 @@ describe('开局伙伴姓名保护', () => {
         expect(base.社交[0].关系状态).toBe('青梅竹马');
     });
 
+    it('开局伙伴建档会清理重复句号并保留预设头像立绘', () => {
+        const openingConfig = 创建开局配置('俞月荷');
+        openingConfig.初始伙伴.外貌 = '绝世大美女，眉眼清亮，衣着利落，随身带着惯用行囊。。';
+        openingConfig.初始伙伴.性格 = '稳重可靠，重诺守信，遇事会主动提醒主角风险。。';
+        openingConfig.初始伙伴.头像图片URL = 'https://image.example/avatar.png';
+        openingConfig.初始伙伴.图片档案 = {
+            已选头像图片ID: 'avatar',
+            已选立绘图片ID: 'portrait',
+            生图历史: [
+                { id: 'avatar', 构图: '头像', 状态: 'success', 本地路径: 'https://image.example/avatar.png' },
+                { id: 'portrait', 构图: '全身立绘', 状态: 'success', 本地路径: 'https://image.example/portrait.png' }
+            ]
+        };
+
+        const base = 创建开场基础状态(
+            { 姓名: '陆行舟', 当前地点: '青石渡口' } as any,
+            {} as any,
+            openingConfig
+        );
+
+        const partner = base.社交[0] as any;
+        expect(partner.姓名).toBe('俞月荷');
+        expect(JSON.stringify(partner)).not.toContain('。。');
+        expect(partner.头像图片URL).toBe('https://image.example/avatar.png');
+        expect(partner.图片档案?.已选头像图片ID).toBe('avatar');
+        expect(partner.图片档案?.已选立绘图片ID).toBe('portrait');
+    });
+
     it('AI 把同一伙伴改名时会合并回玩家填写姓名', () => {
         const openingConfig = 创建开局配置('沈青萝');
         const fixed = 修复开局伙伴社交列表([
