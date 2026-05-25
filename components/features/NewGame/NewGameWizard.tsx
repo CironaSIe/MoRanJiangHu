@@ -31,6 +31,7 @@ import {
 import { 默认境界母板提示词 } from '../../../prompts/runtime/fandom';
 import { 设置键 } from '../../../utils/settingsSchema';
 import { 根据名称映射天赋抽卡, 根据名称映射抽卡, 补全天赋抽卡名称列表, 补全抽卡名称列表, 天赋抽卡数量, 出身抽卡数量, 抽取天赋卡牌, 抽取卡牌 } from '../../../utils/talentDraw';
+import { 构建开局世界观生成提示词预览 } from '../../../utils/worldGenerationPromptPreview';
 
 interface Props {
     onComplete: (
@@ -241,6 +242,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
     const [同人预设投稿已启用, set同人预设投稿已启用] = useState(true);
     const [同人预设投稿状态, set同人预设投稿状态] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [同人预设投稿消息, set同人预设投稿消息] = useState('');
+    const [显示世界观生成提示词, set显示世界观生成提示词] = useState(false);
+    const [世界观生成提示词状态, set世界观生成提示词状态] = useState('');
 
     // --- Logic ---
     const monthOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
@@ -646,6 +649,27 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
         () => 获取同人角色替换规则列表(openingConfig, charName),
         [openingConfig, charName]
     );
+    const 当前世界观生成提示词预览 = useMemo(() => 构建开局世界观生成提示词预览({
+        worldConfig,
+        charData: 构建角色数据(),
+        openingConfig: openingConfigEnabled ? openingConfig : undefined
+    }), [
+        worldConfig,
+        charName,
+        charGender,
+        charAge,
+        charAppearance,
+        charPersonality,
+        charAvatarUrl,
+        charPortraitUrl,
+        birthMonth,
+        birthDay,
+        stats,
+        selectedBackground,
+        selectedTalents,
+        openingConfigEnabled,
+        openingConfig
+    ]);
     const 是否可提交同人世界观预设 = Boolean(
         (openingConfig.同人融合.作品名 || '').trim()
         || (当前附加小说数据集?.作品名 || 当前附加小说数据集?.标题 || '').trim()
@@ -744,6 +768,24 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
     };
     const 导出境界提示词模板 = () => {
         导出文本文件('境界提示词模板.txt', 默认境界母板提示词);
+    };
+    const 导出世界观生成请求提示词 = () => {
+        导出文本文件(`${worldConfig.worldName || 'world'}-开局世界观生成请求.txt`, 当前世界观生成提示词预览);
+        set世界观生成提示词状态('已导出开局世界观生成请求。');
+        window.setTimeout(() => set世界观生成提示词状态(''), 2200);
+    };
+    const 复制世界观生成请求提示词 = async () => {
+        try {
+            if (!navigator.clipboard?.writeText) {
+                throw new Error('当前浏览器不支持剪贴板写入');
+            }
+            await navigator.clipboard.writeText(当前世界观生成提示词预览);
+            set世界观生成提示词状态('已复制开局世界观生成请求。');
+        } catch (error) {
+            导出文本文件(`${worldConfig.worldName || 'world'}-开局世界观生成请求.txt`, 当前世界观生成提示词预览);
+            set世界观生成提示词状态('复制失败，已改为导出文本文件。');
+        }
+        window.setTimeout(() => set世界观生成提示词状态(''), 2600);
     };
 
     useEffect(() => {
@@ -1433,6 +1475,50 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, request
                                             className="w-full h-24 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all resize-none"
                                         />
                                         <div className="text-[11px] text-gray-500">仅作用于世界观提示词生成，不直接改写角色初始状态。</div>
+                                    </div>
+
+                                    <div className="space-y-3 rounded-2xl border border-wuxia-gold/20 bg-black/25 p-4">
+                                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                            <div>
+                                                <div className="text-sm text-wuxia-gold font-bold">开局世界观生成提示词</div>
+                                                <div className="mt-1 text-[11px] leading-6 text-gray-500">
+                                                    按当前世界设定、主角档案与开局题材实时拼装，可复制到外部模型或网页搜索工作流。
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <GameButton
+                                                    onClick={() => set显示世界观生成提示词(prev => !prev)}
+                                                    variant="secondary"
+                                                    className="px-3 py-2 text-xs"
+                                                >
+                                                    {显示世界观生成提示词 ? '收起' : '查看'}
+                                                </GameButton>
+                                                <GameButton
+                                                    onClick={() => { void 复制世界观生成请求提示词(); }}
+                                                    variant="secondary"
+                                                    className="px-3 py-2 text-xs"
+                                                >
+                                                    复制
+                                                </GameButton>
+                                                <GameButton
+                                                    onClick={导出世界观生成请求提示词}
+                                                    variant="secondary"
+                                                    className="px-3 py-2 text-xs"
+                                                >
+                                                    导出
+                                                </GameButton>
+                                            </div>
+                                        </div>
+                                        {世界观生成提示词状态 && (
+                                            <div className="text-[11px] text-green-400">{世界观生成提示词状态}</div>
+                                        )}
+                                        {显示世界观生成提示词 && (
+                                            <textarea
+                                                readOnly
+                                                value={当前世界观生成提示词预览}
+                                                className="h-72 w-full resize-y rounded-md border border-wuxia-gold/20 bg-black/50 p-3 font-mono text-[11px] leading-5 text-gray-200 outline-none custom-scrollbar"
+                                            />
+                                        )}
                                     </div>
 
                                     <div className="space-y-4 rounded-2xl border border-wuxia-cyan/20 bg-black/25 p-4">

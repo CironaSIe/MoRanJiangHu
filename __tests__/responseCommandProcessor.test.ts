@@ -98,6 +98,32 @@ describe('responseCommandProcessor dialogue social sync', () => {
 
         expect(result.社交.map((npc: any) => npc.姓名)).toEqual(['俞月荷']);
     });
+
+    it('rejects new social NPC commands when the name never appears in story facts or dialogue', () => {
+        const state = 构建基础状态();
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '杨培强沿着山道独行，主线剧情没有其他人物现身。' }
+            ],
+            tavern_commands: [
+                {
+                    action: 'push',
+                    key: '社交',
+                    value: {
+                        id: 'npc_zhong_yingzheng',
+                        姓名: '仲婴筝',
+                        性别: '女',
+                        身份: '候选池误入人物',
+                        是否在场: true,
+                        记忆: []
+                    }
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交.map((npc: any) => npc.姓名)).not.toContain('仲婴筝');
+        expect(result.社交).toHaveLength(0);
+    });
 });
 
 describe('responseCommandProcessor current scene presence sync', () => {

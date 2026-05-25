@@ -1041,6 +1041,38 @@ const 净化社交姓名命令 = (cmd: any, currentSocial: any[]): any | null =>
     return null;
 };
 
+const 提取新增社交命令姓名 = (cmd: any): string => {
+    const action = cmd?.action || 'set';
+    if (action !== 'push' && action !== 'add' && action !== 'set') return '';
+    const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '');
+    const isWholeSocialAppend = normalizedKey === 'gameState.社交' && (action === 'push' || action === 'add');
+    const isWholeSocialSlotSet = /^gameState\.社交\[\d+\]$/.test(normalizedKey) && action === 'set';
+    if (!isWholeSocialAppend && !isWholeSocialSlotSet) return '';
+    const value = cmd?.value;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+    return 规范化命令姓名(value?.姓名 || value?.名称);
+};
+
+const 净化新增社交命令 = (
+    cmd: any,
+    currentSocial: any[],
+    responseFactText: string,
+    dialogueSenderKeys: Set<string>
+): any | null => {
+    const nextName = 提取新增社交命令姓名(cmd);
+    if (!nextName) return cmd;
+    const nextKey = 归一化文本键(nextName);
+    const existing = (Array.isArray(currentSocial) ? currentSocial : []).some((npc: any) => (
+        [npc?.id, ...读取NPC名称列表(npc)]
+            .map(归一化文本键)
+            .filter(Boolean)
+            .includes(nextKey)
+    ));
+    if (existing) return cmd;
+    if (dialogueSenderKeys.has(nextKey) || responseFactText.includes(nextName)) return cmd;
+    return null;
+};
+
 export const 执行响应命令处理 = (
     response: GameResponse,
     currentState: 响应命令处理状态,
@@ -1066,18 +1098,23 @@ export const 执行响应命令处理 = (
     let fandomHeroinePlanBuffer = deps.规范化同人女主剧情规划状态(baseState?.同人女主剧情规划 ?? currentState.同人女主剧情规划);
 
     const responseFactText = 提取响应事实文本(response);
+    const dialogueSenderKeys = 提取对白发送者集合(response, charBuffer?.姓名);
     if (Array.isArray(response.tavern_commands)) {
         response.tavern_commands.forEach(cmd => {
-            const safeCmd = 净化社交姓名命令(
-                sanitizeInventoryCommand(
-                    净化社交生理命令(
-                        净化角色装备命令(cmd, charBuffer?.装备 || {}, responseFactText),
+            const safeCmd = 净化新增社交命令(
+                净化社交姓名命令(
+                    sanitizeInventoryCommand(
+                        净化社交生理命令(
+                            净化角色装备命令(cmd, charBuffer?.装备 || {}, responseFactText),
+                            responseFactText
+                        ),
+                        charBuffer,
                         responseFactText
                     ),
-                    charBuffer,
-                    responseFactText
                 ),
-                socialBuffer
+                socialBuffer,
+                responseFactText,
+                dialogueSenderKeys
             );
             if (!safeCmd) return;
             if (是否游戏初始时间命令(safeCmd.key)) {

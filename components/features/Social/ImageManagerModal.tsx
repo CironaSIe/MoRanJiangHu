@@ -207,7 +207,10 @@ const 任务标识匹配NPC = (taskNpcKey: string | undefined, npcId: string | u
     const key = (taskNpcKey || '').trim();
     const id = (npcId || '').trim();
     if (!key || !id) return false;
-    return key === id || key === `id:${id}`;
+    if (key === id || key === `id:${id}`) return true;
+    if (!key.startsWith('id:')) return false;
+    const [, rawId] = key.match(/^id:([^:]+)/) || [];
+    return rawId === id;
 };
 
 const 从任务标识提取NPCID = (taskNpcKey: string | undefined): string => {

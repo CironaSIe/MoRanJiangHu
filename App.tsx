@@ -2283,22 +2283,7 @@ const App: React.FC = () => {
 
     const openImageManagerWithCheck = React.useCallback(async () => {
         const imageApi = 获取文生图接口配置(state.apiConfig);
-        if (!接口配置是否可用(imageApi)) {
-            const accepted = await requestConfirm({
-                title: '未配置文生图接口',
-                message: '图片管理依赖可用的文生图接口。是否立即跳转到“文生图”设置页？',
-                confirmText: '前往设置',
-                cancelText: '稍后再说'
-            });
-            if (accepted) {
-                closeAllPanels();
-                setters.setActiveTab('image_generation');
-                setters.setShowSettings(true);
-            }
-            return;
-        }
-
-        if (imageApi.图片后端类型 === 'novelai') {
+        if (接口配置是否可用(imageApi) && imageApi.图片后端类型 === 'novelai') {
             const promptApi = 获取生图词组转化器接口配置(state.apiConfig);
             if (!接口配置是否可用(promptApi)) {
                 const accepted = await requestConfirm({
