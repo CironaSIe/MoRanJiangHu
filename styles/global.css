@@ -978,6 +978,29 @@ html[data-theme="day"] .sect-modal-body {
   text-align: center;
 }
 
+.landing-presence-chart-scroll {
+  min-height: 124px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(110, 231, 183, 0.55) rgba(6, 78, 59, 0.18);
+}
+
+.landing-presence-chart-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.landing-presence-chart-scroll::-webkit-scrollbar-track {
+  background: rgba(6, 78, 59, 0.18);
+}
+
+.landing-presence-chart-scroll::-webkit-scrollbar-thumb {
+  background: rgba(110, 231, 183, 0.55);
+  border-radius: 999px;
+}
+
+.landing-presence-chart {
+  display: block;
+}
+
 .landing-presence-axis-label {
   fill: rgba(236, 253, 245, 0.62);
 }
@@ -1139,6 +1162,18 @@ html[data-theme="day"] .landing-presence-axis-label {
 
 html[data-theme="day"] .landing-presence-axis-date {
   fill: rgba(75, 85, 99, 0.68) !important;
+}
+
+html[data-theme="day"] .landing-presence-chart-scroll {
+  scrollbar-color: rgba(4, 120, 87, 0.52) rgba(5, 150, 105, 0.14);
+}
+
+html[data-theme="day"] .landing-presence-chart-scroll::-webkit-scrollbar-track {
+  background: rgba(5, 150, 105, 0.14);
+}
+
+html[data-theme="day"] .landing-presence-chart-scroll::-webkit-scrollbar-thumb {
+  background: rgba(4, 120, 87, 0.52);
 }
 
 @media (min-width: 1024px) and (max-height: 900px) {

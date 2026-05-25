@@ -400,8 +400,8 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
             <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
                 <div className="flex items-center justify-between gap-4">
                     <div>
-                        <div className="text-sm text-wuxia-cyan font-bold">防止说话（NoControl）</div>
-                        <div className="text-xs text-gray-400 mt-1">开启后追加“防止说话/角色边界”提示词，禁止代写玩家言行。</div>
+                        <div className="text-sm text-wuxia-cyan font-bold">防抢话（NoControl）</div>
+                        <div className="text-xs text-gray-400 mt-1">默认开启；若当前酒馆预设已包含防抢话规则，则优先使用玩家导入的预设。</div>
                     </div>
                     <ToggleSwitch
                         checked={form.启用防止说话 !== false}

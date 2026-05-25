@@ -79,6 +79,12 @@ const actionButtonStyle: React.CSSProperties = {
     lineHeight: 'var(--ui-按钮-line-height, 1.2)'
 };
 
+const 格式化发布时间 = (value?: string): string => {
+    if (!value) return '未记录';
+    const normalized = value.replace('T', ' ').replace(/\+08:00$/, '');
+    return normalized.length >= 16 ? normalized.slice(0, 16) : normalized;
+};
+
 const DISCORD_PROJECT_THREAD_URL = 'https://discord.com/channels/1380075940285124724/1507996890304872630';
 const HOME_BACKGROUND_ASSETS = [
     '/assets/home/wuxia-bg-rain-gate.webp',
@@ -181,7 +187,6 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
         const date = new Date(item.hour);
         return Number.isNaN(date.getTime()) ? item.hour : `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
     };
-    const width = 280;
     const height = 120;
     const padX = 16;
     const padY = 12;
@@ -189,6 +194,9 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
     const hourLabelY = 90;
     const braceY = 97;
     const dateLabelY = 112;
+    const baseWidth = 280;
+    const minPointGap = 30;
+    const width = Math.max(baseWidth, padX * 2 + Math.max(0, points.length - 1) * minPointGap);
     const maxCount = Math.max(1, ...points.map((item) => item.count));
     const pointPosition = (item: 在线人数小时点, index: number) => {
         const x = points.length <= 1
@@ -230,126 +238,140 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                     <div className="landing-presence-recent mt-1 font-mono text-2xl font-bold text-sky-100">{current ? current.totalRecentCount : '--'}</div>
                 </div>
             </div>
-            <svg viewBox={`0 0 ${width} ${height}`} className="landing-presence-chart mt-1 min-h-0 w-full max-w-[420px] flex-1 overflow-visible" role="img" aria-label="每小时在线人数折线图">
-                <defs>
-                    <linearGradient id="onlineLineGradient" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="var(--landing-presence-line-start, #34d399)" />
-                        <stop offset="100%" stopColor="var(--landing-presence-line-end, #38bdf8)" />
-                    </linearGradient>
-                    <linearGradient id="onlineAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--landing-presence-area, #34d399)" stopOpacity="0.24" />
-                        <stop offset="100%" stopColor="var(--landing-presence-area, #34d399)" stopOpacity="0" />
-                    </linearGradient>
-                </defs>
-                {[0, 1, 2].map((line) => {
-                    const y = padY + line * ((chartBottom - padY) / 2);
-                    return <line key={line} x1={padX} y1={y} x2={width - padX} y2={y} stroke="var(--landing-presence-grid, rgba(255,255,255,0.08))" strokeWidth="1" />;
-                })}
-                {points.length > 1 && (
-                    <path d={`${path} L ${width - padX} ${chartBottom} L ${padX} ${chartBottom} Z`} fill="url(#onlineAreaGradient)" />
-                )}
-                <path d={path} fill="none" stroke="url(#onlineLineGradient)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                {hoveredPoint && hoveredPosition && (
-                    <g className="pointer-events-none">
-                        <line
-                            x1={hoveredPosition.x}
-                            y1={hoveredPosition.y}
-                            x2={hoveredPosition.x}
-                            y2={hourLabelY - 4}
-                            className="landing-presence-hover-line"
-                            strokeWidth="1.2"
-                            strokeDasharray="3 3"
-                        />
-                        <rect
-                            x={Math.max(8, Math.min(width - 54, hoveredPosition.x - 23))}
-                            y={Math.max(2, hoveredPosition.y - 28)}
-                            width="46"
-                            height="18"
-                            rx="4"
-                            className="landing-presence-tooltip-bg"
-                        />
-                        <text
-                            x={Math.max(31, Math.min(width - 31, hoveredPosition.x))}
-                            y={Math.max(14, hoveredPosition.y - 15)}
-                            textAnchor="middle"
-                            className="landing-presence-tooltip-text font-mono text-[9px]"
-                        >
-                            {hoveredPoint.count}人
-                        </text>
-                    </g>
-                )}
-                {points.map((item, index) => {
-                    const { x, y } = pointPosition(item, index);
-                    const active = hoveredIndex === index;
-                    return (
-                        <g key={item.hour}>
-                            <circle
-                                cx={x}
-                                cy={y}
-                                r="12"
-                                fill="transparent"
-                                onMouseEnter={() => setHoveredIndex(index)}
-                                onMouseLeave={() => setHoveredIndex(null)}
-                                onFocus={() => setHoveredIndex(index)}
-                                onBlur={() => setHoveredIndex(null)}
-                                tabIndex={0}
-                                role="img"
-                                aria-label={`在线人数 ${item.count}`}
-                                className="cursor-pointer"
+            <div className="landing-presence-chart-scroll mt-1 w-full max-w-[430px] flex-1 overflow-x-auto overflow-y-hidden">
+                <svg
+                    viewBox={`0 0 ${width} ${height}`}
+                    width={width}
+                    height={height}
+                    className="landing-presence-chart min-h-0 shrink-0 overflow-visible"
+                    role="img"
+                    aria-label="每小时在线人数折线图"
+                >
+                    <defs>
+                        <linearGradient id="onlineLineGradient" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="var(--landing-presence-line-start, #34d399)" />
+                            <stop offset="100%" stopColor="var(--landing-presence-line-end, #38bdf8)" />
+                        </linearGradient>
+                        <linearGradient id="onlineAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--landing-presence-area, #34d399)" stopOpacity="0.24" />
+                            <stop offset="100%" stopColor="var(--landing-presence-area, #34d399)" stopOpacity="0" />
+                        </linearGradient>
+                    </defs>
+                    {[0, 1, 2].map((line) => {
+                        const y = padY + line * ((chartBottom - padY) / 2);
+                        return <line key={line} x1={padX} y1={y} x2={width - padX} y2={y} stroke="var(--landing-presence-grid, rgba(255,255,255,0.08))" strokeWidth="1" />;
+                    })}
+                    {points.length > 1 && (
+                        <path d={`${path} L ${width - padX} ${chartBottom} L ${padX} ${chartBottom} Z`} fill="url(#onlineAreaGradient)" />
+                    )}
+                    <path d={path} fill="none" stroke="url(#onlineLineGradient)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    {hoveredPoint && hoveredPosition && (
+                        <g className="pointer-events-none">
+                            <line
+                                x1={hoveredPosition.x}
+                                y1={hoveredPosition.y}
+                                x2={hoveredPosition.x}
+                                y2={hourLabelY - 4}
+                                className="landing-presence-hover-line"
+                                strokeWidth="1.2"
+                                strokeDasharray="3 3"
                             />
-                            {active ? (
-                                <g className="pointer-events-none">
-                                    <circle
-                                        cx={x}
-                                        cy={y}
-                                        r="7"
-                                        fill="var(--landing-presence-selected-fill, transparent)"
-                                        stroke="var(--landing-presence-selected-stroke, #fef3c7)"
-                                        strokeWidth="2.2"
-                                    />
-                                    <circle
-                                        cx={x}
-                                        cy={y}
-                                        r="2.8"
-                                        fill="var(--landing-presence-selected-stroke, #fef3c7)"
-                                    />
-                                </g>
-                            ) : (
+                            <rect
+                                x={Math.max(8, Math.min(width - 54, hoveredPosition.x - 23))}
+                                y={Math.max(2, hoveredPosition.y - 28)}
+                                width="46"
+                                height="18"
+                                rx="4"
+                                className="landing-presence-tooltip-bg"
+                            />
+                            <text
+                                x={Math.max(31, Math.min(width - 31, hoveredPosition.x))}
+                                y={Math.max(14, hoveredPosition.y - 15)}
+                                textAnchor="middle"
+                                className="landing-presence-tooltip-text font-mono text-[9px]"
+                            >
+                                {hoveredPoint.count}人
+                            </text>
+                        </g>
+                    )}
+                    {points.map((item, index) => {
+                        const { x, y } = pointPosition(item, index);
+                        const active = hoveredIndex === index;
+                        return (
+                            <g key={item.hour}>
                                 <circle
                                     cx={x}
                                     cy={y}
-                                    r={index === points.length - 1 ? 4 : 2.8}
-                                    fill={index === points.length - 1 ? 'var(--landing-presence-current-dot, #fef3c7)' : 'var(--landing-presence-dot, #6ee7b7)'}
-                                    className="pointer-events-none transition-all"
+                                    r="12"
+                                    fill="transparent"
+                                    onMouseEnter={() => setHoveredIndex(index)}
+                                    onMouseLeave={() => setHoveredIndex(null)}
+                                    onFocus={() => setHoveredIndex(index)}
+                                    onBlur={() => setHoveredIndex(null)}
+                                    tabIndex={0}
+                                    role="img"
+                                    aria-label={`在线人数 ${item.count}`}
+                                    className="cursor-pointer"
                                 />
-                            )}
-                            <text x={x} y={hourLabelY} textAnchor="middle" className="landing-presence-axis-label font-mono text-[9px]">
-                                {item.hour === 'empty' ? item.label : 格式化在线人数小时短标签(item.hour)}
-                            </text>
-                        </g>
-                    );
-                })}
-                {dateGroups.map((group) => {
-                    const start = pointPosition(points[group.start], group.start).x;
-                    const end = pointPosition(points[group.end], group.end).x;
-                    const left = Math.max(padX, start - 8);
-                    const right = Math.min(width - padX, end + 8);
-                    const center = (left + right) / 2;
-                    return (
-                        <g key={group.key} className="pointer-events-none">
-                            <path
-                                d={`M ${left.toFixed(1)} ${braceY - 4} Q ${left.toFixed(1)} ${braceY} ${(left + Math.min(center, left + 10)).toFixed(1)} ${braceY} L ${(right - Math.min(10, Math.max(0, (right - left) / 3))).toFixed(1)} ${braceY} Q ${right.toFixed(1)} ${braceY} ${right.toFixed(1)} ${braceY - 4}`}
-                                fill="none"
-                                className="landing-presence-date-brace"
-                                strokeWidth="1.1"
-                            />
-                            <text x={center} y={dateLabelY} textAnchor="middle" className="landing-presence-axis-date font-mono text-[8px]">
-                                {group.label}
-                            </text>
-                        </g>
-                    );
-                })}
-            </svg>
+                                {active ? (
+                                    <g className="pointer-events-none">
+                                        <circle
+                                            cx={x}
+                                            cy={y}
+                                            r="7"
+                                            fill="var(--landing-presence-selected-fill, transparent)"
+                                            stroke="var(--landing-presence-selected-stroke, #fef3c7)"
+                                            strokeWidth="2.2"
+                                        />
+                                        <circle
+                                            cx={x}
+                                            cy={y}
+                                            r="2.8"
+                                            fill="var(--landing-presence-selected-stroke, #fef3c7)"
+                                        />
+                                    </g>
+                                ) : (
+                                    <circle
+                                        cx={x}
+                                        cy={y}
+                                        r={index === points.length - 1 ? 4 : 2.8}
+                                        fill={index === points.length - 1 ? 'var(--landing-presence-current-dot, #fef3c7)' : 'var(--landing-presence-dot, #6ee7b7)'}
+                                        className="pointer-events-none transition-all"
+                                    />
+                                )}
+                                <text x={x} y={hourLabelY} textAnchor="middle" className="landing-presence-axis-label font-mono text-[9px]">
+                                    {item.hour === 'empty' ? item.label : 格式化在线人数小时短标签(item.hour)}
+                                </text>
+                            </g>
+                        );
+                    })}
+                    {dateGroups.map((group) => {
+                        const start = pointPosition(points[group.start], group.start).x;
+                        const end = pointPosition(points[group.end], group.end).x;
+                        const left = Math.max(padX, start - 8);
+                        const right = Math.min(width - padX, end + 8);
+                        const center = (left + right) / 2;
+                        const groupWidth = right - left;
+                        return (
+                            <g key={group.key} className="pointer-events-none">
+                                {groupWidth >= 24 && (
+                                    <path
+                                        d={`M ${left.toFixed(1)} ${braceY - 4} Q ${left.toFixed(1)} ${braceY} ${(left + Math.min(center, left + 10)).toFixed(1)} ${braceY} L ${(right - Math.min(10, Math.max(0, groupWidth / 3))).toFixed(1)} ${braceY} Q ${right.toFixed(1)} ${braceY} ${right.toFixed(1)} ${braceY - 4}`}
+                                        fill="none"
+                                        className="landing-presence-date-brace"
+                                        strokeWidth="1.1"
+                                    />
+                                )}
+                                {groupWidth >= 52 && (
+                                    <text x={center} y={dateLabelY} textAnchor="middle" className="landing-presence-axis-date font-mono text-[8px]">
+                                        {group.label}
+                                    </text>
+                                )}
+                            </g>
+                        );
+                    })}
+                </svg>
+            </div>
         </div>
     );
 };
@@ -593,6 +615,9 @@ const LandingPage: React.FC<Props> = ({
                                 <div className="text-sm font-serif tracking-[0.24em] text-wuxia-gold">发布信息</div>
                                 <div className="mt-1 text-xs text-gray-400">
                                     Web / APK 当前统一版本 v{RELEASE_INFO.versionName}
+                                </div>
+                                <div className="mt-1 text-[11px] font-mono tracking-[0.08em] text-gray-500">
+                                    发布时间 {格式化发布时间(RELEASE_INFO.releasePublishedAt)}
                                 </div>
                             </div>
                             <div className="text-xs font-mono tracking-[0.18em] text-gray-500">

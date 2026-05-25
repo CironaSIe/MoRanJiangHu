@@ -62,6 +62,7 @@ const MobileSect: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc
     const 职位可达 = (requiredRank?: string) => (
         (职位等级排序[sectData.玩家职位] || 0) >= (职位等级排序[requiredRank || '杂役弟子'] || 0)
     );
+    const 战力分布 = sectData.战力分布 && typeof sectData.战力分布 === 'object' ? sectData.战力分布 : {};
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-3 md:hidden animate-fadeIn">
@@ -128,6 +129,26 @@ const MobileSect: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc
                                         <span key={item} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-[10px] text-gray-300">{item}</span>
                                     ))}
                                 </div>
+                            </div>
+
+                            <div className="bg-black/40 border border-gray-800 rounded-xl p-4">
+                                <div className="text-[10px] text-wuxia-gold/70 tracking-[0.3em] mb-3">门派实力</div>
+                                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                    <div className="rounded border border-cyan-400/20 bg-cyan-950/15 p-2 text-cyan-100">等级：{sectData.门派等级 || '待评定'}</div>
+                                    <div className="rounded border border-white/10 bg-black/25 p-2 text-gray-200">规模：{sectData.门派规模 || '待记录'}</div>
+                                    <div className="rounded border border-white/10 bg-black/25 p-2 text-gray-200">弟子：{sectData.弟子总数 || 0}</div>
+                                    <div className="rounded border border-wuxia-gold/20 bg-wuxia-gold/5 p-2 text-wuxia-gold">财富：{sectData.财富评级 || '待评估'}</div>
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                    {Object.entries(战力分布).map(([key, value]) => (
+                                        <span key={key} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-[10px] text-gray-300">{key} {Number(value || 0)}</span>
+                                    ))}
+                                </div>
+                                {sectData.月俸规则 && (
+                                    <div className="mt-3 rounded border border-emerald-400/20 bg-emerald-950/15 p-2 text-[10px] leading-5 text-emerald-100">
+                                        月俸：基础 {sectData.月俸规则.基础俸禄}，贡献系数 {sectData.月俸规则.贡献系数}，规模系数 {sectData.月俸规则.规模系数}。
+                                    </div>
+                                )}
                             </div>
 
                             <div className="bg-black/40 border border-gray-800 rounded-xl p-4">

@@ -105,6 +105,8 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc,
     const 职位可达 = (requiredRank?: string) => (
         (职位等级排序[sectData.玩家职位] || 0) >= (职位等级排序[requiredRank || '杂役弟子'] || 0)
     );
+    const 战力分布 = sectData.战力分布 && typeof sectData.战力分布 === 'object' ? sectData.战力分布 : {};
+    const 月俸规则 = sectData.月俸规则;
 
     return (
         <div className="sect-modal-body fixed inset-0 bg-black/90 backdrop-blur-sm z-[200] hidden md:flex items-center justify-center p-4 animate-fadeIn">
@@ -239,7 +241,7 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc,
                                         </div>
                                      </div>
                                      <div className="bg-black/30 border border-gray-700 p-6 rounded-lg">
-                                         <h4 className="text-gray-100 font-bold text-sm uppercase tracking-widest mb-4">贡献总览</h4>
+                                          <h4 className="text-gray-100 font-bold text-sm uppercase tracking-widest mb-4">贡献总览</h4>
                                          <div className="grid grid-cols-2 gap-3 text-sm">
                                              <div className="rounded border border-wuxia-gold/20 bg-wuxia-gold/5 p-4">
                                                  <div className="text-gray-200">可用贡献</div>
@@ -250,18 +252,49 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc,
                                                  <div className="mt-2 text-2xl font-mono font-bold text-emerald-200">{累计贡献}</div>
                                              </div>
                                          </div>
-                                         <p className="mt-4 text-sm leading-6 text-gray-200">晋升只看累计生成过的贡献点，聚宝阁兑换只消耗当前可用贡献。</p>
-                                         <div className="mt-4 rounded border border-wuxia-gold/20 bg-black/25 p-3">
+                                          <p className="mt-4 text-sm leading-6 text-gray-200">晋升只看累计生成过的贡献点，聚宝阁兑换只消耗当前可用贡献。</p>
+                                          <div className="mt-4 rounded border border-wuxia-gold/20 bg-black/25 p-3">
                                              <div className="text-xs tracking-widest text-wuxia-gold/70">当前身份特权</div>
                                              <div className="mt-2 text-sm text-gray-100">{sectData.玩家职位} · 聚宝阁{当前折扣文本}</div>
                                              <div className="mt-2 flex flex-wrap gap-2">
                                                  {(职位特权[sectData.玩家职位] || ['基础门派事务']).map(item => (
                                                      <span key={item} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-gray-200">{item}</span>
                                                  ))}
-                                             </div>
-                                         </div>
-                                     </div>
-                                </div>
+                                              </div>
+                                          </div>
+                                      </div>
+                                      <div className="bg-black/30 border border-gray-700 p-6 rounded-lg md:col-span-2">
+                                          <h4 className="text-gray-100 font-bold text-sm uppercase tracking-widest mb-4">门派实力</h4>
+                                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                              <div className="rounded border border-cyan-400/20 bg-cyan-950/15 p-3">
+                                                  <div className="text-gray-300">等级</div>
+                                                  <div className="mt-1 font-serif text-cyan-100">{sectData.门派等级 || '待评定'}</div>
+                                              </div>
+                                              <div className="rounded border border-white/10 bg-black/25 p-3">
+                                                  <div className="text-gray-300">规模</div>
+                                                  <div className="mt-1 text-gray-100">{sectData.门派规模 || '待记录'}</div>
+                                              </div>
+                                              <div className="rounded border border-white/10 bg-black/25 p-3">
+                                                  <div className="text-gray-300">弟子</div>
+                                                  <div className="mt-1 font-mono text-gray-100">{sectData.弟子总数 || 0}</div>
+                                              </div>
+                                              <div className="rounded border border-wuxia-gold/20 bg-wuxia-gold/5 p-3">
+                                                  <div className="text-gray-300">财富</div>
+                                                  <div className="mt-1 text-wuxia-gold">{sectData.财富评级 || '待评估'}</div>
+                                              </div>
+                                          </div>
+                                          <div className="mt-4 flex flex-wrap gap-2">
+                                              {Object.entries(战力分布).map(([key, value]) => (
+                                                  <span key={key} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-gray-200">{key} {Number(value || 0)}</span>
+                                              ))}
+                                          </div>
+                                          {月俸规则 && (
+                                              <div className="mt-4 rounded border border-emerald-400/20 bg-emerald-950/15 p-3 text-sm text-emerald-100">
+                                                  月俸：基础 {月俸规则.基础俸禄}，贡献系数 {月俸规则.贡献系数}，规模系数 {月俸规则.规模系数}。{月俸规则.发放说明}
+                                              </div>
+                                          )}
+                                      </div>
+                                 </div>
                                 </>
                                 )}
                             </div>

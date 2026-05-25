@@ -150,6 +150,7 @@ interface Props {
     canRetryLatestVariableGeneration?: boolean;
     canQuickRestart?: boolean;
     options?: unknown[]; // Quick actions from the last turn
+    externalDraft?: { text: string; token: number } | null;
     openingWorldEvolutionProgress?: WorldEvolutionProgress | null;
     openingPlanningProgress?: PlanningProgress | null;
     openingVariableGenerationProgress?: VariableGenerationProgress | null;
@@ -171,6 +172,7 @@ const InputArea: React.FC<Props> = ({
     canRetryLatestVariableGeneration = false,
     canQuickRestart = false,
     options = [],
+    externalDraft = null,
     openingWorldEvolutionProgress = null,
     openingPlanningProgress = null,
     openingVariableGenerationProgress = null
@@ -214,6 +216,16 @@ const InputArea: React.FC<Props> = ({
     const dragRef = useRef({ active: false, startX: 0, startScrollLeft: 0, moved: false });
     const suppressClickUntilRef = useRef(0);
     const queueProgressDebugRef = useRef<Record<string, { lastAt: number; phase?: string }>>({});
+
+    useEffect(() => {
+        if (!externalDraft?.text) return;
+        setContent((current) => {
+            const draft = externalDraft.text.trim();
+            if (!draft) return current;
+            const prefix = current.trim();
+            return prefix ? `${prefix}\n${draft}` : draft;
+        });
+    }, [externalDraft?.token]);
 
     const 记录并设置队列进度 = <T extends QueueProgressPayload>(
         stage: string,

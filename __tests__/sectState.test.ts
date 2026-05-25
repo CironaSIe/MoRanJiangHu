@@ -64,7 +64,7 @@ describe('门派状态规范化', () => {
         expect(normalized.重要成员.some((member: any) => ['沈若嫣', '杨震', '陆明澈'].includes(member?.姓名))).toBe(false);
     });
 
-    it('开局命令基态会保留已选择生成的门派和同门', () => {
+    it('开局命令基态会保留已选择生成的门派但不本地固定补同门', () => {
         const openingBase = 创建开场基础状态(
             {
                 姓名: '沈墨',
@@ -98,7 +98,8 @@ describe('门派状态规范化', () => {
 
         expect(commandBase.玩家门派.名称).toBe('玄墨派');
         expect(commandBase.玩家门派.玩家职位).toBe('外门弟子');
-        expect(commandBase.玩家门派.重要成员.map((member: any) => member.姓名)).toEqual(['苏清寒', '林砚舟', '许明澈']);
+        expect(commandBase.玩家门派.重要成员).toEqual([]);
+        expect(commandBase.玩家门派.门派等级).toBeTruthy();
     });
 
     it('开局门派贡献足够时不再本地固定补功法，交给 AI 开局变量生成', () => {
@@ -204,7 +205,7 @@ describe('门派状态规范化', () => {
         }, base, { 开局生成门派: true } as any);
 
         expect(protectedState.玩家门派.名称).toBe('玄墨派');
-        expect(protectedState.玩家门派.重要成员.map((member: any) => member.姓名)).toEqual(['苏清寒', '林砚舟', '许明澈']);
+        expect(protectedState.玩家门派.重要成员).toEqual([]);
         expect(protectedState.角色.所属门派ID).toBe('玄墨派');
         expect(protectedState.角色.门派职位).toBe('外门弟子');
     });

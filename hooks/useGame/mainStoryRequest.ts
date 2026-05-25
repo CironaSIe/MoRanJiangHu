@@ -202,6 +202,7 @@ export const 构建主剧情请求参数 = (
                 realWorldModePrompt,
                 deepSeekModePrompt,
                 traditionalChinesePrompt,
+                lengthRequirementPrompt,
                 tavernRuntimeExtraPrompt,
                 disclaimerRequirementPrompt || '',
                 tavernOutputProtocolPrompt

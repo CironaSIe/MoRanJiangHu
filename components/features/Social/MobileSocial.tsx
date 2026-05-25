@@ -20,6 +20,8 @@ interface Props {
     onTogglePresence?: (npcId: string, nextIsPresent: boolean) => void;
     onDeleteNpc?: (npcId: string) => void;
     onLearnSkill?: (npc: NPC结构, skill: any) => void;
+    onRecruitToSect?: (npc: NPC结构) => void;
+    onStealFromNpc?: (npc: NPC结构) => void;
 }
 
 const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)?.性别 || '').trim() === '女';
@@ -67,7 +69,9 @@ const MobileSocial: React.FC<Props> = ({
     onToggleMajorRole,
     onTogglePresence,
     onDeleteNpc,
-    onLearnSkill
+    onLearnSkill,
+    onRecruitToSect,
+    onStealFromNpc
 }) => {
     const sortedSocialList = React.useMemo(() => (
         [...socialList].sort((a, b) => {
@@ -825,6 +829,34 @@ const MobileSocial: React.FC<Props> = ({
                                                     </svg>
                                                     {currentNPC.是否主要角色 ? '已设重要' : '设为重要'}
                                                 </button>
+                                                {onRecruitToSect && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onRecruitToSect(currentNPC)}
+                                                        disabled={当前角色已死亡}
+                                                        className={`flex h-[2.7rem] w-full items-center justify-center rounded-[1.35rem] border px-4 text-sm font-serif tracking-[0.04em] transition-colors ${
+                                                            当前角色已死亡
+                                                                ? 'cursor-not-allowed border-gray-800 bg-black/45 text-gray-600'
+                                                                : 'border-cyan-500/35 bg-cyan-950/20 text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:bg-cyan-800/30'
+                                                        }`}
+                                                    >
+                                                        邀入门派
+                                                    </button>
+                                                )}
+                                                {onStealFromNpc && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onStealFromNpc(currentNPC)}
+                                                        disabled={当前角色已死亡}
+                                                        className={`flex h-[2.7rem] w-full items-center justify-center rounded-[1.35rem] border px-4 text-sm font-serif tracking-[0.04em] transition-colors ${
+                                                            当前角色已死亡
+                                                                ? 'cursor-not-allowed border-gray-800 bg-black/45 text-gray-600'
+                                                                : 'border-amber-500/35 bg-amber-950/15 text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:bg-amber-900/25'
+                                                        }`}
+                                                    >
+                                                        偷窃
+                                                    </button>
+                                                )}
                                                 {/* 删除角色按钮：
                                                     功能：删除当前 NPC。
                                                     当 NPC 已经被标记为“重要角色”时，这颗按钮会禁用。

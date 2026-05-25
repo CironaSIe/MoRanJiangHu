@@ -1682,6 +1682,15 @@ const App: React.FC = () => {
             .map((skill: any) => String(skill?.来源藏经ID || '').trim())
             .filter(Boolean);
     }, [state.角色?.功法列表]);
+    const [chatDraftRequest, setChatDraftRequest] = React.useState<{ text: string; token: number } | null>(null);
+    const chatDraftTokenRef = React.useRef(0);
+    const insertChatDraft = React.useCallback((text: string) => {
+        const draft = String(text || '').trim();
+        if (!draft) return;
+        chatDraftTokenRef.current += 1;
+        setChatDraftRequest({ text: draft, token: chatDraftTokenRef.current });
+        actions.pushNotification({ title: '已写入输入框', message: '行动文本已放入对话框，可直接发送或继续编辑。', tone: 'success' });
+    }, [actions]);
     const handleLearnSectBook = React.useCallback((book: any) => {
         if (!book?.id) return;
         const currentSkills = Array.isArray(state.角色?.功法列表) ? state.角色.功法列表 : [];
@@ -1755,6 +1764,17 @@ const App: React.FC = () => {
             tone: 'success'
         });
     }, [actions, state.角色?.技艺]);
+    const handleRecruitNpcToSect = React.useCallback((npc: any) => {
+        const npcName = String(npc?.姓名 || npc?.名称 || '此人').trim();
+        const sectName = String(state.玩家门派?.名称 || state.角色?.所属门派ID || '我的门派').trim();
+        insertChatDraft(`[门派招揽] 我尝试邀请「${npcName}」加入「${sectName}」。请结合对方身份、关系、利益诉求、当前剧情、门派等级/规模/名声、我的交涉表现与相关技艺，判定是否成功，并在成功时更新社交、玩家门派重要成员、弟子总数、战力分布和门派等级。`);
+        setters.setShowSocial(false);
+    }, [insertChatDraft, setters, state.玩家门派?.名称, state.角色?.所属门派ID]);
+    const handleStealFromNpc = React.useCallback((npc: any) => {
+        const npcName = String(npc?.姓名 || npc?.名称 || '目标').trim();
+        insertChatDraft(`[偷窃尝试] 我尝试趁机偷取「${npcName}」身上的物品。请根据现场环境、目标警觉与实力、双方关系、我的身法/机关/鉴定/相关技艺、装备与风险进行判定；若成功请写明偷到什么并更新双方背包，若失败请给出被察觉、关系下降或冲突后果。`);
+        setters.setShowSocial(false);
+    }, [insertChatDraft, setters]);
     const handleAcceptSectMission = React.useCallback((mission: any) => {
         if (!mission?.id) return;
         const nextSect = {
@@ -1764,7 +1784,7 @@ const App: React.FC = () => {
             ))
         };
         setters.setPlayerSect?.(nextSect);
-        actions.appendSystemMessage?.(`[门派任务已接取] 玩家已在${state.玩家门派?.名称 || '门派'}接取任务「${mission.标题 || mission.id}」。后续 AI 剧情必须把该任务视为进行中，并在正文、变量规划、任务/门派状态中承接，不要再当作未接取。`, { position: 'after_last_turn' });
+        actions.appendSystemMessage?.(`[门派任务已接取] 玩家已在${state.玩家门派?.名称 || '门派'}接取任务「${mission.标题 || mission.id}」。后续 AI 剧情必须把该任务视为进行中，并把任务目标与当前剧情、当前位置、在场NPC、门派近况或近期冲突自然结合；完成/失败时同步更新正文、变量规划、任务/门派状态，不要再当作未接取。`, { position: 'after_last_turn' });
         actions.pushNotification({ title: '门派任务已接取', message: `「${mission.标题 || '门派任务'}」已进入进行中。`, tone: 'success' });
         void actions.performAutoSave?.({ sect: nextSect, force: true });
     }, [actions, setters, state.玩家门派]);
@@ -2815,11 +2835,12 @@ const App: React.FC = () => {
                                     canReroll={meta.canRerollLatest}
                                     canRetryLatestVariableGeneration={meta.canRetryLatestVariableGeneration}
                                     canQuickRestart={meta.canQuickRestart}
-                                    openingWorldEvolutionProgress={meta.openingWorldEvolutionProgress}
-                                    openingPlanningProgress={meta.openingPlanningProgress}
-                                    openingVariableGenerationProgress={meta.openingVariableGenerationProgress}
-                                    options={currentOptions}
-                                />
+                                     openingWorldEvolutionProgress={meta.openingWorldEvolutionProgress}
+                                     openingPlanningProgress={meta.openingPlanningProgress}
+                                     openingVariableGenerationProgress={meta.openingVariableGenerationProgress}
+                                     externalDraft={chatDraftRequest}
+                                     options={currentOptions}
+                                 />
                             </div>
                             {sceneQuickGenToastVisible && (
                                 <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
@@ -3656,9 +3677,11 @@ const App: React.FC = () => {
                                     femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
                                     onToggleMajorRole={actions.updateNpcMajorRole}
                                     onTogglePresence={actions.updateNpcPresence}
-                                    onDeleteNpc={actions.removeNpc}
-                                    onLearnSkill={handleLearnNpcSkill}
-                                />
+                                     onDeleteNpc={actions.removeNpc}
+                                     onLearnSkill={handleLearnNpcSkill}
+                                     onRecruitToSect={handleRecruitNpcToSect}
+                                     onStealFromNpc={handleStealFromNpc}
+                                 />
                             ) : (
                                 <SocialModal
                                     socialList={state.社交}
@@ -3671,9 +3694,11 @@ const App: React.FC = () => {
                                     femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
                                     onToggleMajorRole={actions.updateNpcMajorRole}
                                     onTogglePresence={actions.updateNpcPresence}
-                                    onDeleteNpc={actions.removeNpc}
-                                    onLearnSkill={handleLearnNpcSkill}
-                                />
+                                     onDeleteNpc={actions.removeNpc}
+                                     onLearnSkill={handleLearnNpcSkill}
+                                     onRecruitToSect={handleRecruitNpcToSect}
+                                     onStealFromNpc={handleStealFromNpc}
+                                 />
                             )}
                         </懒加载边界>
                     )}

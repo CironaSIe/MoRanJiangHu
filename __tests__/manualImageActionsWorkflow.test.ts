@@ -61,6 +61,48 @@ describe('manualImageActionsWorkflow', () => {
         expect(deps.执行NPC香闺秘档部位生图).toHaveBeenNthCalledWith(4, expect.objectContaining({ id: 'npc_futa' }), '肉棒', undefined);
     });
 
+    it('私密描述为空或占位时不提交生图任务', async () => {
+        const deps = 创建依赖([{
+            id: 'npc_empty',
+            姓名: '青岚',
+            性别: '女',
+            是否主要角色: true,
+            胸部描述: '空无',
+            小穴描述: '暂无记录',
+            屁穴描述: '',
+            图片档案: {}
+        }]);
+        const workflow = 创建手动图片动作工作流(deps);
+
+        await workflow.generateNpcSecretPartImage('npc_empty', '胸部');
+
+        expect(deps.执行NPC香闺秘档部位生图).not.toHaveBeenCalled();
+        expect(deps.推送右下角提示).toHaveBeenCalledWith(expect.objectContaining({
+            title: '暂无可生成的私密描述',
+            message: expect.stringContaining('胸部描述为空或仍是占位文本')
+        }));
+    });
+
+    it('全部生成时会跳过空描述部位，只提交已有描述部位', async () => {
+        const deps = 创建依赖([{
+            id: 'npc_partial',
+            姓名: '红绡',
+            性别: '女',
+            是否主要角色: true,
+            胸部描述: '稳定胸部档案。',
+            小穴描述: '空无',
+            屁穴描述: '稳定后庭档案。',
+            图片档案: {}
+        }]);
+        const workflow = 创建手动图片动作工作流(deps);
+
+        await workflow.generateNpcSecretPartImage('npc_partial', '全部');
+
+        expect(deps.执行NPC香闺秘档部位生图).toHaveBeenCalledTimes(2);
+        expect(deps.执行NPC香闺秘档部位生图).toHaveBeenNthCalledWith(1, expect.objectContaining({ id: 'npc_partial' }), '胸部', undefined);
+        expect(deps.执行NPC香闺秘档部位生图).toHaveBeenNthCalledWith(2, expect.objectContaining({ id: 'npc_partial' }), '屁穴', undefined);
+    });
+
     it('总 NSFW 关闭时直接提示总开关未开启', async () => {
         const deps = 创建依赖([{
             id: 'npc_femboy',

@@ -54,6 +54,22 @@ export interface 门派成员简报 {
     简介: string; // 极短的简介
 }
 
+export interface 门派战力分布 {
+    凡俗?: number;
+    入门?: number;
+    中坚?: number;
+    高手?: number;
+    顶尖?: number;
+    [key: string]: number | undefined;
+}
+
+export interface 门派月俸规则 {
+    基础俸禄: number;
+    贡献系数: number;
+    规模系数: number;
+    发放说明: string;
+}
+
 // 玩家所属门派的详细结构 (继承自基础势力，但字段更多)
 export interface 详细门派结构 {
     ID: string;
@@ -65,6 +81,13 @@ export interface 详细门派结构 {
     门派资金: number;
     门派物资: number;
     建设度: number;
+    门派等级?: string;
+    门派规模?: string;
+    弟子总数?: number;
+    战力分布?: 门派战力分布;
+    财富评级?: string;
+    月俸规则?: 门派月俸规则;
+    上次俸禄月份?: string;
     
     // 玩家相关
     玩家职位: string; // 外门弟子, 内门弟子, 真传弟子, 长老, 供奉

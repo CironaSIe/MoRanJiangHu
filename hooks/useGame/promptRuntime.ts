@@ -92,6 +92,7 @@ const NoControl关联整行规则 = [
     /^\s*-\s*复核\s*`?<NoControl>`?.*$/u,
     /^.*It never overrides NoControl,.*$/u
 ];
+const 防抢话关键词正则 = /(NoControl|防止说话|防抢话|禁止代写|不得代写|不代写玩家|不替玩家|绝不控制|禁止控制玩家|不控制玩家|玩家的台词|玩家言行|代替玩家发言)/iu;
 
 const 获取提示词源 = (promptPool: 提示词结构[], id: string, fallback: 提示词结构): 提示词结构 => {
     return promptPool.find((item) => item.id === id) || fallback;
@@ -212,6 +213,25 @@ export const 酒馆预设模式可用 = (config: 游戏设置结构): boolean =>
 };
 
 export const 规范化比较文本 = (text: string): string => (text || '').replace(/\s+/g, ' ').trim();
+
+export const 酒馆预设包含防抢话 = (config?: Partial<游戏设置结构> | null): boolean => {
+    if (!config?.酒馆预设 || !Array.isArray(config.酒馆预设.prompts)) return false;
+    const preset = config.酒馆预设;
+    const selectedOrder = 获取酒馆预设顺序(preset, config.酒馆预设角色ID);
+    const enabledIds = new Set(
+        (Array.isArray(selectedOrder?.order) ? selectedOrder.order : [])
+            .filter((slot) => slot?.enabled !== false && typeof slot?.identifier === 'string')
+            .map((slot) => String(slot.identifier).trim())
+            .filter(Boolean)
+    );
+    return preset.prompts.some((prompt) => {
+        const identifier = typeof prompt?.identifier === 'string' ? prompt.identifier.trim() : '';
+        if (enabledIds.size > 0 && identifier && !enabledIds.has(identifier)) return false;
+        const content = typeof prompt?.content === 'string' ? prompt.content : '';
+        const name = typeof prompt?.name === 'string' ? prompt.name : '';
+        return 防抢话关键词正则.test(`${identifier}\n${name}\n${content}`);
+    });
+};
 
 const 从复合提示词中剥离子块 = (composed: string, block: string): string => {
     const source = typeof composed === 'string' ? composed : '';
@@ -513,10 +533,12 @@ export const 构建运行时提示词池 = (
 
     let effectivePromptPool = promptPool.filter((item) => !COT_PROMPT_IDS.has(item.id));
     effectivePromptPool = [...effectivePromptPool, { ...selectedCotPrompt, 启用: true }];
+    const shouldInjectNoControl = config.启用防止说话 !== false
+        && !(酒馆预设模式可用(config) && 酒馆预设包含防抢话(config));
     effectivePromptPool = 替换或注入提示词(
         effectivePromptPool,
         获取提示词源(promptPool, 写作_防止说话.id, 写作_防止说话),
-        config.启用防止说话 !== false
+        shouldInjectNoControl
     );
 
     if (config.启用防止说话 === false) {
