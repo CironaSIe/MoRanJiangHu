@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { 任务结构, 任务类型 } from '../../../models/task';
+import { 任务分类列表, 任务结构, 任务类型 } from '../../../models/task';
 import { 规范化任务列表自动结算 } from '../../../utils/taskCompat';
 
 interface Props {
@@ -37,6 +37,9 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
             case '主线': return 'bg-wuxia-red/20 text-wuxia-red border-wuxia-red/50';
             case '支线': return 'bg-blue-900/20 text-blue-300 border-blue-900/50';
             case '门派': return 'bg-green-900/20 text-green-300 border-green-900/50';
+            case '奇遇': return 'bg-purple-900/20 text-purple-300 border-purple-900/50';
+            case '悬赏': return 'bg-orange-900/20 text-orange-300 border-orange-900/50';
+            case '传闻': return 'bg-cyan-900/20 text-cyan-300 border-cyan-900/50';
             default: return 'bg-gray-800 text-gray-400 border-gray-700';
         }
     };
@@ -58,7 +61,7 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
 
                 <div className="border-b border-gray-800/60 bg-black/30 px-3 py-2 overflow-x-auto no-scrollbar">
                     <div className="flex gap-2">
-                        {['全部', '主线', '支线', '门派', '奇遇'].map(t => (
+                        {(['全部', ...任务分类列表] as Array<任务类型 | '全部'>).map(t => (
                             <button
                                 key={t}
                                 onClick={() => { setFilter(t as any); setSelectedIdx(0); }}

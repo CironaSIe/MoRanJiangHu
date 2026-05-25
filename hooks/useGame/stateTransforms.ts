@@ -6,6 +6,7 @@ import { 规范化消耗品使用效果 } from '../../utils/itemEffects';
 import { 补齐自动丹药预设 } from '../../utils/autoConsumables';
 import { 归一化六维到境界预算 } from '../../utils/attributeBudget';
 import { 判断女性名称目标, 判断模板化女性姓名, 选择唯一女性姓名, 重命名重复女性NPC列表 } from '../../utils/femaleNameSelector';
+import { 姓名含已知中文姓氏 } from '../../utils/chineseName';
 
 const 深拷贝 = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
 const 默认装备模板 = {
@@ -2485,6 +2486,7 @@ const 是否噪声NPC姓名 = (value: unknown): boolean => {
     if (!name) return true;
     if (name.length > 12 || name.length > NPC真实姓名最大长度) return true;
     if (/[，。！？；：、,.!?;:\s\n\r]/.test(name)) return true;
+    if (/^[\u4e00-\u9fa5]{2,4}$/u.test(name) && !姓名含已知中文姓氏(name)) return true;
     if (/^(旁白|判定|NSFW判定|免责声明|disclaimer)$/.test(name)) return true;
     if (/^(?:自己|自身|本人|主角|玩家|他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人)(?:已经|没有|只能|只好|仍旧|还是|刚刚|继续|再|又|便|就|不再|无法|不能)?.*$/u.test(name)) return true;
     if (噪声NPC姓名完整短语正则.test(name)) return true;
@@ -2498,6 +2500,7 @@ const 是否真实NPC姓名 = (value: unknown): boolean => {
     if (name.length < NPC真实姓名最小长度 || name.length > NPC真实姓名最大长度) return false;
     if (!/^[\u4e00-\u9fa5]{2,4}$/u.test(name)) return false;
     if (是否噪声NPC姓名(name)) return false;
+    if (!姓名含已知中文姓氏(name)) return false;
     if (/^(?:未知|无名|未命名|某人|路人|角色|人物|NPC|同门|随行者|队友|弟子)\d*$/u.test(name)) return false;
     if (/(?:女子|女人|少女|姑娘|男子|男人|少年|老者|老人|太监|内侍|侍卫|护卫|弟子|同门|掌柜|管事|宫女|丫鬟|小厮|车夫)$/u.test(name)) return false;
     return true;

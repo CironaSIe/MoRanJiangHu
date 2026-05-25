@@ -40,6 +40,12 @@ import { 初始化小说拆分运行时, 请求中断小说拆分任务 } from '
 import { 构建全部小说拆分注入快照 } from '../../../services/novelDecompositionInjection';
 import { 从EPUB文件提取小说内容 } from '../../../services/epubImport';
 import { 从原始文本提取章节, 根据章节生成分段列表, 聚合小说拆分数据集 } from '../../../services/novelDecompositionPipeline';
+import {
+    下载小说分解创意工坊模块,
+    发布小说分解创意工坊模块,
+    列出小说分解创意工坊模块,
+    type 小说分解创意工坊条目
+} from '../../../services/workshopNovelDecomposition';
 
 interface Props {
     settings: 接口设置结构;
@@ -431,7 +437,7 @@ const 注入树节点预览: React.FC<{
     );
 };
 
-type 工作台标签页 = 'import' | 'datasets' | 'chapters' | 'segments' | 'tasks' | 'snapshots';
+type 工作台标签页 = 'import' | 'datasets' | 'workshop' | 'chapters' | 'segments' | 'tasks' | 'snapshots';
 
 const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, requestConfirm, onNotify, mode = 'desktop' }) => {
     const [form, setForm] = useState<接口设置结构>(() => 规范化接口设置(settings));
@@ -442,6 +448,10 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
     const [datasetList, setDatasetList] = useState<Awaited<ReturnType<typeof 读取小说拆分数据集列表>>>([]);
     const [tasks, setTasks] = useState<Awaited<ReturnType<typeof 读取小说拆分任务列表>>>([]);
     const [snapshots, setSnapshots] = useState<Awaited<ReturnType<typeof 读取小说拆分注入快照列表>>>([]);
+    const [workshopEntries, setWorkshopEntries] = useState<小说分解创意工坊条目[]>([]);
+    const [workshopLoading, setWorkshopLoading] = useState(false);
+    const [workshopBusyId, setWorkshopBusyId] = useState('');
+    const [workshopPublishing, setWorkshopPublishing] = useState(false);
     const [selectedDatasetId, setSelectedDatasetId] = useState('');
     const [selectedSegmentId, setSelectedSegmentId] = useState('');
     const [showStrategySection, setShowStrategySection] = useState(false);
@@ -530,6 +540,23 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
     useEffect(() => {
         void refreshBoard();
     }, []);
+
+    const refreshWorkshopEntries = async () => {
+        setWorkshopLoading(true);
+        try {
+            setWorkshopEntries(await 列出小说分解创意工坊模块());
+        } catch (error: any) {
+            推送错误提示(`读取创意工坊失败：${error?.message || '未知错误'}`);
+        } finally {
+            setWorkshopLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (mobileTab === 'workshop') {
+            void refreshWorkshopEntries();
+        }
+    }, [mobileTab]);
 
     useEffect(() => {
         初始化小说拆分运行时();
@@ -658,6 +685,7 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
     const mobileTabs = useMemo(() => ([
         { id: 'import' as const, label: '导入与配置' },
         { id: 'datasets' as const, label: '数据集' },
+        { id: 'workshop' as const, label: '创意工坊' },
         { id: 'chapters' as const, label: '章节筛选' },
         { id: 'segments' as const, label: '分段校对' },
         { id: 'tasks' as const, label: '任务管理' },
@@ -1459,6 +1487,48 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
         }
     };
 
+    const 构建分享ZIP文件名 = (dataset: NonNullable<typeof selectedDataset>): string => (
+        `${dataset.作品名 || dataset.标题 || 'novel_decomposition'}_${new Date().toISOString().slice(0, 10)}.zip`
+            .replace(/[\\/:*?"<>|]/g, '_')
+    );
+
+    const blob转Base64 = async (blob: Blob): Promise<string> => {
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        let binary = '';
+        const chunkSize = 0x8000;
+        for (let index = 0; index < bytes.length; index += chunkSize) {
+            binary += String.fromCharCode(...bytes.slice(index, index + chunkSize));
+        }
+        return btoa(binary);
+    };
+
+    const 保存分享ZIP文件 = async (zipBlob: Blob, fileName: string): Promise<string> => {
+        const runtime = typeof window !== 'undefined' ? (window as any) : undefined;
+        const filesystem = runtime?.Capacitor?.Plugins?.Filesystem;
+        if (filesystem?.writeFile) {
+            try {
+                await filesystem.writeFile({
+                    path: fileName,
+                    data: await blob转Base64(zipBlob),
+                    directory: 'DOCUMENTS',
+                    recursive: false
+                });
+                return `已保存到设备文档目录：${fileName}`;
+            } catch (error) {
+                console.warn('小说分解分享 ZIP 写入设备文档目录失败，改用浏览器下载。', error);
+            }
+        }
+        const url = URL.createObjectURL(zipBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        return `已开始下载：${fileName}`;
+    };
+
     const handleExportSelectedDataset = async () => {
         if (!selectedDataset) {
             setMessage('请先选择一个数据集。');
@@ -1470,17 +1540,75 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                 includeTasks: true,
                 includeSnapshots: true
             });
-            const url = URL.createObjectURL(zipBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${selectedDataset.作品名 || selectedDataset.标题 || 'novel_decomposition'}_${new Date().toISOString().slice(0, 10)}.zip`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            设置状态消息('已导出当前数据集的小说分解分享 ZIP。');
+            const savedMessage = await 保存分享ZIP文件(zipBlob, 构建分享ZIP文件名(selectedDataset));
+            设置状态消息(`已导出当前数据集的小说分解分享 ZIP。${savedMessage}`);
         } catch (error: any) {
             推送错误提示(`导出小说分解 ZIP 失败：${error?.message || '未知错误'}`);
+        }
+    };
+
+    const handlePublishSelectedDatasetToWorkshop = async () => {
+        if (!selectedDataset) {
+            setMessage('请先选择一个数据集。');
+            return;
+        }
+        const ok = requestConfirm
+            ? await requestConfirm({
+                title: '发布到创意工坊',
+                message: '将上传当前小说分解分享 ZIP 到官方创意工坊对象存储，供其他玩家下载导入。分享包会包含分解结果、任务和快照，并保留可选原文数据。是否继续？',
+                confirmText: '发布',
+                cancelText: '取消'
+            })
+            : window.confirm('将上传当前小说分解分享 ZIP 到官方创意工坊对象存储，供其他玩家下载导入。是否继续？');
+        if (!ok) return;
+        setWorkshopPublishing(true);
+        try {
+            const zipBlob = await 导出小说拆分分享数据({
+                datasetId: selectedDataset.id,
+                includeTasks: true,
+                includeSnapshots: true
+            });
+            const result = await 发布小说分解创意工坊模块({
+                zipBlob,
+                fileName: 构建分享ZIP文件名(selectedDataset),
+                title: selectedDataset.作品名 || selectedDataset.标题 || '未命名小说分解模块',
+                workName: selectedDataset.作品名 || selectedDataset.标题 || '',
+                contributor: '',
+                note: selectedDataset.原始文本摘要 || '',
+                chapterCount: selectedDataset.总章节数 || selectedDataset.章节列表.length,
+                segmentCount: selectedDataset.分段列表.length,
+                sourceType: selectedDataset.来源类型,
+                tags: ['小说分解', selectedDataset.来源类型].filter(Boolean)
+            });
+            await refreshWorkshopEntries();
+            设置状态消息(`已发布到创意工坊：${result.entry.title}。分享编号：${result.entry.id}`);
+            onNotify?.({
+                title: '发布成功',
+                message: `小说分解模块已上传到创意工坊：${result.entry.title}`,
+                tone: 'success'
+            });
+        } catch (error: any) {
+            推送错误提示(`发布到创意工坊失败：${error?.message || '未知错误'}`);
+        } finally {
+            setWorkshopPublishing(false);
+        }
+    };
+
+    const handleImportWorkshopEntry = async (entry: 小说分解创意工坊条目) => {
+        setWorkshopBusyId(entry.id);
+        try {
+            const blob = await 下载小说分解创意工坊模块(entry.id);
+            const result = await 导入小说拆分分享数据(blob, { includeRawText: true });
+            await refreshBoard();
+            if (result.importedDatasetIds.length > 0) {
+                setSelectedDatasetId(result.importedDatasetIds[0]);
+                setMobileTab('datasets');
+            }
+            设置状态消息(`已从创意工坊导入「${entry.title}」：数据集 ${result.datasetCount} 个，任务 ${result.taskCount} 个，快照 ${result.snapshotCount} 个。`);
+        } catch (error: any) {
+            推送错误提示(`导入创意工坊模块失败：${error?.message || '未知错误'}`);
+        } finally {
+            setWorkshopBusyId('');
         }
     };
 
@@ -1913,6 +2041,13 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                 >
                                     导出分享 ZIP
                                 </button>
+                                <button
+                                    onClick={() => void handlePublishSelectedDatasetToWorkshop()}
+                                    disabled={workshopPublishing}
+                                    className="px-5 py-2.5 rounded-lg text-xs font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {workshopPublishing ? '发布中...' : '发布到创意工坊'}
+                                </button>
                                 <div className="flex-1"></div>
                                 <button
                                     onClick={() => void handleDeleteCurrentDataset()}
@@ -1921,6 +2056,92 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                     删除数据集
                                 </button>
                             </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+            )}
+
+            {mobileTab === 'workshop' && (
+            <div className="space-y-6 max-w-5xl mx-auto">
+                <div className="rounded-xl border border-white/5 bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-md p-6 shadow-xl space-y-5">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-white/5 pb-5">
+                        <div>
+                            <h4 className="text-lg font-serif font-semibold text-wuxia-gold tracking-wide">创意工坊</h4>
+                            <div className="mt-1.5 text-xs text-gray-400/80 leading-relaxed max-w-2xl">
+                                玩家分享的小说分解模块会上传到官方对象存储，其他玩家可以直接下载并导入。这里的模块格式和“分享 ZIP”一致，后续可直接固化为内置模块。
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => void refreshWorkshopEntries()}
+                                disabled={workshopLoading}
+                                className="px-4 py-2 rounded-lg text-xs font-medium border border-white/10 bg-black/40 text-gray-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
+                            >
+                                {workshopLoading ? '刷新中...' : '刷新列表'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void handlePublishSelectedDatasetToWorkshop()}
+                                disabled={!selectedDataset || workshopPublishing}
+                                className="px-4 py-2 rounded-lg text-xs font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-all disabled:opacity-50"
+                            >
+                                {workshopPublishing ? '发布中...' : '发布当前数据集'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {workshopLoading && workshopEntries.length <= 0 ? (
+                        <div className="rounded-xl border border-white/5 bg-black/25 p-8 text-center text-sm text-gray-400">正在读取创意工坊模块...</div>
+                    ) : workshopEntries.length <= 0 ? (
+                        <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-8 text-center">
+                            <div className="text-sm font-medium text-gray-300">创意工坊暂时还没有公开模块</div>
+                            <div className="mt-1 text-xs text-gray-500">可以先发布当前数据集；发布后会同时写入 R2 和 hi168 对象存储。</div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {workshopEntries.map((entry) => (
+                                <div key={entry.id} className="rounded-xl border border-white/5 bg-black/30 p-4 space-y-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <div className="truncate text-base font-serif font-semibold text-wuxia-gold" title={entry.title}>{entry.title}</div>
+                                            <div className="mt-1 text-[11px] text-gray-500">编号 {entry.id}</div>
+                                        </div>
+                                        <div className="shrink-0 rounded border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">可导入</div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <div className="rounded-lg border border-white/5 bg-black/25 p-2">
+                                            <div className="text-[10px] text-gray-500">章节</div>
+                                            <div className="mt-1 text-gray-200">{entry.chapterCount || 0}</div>
+                                        </div>
+                                        <div className="rounded-lg border border-white/5 bg-black/25 p-2">
+                                            <div className="text-[10px] text-gray-500">分段</div>
+                                            <div className="mt-1 text-gray-200">{entry.segmentCount || 0}</div>
+                                        </div>
+                                        <div className="rounded-lg border border-white/5 bg-black/25 p-2">
+                                            <div className="text-[10px] text-gray-500">体积</div>
+                                            <div className="mt-1 text-gray-200">{Math.max(1, Math.round((entry.size || 0) / 1024))}KB</div>
+                                        </div>
+                                    </div>
+                                    {entry.note && (
+                                        <div className="line-clamp-3 rounded-lg border border-white/5 bg-black/20 px-3 py-2 text-xs leading-5 text-gray-400">{entry.note}</div>
+                                    )}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {(entry.tags || []).slice(0, 4).map((tag) => (
+                                            <span key={tag} className="rounded border border-white/10 px-2 py-0.5 text-[10px] text-gray-400">{tag}</span>
+                                        ))}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => void handleImportWorkshopEntry(entry)}
+                                        disabled={Boolean(workshopBusyId)}
+                                        className="w-full rounded-lg border border-wuxia-gold/30 bg-wuxia-gold/10 px-4 py-2.5 text-xs font-medium text-wuxia-gold hover:bg-wuxia-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {workshopBusyId === entry.id ? '导入中...' : '下载并导入'}
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>

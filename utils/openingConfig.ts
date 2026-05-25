@@ -182,6 +182,8 @@ export const 默认开局配置 = (): OpeningConfig => ({
 
 export const 默认初始伙伴配置 = (): 初始伙伴配置结构 => ({
     enabled: true,
+    头像图片URL: '',
+    图片档案: undefined,
     姓名: '',
     性别: '女',
     年龄: 18,
@@ -305,6 +307,10 @@ export const 规范化初始伙伴配置 = (raw?: any): 初始伙伴配置结构
     const fallback = 默认初始伙伴配置();
     return {
         enabled: raw?.enabled !== false,
+        头像图片URL: 读取文本(raw?.头像图片URL),
+        图片档案: raw?.图片档案 && typeof raw.图片档案 === 'object' && !Array.isArray(raw.图片档案)
+            ? raw.图片档案
+            : undefined,
         姓名: 读取文本(raw?.姓名),
         性别: 读取文本(raw?.性别) || fallback.性别,
         年龄: Number.isFinite(Number(raw?.年龄)) ? Math.max(1, Math.floor(Number(raw.年龄))) : fallback.年龄,

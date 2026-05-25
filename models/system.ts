@@ -494,6 +494,8 @@ export interface 同人融合配置结构 {
 
 export interface 初始伙伴配置结构 {
     enabled: boolean;
+    头像图片URL?: string;
+    图片档案?: import('./imageGeneration').NPC图片档案;
     姓名: string;
     性别: string;
     年龄: number;

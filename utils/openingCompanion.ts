@@ -8,6 +8,18 @@ const 取文本 = (value: unknown, fallback = ''): string => (
     typeof value === 'string' && value.trim() ? value.trim() : fallback
 );
 
+const 清理标点文本 = (value: unknown, fallback = ''): string => (
+    取文本(value, fallback)
+        .replace(/([。！？!?；;])\1+/g, '$1')
+        .trim()
+);
+
+const 句子化 = (label: string, value: unknown): string => {
+    const text = 清理标点文本(value)
+        .replace(/[。！？!?；;]+$/g, '');
+    return text ? `${label}${text}。` : '';
+};
+
 const 取数字 = (value: unknown, fallback = 0): number => {
     const next = Number(value);
     return Number.isFinite(next) ? next : fallback;
@@ -52,9 +64,9 @@ export const 构建初始伙伴NPC = (
     const location = 取文本((player as any)?.当前位置 || (player as any)?.当前地点 || (player as any)?.具体地点, '主角身边');
     const introParts = [
         `${name}是主角的${relation}。`,
-        取文本(partner.外貌) ? `外貌：${取文本(partner.外貌)}。` : '',
-        取文本(partner.性格) ? `性格：${取文本(partner.性格)}。` : '',
-        取文本(partner.备注) ? `备注：${取文本(partner.备注)}。` : ''
+        句子化('外貌：', partner.外貌),
+        句子化('性格：', partner.性格),
+        句子化('备注：', partner.备注)
     ].filter(Boolean);
 
     return {
@@ -75,7 +87,9 @@ export const 构建初始伙伴NPC = (
         好感度: 60,
         关系状态: relation,
         简介: introParts.join('') || `${name}是开局已存在的随行伙伴。`,
-        核心性格特征: 取文本(partner.性格, '与主角关系密切，愿意同行。'),
+        头像图片URL: 取文本(partner.头像图片URL),
+        图片档案: partner.图片档案 && typeof partner.图片档案 === 'object' ? partner.图片档案 : undefined,
+        核心性格特征: 清理标点文本(partner.性格, '与主角关系密切，愿意同行。'),
         天赋列表: Array.isArray(partner.天赋列表)
             ? partner.天赋列表.map((item) => ({
                 名称: 取文本(item?.名称, '未命名天赋'),
@@ -128,7 +142,7 @@ export const 构建初始伙伴NPC = (
         BUFF: [],
         DEBUFF: [],
         技艺: [],
-        外貌描写: 取文本(partner.外貌),
+        外貌描写: 清理标点文本(partner.外貌),
         记忆: []
     };
 };

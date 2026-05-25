@@ -84,6 +84,20 @@ describe('responseCommandProcessor dialogue social sync', () => {
 
         expect(result.社交.map((npc: any) => npc.姓名)).toEqual(['杨青儿']);
     });
+
+    it('filters false dialogue names that do not start with a known Chinese surname', () => {
+        const state = 构建基础状态();
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '一边', text: '她提起了桌上的茶盏。' },
+                { sender: '热茶倾', text: '杯中雾气散开。' },
+                { sender: '俞月荷', text: '这批丹药来得正是时候。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交.map((npc: any) => npc.姓名)).toEqual(['俞月荷']);
+    });
 });
 
 describe('responseCommandProcessor current scene presence sync', () => {

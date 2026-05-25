@@ -36,7 +36,7 @@ describe('门派状态规范化', () => {
 
         expect(normalized.ID).toBe('sect_qingyun');
         expect(normalized.重要成员).toEqual([]);
-        expect(normalized.任务列表.length).toBeGreaterThan(0);
+        expect(normalized.任务列表).toEqual([]);
         expect(是否无门派标识(normalized.ID)).toBe(false);
     });
 
@@ -64,7 +64,7 @@ describe('门派状态规范化', () => {
         expect(normalized.重要成员.some((member: any) => ['沈若嫣', '杨震', '陆明澈'].includes(member?.姓名))).toBe(false);
     });
 
-    it('开局命令基态会保留已选择生成的门派但不本地固定补同门', () => {
+    it('开局命令基态会保留已选择生成的门派并生成可用同门', () => {
         const openingBase = 创建开场基础状态(
             {
                 姓名: '沈墨',
@@ -98,8 +98,39 @@ describe('门派状态规范化', () => {
 
         expect(commandBase.玩家门派.名称).toBe('玄墨派');
         expect(commandBase.玩家门派.玩家职位).toBe('外门弟子');
-        expect(commandBase.玩家门派.重要成员).toEqual([]);
+        expect(commandBase.玩家门派.重要成员.length).toBeGreaterThanOrEqual(6);
         expect(commandBase.玩家门派.门派等级).toBeTruthy();
+        expect(JSON.stringify(commandBase.玩家门派)).not.toMatch(/待AI|开局模板|请由AI/);
+    });
+
+    it('勾选开局生成门派时即使没有预填门派也会生成沉浸式门派数据', () => {
+        const openingBase = 创建开场基础状态(
+            {
+                姓名: '陆行舟',
+                出身背景: { 名称: '寒门孤身' },
+                所属门派ID: 'none',
+                门派职位: '无',
+                门派贡献: 0
+            } as any,
+            {} as any,
+            {
+                题材模式: '仙侠',
+                开局生成门派: true,
+                开局生成同门: true
+            } as any
+        );
+
+        expect(openingBase.玩家门派.名称).not.toMatch(/待AI|开局模板|无门无派/);
+        expect(openingBase.玩家门派.玩家职位).toBe('杂役弟子');
+        expect(openingBase.玩家门派.累计贡献).toBe(0);
+        expect(openingBase.玩家门派.弟子总数).toBeGreaterThan(0);
+        expect(openingBase.玩家门派.重要成员.length).toBeGreaterThanOrEqual(6);
+        expect(openingBase.玩家门派.任务列表).toEqual([]);
+        expect(openingBase.任务列表.some((task: any) => task.类型 === '门派')).toBe(true);
+        expect(JSON.stringify(openingBase.玩家门派)).not.toMatch(/待AI|请由AI|开局模板/);
+        expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/待AI|请由AI|开局模板/);
+        expect(openingBase.角色.所属门派ID).toBe(openingBase.玩家门派.ID);
+        expect(openingBase.角色.门派职位).toBe('杂役弟子');
     });
 
     it('开局门派贡献足够时不再本地固定补功法，交给 AI 开局变量生成', () => {
@@ -205,7 +236,7 @@ describe('门派状态规范化', () => {
         }, base, { 开局生成门派: true } as any);
 
         expect(protectedState.玩家门派.名称).toBe('玄墨派');
-        expect(protectedState.玩家门派.重要成员).toEqual([]);
+        expect(protectedState.玩家门派.重要成员.length).toBeGreaterThanOrEqual(6);
         expect(protectedState.角色.所属门派ID).toBe('玄墨派');
         expect(protectedState.角色.门派职位).toBe('外门弟子');
     });

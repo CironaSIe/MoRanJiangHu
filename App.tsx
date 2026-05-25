@@ -1216,6 +1216,27 @@ const App: React.FC = () => {
         console.info('[拍卖行桥接] 已从势力互动投放', pendingItems.length, '件物品');
     }, [state.世界?.拍卖行待投放物品, auctionHouseScope]);
 
+    const auctionRollHandledRef = React.useRef<string>('');
+    React.useEffect(() => {
+        if (state.view !== 'game' || latestAssistantMessage?.role !== 'assistant') return;
+        const signature = `${latestAssistantMessage.timestamp || 0}_${latestAssistantMessage.gameTime || ''}`;
+        if (!signature.trim() || auctionRollHandledRef.current === signature) return;
+        auctionRollHandledRef.current = signature;
+        setAuctionHouseState((prev) => {
+            const activeCount = (prev.拍卖品列表 || []).filter((entry) => entry.状态 === '上架中').length;
+            const shouldRoll = activeCount < 4 || Math.random() < 0.55;
+            if (!shouldRoll) return prev;
+            const next = 清理并补货(prev, {
+                允许系统补货: true,
+                最大系统补货数量: activeCount < 4 ? 2 : 1,
+                目标在售数量: 12
+            });
+            if (next === prev || next.拍卖品列表 === prev.拍卖品列表) return prev;
+            保存拍卖行状态(next, auctionHouseScope);
+            return next;
+        });
+    }, [auctionHouseScope, latestAssistantMessage, state.view]);
+
     React.useEffect(() => {
         const feature = state.apiConfig?.功能模型占位;
         if (state.view !== 'game' || !feature?.文生图功能启用 || !feature?.物品生图启用) return;
@@ -1770,24 +1791,13 @@ const App: React.FC = () => {
         insertChatDraft(`[门派招揽] 我尝试邀请「${npcName}」加入「${sectName}」。请结合对方身份、关系、利益诉求、当前剧情、门派等级/规模/名声、我的交涉表现与相关技艺，判定是否成功，并在成功时更新社交、玩家门派重要成员、弟子总数、战力分布和门派等级。`);
         setters.setShowSocial(false);
     }, [insertChatDraft, setters, state.玩家门派?.名称, state.角色?.所属门派ID]);
-    const handleStealFromNpc = React.useCallback((npc: any) => {
+    const handleStealFromNpc = React.useCallback((npc: any, target?: string) => {
         const npcName = String(npc?.姓名 || npc?.名称 || '目标').trim();
-        insertChatDraft(`[偷窃尝试] 我尝试趁机偷取「${npcName}」身上的物品。请根据现场环境、目标警觉与实力、双方关系、我的身法/机关/鉴定/相关技艺、装备与风险进行判定；若成功请写明偷到什么并更新双方背包，若失败请给出被察觉、关系下降或冲突后果。`);
+        const targetText = String(target || '随机随身物品').trim() || '随机随身物品';
+        const isPrivateTarget = /内衣|贴身|亵衣|肚兜|抹胸|袜|香囊|信物/u.test(targetText);
+        insertChatDraft(`[偷窃尝试] 我尝试趁机从「${npcName}」身上偷取「${targetText}」。请根据现场环境、目标警觉与实力、双方关系、我的身法/机关/鉴定/偷窃/潜行等相关技艺、装备与风险进行判定；偷窃技艺越高，越可以尝试更隐蔽或更贴身的目标${isPrivateTarget ? '，但贴身衣物或私密物件必须额外考虑接近难度、触碰风险、目标反应和失败后果' : ''}。若成功请写明偷到什么并更新双方背包；若失败请给出被察觉、关系下降、冲突或名声后果。`);
         setters.setShowSocial(false);
     }, [insertChatDraft, setters]);
-    const handleAcceptSectMission = React.useCallback((mission: any) => {
-        if (!mission?.id) return;
-        const nextSect = {
-            ...state.玩家门派,
-            任务列表: (state.玩家门派?.任务列表 || []).map((item: any) => (
-                item?.id === mission.id ? { ...item, 当前状态: '进行中' } : item
-            ))
-        };
-        setters.setPlayerSect?.(nextSect);
-        actions.appendSystemMessage?.(`[门派任务已接取] 玩家已在${state.玩家门派?.名称 || '门派'}接取任务「${mission.标题 || mission.id}」。后续 AI 剧情必须把该任务视为进行中，并把任务目标与当前剧情、当前位置、在场NPC、门派近况或近期冲突自然结合；完成/失败时同步更新正文、变量规划、任务/门派状态，不要再当作未接取。`, { position: 'after_last_turn' });
-        actions.pushNotification({ title: '门派任务已接取', message: `「${mission.标题 || '门派任务'}」已进入进行中。`, tone: 'success' });
-        void actions.performAutoSave?.({ sect: nextSect, force: true });
-    }, [actions, setters, state.玩家门派]);
     const openTask = React.useCallback(() => {
         closeAllPanels();
         setters.setShowTask(true);
@@ -3804,21 +3814,17 @@ const App: React.FC = () => {
                             {isMobile ? (
                                 <MobileSect
                                     sectData={state.玩家门派}
-                                    currentTime={currentEnvTime}
                                     onOpenNpc={openNpcDetailFromRecord}
                                     onLearnBook={handleLearnSectBook}
                                     learnedBookIds={learnedSectBookIds}
-                                    onAcceptMission={handleAcceptSectMission}
                                     onClose={() => setters.setShowSect(false)}
                                 />
                             ) : (
                                 <SectModal
                                     sectData={state.玩家门派}
-                                    currentTime={currentEnvTime}
                                     onOpenNpc={openNpcDetailFromRecord}
                                     onLearnBook={handleLearnSectBook}
                                     learnedBookIds={learnedSectBookIds}
-                                    onAcceptMission={handleAcceptSectMission}
                                     onClose={() => setters.setShowSect(false)}
                                 />
                             )}

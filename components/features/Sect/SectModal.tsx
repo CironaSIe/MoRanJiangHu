@@ -1,23 +1,19 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { 详细门派结构, 门派任务, 职位等级排序 } from '../../../models/sect';
-import { 游戏时间格式 } from '../../../models/world';
+import { 详细门派结构, 职位等级排序 } from '../../../models/sect';
 
 interface Props {
     sectData: 详细门派结构;
-    currentTime: 游戏时间格式; // "YYYY:MM:DD:HH:MM"
     onClose: () => void;
     onOpenNpc?: (npc: any) => void;
     onLearnBook?: (book: any) => void;
     learnedBookIds?: string[];
-    onAcceptMission?: (mission: 门派任务) => void;
 }
 
-type Tab = 'hall' | 'missions' | 'exchange' | 'library' | 'members';
+type Tab = 'hall' | 'exchange' | 'library' | 'members';
 
-const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc, onLearnBook, learnedBookIds = [], onAcceptMission }) => {
+const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook, learnedBookIds = [] }) => {
     const [activeTab, setActiveTab] = useState<Tab>('hall');
-    const [missionFilter, setMissionFilter] = useState<'all' | 'active' | 'available'>('all');
     const 未加入门派 = !sectData
         || ['none', '无', '无门无派', '未加入', '散人'].includes(String(sectData.ID || '').trim())
         || ['none', '无', '无门无派', '未加入', '散人'].includes(String(sectData.名称 || '').trim())
@@ -27,7 +23,6 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc,
             ? [{ id: 'hall' as Tab, label: '宗门大殿' }]
             : [
                 { id: 'hall' as Tab, label: '宗门大殿' },
-                { id: 'missions' as Tab, label: '任务布告' },
                 { id: 'exchange' as Tab, label: '聚宝阁' },
                 { id: 'library' as Tab, label: '藏经阁' },
                 { id: 'members' as Tab, label: '同门名录' },
@@ -40,34 +35,6 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc,
         }
     }, [activeTab, 未加入门派]);
 
-    // Helper: Parse Time
-    const parseTime = (timeStr: string) => {
-        const [y, m, d] = timeStr.split(':').map(Number);
-        return { y, m, d };
-    };
-
-    // Helper: Compare Time (Simple string compare works for YYYY:MM:DD format generally)
-    // Return true if t1 > t2
-    const isTimeAfter = (t1: string, t2: string) => {
-        return t1 > t2; 
-    };
-
-    const getMissionStatusColor = (status: string) => {
-        switch(status) {
-            case '可接取': return 'text-green-400 border-green-500/50';
-            case '进行中': return 'text-wuxia-gold border-wuxia-gold/50';
-            case '已完成': return 'text-gray-400 border-gray-600';
-            case '已过期': return 'text-red-500 border-red-500';
-            default: return 'text-gray-500 border-gray-600';
-        }
-    };
-
-    const filteredMissions = (sectData.任务列表 || []).filter(m => {
-        if (missionFilter === 'all') return true;
-        if (missionFilter === 'active') return m.当前状态 === '进行中';
-        if (missionFilter === 'available') return m.当前状态 === '可接取';
-        return true;
-    });
     const 累计贡献 = Math.max(sectData.玩家贡献 || 0, sectData.累计贡献 || 0);
     const 晋升门槛: Record<string, number> = {
         杂役弟子: 0,
@@ -297,103 +264,6 @@ const SectModal: React.FC<Props> = ({ sectData, currentTime, onClose, onOpenNpc,
                                  </div>
                                 </>
                                 )}
-                            </div>
-                        )}
-
-                        {/* --- MISSIONS --- */}
-                        {activeTab === 'missions' && (
-                            <div className="space-y-6 animate-slide-in">
-                                {/* Filters */}
-                                <div className="flex gap-4 mb-6 border-b border-gray-800 pb-4">
-                                    {['all', 'available', 'active'].map(f => (
-                                        <button
-                                            key={f}
-                                            onClick={() => setMissionFilter(f as any)}
-                                            className={`px-4 py-1 text-xs rounded transition-all ${
-                                                missionFilter === f 
-                                                ? 'bg-wuxia-gold text-black font-bold' 
-                                                : 'text-gray-500 hover:text-gray-300'
-                                            }`}
-                                        >
-                                            {f === 'all' ? '全部' : f === 'available' ? '可接取' : '进行中'}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-4">
-                                    {filteredMissions.map(mission => {
-                                        const statusColor = getMissionStatusColor(mission.当前状态);
-                                        const isExpired = isTimeAfter(currentTime, mission.截止日期) && mission.当前状态 !== '已完成';
-
-                                        return (
-                                            <div key={mission.id} className="relative bg-black/40 border border-gray-700 hover:border-gray-500 transition-all p-5 rounded-lg group">
-                                                {/* Left Border Status Indicator */}
-                                                <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-lg ${
-                                                    mission.当前状态 === '可接取' ? 'bg-green-500' : 
-                                                    mission.当前状态 === '进行中' ? 'bg-wuxia-gold' : 'bg-gray-600'
-                                                }`}></div>
-
-                                                <div className="flex justify-between items-start pl-4">
-                                                    <div>
-                                                        <div className="flex items-center gap-3 mb-1">
-                                                            <h4 className="text-gray-200 font-bold text-lg">{mission.标题}</h4>
-                                                            <span className={`text-xs px-2 py-0.5 rounded border ${statusColor}`}>
-                                                                {isExpired ? '已过期' : mission.当前状态}
-                                                            </span>
-                                                            <span className="text-xs bg-gray-800 text-gray-200 px-2 py-0.5 rounded">
-                                                                {mission.类型}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-gray-300 text-sm mt-2 max-w-2xl">{mission.描述}</p>
-                                                    </div>
-                                                    
-                                                    {/* Rewards */}
-                                                    <div className="text-right">
-                                                        <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">奖励</div>
-                                                        <div className="flex flex-col gap-1 items-end">
-                                                            <span className="text-wuxia-gold font-mono font-bold text-sm">+{mission.奖励贡献} 贡献</span>
-                                                            {mission.奖励资金 > 0 && <span className="text-gray-300 font-mono text-xs">+{mission.奖励资金} 铜钱</span>}
-                                                            {mission.奖励物品 && (
-                                                                <div className="flex flex-col gap-0.5 mt-1 items-end">
-                                                                    {mission.奖励物品.map((itemStr, i) => (
-                                                                        <span key={i} className="text-xs bg-purple-900/30 text-purple-100 px-2 py-0.5 rounded border border-purple-800/50">
-                                                                            {itemStr}
-                                                                        </span>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Dates Footer */}
-                                                <div className="mt-4 pt-3 border-t border-gray-800/50 flex gap-6 text-xs font-mono text-gray-300 pl-4">
-                                                    <span>发布: {mission.发布日期}</span>
-                                                    <span className={`${isExpired ? 'text-red-500 font-bold' : ''}`}>截止: {mission.截止日期}</span>
-                                                    {mission.刷新日期 && mission.刷新日期 !== "无" && <span>刷新: {mission.刷新日期}</span>}
-                                                </div>
-                                                
-                                                {/* Action Button */}
-                                                <div className="absolute right-5 bottom-4">
-                                                    {mission.当前状态 === '可接取' && !isExpired && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => onAcceptMission?.(mission)}
-                                                            className="bg-wuxia-gold/10 hover:bg-wuxia-gold text-wuxia-gold hover:text-black border border-wuxia-gold px-4 py-1.5 rounded text-xs font-bold transition-all"
-                                                        >
-                                                            接取任务
-                                                        </button>
-                                                    )}
-                                                    {mission.当前状态 === '进行中' && !isExpired && (
-                                                         <button className="bg-gray-800 text-gray-400 border border-gray-600 px-4 py-1.5 rounded text-xs cursor-not-allowed">
-                                                            进行中...
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
                             </div>
                         )}
 

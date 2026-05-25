@@ -36,9 +36,21 @@ describe('拍卖行默认补货', () => {
             }
         });
 
-        // 剧情触发后应该有系统补货
-        expect(state.拍卖品列表.some((entry) => entry.卖家ID.startsWith('system_'))).toBe(true);
+        // 剧情触发后应该有少量市场滚动补货
+        expect(state.拍卖品列表.some((entry) => entry.卖家ID.startsWith('market_'))).toBe(true);
         expect(state.拍卖品列表.filter((entry) => entry.状态 === '上架中').length).toBeGreaterThan(0);
+    });
+
+    it('系统补货每次只滚入少量拍品，不一次铺满', () => {
+        const state = 清理并补货({
+            拍卖品列表: [],
+            交易记录: [],
+            最近补货时间: 0,
+            行情列表: [],
+            最近行情时间: 0
+        }, { 允许系统补货: true, 最大系统补货数量: 2 });
+
+        expect(state.拍卖品列表.filter((entry) => entry.状态 === '上架中')).toHaveLength(2);
     });
     
     it('系统补货时避免重复物品', () => {

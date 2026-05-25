@@ -180,6 +180,7 @@ const 格式化在线人数日期标签 = (hour: string) => {
 
 const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?: OnlinePresencePublicStats | null }> = ({ data, current }) => {
     const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
+    const chartScrollRef = React.useRef<HTMLDivElement | null>(null);
     const points = data.length > 0
         ? data
         : [{ hour: 'empty', label: '--:--', count: current?.onlineCount ?? 0 }];
@@ -222,6 +223,12 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
         return groups;
     }, []);
 
+    React.useLayoutEffect(() => {
+        const scrollContainer = chartScrollRef.current;
+        if (!scrollContainer) return;
+        scrollContainer.scrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+    }, [points.length, width]);
+
     return (
         <div className="landing-presence-panel relative z-10 flex h-full w-full flex-col items-center border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-center shadow-[0_12px_28px_rgba(0,0,0,0.3)]">
             <div className="landing-presence-metrics grid w-full max-w-[430px] grid-cols-3 items-start gap-3">
@@ -238,7 +245,7 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                     <div className="landing-presence-recent mt-1 font-mono text-2xl font-bold text-sky-100">{current ? current.totalRecentCount : '--'}</div>
                 </div>
             </div>
-            <div className="landing-presence-chart-scroll mt-1 w-full max-w-[430px] flex-1 overflow-x-auto overflow-y-hidden">
+            <div ref={chartScrollRef} className="landing-presence-chart-scroll mt-1 w-full max-w-[430px] flex-1 overflow-x-auto overflow-y-hidden">
                 <svg
                     viewBox={`0 0 ${width} ${height}`}
                     width={width}
