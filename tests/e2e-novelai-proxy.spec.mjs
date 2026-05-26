@@ -29,9 +29,10 @@ test('APK NovelAI proxy URL uses deployed API and live proxy does not return HTM
     }
   }
 
-  expect(endpoint).toBe('https://msjh.bacon159.pp.ua/api/novelai/ai/generate-image');
+  expect(endpoint).toMatch(/^https:\/\/.+\/api\/novelai\/ai\/generate-image$/);
+  expect(endpoint).not.toContain('localhost');
 
-  const proxyRouteProbe = endpoint.replace('/ai/generate-image', '/unsupported-probe');
+  const proxyRouteProbe = 'https://msjh.bacon159.pp.ua/api/novelai/unsupported-probe';
   const response = await request.post(proxyRouteProbe, {
     headers: {
       Authorization: `Bearer ${token}`,

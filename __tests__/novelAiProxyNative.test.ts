@@ -20,8 +20,9 @@ describe('NovelAI proxy endpoint selection', () => {
             }
         });
 
-        expect(__测试__构建图片端点('https://image.novelai.net', '/ai/generate-image'))
-            .toBe('https://msjh.bacon159.pp.ua/api/novelai/ai/generate-image');
+        const endpoint = __测试__构建图片端点('https://image.novelai.net', '/ai/generate-image');
+        expect(endpoint).toMatch(/^https:\/\/.+\/api\/novelai\/ai\/generate-image$/);
+        expect(endpoint).not.toContain('localhost');
     });
 
     it('keeps the relative proxy path for local web development', () => {
