@@ -1,14 +1,12 @@
 {
-  "versionCode": 330,
-  "versionName": "1.0.329",
+  "versionCode": 331,
+  "versionName": "1.0.330",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "小说分解注入新增“主剧情保留原文注入”开关：需要贴近原著笔触时，可以让当前章原文节选随主剧情一起注入。",
-    "小说分解注入新增“主剧情注入字数优化”开关：默认继续控制注入长度，关闭后可保留更完整的当前章注入内容。",
-    "APK 内 NovelAI 生图代理会自动走正式网站后端，不再把 https://localhost/api/novelai 误兜底到首页 HTML。",
-    "端到端测试新增对象存储、主角姓名、伙伴姓名与“小号”CNB 生图后端预置脚本，方便验证同人/小说注入设置链路。",
+    "修复 NovelAI 生图成功返回 ZIP 图片包时，APK/网页端误把图片包当作文本导致“图片响应无法解析”的问题。",
+    "NovelAI 生图现在会正确提取返回包里的 image_0.png 并显示为角色图片。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.329。"
+    "同步更新 Web、APK 与更新清单到 v1.0.330。"
   ],
   "releaseHistory": [
     {
@@ -2096,7 +2094,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-27T00:33:05+08:00",
+  "releasePublishedAt": "2026-05-27T00:54:52+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
