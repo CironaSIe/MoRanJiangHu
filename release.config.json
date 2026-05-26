@@ -1,15 +1,14 @@
 {
-  "versionCode": 324,
-  "versionName": "1.0.323",
+  "versionCode": 325,
+  "versionName": "1.0.324",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "小说分解继续扩展：可拆分世界观规则、世界边界、人物与势力关系、物品档案、伏笔线索、回收点和章节节奏，后续导入同人作品时信息更完整。",
-    "修复小说分解发布到创意工坊时可能因标题或返回信息缺失导致的上传报错，发布成功提示更稳定。",
-    "新建存档流程整理：同人融合移动到第 1 步“世界观”，更符合世界设定阶段的使用习惯。",
-    "开局预设方案前置到世界观页并只显示一次，可直接套用、开局、编辑、覆盖或删除，减少重复入口。",
-    "废弃新建存档里的同人预设 PR 投稿入口，避免玩家误触不再使用的贡献流程；创意工坊发布功能继续保留。",
+    "修复 NSFW 独立 ComfyUI 生图配置误判问题：普通生图可用时，成人向生图不再因为主接口记录为空而提示“NSFW 生图配置不可用”。",
+    "文生图设置中使用 CNB 用户名称自动发现后端更稳定，已用“小号”用户名称完成端到端验证。",
+    "修复部分旧存档中女性 NPC 姓名被旧姓名库机制误改的问题，读档时会在有明确曾用名证据时自动恢复原名。",
+    "新生成女性 NPC 不再走本地姓名库强制改名，改为命中常见模板名时让 AI 从头重新生成正文和变量，减少角色名被系统二次污染。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.323。"
+    "同步更新 Web、APK 与更新清单到 v1.0.324。"
   ],
   "releaseHistory": [
     {
@@ -3101,7 +3100,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-26T01:34:29+08:00",
+  "releasePublishedAt": "2026-05-26T08:17:06+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }

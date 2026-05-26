@@ -38,6 +38,7 @@ import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
 import { buildHistoryDebugSummary, buildSaveDebugSummary, collectLargestStrings, collectValueStats, recordSaveLoadTrace } from '../../utils/saveLoadTrace';
 import { 清理内嵌图片冗余字段 } from '../../utils/imageAssets';
 import { 计算历史游玩回合数 } from '../../utils/saveTurn';
+import { 修复旧姓名库误改NPC姓名列表 } from '../../utils/npcNameRepair';
 
 const 收集图床图片地址 = (
     value: unknown,
@@ -730,12 +731,17 @@ export const 执行读取存档 = async (
         socialCount: Array.isArray(save.社交) ? save.社交.length : 0,
         socialStats: collectValueStats(save.社交, 16000)
     });
-    const loadedSocial = shouldTrustPersistedHeavyFields
+    let loadedSocial = shouldTrustPersistedHeavyFields
         ? (Array.isArray(save.社交) ? save.社交 : [])
         : deps.规范化社交列表(save.社交 || [], { 合并同名: false });
+    const nameRepairResult = 修复旧姓名库误改NPC姓名列表(loadedSocial);
+    if (nameRepairResult.已修复数量 > 0) {
+        loadedSocial = nameRepairResult.列表;
+    }
     trace('social.prepare.done', {
         trusted: shouldTrustPersistedHeavyFields,
         socialCount: loadedSocial.length,
+        repairedNameCount: nameRepairResult.已修复数量,
         socialStats: collectValueStats(loadedSocial, 16000)
     });
     deps.设置社交(loadedSocial);

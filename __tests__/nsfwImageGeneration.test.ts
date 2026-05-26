@@ -248,6 +248,24 @@ describe('获取NSFW文生图接口配置', () => {
         expect(获取NSFW文生图接口配置(settings)).toBeNull();
     });
 
+    it('keeps independent ComfyUI NSFW config usable when only the image backend is configured', () => {
+        const settings = 构建测试接口设置({
+            文生图后端类型: 'comfyui',
+            文生图模型API地址: 'https://main-8188.cnb.run',
+            NSFW生图独立接口启用: true,
+            NSFW生图后端类型: 'comfyui',
+            NSFW生图模型API地址: 'https://nsfw-8188.cnb.run'
+        });
+        settings.configs = [];
+        settings.activeConfigId = '';
+
+        const result = 获取NSFW文生图接口配置(settings);
+
+        expect(result?.baseUrl).toBe('https://nsfw-8188.cnb.run');
+        expect(result?.图片后端类型).toBe('comfyui');
+        expect(接口配置是否可用(result)).toBe(true);
+    });
+
     it('returns shared config when main backend supports NSFW and independent is off', () => {
         const settings = 构建测试接口设置({
             文生图后端类型: 'sd_webui',

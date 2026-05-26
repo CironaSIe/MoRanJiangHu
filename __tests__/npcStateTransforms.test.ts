@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { 规范化社交列表 } from '../hooks/useGame/stateTransforms';
-import { 判断女性姓名来自姓名库 } from '../utils/femaleNameSelector';
 
 describe('NPC old save compatibility', () => {
     it('repairs teammate combat caps, equipment and bag from legacy placeholders', () => {
@@ -176,7 +175,7 @@ describe('NPC old save compatibility', () => {
         expect(list[0].曾用名).toBeUndefined();
     });
 
-    it('repairs social names that are pronoun/prose fragments into short real names', () => {
+    it('does not rewrite generated NPC names locally, even when they look suspicious', () => {
         const list = 规范化社交列表([
             {
                 id: 'npc_bad_name_phrase',
@@ -196,11 +195,9 @@ describe('NPC old save compatibility', () => {
         ], { 合并同名: false });
 
         expect(list).toHaveLength(2);
-        expect(list[0].姓名).not.toBe('自己已经没有');
-        expect(list[0].姓名).toMatch(/^[\u4e00-\u9fa5]{2,4}$/u);
-        expect(list[0].曾用名).toContain('自己已经没有');
-        expect(list[1].姓名).not.toBe('慕容氏精锐水鬼');
-        expect(list[1].姓名.length).toBeLessThanOrEqual(4);
+        expect(list[0].姓名).toBe('自己已经没有');
+        expect(list[0].曾用名).toBeUndefined();
+        expect(list[1].姓名).toBe('慕容氏精锐水鬼');
     });
 
     it('repairs unknown dialogue NPC basics and keeps private closeups out of avatar selection', () => {

@@ -95,7 +95,7 @@ describe('开局伙伴姓名保护', () => {
         expect(partner.图片档案?.已选立绘图片ID).toBe('portrait');
     });
 
-    it('AI 把同一伙伴改名时会合并回玩家填写姓名', () => {
+    it('AI 已生成的伙伴姓名不会被本地修复逻辑改写', () => {
         const openingConfig = 创建开局配置('沈青萝');
         const fixed = 修复开局伙伴社交列表([
             {
@@ -116,8 +116,8 @@ describe('开局伙伴姓名保护', () => {
         ], openingConfig, { 姓名: '陆行舟' } as any);
 
         expect(fixed).toHaveLength(1);
-        expect(fixed[0].姓名).toBe('沈青萝');
-        expect(fixed[0].曾用名).toContain('苏婉儿');
+        expect(fixed[0].姓名).toBe('苏婉儿');
+        expect(fixed[0].曾用名).toBeUndefined();
         expect(fixed[0].是否队友).toBe(true);
         expect(fixed[0].是否主要角色).toBe(true);
     });

@@ -181,6 +181,7 @@ export const 修复开局伙伴社交列表 = (
     if (!seed) return Array.isArray(socialList) ? socialList : [];
 
     const source = Array.isArray(socialList) ? socialList : [];
+    if (source.length > 0) return source;
     let merged: any | null = null;
     const next: any[] = [];
 

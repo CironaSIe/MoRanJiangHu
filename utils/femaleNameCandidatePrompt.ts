@@ -1,4 +1,4 @@
-import { 选择女性姓名候选列表 } from './femaleNameSelector';
+import { 构建女性姓名黑名单提示词, 常见女性姓名黑名单 } from './femaleNameSelector';
 
 const 默认禁用模板名 = [
     '苏婉儿',
@@ -29,27 +29,8 @@ export const 构建女性姓名候选提示词 = (params?: {
     count?: number;
     fandomEnabled?: boolean;
 }): string => {
-    const candidates = 选择女性姓名候选列表({
-        usedNames: params?.usedNames,
-        seed: params?.seed,
-        count: params?.count ?? 100
-    });
-    if (candidates.length <= 0) return '';
-
-    return [
-        '【女性新角色姓名候选池】',
-        params?.fandomEnabled === true
-            ? '- 当前启用同人融合：仅当本次需要创建“本项目原创”的新女性 NPC、侍女、师姐、女修、姑娘、夫人等女性人物时，才从下方候选姓名中选择真实姓名。'
-            : '- 当本次输出需要创建、命名或确认新的女性 NPC、主要女性角色、女主、侍女、师姐、女修、姑娘、夫人等女性人物时，必须从下方候选姓名中选择一个真实姓名。',
-        params?.fandomEnabled === true
-            ? '- 原著/同人已有角色、小说拆分正文中已点名的人物、角色替换规则指定的人物，必须保留其原名或替换规则名称；不得为了匹配候选池而改名。'
-            : '',
-        '- 候选池只用于“新建女性 NPC、占位名转真名”；已经存在于社交档案里的姓名、玩家手动改过的姓名、正文已稳定承接的姓名必须原样保留，不得每回合替换成候选池姓名。即使老存档里已有模板名，也不要主动重命名。',
-        '- 禁止自造新的女性姓名；禁止使用“苏婉儿/婉儿/林清雪/清雪/柳若嫣/若嫣/灵儿/月儿/芷若/小雅/小柔/小蝶/小环/小翠”等模板名或小名。',
-        '- 正文对白框 sender、`<变量规划>` 中的人物称呼、变量命令里的 `社交[i].姓名` 必须使用同一个候选姓名；临时代称、身份称呼或外貌描述不得写进姓名，可写入身份、简介或记忆；只有确有旧称、化名、曾用称呼时才写 `曾用名`，不要给每个 NPC 强行生成曾用名。',
-        '- 若候选名已被当前存档使用，请改选列表中未使用的另一个候选名；同一存档内女性真实姓名不得重复。',
-        `- 候选姓名（${candidates.length}个）：${candidates.join('、')}`
-    ].filter(Boolean).join('\n');
+    void params;
+    return 构建女性姓名黑名单提示词();
 };
 
 export const 收集女性姓名候选已用名 = (stateLike?: any): string[] => {
@@ -64,6 +45,6 @@ export const 收集女性姓名候选已用名 = (stateLike?: any): string[] => 
         if (Array.isArray(npc?.曾用名)) npc.曾用名.forEach(push);
     });
     push(stateLike?.角色?.姓名);
-    默认禁用模板名.forEach(push);
+    [...默认禁用模板名, ...常见女性姓名黑名单].forEach(push);
     return Array.from(used);
 };

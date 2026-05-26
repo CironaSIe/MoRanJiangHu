@@ -14,6 +14,7 @@ import { 构建同人运行时提示词包 } from '../../prompts/runtime/fandom'
 import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 构建变量路径登记提示, 校验变量命令是否登记 } from '../../utils/variableRegistry';
 import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
+import { 提取命中女性姓名黑名单 } from '../../utils/femaleNameSelector';
 
 type 变量模型基态 = Pick<
     响应命令处理状态,
@@ -439,6 +440,33 @@ const 序列化命令去重键 = (cmd: TavernCommand): string => {
     ].join('::');
 };
 
+const 规范化姓名键 = (value: unknown): string => (
+    typeof value === 'string'
+        ? value.trim().replace(/[\s\u3000]+/g, '')
+        : ''
+);
+
+const 提取变量命令NPC姓名改写 = (commands: TavernCommand[], currentSocial: any[]): string[] => {
+    if (!Array.isArray(commands) || !Array.isArray(currentSocial)) return [];
+    const issues: string[] = [];
+    commands.forEach((cmd: any) => {
+        if ((cmd?.action || 'set') !== 'set') return;
+        const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '').replace(/^gameState\./, '');
+        const direct = normalizedKey.match(/^社交\[(\d+)\]\.姓名$/);
+        const whole = normalizedKey.match(/^社交\[(\d+)\]$/);
+        const index = direct ? Number(direct[1]) : (whole ? Number(whole[1]) : NaN);
+        if (!Number.isInteger(index) || index < 0) return;
+        const currentName = 规范化姓名键(currentSocial[index]?.姓名);
+        const nextName = direct
+            ? 规范化姓名键(cmd?.value)
+            : 规范化姓名键(cmd?.value?.姓名);
+        if (currentName && nextName && currentName !== nextName) {
+            issues.push(`社交[${index}].姓名：${currentName} -> ${nextName}`);
+        }
+    });
+    return issues;
+};
+
 const 包含非法伪索引 = (key: string): boolean => /(?:\[(?:-?\d+|last|tail|尾项|最后一项)\])/i.test((key || '').trim())
     && (
         /\[-\d+\]/.test((key || '').trim())
@@ -592,6 +620,26 @@ export const 执行变量模型校准工作流 = async (
             existingKeys.add(dedupeKey);
             return true;
         });
+
+    const blacklistHits = 提取命中女性姓名黑名单(JSON.stringify({
+        commands: dedupedCommands,
+        reports: result.reports,
+        rawText: result.rawText
+    }));
+    if (blacklistHits.length > 0) {
+        const message = `变量生成命中女性模板姓名黑名单：${blacklistHits.join('、')}。请重新生成变量命令，并确保正文 sender、人物称呼与社交姓名使用同一个非模板原创姓名。`;
+        const error = new Error(message);
+        (error as any).parseDetail = message;
+        throw error;
+    }
+
+    const renameIssues = 提取变量命令NPC姓名改写(dedupedCommands, params.baseState.社交);
+    if (renameIssues.length > 0) {
+        const message = `变量生成试图改写已生成 NPC 姓名：${renameIssues.join('；')}。前端不会修改既有变量，请重新生成变量命令并保留已有 NPC 姓名。`;
+        const error = new Error(message);
+        (error as any).parseDetail = message;
+        throw error;
+    }
 
     const normalizedReports = [
         ...(Array.isArray(result.reports) ? result.reports : []),

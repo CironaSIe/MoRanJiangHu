@@ -19,6 +19,7 @@ import type { 地图更新执行结果 } from './mapUpdateWorkflow';
 import { 生成地图更新 } from './mapUpdateWorkflow';
 import { 获取激活小说拆分注入文本 } from '../../services/novelDecompositionInjection';
 import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
+import { 提取命中女性姓名黑名单 } from '../../utils/femaleNameSelector';
 
 type 回忆检索进度 = {
     phase: 'start' | 'stream' | 'done' | 'error';
@@ -121,6 +122,65 @@ export const 校验主剧情正文最低字数 = (response: GameResponse, minLen
         rawText,
         shortage.message
     );
+};
+
+export const 校验响应未命中女性姓名黑名单 = (response: GameResponse, rawText: string, stageLabel = '主剧情') => {
+    const text = [
+        ...(Array.isArray(response?.logs)
+            ? response.logs.map((log: any) => `${log?.sender || ''}\n${log?.text || ''}`)
+            : []),
+        ...(Array.isArray(response?.tavern_commands)
+            ? response.tavern_commands.map((cmd: any) => JSON.stringify(cmd))
+            : []),
+        rawText || ''
+    ].filter(Boolean).join('\n');
+    const hits = 提取命中女性姓名黑名单(text);
+    if (hits.length <= 0) return;
+    const detail = `${stageLabel}命中女性模板姓名黑名单：${hits.join('、')}。请完整重新生成本回合正文和变量命令，改用更贴合世界观的原创真实姓名，并保持正文 sender 与社交姓名一致。`;
+    const error = new textAIService.StoryResponseParseError(detail, rawText, detail);
+    (error as any).parseDetail = detail;
+    throw error;
+};
+
+const 规范化姓名键 = (value: unknown): string => (
+    typeof value === 'string'
+        ? value.trim().replace(/[\s\u3000]+/g, '')
+        : ''
+);
+
+const 提取社交姓名改写 = (response: GameResponse, currentSocial: any[]): string[] => {
+    if (!Array.isArray(response?.tavern_commands) || !Array.isArray(currentSocial)) return [];
+    const issues: string[] = [];
+    response.tavern_commands.forEach((cmd: any) => {
+        if ((cmd?.action || 'set') !== 'set') return;
+        const key = typeof cmd?.key === 'string' ? cmd.key.replace(/^gameState\./, '') : '';
+        const direct = key.match(/^社交\[(\d+)\]\.姓名$/);
+        const whole = key.match(/^社交\[(\d+)\]$/);
+        const index = direct ? Number(direct[1]) : (whole ? Number(whole[1]) : NaN);
+        if (!Number.isInteger(index) || index < 0) return;
+        const currentName = 规范化姓名键(currentSocial[index]?.姓名);
+        const nextName = direct
+            ? 规范化姓名键(cmd?.value)
+            : 规范化姓名键(cmd?.value?.姓名);
+        if (currentName && nextName && currentName !== nextName) {
+            issues.push(`社交[${index}].姓名：${currentName} -> ${nextName}`);
+        }
+    });
+    return issues;
+};
+
+export const 校验响应未改写既有NPC姓名 = (
+    response: GameResponse,
+    currentSocial: any[],
+    rawText: string,
+    stageLabel = '主剧情'
+) => {
+    const issues = 提取社交姓名改写(response, currentSocial);
+    if (issues.length <= 0) return;
+    const detail = `${stageLabel}试图改写已生成 NPC 姓名：${issues.join('；')}。前端不会修改既有变量，请完整重新生成本回合正文和变量命令；已有 NPC 姓名必须原样保留。`;
+    const error = new textAIService.StoryResponseParseError(detail, rawText, detail);
+    (error as any).parseDetail = detail;
+    throw error;
 };
 
 const 构建正文文本 = (response: GameResponse): string => (
@@ -949,14 +1009,24 @@ export const 执行主剧情发送工作流 = async (
                         }
                     );
 
-                if (!isStreaming) {
-                    return requestStory(controller.signal);
-                }
-
-                return 执行主剧情流式请求带空闲超时(
-                    controller.signal,
-                    (signal, markStreamActivity) => requestStory(signal, markStreamActivity)
+                const storyResult = !isStreaming
+                    ? await requestStory(controller.signal)
+                    : await 执行主剧情流式请求带空闲超时(
+                        controller.signal,
+                        (signal, markStreamActivity) => requestStory(signal, markStreamActivity)
+                    );
+                校验响应未命中女性姓名黑名单(
+                    storyResult.response,
+                    deps.获取原始AI消息(storyResult.rawText),
+                    "主剧情"
                 );
+                校验响应未改写既有NPC姓名(
+                    storyResult.response,
+                    currentState.社交,
+                    deps.获取原始AI消息(storyResult.rawText),
+                    "主剧情"
+                );
+                return storyResult;
             }
         });
 
@@ -983,6 +1053,8 @@ export const 执行主剧情发送工作流 = async (
 
         const socialBeforeMainCommands = deps.深拷贝(currentState.社交);
         const rawAiText = deps.获取原始AI消息(aiResult.rawText);
+        校验响应未命中女性姓名黑名单(aiData, rawAiText, "主剧情");
+        校验响应未改写既有NPC姓名(aiData, currentState.社交, rawAiText, "主剧情");
         let mainLengthShortage = 获取主剧情正文不足信息(aiData, runtimeGameConfig.字数要求);
         const shortBodyOnlyWarn = runtimeGameConfig.字数不足处理方式 === '仅提示';
         let shouldRegenerateForLength = Boolean(mainLengthShortage && !mainLengthShortage.withinTolerance && !shortBodyOnlyWarn);

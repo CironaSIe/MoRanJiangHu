@@ -14,7 +14,6 @@ import {
 import { applyStateCommand, normalizeStateCommandKey } from '../../utils/stateHelpers';
 import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
 import { sanitizeInventoryCommand } from './inventoryCommandGuard';
-import { 判断女性姓名需要兜底重命名 } from '../../utils/femaleNameSelector';
 import { 姓名含已知中文姓氏 } from '../../utils/chineseName';
 
 const 占位开局时间 = '1:01:01:00:00';
@@ -1010,18 +1009,6 @@ const 规范化命令姓名 = (value: unknown): string => (
         : ''
 );
 
-const 稳定真实姓名正则 = /^[\u4e00-\u9fa5]{2,4}$/u;
-
-const 非稳定姓名正则 = /^(?:未知|无名|未命名|某人|路人|角色|人物|NPC|同门|随行者|队友|弟子|女子|女人|少女|姑娘|男子|男人|少年|老者|老人|太监|内侍|侍卫|护卫|宫女|丫鬟|掌柜|管事|黑衣女人|黑衣女子|蒙面人|教引姑姑|永安宫掌事太监)\d*$/u;
-
-const 判断已有姓名稳定 = (value: unknown): boolean => {
-    const name = 规范化命令姓名(value);
-    if (!name) return false;
-    if (判断女性姓名需要兜底重命名(name)) return false;
-    if (非稳定姓名正则.test(name)) return false;
-    return 稳定真实姓名正则.test(name);
-};
-
 const 提取社交姓名命令索引 = (rawKey: unknown): number | null => {
     const normalizedKey = normalizeStateCommandKey(typeof rawKey === 'string' ? rawKey : '');
     const match = normalizedKey.match(/^gameState\.社交\[(\d+)\]\.姓名$/);
@@ -1037,8 +1024,7 @@ const 净化社交姓名命令 = (cmd: any, currentSocial: any[]): any | null =>
     const currentName = 规范化命令姓名(currentSocial?.[index]?.姓名);
     const nextName = 规范化命令姓名(cmd?.value);
     if (!currentName || !nextName || currentName === nextName) return cmd;
-    if (!判断已有姓名稳定(currentName)) return cmd;
-    return null;
+    return cmd;
 };
 
 const 提取新增社交命令姓名 = (cmd: any): string => {

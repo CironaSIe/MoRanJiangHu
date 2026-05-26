@@ -5,7 +5,6 @@ import { 自动装备最佳装备 } from '../../utils/equipmentActions';
 import { 规范化消耗品使用效果 } from '../../utils/itemEffects';
 import { 补齐自动丹药预设 } from '../../utils/autoConsumables';
 import { 归一化六维到境界预算 } from '../../utils/attributeBudget';
-import { 判断女性名称目标, 判断模板化女性姓名, 选择唯一女性姓名, 重命名重复女性NPC列表 } from '../../utils/femaleNameSelector';
 import { 姓名含已知中文姓氏 } from '../../utils/chineseName';
 
 const 深拷贝 = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
@@ -2522,45 +2521,8 @@ const 选择男性或中性NPC姓名 = (npc: any, index: number, usedNames: Set<
 };
 
 const 修复NPC真实姓名列表 = (list: any[], options?: { 保留非姓名库主要女性名?: boolean }): any[] => {
-    if (!Array.isArray(list)) return [];
-    const usedNames = new Set<string>();
-    return list.map((npc, index) => {
-        const name = 规范化文本(npc?.姓名).replace(/\s+/g, '');
-        if (
-            options?.保留非姓名库主要女性名 === true
-            && name
-            && !是否噪声NPC姓名(name)
-            && !usedNames.has(name)
-        ) {
-            usedNames.add(name);
-            return name === npc?.姓名 ? npc : { ...npc, 姓名: name };
-        }
-        if (是否真实NPC姓名(name) && !usedNames.has(name)) {
-            usedNames.add(name);
-            return name === npc?.姓名 ? npc : { ...npc, 姓名: name };
-        }
-        if (判断女性名称目标(npc) && 判断模板化女性姓名(name)) {
-            usedNames.add(name);
-            return name === npc?.姓名 ? npc : { ...npc, 姓名: name };
-        }
-
-        const nextName = 判断女性名称目标(npc)
-            ? 选择唯一女性姓名({
-                usedNames,
-                seed: [npc?.id, npc?.姓名, npc?.身份, npc?.简介, npc?.境界, index].map((value) => 规范化文本(value)).join('|')
-            })
-            : 选择男性或中性NPC姓名(npc, index, usedNames);
-        usedNames.add(nextName);
-        const legacyNames = Array.isArray(npc?.曾用名)
-            ? npc.曾用名.map((item: unknown) => 规范化文本(item)).filter(Boolean)
-            : [];
-        const 曾用名 = Array.from(new Set([...legacyNames, name].filter(Boolean)));
-        return {
-            ...npc,
-            姓名: nextName,
-            ...(曾用名.length > 0 ? { 曾用名 } : {})
-        };
-    });
+    void options;
+    return Array.isArray(list) ? list : [];
 };
 
 const 是否应丢弃NPC条目 = (rawNpc: any): boolean => {
@@ -3103,9 +3065,7 @@ const 规范化社交列表 = (list: any[], options?: { 合并同名?: boolean; 
     const merged = options?.合并同名 === false
         ? 合并占位NPC列表(normalized, { 合并精确同名: false })
         : 合并占位NPC列表(合并同名NPC列表(normalized));
-    return 重命名重复女性NPC列表(修复NPC真实姓名列表(merged, {
-        保留非姓名库主要女性名: options?.保留非姓名库主要女性名 === true
-    }), {
+    return 修复NPC真实姓名列表(merged, {
         保留非姓名库主要女性名: options?.保留非姓名库主要女性名 === true
     });
 };
