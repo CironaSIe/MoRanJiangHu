@@ -1035,6 +1035,7 @@ const 规范化地图层级列表 = (world: any): 地图层级结构[] => (
                     名称: name,
                     层级: layerType,
                     描述: 从候选读取文本(item, ['描述', '说明', '简介', 'description']),
+                    叙事核心: 从候选读取文本(item, ['叙事核心', '舞台核心', '舞台/叙事核心', 'narrativeCore', 'storyCore']),
                     归属: ownership,
                     父级ID: 从候选读取文本(item, ['父级ID', '父ID', '父层ID', 'parentId', 'parentID']),
                     锚点坐标: 从候选读取坐标(item, ['锚点坐标', '中心坐标', '坐标', '父层坐标', '位置']) || { x: index * 12, y: index * 9 },
@@ -1193,6 +1194,7 @@ const 从旧版字段派生地图空间 = (
             const existing = layerById.get(existingId);
             if (existing) {
                 if (!existing.描述 && params.描述) existing.描述 = params.描述;
+                if (!existing.叙事核心 && (params as any).叙事核心) existing.叙事核心 = (params as any).叙事核心;
                 if (!existing.父级ID && params.父级ID) existing.父级ID = params.父级ID;
                 if ((existing.锚点坐标.x === 0 && existing.锚点坐标.y === 0) && params.锚点坐标) {
                     existing.锚点坐标 = params.锚点坐标;
@@ -1207,6 +1209,7 @@ const 从旧版字段派生地图空间 = (
             名称: name,
             层级: params.层级,
             描述: 取文本(params.描述, 生成层级说明(params.层级, name)),
+            叙事核心: 取文本((params as any).叙事核心),
             归属: { ...params.归属 },
             父级ID: 取文本(params.父级ID),
             锚点坐标: params.锚点坐标 || { x: layers.length * 12, y: layers.length * 9 },

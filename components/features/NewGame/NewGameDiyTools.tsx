@@ -1,16 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import type { 接口设置结构, OpeningConfig, RealmDiyRow, WorldGenConfig, WorldMapDiyLayerType, WorldMapDiyNode, 角色数据结构 } from '../../../types';
+import type { 接口设置结构, OpeningConfig, RealmDiyRow, WorldGenConfig, WorldMapDiyDraft, WorldMapDiyFeature, WorldMapDiyNode, 角色数据结构 } from '../../../types';
 import { generateFandomRealmData, generateWorldData } from '../../../services/ai/text';
 import { 获取主剧情接口配置, 接口配置是否可用 } from '../../../utils/apiConfig';
 import {
     buildRealmPromptFromDraft,
     buildWorldMapLayersFromDraft,
     buildWorldMapPromptFromDraft,
-    createEmptyRealmDraft,
-    createEmptyWorldMapDraft,
     normalizeRealmDraft,
     normalizeWorldMapDraft,
 } from '../../../utils/newGameDiy';
+import DiyMapEditor from './DiyMapEditor';
 
 type Props = {
     worldConfig: WorldGenConfig;
@@ -20,8 +19,6 @@ type Props = {
     onChange: React.Dispatch<React.SetStateAction<WorldGenConfig>>;
     compact?: boolean;
 };
-
-const layerOptions: WorldMapDiyLayerType[] = ['寰宇', '大地点', '中地点', '小地点', '区地点', '子地点'];
 
 const nextId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -74,10 +71,29 @@ const patchRealmRow = (row: RealmDiyRow): RealmDiyRow => ({
 const patchMapNode = (node: WorldMapDiyNode): WorldMapDiyNode => ({
     ...node,
     description: node.description || `${node.name || '该地点'}是本局可长期抵达的${node.layer}，后续剧情、势力和任务可围绕此处展开。`,
+    narrativeCore: node.narrativeCore || (node.scaleFields as any)?.narrativeCore || `${node.name || '该区域'}存在可长期发酵的矛盾、资源压力或人物关系，可由 AI 继续补完为故事钩子。`,
+    scaleFields: {
+        ...(node.scaleFields || {}),
+        narrativeCore: node.narrativeCore || (node.scaleFields as any)?.narrativeCore || `${node.name || '该区域'}存在可长期发酵的矛盾、资源压力或人物关系，可由 AI 继续补完为故事钩子。`,
+    },
     climate: node.climate || '气候由地形、纬度和世界观设定共同决定',
-    population: node.population || node.layer === '小地点' || node.layer === '区地点' ? '人口规模按城镇/建筑定位估算' : '人口分布按区域层级估算',
+    population: node.population || ((node.layer === '小地点' || node.layer === '区地点') ? '人口规模按城镇/建筑定位估算' : '人口分布按区域层级估算'),
     culture: node.culture || '风土人情可由 AI 根据题材补完',
     transport: node.transport || '道路、水路、山道或传送路径按地点层级补完'
+});
+
+const patchMapFeature = (feature: WorldMapDiyFeature): WorldMapDiyFeature => ({
+    ...feature,
+    description: feature.description || `${feature.name || '该地理要素'}会影响周边气候、交通、贸易、势力活动和随机事件生成。`,
+    fields: {
+        ...(feature.fields || {}),
+        类型: feature.fields?.类型 || (feature.type === 'road' ? '官道/商路' : feature.type === 'river' ? '河流' : ''),
+        通行难度: feature.fields?.通行难度 || (feature.type === 'mountain' ? '较难通行' : '普通'),
+        旅行速度: feature.fields?.旅行速度 || (feature.type === 'portal' ? '极快但需条件' : '普通'),
+        安全性: feature.fields?.安全性 || '随剧情局势变化',
+        当前状态: feature.fields?.当前状态 || '畅通',
+        分叉结构: feature.fields?.分叉结构 || ((feature.type === 'river' || feature.type === 'road' || feature.type === 'waterway') ? '可按支流/支路拆成多条同组线路，并在说明中标明汇入或分叉关系' : ''),
+    },
 });
 
 const NewGameDiyTools: React.FC<Props> = ({ worldConfig, charData, openingConfig, apiConfig, onChange, compact = false }) => {
@@ -94,8 +110,8 @@ const NewGameDiyTools: React.FC<Props> = ({ worldConfig, charData, openingConfig
         onChange(prev => ({ ...prev, realmDiyDraft: { rows, updatedAt: Date.now() } }));
     };
 
-    const updateMapNodes = (nodes: WorldMapDiyNode[]) => {
-        onChange(prev => ({ ...prev, mapDiyDraft: { ...normalizeWorldMapDraft(prev.mapDiyDraft), nodes, updatedAt: Date.now() } }));
+    const updateMapDraft = (draft: WorldMapDiyDraft) => {
+        onChange(prev => ({ ...prev, mapDiyDraft: { ...normalizeWorldMapDraft(draft), updatedAt: Date.now() } }));
     };
 
     const applyRealmPrompt = () => {
@@ -112,9 +128,76 @@ const NewGameDiyTools: React.FC<Props> = ({ worldConfig, charData, openingConfig
         const prompt = buildWorldMapPromptFromDraft(normalized);
         onChange(prev => ({
             ...prev,
-            mapDiyDraft: normalized,
+            mapDiyDraft: { ...normalized, enabled: true },
             worldExtraRequirement: [prev.worldExtraRequirement.trim(), prompt].filter(Boolean).join('\n\n')
         }));
+    };
+
+    const runMapAiAssist = async (
+        target: { kind: 'node'; id: string } | { kind: 'feature'; id: string },
+        action: 'complete' | 'polish' | 'check'
+    ) => {
+        if (!接口配置是否可用(currentApi)) {
+            setAiStatus({ type: 'error', message: '请先在设置中配置可用的主剧情 API。' });
+            return;
+        }
+        const normalized = normalizeWorldMapDraft(worldConfig.mapDiyDraft);
+        const object = target.kind === 'node'
+            ? normalized.nodes.find((node) => node.id === target.id)
+            : (normalized.features || []).find((feature) => feature.id === target.id);
+        if (!object) {
+            setAiStatus({ type: 'error', message: '未找到当前选中的地图对象。' });
+            return;
+        }
+        const actionLabel = action === 'complete' ? '补完字段' : action === 'polish' ? '润色扩写' : '逻辑检查';
+        setAiStatus({ type: 'loading', message: `正在对「${object.name || '未命名对象'}」进行${actionLabel}...` });
+        try {
+            const mapContext = buildWorldMapPromptFromDraft(normalized);
+            const prompt = [
+                `你是游戏开局 DIY 地图设定助手。当前操作：${actionLabel}。`,
+                `目标类型：${target.kind === 'node' ? '区域/地点层级' : '连接型地理要素'}`,
+                `目标对象JSON：${JSON.stringify(object)}`,
+                `全局地图草稿：\n${mapContext}`,
+                action === 'check'
+                    ? '请只输出简短逻辑检查建议，指出层级、父级、地理关系、交通、水文、叙事核心或设定矛盾，不要改写原对象。'
+                    : '请输出一段可直接写入该对象“描述”的中文设定文本，补足地理、文明、交通、资源、风险、区域核心矛盾和剧情用途，避免输出 JSON。'
+            ].join('\n\n');
+            const result = await generateWorldData(
+                prompt,
+                charData || {},
+                currentApi,
+                undefined,
+                `【DIY地图${actionLabel}】请保持简洁，聚焦当前对象。`,
+                undefined,
+                { openingConfig }
+            );
+            const content = (result || '').trim();
+            if (!content) throw new Error('AI 输出为空');
+            if (action === 'check') {
+                setAiStatus({ type: 'success', message: content.slice(0, 900) });
+                return;
+            }
+            if (target.kind === 'node') {
+                updateMapDraft({
+                    ...normalized,
+                    nodes: normalized.nodes.map((node) => node.id === target.id
+                        ? { ...(action === 'complete' ? patchMapNode(node) : node), description: content }
+                        : node
+                    )
+                });
+            } else {
+                updateMapDraft({
+                    ...normalized,
+                    features: (normalized.features || []).map((feature) => feature.id === target.id
+                        ? { ...patchMapFeature(feature), description: content }
+                        : feature
+                    )
+                });
+            }
+            setAiStatus({ type: 'success', message: `${actionLabel}完成，已写入当前地图对象。` });
+        } catch (error: any) {
+            setAiStatus({ type: 'error', message: `地图 AI 辅助失败：${error?.message || '未知错误'}` });
+        }
     };
 
     const generateWorldPromptWithAI = async () => {
@@ -303,54 +386,33 @@ const NewGameDiyTools: React.FC<Props> = ({ worldConfig, charData, openingConfig
             {mapOpen && (
                 <div className="space-y-3 rounded-xl border border-white/10 bg-black/25 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-xs font-bold text-wuxia-gold">世界地图 DIY 基础版</div>
+                        <div>
+                            <div className="text-xs font-bold text-wuxia-gold">世界地图 DIY 画布</div>
+                            <div className="mt-1 text-[11px] leading-5 text-gray-400">
+                                绘制区域、点位、山脉、水路和道路；开启后会在开局时转化为 AI 可读取的地图层级。
+                            </div>
+                        </div>
                         <div className="flex flex-wrap gap-2">
-                            <label className={smallButtonClass}>
-                                导入参考图
-                                <input type="file" accept="image/*" className="hidden" onChange={e => importReferenceImage(e.target.files?.[0])} />
-                            </label>
-                            <button type="button" className={smallButtonClass} onClick={() => updateMapNodes(mapDraft.nodes.map(patchMapNode))}>AI 补完空项</button>
-                            <button type="button" className={smallButtonClass} onClick={() => updateMapNodes([...mapDraft.nodes, {
-                                id: nextId('map'),
-                                name: '',
-                                layer: '大地点',
-                                parentId: mapDraft.nodes[0]?.id || '',
-                                description: ''
-                            }])}>新增地点</button>
+                            <button type="button" className={smallButtonClass} onClick={() => updateMapDraft({
+                                ...mapDraft,
+                                enabled: true,
+                                nodes: mapDraft.nodes.map(patchMapNode),
+                                features: (mapDraft.features || []).map(patchMapFeature)
+                            })}>补完空项</button>
                             <button type="button" className={smallButtonClass} onClick={applyMapPrompt}>写入世界观要求</button>
                         </div>
                     </div>
-                    {mapDraft.referenceImage && (
-                        <div className="relative overflow-hidden rounded-xl border border-wuxia-gold/20 bg-black/30">
-                            <img src={mapDraft.referenceImage} alt="地图参考图" className="h-40 w-full object-contain" style={{ opacity: mapDraft.referenceOpacity ?? 0.3 }} />
-                            <div className="absolute bottom-2 right-2 rounded bg-black/70 px-2 py-1 text-[10px] text-gray-300">参考图 30% 透明度</div>
-                        </div>
-                    )}
-                    <div className="space-y-3">
-                        {mapDraft.nodes.map((node) => (
-                            <div key={node.id} className="rounded-xl border border-gray-800 bg-black/30 p-3 space-y-2">
-                                <div className={`grid grid-cols-1 gap-2 ${compact ? '' : 'md:grid-cols-[1fr_120px_1fr_auto]'}`}>
-                                    <input className={inputClass} value={node.name} placeholder="地点名称" onChange={e => updateMapNodes(mapDraft.nodes.map(item => item.id === node.id ? { ...item, name: e.target.value } : item))} />
-                                    <select className={inputClass} value={node.layer} onChange={e => updateMapNodes(mapDraft.nodes.map(item => item.id === node.id ? { ...item, layer: e.target.value as WorldMapDiyLayerType } : item))}>
-                                        {layerOptions.map(layer => <option key={layer} value={layer}>{layer}</option>)}
-                                    </select>
-                                    <select className={inputClass} value={node.parentId} onChange={e => updateMapNodes(mapDraft.nodes.map(item => item.id === node.id ? { ...item, parentId: e.target.value } : item))}>
-                                        <option value="">无父级</option>
-                                        {mapDraft.nodes.filter(item => item.id !== node.id).map(item => <option key={item.id} value={item.id}>{item.name || item.id}</option>)}
-                                    </select>
-                                    <button type="button" className={smallButtonClass} onClick={() => updateMapNodes(mapDraft.nodes.filter(item => item.id !== node.id))} disabled={mapDraft.nodes.length <= 1}>删除</button>
-                                </div>
-                                <textarea className={textAreaClass} value={node.description} placeholder="地点描述" onChange={e => updateMapNodes(mapDraft.nodes.map(item => item.id === node.id ? { ...item, description: e.target.value } : item))} />
-                                <div className={`grid grid-cols-1 gap-2 ${compact ? '' : 'md:grid-cols-4'}`}>
-                                    <input className={inputClass} value={node.climate || ''} placeholder="气候" onChange={e => updateMapNodes(mapDraft.nodes.map(item => item.id === node.id ? { ...item, climate: e.target.value } : item))} />
-                                    <input className={inputClass} value={node.population || ''} placeholder="人口" onChange={e => updateMapNodes(mapDraft.nodes.map(item => item.id === node.id ? { ...item, population: e.target.value } : item))} />
-                                    <input className={inputClass} value={node.culture || ''} placeholder="风土人情" onChange={e => updateMapNodes(mapDraft.nodes.map(item => item.id === node.id ? { ...item, culture: e.target.value } : item))} />
-                                    <input className={inputClass} value={node.transport || ''} placeholder="道路交通" onChange={e => updateMapNodes(mapDraft.nodes.map(item => item.id === node.id ? { ...item, transport: e.target.value } : item))} />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="text-[11px] text-gray-500">当前可生成 {buildWorldMapLayersFromDraft(mapDraft).length} 个正式地图层级节点。</div>
+                    <DiyMapEditor
+                        draft={mapDraft}
+                        compact={compact}
+                        aiAvailable={aiAvailable}
+                        aiBusy={aiStatus.type === 'loading'}
+                        aiMessage={aiStatus.message}
+                        onChange={updateMapDraft}
+                        onImportReferenceImage={importReferenceImage}
+                        onAiAssist={runMapAiAssist}
+                    />
+                    <div className="text-[11px] text-gray-500">当前可生成 {buildWorldMapLayersFromDraft({ ...mapDraft, enabled: true }).length} 个正式地图层级节点；道路、河流和山脉会写入相关地点描述。</div>
                 </div>
             )}
         </div>
