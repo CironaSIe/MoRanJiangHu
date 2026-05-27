@@ -3,18 +3,92 @@ import type {
     RealmDiyRow,
     WorldGenConfig,
     WorldMapDiyDraft,
+    WorldMapDiyFeature,
+    WorldMapDiyFeatureType,
+    WorldMapDiyGeometry,
     WorldMapDiyLayerType,
     WorldMapDiyNode,
+    WorldMapDiyPoint,
+    WorldMapDiyScaleFields,
 } from '../types';
 
 const LAYER_ORDER: WorldMapDiyLayerType[] = ['寰宇', '大地点', '中地点', '小地点', '区地点', '子地点'];
 
-const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+export const 世界地图DIY层级选项: Array<{ value: WorldMapDiyLayerType; label: string; hint: string }> = [
+    { value: '寰宇', label: '宇宙/位面', hint: '多元宇宙、位面群、世界根节点' },
+    { value: '大地点', label: '星球/世界', hint: '独立世界、星球、主世界' },
+    { value: '中地点', label: '大陆/板块', hint: '大陆、海域、国家级区域' },
+    { value: '小地点', label: '国家/区域', hint: '国家、州郡、城市、聚落' },
+    { value: '区地点', label: '城市/地点/建筑', hint: '城市片区、建筑、地标、秘境入口' },
+    { value: '子地点', label: '场景/房间', hint: '室内房间、洞府内层、局部场景' },
+];
+
+export const 世界地图DIY要素标签: Record<WorldMapDiyFeatureType, string> = {
+    mountain: '山脉/地貌',
+    river: '河流/水系',
+    road: '道路/商路',
+    waterway: '水路/航线',
+    route: '交通网络',
+    portal: '传送/灵脉',
+};
+
+const 交通水系类型 = new Set<WorldMapDiyFeatureType>(['river', 'road', 'waterway', 'route', 'portal']);
+
+export const createDiyId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+const normalizePoint = (point: Partial<WorldMapDiyPoint> | undefined, fallback: WorldMapDiyPoint): WorldMapDiyPoint => {
+    const x = Number(point?.x);
+    const y = Number(point?.y);
+    return {
+        x: Number.isFinite(x) ? Math.round(x * 100) / 100 : fallback.x,
+        y: Number.isFinite(y) ? Math.round(y * 100) / 100 : fallback.y,
+    };
+};
+
+const normalizeGeometry = (geometry: Partial<WorldMapDiyGeometry> | undefined, fallbackType: WorldMapDiyGeometry['type']): WorldMapDiyGeometry => {
+    const type = geometry?.type === 'point' || geometry?.type === 'polygon' ? geometry.type : fallbackType;
+    const rawPoints = Array.isArray(geometry?.points) ? geometry!.points : [];
+    const points = rawPoints
+        .map((point, index) => normalizePoint(point, { x: 160 + index * 24, y: 160 + index * 16 }))
+        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+    if (type === 'point') {
+        return { type, points: [points[0] || { x: 260, y: 220 }] };
+    }
+    return {
+        type,
+        points: points.length >= 3 ? points : [
+            { x: 180, y: 180 },
+            { x: 320, y: 160 },
+            { x: 360, y: 280 },
+            { x: 220, y: 310 },
+        ],
+        closed: geometry?.closed !== false,
+    };
+};
+
+const normalizeScaleFields = (fields: Partial<WorldMapDiyScaleFields> | undefined): WorldMapDiyScaleFields => {
+    const result: WorldMapDiyScaleFields = {};
+    Object.entries(fields || {}).forEach(([key, value]) => {
+        const normalized = text(value);
+        if (normalized) (result as Record<string, string>)[key] = normalized;
+    });
+    return result;
+};
+
+const normalizeTags = (tags: unknown): string[] => (
+    Array.isArray(tags)
+        ? tags.map((item) => text(item)).filter(Boolean).slice(0, 12)
+        : []
+);
 
 export const createEmptyRealmDraft = (): RealmDiyDraft => ({
     rows: [
         {
-            id: createId('realm'),
+            id: createDiyId('realm'),
             name: '开脉',
             level: 1,
             power: '入门',
@@ -27,16 +101,24 @@ export const createEmptyRealmDraft = (): RealmDiyDraft => ({
 });
 
 export const createEmptyWorldMapDraft = (): WorldMapDiyDraft => ({
+    enabled: false,
     nodes: [
         {
-            id: createId('map'),
+            id: createDiyId('map'),
             name: '诸天万界',
             layer: '寰宇',
             parentId: '',
-            description: '世界总根节点'
+            description: '世界总根节点',
+            geometry: {
+                type: 'point',
+                points: [{ x: 120, y: 120 }],
+            },
         }
     ],
-    referenceOpacity: 0.3,
+    features: [],
+    canvas: { width: 1600, height: 1000, zoom: 1, panX: 0, panY: 0 },
+    referenceOpacity: 0.35,
+    referenceTransform: { x: 0, y: 0, scale: 1, rotation: 0, locked: true },
     updatedAt: Date.now()
 });
 
@@ -47,36 +129,90 @@ export const normalizeRealmDraft = (draft?: RealmDiyDraft | null): RealmDiyDraft
     updatedAt: Date.now()
 });
 
-export const normalizeWorldMapDraft = (draft?: WorldMapDiyDraft | null): WorldMapDiyDraft => ({
-    nodes: Array.isArray(draft?.nodes) && draft.nodes.length > 0
+export const normalizeWorldMapDraft = (draft?: WorldMapDiyDraft | null): WorldMapDiyDraft => {
+    const empty = createEmptyWorldMapDraft();
+    const nodes = Array.isArray(draft?.nodes) && draft.nodes.length > 0
         ? draft.nodes.map((node, index) => normalizeWorldMapNode(node, index))
-        : createEmptyWorldMapDraft().nodes,
-    referenceImage: typeof draft?.referenceImage === 'string' ? draft.referenceImage : '',
-    referenceOpacity: typeof draft?.referenceOpacity === 'number' ? Math.max(0, Math.min(1, draft.referenceOpacity)) : 0.3,
-    updatedAt: Date.now()
-});
+        : empty.nodes;
+    const canvasWidth = Number(draft?.canvas?.width);
+    const canvasHeight = Number(draft?.canvas?.height);
+    const referenceScale = Number(draft?.referenceTransform?.scale);
+    const referenceRotation = Number(draft?.referenceTransform?.rotation);
+    return {
+        enabled: draft?.enabled === true,
+        nodes,
+        features: Array.isArray(draft?.features)
+            ? draft.features.map((feature, index) => normalizeWorldMapFeature(feature, index)).filter((feature) => feature.points.length > 0)
+            : [],
+        canvas: {
+            width: Number.isFinite(canvasWidth) ? clamp(Math.round(canvasWidth), 600, 8000) : empty.canvas!.width,
+            height: Number.isFinite(canvasHeight) ? clamp(Math.round(canvasHeight), 400, 8000) : empty.canvas!.height,
+            zoom: Number.isFinite(Number(draft?.canvas?.zoom)) ? clamp(Number(draft?.canvas?.zoom), 0.25, 4) : 1,
+            panX: Number.isFinite(Number(draft?.canvas?.panX)) ? Number(draft?.canvas?.panX) : 0,
+            panY: Number.isFinite(Number(draft?.canvas?.panY)) ? Number(draft?.canvas?.panY) : 0,
+        },
+        referenceImage: text(draft?.referenceImage),
+        referenceOpacity: typeof draft?.referenceOpacity === 'number' ? clamp(draft.referenceOpacity, 0, 1) : 0.35,
+        referenceTransform: {
+            x: Number.isFinite(Number(draft?.referenceTransform?.x)) ? Number(draft?.referenceTransform?.x) : 0,
+            y: Number.isFinite(Number(draft?.referenceTransform?.y)) ? Number(draft?.referenceTransform?.y) : 0,
+            scale: Number.isFinite(referenceScale) ? clamp(referenceScale, 0.1, 5) : 1,
+            rotation: Number.isFinite(referenceRotation) ? clamp(referenceRotation, -180, 180) : 0,
+            locked: draft?.referenceTransform?.locked !== false,
+        },
+        updatedAt: Date.now()
+    };
+};
 
 export const normalizeRealmRow = (row: Partial<RealmDiyRow> | undefined, index: number): RealmDiyRow => ({
-    id: typeof row?.id === 'string' && row.id.trim() ? row.id.trim() : createId(`realm_row_${index}`),
-    name: typeof row?.name === 'string' ? row.name.trim() : '',
+    id: text(row?.id) || createDiyId(`realm_row_${index}`),
+    name: text(row?.name),
     level: Number.isFinite(Number(row?.level)) ? Math.max(1, Math.round(Number(row?.level))) : index + 1,
-    power: typeof row?.power === 'string' ? row.power.trim() : '',
-    breakthrough: typeof row?.breakthrough === 'string' ? row.breakthrough.trim() : '',
-    parameters: typeof row?.parameters === 'string' ? row.parameters.trim() : '',
-    description: typeof row?.description === 'string' ? row.description.trim() : ''
+    power: text(row?.power),
+    breakthrough: text(row?.breakthrough),
+    parameters: text(row?.parameters),
+    description: text(row?.description)
 });
 
-export const normalizeWorldMapNode = (node: Partial<WorldMapDiyNode> | undefined, index: number): WorldMapDiyNode => ({
-    id: typeof node?.id === 'string' && node.id.trim() ? node.id.trim() : createId(`map_node_${index}`),
-    name: typeof node?.name === 'string' ? node.name.trim() : '',
-    layer: LAYER_ORDER.includes(node?.layer as WorldMapDiyLayerType) ? node!.layer! : '小地点',
-    parentId: typeof node?.parentId === 'string' ? node.parentId.trim() : '',
-    description: typeof node?.description === 'string' ? node.description.trim() : '',
-    climate: typeof node?.climate === 'string' ? node.climate.trim() : '',
-    population: typeof node?.population === 'string' ? node.population.trim() : '',
-    culture: typeof node?.culture === 'string' ? node.culture.trim() : '',
-    transport: typeof node?.transport === 'string' ? node.transport.trim() : ''
-});
+export const normalizeWorldMapNode = (node: Partial<WorldMapDiyNode> | undefined, index: number): WorldMapDiyNode => {
+    const layer = LAYER_ORDER.includes(node?.layer as WorldMapDiyLayerType) ? node!.layer! : '小地点';
+    const geometryType = layer === '区地点' || layer === '子地点' ? 'point' : 'polygon';
+    const scaleFields = normalizeScaleFields(node?.scaleFields);
+    const narrativeCore = text(node?.narrativeCore) || text((scaleFields as any).narrativeCore);
+    return {
+        id: text(node?.id) || createDiyId(`map_node_${index}`),
+        name: text(node?.name),
+        layer,
+        parentId: text(node?.parentId),
+        description: text(node?.description),
+        climate: text(node?.climate),
+        population: text(node?.population),
+        culture: text(node?.culture),
+        transport: text(node?.transport),
+        narrativeCore,
+        geometry: normalizeGeometry(node?.geometry, geometryType),
+        scaleFields: narrativeCore ? { ...scaleFields, narrativeCore } : scaleFields,
+        tags: normalizeTags(node?.tags),
+    };
+};
+
+export const normalizeWorldMapFeature = (feature: Partial<WorldMapDiyFeature> | undefined, index: number): WorldMapDiyFeature => {
+    const type = (['mountain', 'river', 'road', 'waterway', 'route', 'portal'] as const).includes(feature?.type as WorldMapDiyFeatureType)
+        ? feature!.type!
+        : 'road';
+    const rawPoints = Array.isArray(feature?.points) ? feature!.points : [];
+    return {
+        id: text(feature?.id) || createDiyId(`map_feature_${index}`),
+        type,
+        name: text(feature?.name),
+        parentId: text(feature?.parentId),
+        connectedNodeIds: Array.isArray(feature?.connectedNodeIds) ? feature!.connectedNodeIds.map((item) => text(item)).filter(Boolean) : [],
+        points: rawPoints.map((point, pointIndex) => normalizePoint(point, { x: 220 + pointIndex * 70, y: 260 + pointIndex * 20 })),
+        description: text(feature?.description),
+        fields: Object.fromEntries(Object.entries(feature?.fields || {}).map(([key, value]) => [key, text(value)]).filter(([, value]) => value)),
+        tags: normalizeTags(feature?.tags),
+    };
+};
 
 export const buildRealmPromptFromDraft = (draft: RealmDiyDraft): string => {
     const lines = ['<境界体系>', '【境界结构】'];
@@ -94,31 +230,100 @@ export const buildRealmPromptFromDraft = (draft: RealmDiyDraft): string => {
     return lines.join('\n');
 };
 
+const geometrySummary = (geometry?: WorldMapDiyGeometry): string => {
+    if (!geometry || !Array.isArray(geometry.points) || geometry.points.length === 0) return '';
+    if (geometry.type === 'point') {
+        const point = geometry.points[0];
+        return `中心点约在画布(${Math.round(point.x)},${Math.round(point.y)})`;
+    }
+    const xs = geometry.points.map((point) => point.x);
+    const ys = geometry.points.map((point) => point.y);
+    return `轮廓约覆盖画布(${Math.round(Math.min(...xs))},${Math.round(Math.min(...ys))})至(${Math.round(Math.max(...xs))},${Math.round(Math.max(...ys))})，锚点${geometry.points.length}个`;
+};
+
+const scaleFieldSummary = (fields?: WorldMapDiyScaleFields): string => {
+    const pairs = Object.entries(fields || {})
+        .map(([key, value]) => [key, text(value)] as const)
+        .filter(([, value]) => value);
+    if (pairs.length === 0) return '';
+    return pairs.map(([key, value]) => `${key}：${value}`).join('；');
+};
+
+const narrativeCoreSummary = (node: WorldMapDiyNode): string => (
+    text(node.narrativeCore) || text((node.scaleFields as any)?.narrativeCore)
+);
+
+const relatedFeatureSummary = (node: WorldMapDiyNode, features: WorldMapDiyFeature[]): string => {
+    const related = features.filter((feature) => feature.parentId === node.id || feature.connectedNodeIds?.includes(node.id));
+    if (related.length === 0) return '';
+    return related.map((feature) => {
+        const fields = Object.entries(feature.fields || {})
+            .filter(([, value]) => text(value))
+            .map(([key, value]) => `${key}:${value}`)
+            .join('，');
+        return `${世界地图DIY要素标签[feature.type]}「${feature.name || '未命名'}」${feature.description ? `：${feature.description}` : ''}${fields ? `（${fields}）` : ''}`;
+    }).join('；');
+};
+
 export const buildWorldMapPromptFromDraft = (draft: WorldMapDiyDraft): string => {
-    const lines = ['<世界地图>', '【地点树】'];
-    draft.nodes.forEach((node) => {
+    const normalized = normalizeWorldMapDraft(draft);
+    const lines = ['<世界地图DIY>', '【地点树】'];
+    normalized.nodes.forEach((node) => {
         lines.push([
             `${node.layer}：${node.name || '未命名'}`,
+            `显示层级：${世界地图DIY层级选项.find((item) => item.value === node.layer)?.label || node.layer}`,
             `父级：${node.parentId || '无'}`,
             `描述：${node.description || 'AI 补完'}`,
+            `舞台/叙事核心：${narrativeCoreSummary(node) || '待补完'}`,
+            `空间：${geometrySummary(node.geometry) || '未绘制'}`,
+            `字段：${scaleFieldSummary(node.scaleFields) || '待补完'}`,
             `气候：${node.climate || '待补完'}`,
             `人口：${node.population || '待补完'}`,
             `风土人情：${node.culture || '待补完'}`,
-            `交通：${node.transport || '待补完'}`
+            `交通：${node.transport || '待补完'}`,
+            `关联地理：${relatedFeatureSummary(node, normalized.features || []) || '无'}`
         ].join(' | '));
     });
-    lines.push('</世界地图>');
+    if ((normalized.features || []).length > 0) {
+        lines.push('【连接型地理要素】');
+        normalized.features!.forEach((feature) => {
+            lines.push([
+                `${世界地图DIY要素标签[feature.type]}：${feature.name || '未命名'}`,
+                `父级/所在区域：${feature.parentId || (交通水系类型.has(feature.type) ? '全局/跨区域交通水系' : '未指定')}`,
+                `连接地点：${(feature.connectedNodeIds || []).join('、') || '未指定'}`,
+                `路径点：${feature.points.length}个`,
+                交通水系类型.has(feature.type) ? '结构：允许跨区域、分叉、支流或支路；同组分支可拆成多条要素并在说明中标明汇入/分叉关系' : '',
+                `说明：${feature.description || '待补完'}`,
+                `参数：${Object.entries(feature.fields || {}).map(([key, value]) => `${key}:${value}`).join('；') || '待补完'}`
+            ].filter(Boolean).join(' | '));
+        });
+    }
+    lines.push('</世界地图DIY>');
     return lines.join('\n');
 };
 
 export const buildWorldMapLayersFromDraft = (draft: WorldMapDiyDraft): any[] => {
-    return draft.nodes
+    const normalized = normalizeWorldMapDraft(draft);
+    if (!normalized.enabled) return [];
+    return normalized.nodes
         .filter((node) => node.name.trim())
         .map((node) => ({
             ID: node.id,
             名称: node.name,
             层级: node.layer,
-            描述: [node.description, node.climate, node.population, node.culture, node.transport].filter(Boolean).join(' / '),
+            描述: [
+                node.description,
+                narrativeCoreSummary(node) ? `舞台/叙事核心：${narrativeCoreSummary(node)}` : '',
+                geometrySummary(node.geometry),
+                node.climate ? `气候：${node.climate}` : '',
+                node.population ? `人口：${node.population}` : '',
+                node.culture ? `风土：${node.culture}` : '',
+                node.transport ? `交通：${node.transport}` : '',
+                scaleFieldSummary(node.scaleFields),
+                relatedFeatureSummary(node, normalized.features || []),
+                node.tags && node.tags.length > 0 ? `标签：${node.tags.join('、')}` : ''
+            ].filter(Boolean).join(' / '),
+            叙事核心: narrativeCoreSummary(node),
             父级ID: node.parentId || ''
         }));
 };

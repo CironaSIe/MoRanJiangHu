@@ -583,6 +583,7 @@ export interface WorldMapDiyGeometry {
 }
 
 export interface WorldMapDiyScaleFields {
+    narrativeCore?: string;
     worldSummary?: string;
     civilization?: string;
     race?: string;
@@ -626,6 +627,7 @@ export interface WorldMapDiyNode {
     population?: string;
     culture?: string;
     transport?: string;
+    narrativeCore?: string;
     geometry?: WorldMapDiyGeometry;
     scaleFields?: WorldMapDiyScaleFields;
     tags?: string[];
