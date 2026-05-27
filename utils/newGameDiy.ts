@@ -215,19 +215,66 @@ export const normalizeWorldMapFeature = (feature: Partial<WorldMapDiyFeature> | 
 };
 
 export const buildRealmPromptFromDraft = (draft: RealmDiyDraft): string => {
-    const lines = ['<境界体系>', '【境界结构】'];
-    draft.rows.forEach((row, index) => {
-        lines.push([
-            `${index + 1}. ${row.name || `未命名境界${index + 1}`}`,
-            `层级：${row.level}`,
-            `战力定位：${row.power || '待补完'}`,
-            `突破条件：${row.breakthrough || '待补完'}`,
-            `参数：${row.parameters || '待补完'}`,
-            `描述：${row.description || 'AI 补完'}`,
-        ].join(' | '));
-    });
-    lines.push('</境界体系>');
-    return lines.join('\n');
+    const normalized = normalizeRealmDraft(draft);
+    const rows = [...normalized.rows]
+        .filter((row) => row.name.trim())
+        .sort((a, b) => a.level - b.level);
+    const fallbackRows = rows.length > 0 ? rows : createEmptyRealmDraft().rows;
+    const requiredLevels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 27, 33, 43];
+    const majorBreaks = [1, 5, 9, 13, 17, 21, 27, 33, 43];
+    const pickRealmForLevel = (level: number): RealmDiyRow => (
+        [...fallbackRows].reverse().find((row) => row.level <= level) || fallbackRows[0]
+    );
+    const labelForLevel = (level: number): string => {
+        const exact = fallbackRows.find((row) => row.level === level);
+        if (exact?.name) return exact.name;
+        const base = pickRealmForLevel(level);
+        if (majorBreaks.includes(level)) return base.name || `第${level}阶`;
+        const nextBreak = majorBreaks.find((mark) => mark > level) || 44;
+        const currentBreak = [...majorBreaks].reverse().find((mark) => mark <= level) || 1;
+        const inner = Math.max(1, Math.min(9, level - currentBreak + 1));
+        const baseName = base.name || `第${currentBreak}阶`;
+        return `${baseName}${inner}段`;
+    };
+    const summaryLines = fallbackRows.map((row, index) => (
+        `${index + 1}. ${row.name || `未命名境界${index + 1}`} | 层级：${row.level} | 战力定位：${row.power || '待补完'} | 突破条件：${row.breakthrough || '待补完'} | 参数：${row.parameters || '待补完'} | 描述：${row.description || 'AI 补完'}`
+    ));
+    const abilityLines = fallbackRows.map((row) => (
+        `  - ${row.name || `第${row.level}阶`}：${row.power || row.description || '保持本境界对应的战斗、感知、移动与资源上限。'}`
+    ));
+    const stageJumps = ['1→2', '2→3', '3→4', '5→6', '6→7', '7→8', '9→10', '10→11', '11→12', '13→14', '14→15', '15→16', '17→18', '18→19', '19→20', '21→22', '22→24'];
+    const breakthroughJumps = ['4→5', '8→9', '12→13', '16→17', '20→21', '24→27', '27→33', '33→43'];
+    return [
+        '<境界体系>',
+        '【境界映射母板】',
+        ...requiredLevels.map((level) => `${level} => ${labelForLevel(level)}`),
+        '',
+        '【九阶命名与能力边界】',
+        `- 九阶命名顺序固定：${majorBreaks.map(labelForLevel).join(' → ')}`,
+        '- 境界能力边界：',
+        ...abilityLines,
+        '',
+        '【境界差距口径】',
+        '- 同一大境内相邻小阶段可通过功法、装备、地利与经验形成胜负波动；跨大境默认存在明显压制。',
+        '- 低境界可凭陷阱、人数、克制、偷袭或代价换取短暂优势，但不能稳定无代价碾压高境界。',
+        '',
+        '【终点文案】',
+        `- 当前体系最高终点为 ${labelForLevel(43)}，若继续成长，先以圆满、沉淀、传承或开辟后续道路承接。`,
+        '',
+        '【阶段推进表】',
+        ...stageJumps.map((jump) => `- ${jump}：同一大境内积累推进，需经验、资源、悟性或剧情契机闭环。`),
+        '',
+        '【大境突破表】',
+        ...breakthroughJumps.map((jump) => `- ${jump}：大境突破，需明确瓶颈、风险、代价、资源或关键事件。`),
+        '',
+        '【武侠硬边界】',
+        '- 若本体系属于低武/武侠，能力表现应收束在身体、内息、招式、器械、轻功、医毒、机关与江湖秩序内。',
+        '- 若本体系属于修仙/玄幻，可使用灵力、神识、法宝、术法与天劫等设定，但仍必须遵守当前母板的阶段差距和突破代价。',
+        '',
+        '【DIY境界结构摘要】',
+        ...summaryLines,
+        '</境界体系>'
+    ].join('\n');
 };
 
 const geometrySummary = (geometry?: WorldMapDiyGeometry): string => {

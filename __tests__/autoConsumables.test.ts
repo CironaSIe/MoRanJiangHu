@@ -240,3 +240,34 @@ describe('丹药重量归一', () => {
         expect(normalized.当前负重).toBeLessThanOrEqual(1.5);
     });
 });
+
+describe('背包堆叠与负重兜底', () => {
+    it('会合并 AI 重复生成的同名可堆叠碎块，并忽略离谱的旧负重值', () => {
+        const role: any = {
+            姓名: '测试',
+            当前负重: 355770,
+            最大负重: 250,
+            物品列表: Array.from({ length: 12 }, (_, index) => ({
+                ID: `frag_${index}`,
+                名称: '星纹精钢闸门碎块',
+                描述: '闸门破碎后留下的精钢碎块，可作为炼器材料。',
+                类型: '材料',
+                品质: '良品',
+                重量: 0.4,
+                堆叠数量: 2,
+                是否可堆叠: true,
+                价值: 3,
+                当前耐久: 100,
+                最大耐久: 100,
+                词条列表: []
+            })),
+            已补齐系统丹药预设: true
+        };
+
+        const normalized = 规范化角色物品容器映射(role);
+        const fragments = normalized.物品列表.filter((item: any) => item.名称 === '星纹精钢闸门碎块');
+        expect(fragments).toHaveLength(1);
+        expect(fragments[0].堆叠数量).toBe(24);
+        expect(normalized.当前负重).toBe(9.6);
+    });
+});

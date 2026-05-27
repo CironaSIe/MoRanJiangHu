@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { 数值_修炼体系 } from '../prompts/stats/cultivation';
-import { 应用境界体系区块替换, 构建同人运行时提示词包, 获取硬编码仙侠境界名称, 解析境界映射值 } from '../prompts/runtime/fandom';
+import { 应用境界体系区块替换, 构建同人运行时提示词包, 获取硬编码仙侠境界名称, 校验境界体系提示词完整性, 解析境界映射值 } from '../prompts/runtime/fandom';
+import { buildRealmPromptFromDraft } from '../utils/newGameDiy';
 import { 获取单位境界显示 } from '../utils/realmDisplay';
 
 const 仙侠开局 = { 题材模式: '仙侠' } as any;
@@ -50,5 +51,21 @@ describe('xianxia hardcoded realm system', () => {
         ].join('\n');
 
         expect(获取单位境界显示({ 境界: '未知', 境界层级: 3 }, '未知境界', { realmPrompt })).toBe('星火初燃');
+    });
+
+    it('generates a complete validated realm prompt from DIY rows', () => {
+        const prompt = buildRealmPromptFromDraft({
+            rows: [
+                { id: 'r1', name: '炼体', level: 1, power: '凡俗武者', breakthrough: '打熬筋骨', parameters: '气血', description: '低武起点' },
+                { id: 'r5', name: '凝气', level: 5, power: '内息成形', breakthrough: '内息贯通', parameters: '内息', description: '可催动内劲' },
+                { id: 'r9', name: '筑基', level: 9, power: '根基初成', breakthrough: '道基稳定', parameters: '灵力', description: '修仙入门' }
+            ],
+            updatedAt: Date.now()
+        });
+
+        const validation = 校验境界体系提示词完整性(prompt);
+        expect(validation.ok).toBe(true);
+        expect(validation.normalizedText).toContain('【境界映射母板】');
+        expect(validation.normalizedText).toContain('【九阶命名与能力边界】');
     });
 });

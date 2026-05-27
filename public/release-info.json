@@ -1,15 +1,13 @@
 {
-  "versionCode": 336,
-  "versionName": "1.0.335",
+  "versionCode": 337,
+  "versionName": "1.0.336",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "开局世界观页已统一为“题材模式”入口，移除重复的现成开局模板区，避免玩家在模板和题材之间重复选择。",
-    "题材顺序调整为武侠世界、仙侠世界优先显示，其后为灵气复苏、都市修仙、现代都市、末日丧尸。",
-    "“灵气修仙”改名并重做为“灵气复苏”：现代都市突然出现灵气和觉醒者，社会从正常秩序逐步进入复苏变化；都市修仙则保持一开始就存在隐秘修行圈。",
-    "每个题材都补齐统一货币与换算口径：武侠用铜钱/银子/金元宝，仙侠用下品/中品/上品灵石，现代与都市修仙用信用点/千元账户/十万元账户，末日用营地信用点/物资票/安全通行牌。",
-    "题材模式继续同步影响世界观、身份背景、天赋卷宗、地图版图、势力密度、市场入口、AI 提示词和预设物品，减少货币和世界观串味。",
+    "修复 DIY 境界体系生成失败的问题：自定义境界会自动补齐映射母板、阶段推进、大境突破和能力边界，减少开局被完整性校验拦住的情况。",
+    "修复背包中同名可堆叠材料重复刷屏的问题，同类碎块会自动合并为一格显示。",
+    "修复 AI 写入异常负重后界面显示数十万负重的问题，背包会按实际未收纳物品重量重新计算。",
     "官网：https://msjh.bacon159.pp.ua/",
-    "同步更新 Web、APK 与更新清单到 v1.0.335。"
+    "同步更新 Web、APK 与更新清单到 v1.0.336。"
   ],
   "releaseHistory": [
     {
@@ -2123,7 +2121,7 @@
   "r2Bucket": "quark-downloads-bacon",
   "r2Prefix": "moranjianghu",
   "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-  "releasePublishedAt": "2026-05-27T13:24:58+08:00",
+  "releasePublishedAt": "2026-05-27T19:51:50+08:00",
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html"
 }
