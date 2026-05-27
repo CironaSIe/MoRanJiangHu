@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import GameButton from '../../../ui/GameButton';
 import { 接口设置结构, OpeningConfig, WorldGenConfig, 小说拆分数据集结构, 角色数据结构, 天赋结构, 背景结构, 游戏难度 } from '../../../../types';
 import { 预设天赋, 预设背景 } from '../../../../data/presets';
-import { 开局预设方案结构 } from '../../../../data/newGamePresets';
+import { 开局预设方案列表, 开局预设方案结构 } from '../../../../data/newGamePresets';
 import { OrnateBorder } from '../../../ui/decorations/OrnateBorder';
 import InlineSelect from '../../../ui/InlineSelect';
 import NewGameDiyTools from '../NewGameDiyTools';
@@ -1239,6 +1239,33 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                 <h3 className="text-xl font-serif font-bold text-wuxia-gold border-b border-wuxia-gold/30 pb-3 mb-6">世界法则设定</h3>
                                 
                                 <div className="space-y-6">
+                                    <div className="rounded-2xl border border-wuxia-cyan/25 bg-wuxia-cyan/5 p-4 space-y-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <div className="text-sm text-wuxia-cyan font-bold">现成开局模板</div>
+                                                <div className="text-[11px] text-gray-500 mt-1 leading-5">快速套用常见测试题材；都市和末日模板已内置现代货币/物资口径，减少题材串味。</div>
+                                            </div>
+                                            <span className="text-[10px] text-wuxia-cyan font-mono tracking-[0.18em]">BUILTIN</span>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {开局预设方案列表.map((preset) => (
+                                                <div key={preset.id} className="rounded-xl border border-gray-700/80 bg-black/35 p-4 space-y-3">
+                                                    <div>
+                                                        <div className="text-base font-serif text-wuxia-gold">{preset.名称}</div>
+                                                        <div className="text-[11px] text-gray-400 mt-1 leading-5 line-clamp-2">{preset.简介}</div>
+                                                    </div>
+                                                    <div className="text-[11px] text-gray-500 leading-5">
+                                                        {preset.worldConfig.worldName || '未命名世界'} / {preset.openingConfig?.题材模式 || '题材未设'} / {preset.character.背景名称 || '未设背景'}
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <GameButton onClick={() => 应用预设到表单(preset)} variant="secondary" className="py-2 text-xs">套用查看</GameButton>
+                                                        <GameButton onClick={() => { void handleGenerate(preset); }} variant="primary" className="py-2 text-xs">以此开局</GameButton>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     {自定义开局预设列表.length > 0 && (
                                         <div className="rounded-2xl border border-wuxia-gold/25 bg-wuxia-gold/5 p-4 space-y-3">
                                             <div className="flex items-start justify-between gap-3">

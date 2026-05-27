@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import GameButton from '../../ui/GameButton';
 import { 接口设置结构, OpeningConfig, WorldGenConfig, 小说拆分数据集结构, 角色数据结构, 天赋结构, 背景结构, 游戏难度 } from '../../../types';
 import { 预设天赋, 预设背景 } from '../../../data/presets';
-import { 开局预设方案结构 } from '../../../data/newGamePresets';
+import { 开局预设方案列表, 开局预设方案结构 } from '../../../data/newGamePresets';
 import { OrnateBorder } from '../../ui/decorations/OrnateBorder';
 import InlineSelect from '../../ui/InlineSelect';
 import NewGameDiyTools from './NewGameDiyTools';
@@ -33,6 +33,8 @@ import { 默认境界母板提示词 } from '../../../prompts/runtime/fandom';
 import { 设置键 } from '../../../utils/settingsSchema';
 import { 根据名称映射天赋抽卡, 根据名称映射抽卡, 补全天赋抽卡名称列表, 补全抽卡名称列表, 天赋抽卡数量, 出身抽卡数量, 抽取天赋卡牌, 抽取卡牌 } from '../../../utils/talentDraw';
 import { 构建开局世界观生成提示词预览 } from '../../../utils/worldGenerationPromptPreview';
+import { 获取主剧情接口配置, 接口配置是否可用 } from '../../../utils/apiConfig';
+import { 请求模型文本 } from '../../../services/ai/chatCompletionClient';
 
 interface Props {
     onComplete: (
@@ -243,6 +245,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const [openingExtraRequirement, setOpeningExtraRequirement] = useState('');
     const [显示世界观生成提示词, set显示世界观生成提示词] = useState(false);
     const [世界观生成提示词状态, set世界观生成提示词状态] = useState('');
+    const [aiFrameworkStatus, setAiFrameworkStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
 
     // --- Logic ---
     const monthOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
@@ -669,6 +672,99 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         openingConfigEnabled,
         openingConfig
     ]);
+    const 当前主剧情接口配置 = useMemo(() => apiConfig ? 获取主剧情接口配置(apiConfig) : null, [apiConfig]);
+    const aiFrameworkAvailable = 接口配置是否可用(当前主剧情接口配置);
+
+    const 解析AI框架JSON = (raw: string): any => {
+        const source = (raw || '').trim();
+        if (!source) throw new Error('AI 输出为空');
+        const fenced = source.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]?.trim();
+        const candidate = fenced || source.slice(source.indexOf('{'), source.lastIndexOf('}') + 1);
+        if (!candidate || !candidate.startsWith('{')) throw new Error('AI 没有返回可解析的 JSON');
+        return JSON.parse(candidate);
+    };
+
+    const runAiFrameworkAssist = async () => {
+        if (!接口配置是否可用(当前主剧情接口配置)) {
+            setAiFrameworkStatus({ type: 'error', message: '请先在设置中配置可用的主剧情 API。' });
+            return;
+        }
+        setAiFrameworkStatus({ type: 'loading', message: '正在让 AI 补全开局框架...' });
+        try {
+            const prompt = [
+                '你是文字冒险游戏的新开局框架助手。请根据当前表单，补全适合快速开局测试的角色身份、天赋、伙伴与额外世界观约束。',
+                '必须只输出 JSON，不要输出 Markdown、解释或多余文本。',
+                'JSON 结构：',
+                '{"worldPatch":{"worldName":"","dynastySetting":"","tianjiaoSetting":"","worldExtraRequirement":""},"character":{"外貌":"","性格":"","背景":{"名称":"","描述":"","效果":""},"天赋列表":[{"名称":"","描述":"","效果":""}]},"partner":{"enabled":true,"姓名":"","性别":"","年龄":18,"外貌":"","性格":"","背景":{"名称":"","描述":"","效果":""},"天赋列表":[{"名称":"","描述":"","效果":""}],"关系":"","备注":""},"openingExtraRequirement":""}',
+                '要求：',
+                '- 背景和天赋必须能长期影响玩法，不要只写一句第一幕设定。',
+                '- 伙伴必须适合开局同行，并给出清楚关系，不要抢主角戏。',
+                '- 如果是现代都市、都市修仙或末日题材，必须明确普通货币/交易口径，避免把银子铜钱灵石乱用于普通消费。',
+                '- 如果是都市修仙，普通生活用人民币，修行圈高端交易才可少量使用灵石/法器/符箓/药材。',
+                '- 如果是纯现代或末日，不要默认古代王朝、宗门贡献和灵石货币。',
+                `当前世界配置：${JSON.stringify(worldConfig)}`,
+                `当前主角：${JSON.stringify({ 姓名: charName, 性别: charGender, 年龄: charAge, 外貌: charAppearance, 性格: charPersonality, 背景: selectedBackground, 天赋列表: selectedTalents })}`,
+                `当前开局配置：${JSON.stringify(openingConfigEnabled ? openingConfig : null)}`,
+                `当前伙伴：${JSON.stringify({ enabled: partnerEnabled, 姓名: partnerName, 性别: partnerGender, 年龄: partnerAge, 外貌: partnerAppearance, 性格: partnerPersonality, 背景: partnerBackground, 天赋列表: partnerTalents, 关系: partnerRelation, 备注: partnerNote })}`
+            ].join('\n\n');
+            const raw = await 请求模型文本(当前主剧情接口配置!, [
+                { role: 'system', content: '你只输出严格 JSON。' },
+                { role: 'user', content: prompt }
+            ], { temperature: 0.7, errorDetailLimit: Number.POSITIVE_INFINITY });
+            const parsed = 解析AI框架JSON(raw);
+            const worldPatch = parsed?.worldPatch && typeof parsed.worldPatch === 'object' ? parsed.worldPatch : {};
+            setWorldConfig(prev => ({
+                ...prev,
+                worldName: typeof worldPatch.worldName === 'string' && worldPatch.worldName.trim() ? worldPatch.worldName.trim() : prev.worldName,
+                dynastySetting: typeof worldPatch.dynastySetting === 'string' && worldPatch.dynastySetting.trim() ? worldPatch.dynastySetting.trim() : prev.dynastySetting,
+                tianjiaoSetting: typeof worldPatch.tianjiaoSetting === 'string' && worldPatch.tianjiaoSetting.trim() ? worldPatch.tianjiaoSetting.trim() : prev.tianjiaoSetting,
+                worldExtraRequirement: [prev.worldExtraRequirement.trim(), typeof worldPatch.worldExtraRequirement === 'string' ? worldPatch.worldExtraRequirement.trim() : ''].filter(Boolean).join('\n\n')
+            }));
+
+            const nextBackground = 标准化背景(parsed?.character?.背景);
+            if (nextBackground) {
+                设置自定义背景列表(prev => 合并去重背景([...prev, nextBackground]));
+                setSelectedBackground(nextBackground);
+            }
+            const nextTalents = Array.isArray(parsed?.character?.天赋列表)
+                ? parsed.character.天赋列表.map((item: 天赋结构) => 标准化天赋(item)).filter(Boolean) as 天赋结构[]
+                : [];
+            if (nextTalents.length > 0) {
+                设置自定义天赋列表(prev => 合并去重天赋([...prev, ...nextTalents]));
+                setSelectedTalents(nextTalents.slice(0, 3));
+            }
+            if (typeof parsed?.character?.外貌 === 'string' && parsed.character.外貌.trim()) setCharAppearance(parsed.character.外貌.trim());
+            if (typeof parsed?.character?.性格 === 'string' && parsed.character.性格.trim()) setCharPersonality(parsed.character.性格.trim());
+
+            const nextPartner = parsed?.partner && typeof parsed.partner === 'object' ? parsed.partner : {};
+            setPartnerEnabled(nextPartner.enabled !== false);
+            if (typeof nextPartner.姓名 === 'string' && nextPartner.姓名.trim()) setPartnerName(nextPartner.姓名.trim());
+            if (typeof nextPartner.性别 === 'string' && nextPartner.性别.trim()) setPartnerGender(nextPartner.性别.trim());
+            if (Number.isFinite(Number(nextPartner.年龄))) setPartnerAge(Math.max(1, Math.min(999, Math.round(Number(nextPartner.年龄)))));
+            if (typeof nextPartner.外貌 === 'string' && nextPartner.外貌.trim()) setPartnerAppearance(nextPartner.外貌.trim());
+            if (typeof nextPartner.性格 === 'string' && nextPartner.性格.trim()) setPartnerPersonality(nextPartner.性格.trim());
+            if (typeof nextPartner.关系 === 'string' && nextPartner.关系.trim()) setPartnerRelation(nextPartner.关系.trim());
+            if (typeof nextPartner.备注 === 'string' && nextPartner.备注.trim()) setPartnerNote(nextPartner.备注.trim());
+            const nextPartnerBackground = 标准化背景(nextPartner.背景);
+            if (nextPartnerBackground) {
+                设置自定义背景列表(prev => 合并去重背景([...prev, nextPartnerBackground]));
+                setPartnerBackground(nextPartnerBackground);
+            }
+            const nextPartnerTalents = Array.isArray(nextPartner.天赋列表)
+                ? nextPartner.天赋列表.map((item: 天赋结构) => 标准化天赋(item)).filter(Boolean) as 天赋结构[]
+                : [];
+            if (nextPartnerTalents.length > 0) {
+                设置自定义天赋列表(prev => 合并去重天赋([...prev, ...nextPartnerTalents]));
+                setPartnerTalents(nextPartnerTalents.slice(0, 3));
+            }
+            if (typeof parsed?.openingExtraRequirement === 'string' && parsed.openingExtraRequirement.trim()) {
+                setOpeningExtraRequirement(prev => [prev.trim(), parsed.openingExtraRequirement.trim()].filter(Boolean).join('\n\n'));
+            }
+            setAiFrameworkStatus({ type: 'success', message: 'AI 已补全背景、天赋、伙伴与开局要求，可继续微调或直接生成。' });
+        } catch (error: any) {
+            setAiFrameworkStatus({ type: 'error', message: `AI 补全失败：${error?.message || '未知错误'}` });
+        }
+    };
     const 读取UTF8文本文件 = async (file: File): Promise<string> => (
         new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -1284,6 +1380,33 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                 <h3 className="text-xl font-serif font-bold text-wuxia-gold border-b border-wuxia-gold/30 pb-3 mb-6">世界法则设定</h3>
                                 
                                 <div className="space-y-6">
+                                    <div className="rounded-2xl border border-wuxia-cyan/25 bg-wuxia-cyan/5 p-4 space-y-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <div className="text-sm text-wuxia-cyan font-bold">现成开局模板</div>
+                                                <div className="text-[11px] text-gray-500 mt-1">快速套用常见测试题材；都市和末日模板已内置现代货币/物资口径，避免 AI 把银子、灵石和人民币混用。</div>
+                                            </div>
+                                            <span className="text-[10px] text-wuxia-cyan font-mono tracking-[0.18em]">BUILTIN</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {开局预设方案列表.map((preset) => (
+                                                <div key={preset.id} className="rounded-xl border border-gray-700/80 bg-black/35 p-4 space-y-3">
+                                                    <div>
+                                                        <div className="text-base font-serif text-wuxia-gold">{preset.名称}</div>
+                                                        <div className="text-xs text-gray-400 mt-1 leading-5 line-clamp-2">{preset.简介}</div>
+                                                    </div>
+                                                    <div className="text-[11px] text-gray-500 leading-5">
+                                                        {preset.worldConfig.worldName || '未命名世界'} / {preset.openingConfig?.题材模式 || '题材未设'} / {preset.character.背景名称 || '未设背景'}
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <GameButton onClick={() => 应用预设到表单(preset)} variant="secondary" className="py-2 text-xs">套用查看</GameButton>
+                                                        <GameButton onClick={() => { void handleGenerate(preset); }} variant="primary" className="py-2 text-xs">以此开局</GameButton>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     {自定义开局预设列表.length > 0 && (
                                         <div className="rounded-2xl border border-wuxia-gold/25 bg-wuxia-gold/5 p-4 space-y-3">
                                             <div className="flex items-start justify-between gap-3">
@@ -2566,8 +2689,31 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
 
                             <OrnateBorder className="w-full max-w-lg p-4">
                                 <div className="space-y-2">
-                                    <div className="text-xs text-gray-300 font-bold tracking-widest">开局额外要求（可选）</div>
-                                    <div className="text-[11px] text-gray-500">会随开局任务一起发送给模型，仅影响本次开局生成。</div>
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <div className="text-xs text-gray-300 font-bold tracking-widest">开局额外要求（可选）</div>
+                                            <div className="text-[11px] text-gray-500 mt-1">会随开局任务一起发送给模型，仅影响本次开局生成。</div>
+                                        </div>
+                                        <GameButton
+                                            onClick={() => { void runAiFrameworkAssist(); }}
+                                            variant="secondary"
+                                            disabled={!aiFrameworkAvailable || aiFrameworkStatus.type === 'loading'}
+                                            className="px-4 py-2 text-xs shrink-0"
+                                        >
+                                            {aiFrameworkStatus.type === 'loading' ? 'AI 补全中' : 'AI 补全框架'}
+                                        </GameButton>
+                                    </div>
+                                    {aiFrameworkStatus.message && (
+                                        <div className={`rounded-lg border px-3 py-2 text-[11px] leading-5 ${
+                                            aiFrameworkStatus.type === 'error'
+                                                ? 'border-red-500/35 bg-red-950/20 text-red-200'
+                                                : aiFrameworkStatus.type === 'success'
+                                                    ? 'border-emerald-500/35 bg-emerald-950/20 text-emerald-200'
+                                                    : 'border-wuxia-cyan/30 bg-wuxia-cyan/10 text-wuxia-cyan'
+                                        }`}>
+                                            {aiFrameworkStatus.message}
+                                        </div>
+                                    )}
                                     <textarea
                                         value={openingExtraRequirement}
                                         onChange={(e) => setOpeningExtraRequirement(e.target.value)}
