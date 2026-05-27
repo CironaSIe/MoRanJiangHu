@@ -190,6 +190,24 @@ const 仙侠预设物品: 结构化物品条目[] = [
     { 名称: '避尘靴', 物品: '法靴', 类型: '防具', 品质: '良品', 装备位置: '足部', 视觉标签: ['cultivation boots', 'cloth boots', 'white soles'], 生图描述: 'pair of empty clean cloth cultivation boots placed side by side, visible hollow openings and stitched soles, no feet' },
 ];
 
+const 现代预设物品: 结构化物品条目[] = [
+    { 名称: '智能手机', 物品: '智能手机', 类型: '杂物', 品质: '良品', 视觉标签: ['smartphone', 'cracked screen', 'modern device'], 生图描述: 'used modern smartphone with a slightly cracked screen, isolated product prop, no readable text' },
+    { 名称: '录音笔', 物品: '录音笔', 类型: '杂物', 品质: '上品', 视觉标签: ['digital voice recorder', 'investigation tool'], 生图描述: 'small black digital voice recorder on a desk, modern investigation prop, no readable text' },
+    { 名称: '笔记本电脑', 物品: '笔记本电脑', 类型: '杂物', 品质: '上品', 视觉标签: ['laptop', 'modern electronics'], 生图描述: 'closed slim laptop with worn edges, modern urban prop, no logo, no readable text' },
+    { 名称: '急救包', 物品: '急救包', 类型: '消耗品', 品质: '良品', 视觉标签: ['first aid kit', 'medical supplies'], 生图描述: 'compact first aid kit opened to show bandages and medical supplies, no readable labels' },
+    { 名称: '防割手套', 物品: '防割手套', 类型: '防具', 品质: '良品', 装备位置: '手部', 视觉标签: ['cut resistant gloves', 'work safety gear'], 生图描述: 'pair of grey cut-resistant work gloves, modern safety gear, isolated product photo' },
+    { 名称: '古玉残佩', 物品: '古玉残佩', 类型: '饰品', 品质: '上品', 视觉标签: ['ancient jade pendant', 'modern antique market'], 生图描述: 'small incomplete antique jade pendant on a dark cloth, subtle mysterious aura, no text' },
+];
+
+const 末日预设物品: 结构化物品条目[] = [
+    { 名称: '罐头包', 物品: '罐头包', 类型: '消耗品', 品质: '凡品', 视觉标签: ['canned food', 'survival supplies'], 生图描述: 'small bundle of dented canned food for survival, no readable labels' },
+    { 名称: '净水片', 物品: '净水片', 类型: '消耗品', 品质: '良品', 视觉标签: ['water purification tablets', 'survival medicine'], 生图描述: 'small blister pack of water purification tablets beside a metal cup, no readable text' },
+    { 名称: '手摇电筒', 物品: '手摇电筒', 类型: '杂物', 品质: '良品', 视觉标签: ['hand crank flashlight', 'survival tool'], 生图描述: 'worn hand-crank flashlight with scratches, apocalypse survival gear, no logo' },
+    { 名称: '弩机组件', 物品: '弩机组件', 类型: '武器', 品质: '上品', 视觉标签: ['crossbow parts', 'silent weapon'], 生图描述: 'mechanical crossbow limb and trigger components on a rough table, no person' },
+    { 名称: '抗生素散盒', 物品: '抗生素散盒', 类型: '消耗品', 品质: '上品', 视觉标签: ['antibiotics', 'medical cache'], 生图描述: 'scattered unlabeled antibiotic blister packs and small medicine box, survival medical supplies, no readable text' },
+    { 名称: '汽油桶', 物品: '汽油桶', 类型: '材料', 品质: '良品', 视觉标签: ['fuel canister', 'survival resource'], 生图描述: 'red metal fuel canister with scratches and dirt, isolated apocalypse resource prop, no readable text' },
+];
+
 const 生成材质物品 = (): 结构化物品条目[] => {
     const weapons = 武器材质.flatMap((material) => 武器模板.map((template) => ({
         名称: `${material.名称}${template.物品}`,
@@ -241,7 +259,7 @@ const 生成材质物品 = (): 结构化物品条目[] => {
         视觉标签: [...material.标签, template.物品],
         生图描述: `a ${material.标签.join(', ')} wuxia ${template.物品}, leather defensive gear or footwear, isolated product prop, visible stitched hide texture`
     })));
-    return [...weapons, ...hardArmors, ...metalFootwear, ...clothItems, ...leatherItems, ...无材质物品, ...仙侠预设物品];
+    return [...weapons, ...hardArmors, ...metalFootwear, ...clothItems, ...leatherItems, ...无材质物品, ...仙侠预设物品, ...现代预设物品, ...末日预设物品];
 };
 
 export const 结构化物品库: 结构化物品条目[] = 生成材质物品();

@@ -68,6 +68,7 @@ import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据
 import { 执行变量模型校准工作流 } from './variableModelWorkflow';
 import { 合并变量校准结果到响应 as 合并变量生成结果到响应 } from './variableCalibrationMerge';
 import { 保护开局生成门派状态 } from './storyState';
+import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
 
 const 开局规划分析请求超时毫秒 = 90000;
 const 开场剧情首次流式响应超时毫秒 = 90000;
@@ -1526,6 +1527,11 @@ export const 执行开场剧情生成工作流 = async (
             tavern_commands: Array.isArray(responseForExecution.tavern_commands) ? [...responseForExecution.tavern_commands] : []
         };
         const openingStateAfterCommands = 保护开局门派(deps.processResponseCommands(responseForExecution, commandBaseState));
+        openingStateAfterCommands.社交 = 修复开局伙伴社交列表(
+            openingStateAfterCommands.社交,
+            options?.开局配置,
+            openingStateAfterCommands.角色 || commandBaseState.角色
+        );
         const openingNewNpcList = deps.提取新增NPC列表(commandBaseState.社交, openingStateAfterCommands.社交);
         const hasOpeningCommands = Array.isArray(responseForExecution?.tavern_commands) && responseForExecution.tavern_commands.length > 0;
         if (!hasOpeningCommands) {
@@ -1533,7 +1539,6 @@ export const 执行开场剧情生成工作流 = async (
                 启用饱腹口渴系统: openingGameConfig.启用饱腹口渴系统
             }));
             deps.设置环境(deps.规范化环境信息(openingStateAfterCommands.环境));
-            deps.设置社交(deps.规范化社交列表(openingStateAfterCommands.社交));
             deps.设置世界(deps.规范化世界状态(openingStateAfterCommands.世界));
             deps.设置战斗(deps.规范化战斗状态(openingStateAfterCommands.战斗));
             deps.设置剧情(deps.规范化剧情状态(openingStateAfterCommands.剧情, openingStateAfterCommands.环境));
@@ -1542,6 +1547,7 @@ export const 执行开场剧情生成工作流 = async (
             deps.设置同人剧情规划(deps.规范化同人剧情规划状态(openingStateAfterCommands.同人剧情规划));
             deps.设置同人女主剧情规划(deps.规范化同人女主剧情规划状态(openingStateAfterCommands.同人女主剧情规划));
         }
+        deps.设置社交(deps.规范化社交列表(openingStateAfterCommands.社交));
         const opening命令后门派 = deps.规范化门派状态(openingStateAfterCommands.玩家门派);
         const opening命令后任务 = Array.isArray(openingStateAfterCommands.任务列表)
             ? openingStateAfterCommands.任务列表
@@ -1664,6 +1670,11 @@ export const 执行开场剧情生成工作流 = async (
             memory: openingMemoryAfterWrite,
             openingConfig: options?.开局配置
         });
+        try {
+            deps.触发主角自动生图(openingStateAfterCommands.角色);
+        } catch (error) {
+            console.warn('主角开局最终生图补发失败，已保持开局流程继续', error);
+        }
     } catch (e: any) {
         if (openingStreamHeartbeat) clearInterval(openingStreamHeartbeat);
         if (e?.name === 'AbortError') {

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import GameButton from '../../../ui/GameButton';
 import { 接口设置结构, OpeningConfig, WorldGenConfig, 小说拆分数据集结构, 角色数据结构, 天赋结构, 背景结构, 游戏难度 } from '../../../../types';
 import { 预设天赋, 预设背景 } from '../../../../data/presets';
-import { 开局预设方案列表, 开局预设方案结构 } from '../../../../data/newGamePresets';
+import type { 开局预设方案结构 } from '../../../../data/newGamePresets';
 import { OrnateBorder } from '../../../ui/decorations/OrnateBorder';
 import InlineSelect from '../../../ui/InlineSelect';
 import NewGameDiyTools from '../NewGameDiyTools';
@@ -28,6 +28,7 @@ import {
     规范化开局配置,
     规范化可选开局配置
 } from '../../../../utils/openingConfig';
+import { 合并题材世界默认值, 获取题材模式配置 } from '../../../../utils/topicModeProfiles';
 import { 构建默认技艺 } from '../../../../utils/skillDefaults';
 import { 默认境界母板提示词 } from '../../../../prompts/runtime/fandom';
 import { 设置键 } from '../../../../utils/settingsSchema';
@@ -76,12 +77,6 @@ const 世界版图下拉选项: Array<{ value: WorldGenConfig['worldSize']; labe
     { value: '九州宏大', label: '九州宏大 (万里河山)' },
     { value: '无尽位面', label: '无尽位面 (多重世界)' }
 ];
-const 宗门密度下拉选项: Array<{ value: WorldGenConfig['sectDensity']; label: string }> = [
-    { value: '稀少', label: '稀少 (隐世不出)' },
-    { value: '适中', label: '适中 (数大宗门)' },
-    { value: '林立', label: '林立 (百家争鸣)' }
-];
-
 type DropdownProps = {
     value: number;
     options: number[];
@@ -608,6 +603,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
     const stepProgress = ((step + 1) / STEPS.length) * 100;
     const currentStepLabel = STEPS[step] || '创建';
     const 当前难度设定 = useMemo(() => 获取难度设定(worldConfig.difficulty), [worldConfig.difficulty]);
+    const 当前题材配置 = useMemo(() => 获取题材模式配置(openingConfig.题材模式), [openingConfig.题材模式]);
     const 出身剩余重Roll次数 = Math.max(0, 当前难度设定.天赋重Roll次数 - 出身已重Roll次数);
     const 天赋剩余重Roll次数 = Math.max(0, 当前难度设定.天赋重Roll次数 - 天赋已重Roll次数);
     const 当前出身展示列表 = 出身选择模式 === '抽卡' ? 当前抽卡出身选项 : 全部背景选项;
@@ -644,6 +640,15 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
         openingConfigEnabled,
         openingConfig
     ]);
+    const 更新题材模式 = (题材模式: OpeningConfig['题材模式']) => {
+        setOpeningConfig((prev) => ({
+            ...prev,
+            题材模式,
+            开局生成门派: 获取题材模式配置(题材模式).group === 'modern' || 获取题材模式配置(题材模式).group === 'apocalypse' ? false : prev.开局生成门派,
+            开局生成同门: 获取题材模式配置(题材模式).group === 'modern' || 获取题材模式配置(题材模式).group === 'apocalypse' ? false : prev.开局生成同门
+        }));
+        setWorldConfig((prev) => 合并题材世界默认值(题材模式, prev) as WorldGenConfig);
+    };
     const 读取UTF8文本文件 = async (file: File): Promise<string> => (
         new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -1239,33 +1244,6 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                 <h3 className="text-xl font-serif font-bold text-wuxia-gold border-b border-wuxia-gold/30 pb-3 mb-6">世界法则设定</h3>
                                 
                                 <div className="space-y-6">
-                                    <div className="rounded-2xl border border-wuxia-cyan/25 bg-wuxia-cyan/5 p-4 space-y-3">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <div className="text-sm text-wuxia-cyan font-bold">现成开局模板</div>
-                                                <div className="text-[11px] text-gray-500 mt-1 leading-5">快速套用常见测试题材；都市和末日模板已内置现代货币/物资口径，减少题材串味。</div>
-                                            </div>
-                                            <span className="text-[10px] text-wuxia-cyan font-mono tracking-[0.18em]">BUILTIN</span>
-                                        </div>
-                                        <div className="space-y-3">
-                                            {开局预设方案列表.map((preset) => (
-                                                <div key={preset.id} className="rounded-xl border border-gray-700/80 bg-black/35 p-4 space-y-3">
-                                                    <div>
-                                                        <div className="text-base font-serif text-wuxia-gold">{preset.名称}</div>
-                                                        <div className="text-[11px] text-gray-400 mt-1 leading-5 line-clamp-2">{preset.简介}</div>
-                                                    </div>
-                                                    <div className="text-[11px] text-gray-500 leading-5">
-                                                        {preset.worldConfig.worldName || '未命名世界'} / {preset.openingConfig?.题材模式 || '题材未设'} / {preset.character.背景名称 || '未设背景'}
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <GameButton onClick={() => 应用预设到表单(preset)} variant="secondary" className="py-2 text-xs">套用查看</GameButton>
-                                                        <GameButton onClick={() => { void handleGenerate(preset); }} variant="primary" className="py-2 text-xs">以此开局</GameButton>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
                                     {自定义开局预设列表.length > 0 && (
                                         <div className="rounded-2xl border border-wuxia-gold/25 bg-wuxia-gold/5 p-4 space-y-3">
                                             <div className="flex items-start justify-between gap-3">
@@ -1299,6 +1277,37 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                             </div>
                                         </div>
                                     )}
+
+                                    <div className="rounded-2xl border border-wuxia-gold/20 bg-black/30 p-4 space-y-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <div className="text-sm text-wuxia-gold font-bold">题材模式</div>
+                                                <div className="mt-1 text-[11px] leading-6 text-gray-400">
+                                                    {当前题材配置.hint} 题材会同步影响世界观、身份背景、天赋卷宗、地图版图、势力密度、市场入口和预设物品。
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] text-wuxia-cyan font-mono tracking-[0.18em]">{当前题材配置.shortLabel}</span>
+                                        </div>
+                                        <InlineSelect
+                                            value={openingConfig.题材模式}
+                                            options={题材模式选项.map((item) => ({ value: item.value, label: item.label }))}
+                                            onChange={更新题材模式}
+                                        />
+                                        <div className="grid grid-cols-1 gap-2 text-[11px] leading-5">
+                                            <div className="rounded-xl border border-white/8 bg-black/30 p-3">
+                                                <div className="text-gray-500">市场入口</div>
+                                                <div className="mt-1 text-gray-200">{当前题材配置.auctionName}</div>
+                                            </div>
+                                            <div className="rounded-xl border border-white/8 bg-black/30 p-3">
+                                                <div className="text-gray-500">交易口径</div>
+                                                <div className="mt-1 text-gray-200">{当前题材配置.currencyPrompt}</div>
+                                            </div>
+                                            <div className="rounded-xl border border-white/8 bg-black/30 p-3">
+                                                <div className="text-gray-500">统一换算</div>
+                                                <div className="mt-1 text-gray-200">{当前题材配置.currencyExchangePrompt}</div>
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
@@ -1345,33 +1354,35 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm text-wuxia-cyan font-bold">世界版图</label>
+                                            <label className="text-sm text-wuxia-cyan font-bold">{当前题材配置.worldSizeLabel}</label>
                                             <InlineSelect
                                                 value={worldConfig.worldSize}
                                                 options={世界版图下拉选项}
                                                 onChange={(worldSize) => setWorldConfig({ ...worldConfig, worldSize })}
                                             />
+                                            <div className="text-[11px] text-gray-500 leading-5">{当前题材配置.worldSizeHint}</div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm text-wuxia-cyan font-bold">宗门密度</label>
+                                            <label className="text-sm text-wuxia-cyan font-bold">{当前题材配置.densityLabel}</label>
                                             <InlineSelect
                                                 value={worldConfig.sectDensity}
-                                                options={宗门密度下拉选项}
+                                                options={当前题材配置.densityOptions}
                                                 onChange={(sectDensity) => setWorldConfig({ ...worldConfig, sectDensity })}
                                             />
                                         </div>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm text-wuxia-cyan font-bold">王朝局势 (自定义)</label>
+                                        <label className="text-sm text-wuxia-cyan font-bold">{当前题材配置.dynastyLabel} (自定义)</label>
                                         <input 
                                             value={worldConfig.dynastySetting}
                                             onChange={e => setWorldConfig({...worldConfig, dynastySetting: e.target.value})}
                                             className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all font-serif tracking-wider"
                                         />
+                                        <div className="text-[11px] text-gray-500 leading-5">{当前题材配置.dynastyHint}</div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm text-wuxia-cyan font-bold">天骄/战力设定 (自定义)</label>
+                                        <label className="text-sm text-wuxia-cyan font-bold">{当前题材配置.tianjiaoLabel} (自定义)</label>
                                         <textarea 
                                             value={worldConfig.tianjiaoSetting}
                                             onChange={e => setWorldConfig({...worldConfig, tianjiaoSetting: e.target.value})}
@@ -2382,21 +2393,14 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                 <div className="border-b border-wuxia-gold/30 pb-3 mb-4">
                                     <div className="text-[10px] uppercase tracking-[0.32em] text-wuxia-cyan/70 font-mono">Opening Structure</div>
                                     <h3 className="text-xl font-serif font-bold text-wuxia-gold mt-2">开局配置</h3>
-                                    <p className="text-[11px] text-gray-400 mt-2 leading-6">这里决定题材模式、初始关系侧重与第一幕切入方式。同人融合已移到“世界观”。</p>
+                                    <p className="text-[11px] text-gray-400 mt-2 leading-6">题材模式已移到“世界观”。这里只决定初始关系侧重、第一幕切入方式和初始组织生成。</p>
                                 </div>
 
                                 <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-sm text-wuxia-cyan font-bold">题材模式</label>
-                                        <InlineSelect
-                                            value={openingConfig.题材模式}
-                                            options={题材模式选项.map((item) => ({ value: item.value, label: item.label }))}
-                                            onChange={(题材模式) => setOpeningConfig((prev) => ({ ...prev, 题材模式 }))}
-                                        />
-                                        <div className="text-[11px] text-gray-500 leading-6">
-                                            {题材模式选项.find((item) => item.value === openingConfig.题材模式)?.hint}
-                                            {openingConfig.题材模式 === '仙侠' ? ' 仙侠模式会维护灵根、灵力、神识、法宝与术法等修真变量。' : ''}
-                                        </div>
+                                    <div className="rounded-2xl border border-wuxia-gold/20 bg-black/25 p-4 text-xs leading-6 text-gray-400">
+                                        <div className="text-sm text-wuxia-gold font-bold">当前题材：{当前题材配置.label}</div>
+                                        <div className="mt-1">{当前题材配置.hint}</div>
+                                        <div className="mt-2 text-gray-500">市场入口：{当前题材配置.auctionName}；{当前题材配置.currencyPrompt}；{当前题材配置.currencyExchangePrompt}</div>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-sm text-wuxia-cyan font-bold">开局切入偏好</label>

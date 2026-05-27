@@ -17,6 +17,7 @@ import type { 接口设置结构, OpeningConfig } from '../../../types';
 import { 生成物品图标 } from '../../../services/ai/itemImageGeneration';
 import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 import { 获取货币显示模式 } from '../../../utils/currencyDisplay';
+import { 获取题材模式配置 } from '../../../utils/topicModeProfiles';
 
 interface Props {
     character: any;
@@ -68,6 +69,7 @@ const AuctionHouseModal: React.FC<Props> = ({
     const [generatingItemId, setGeneratingItemId] = React.useState('');
     const [previewImage, setPreviewImage] = React.useState<{ url: string; title: string } | null>(null);
     const [isNarrowPanel, setIsNarrowPanel] = React.useState(isMobile);
+    const topicProfile = React.useMemo(() => 获取题材模式配置(openingConfig?.题材模式), [openingConfig?.题材模式]);
 
     React.useEffect(() => {
         const element = shellRef.current;
@@ -283,8 +285,8 @@ const AuctionHouseModal: React.FC<Props> = ({
             <div ref={shellRef} className={`relative flex w-full flex-col overflow-hidden border border-wuxia-gold/25 bg-[#090806] shadow-[0_0_70px_rgba(0,0,0,0.85)] ${isMobile ? 'h-[92vh] rounded-xl' : 'h-[90vh] max-w-7xl rounded-2xl'}`}>
                 <div className={`flex shrink-0 items-center justify-between border-b border-wuxia-gold/15 bg-[#16110a] ${isMobile ? 'px-3 py-2' : 'px-4 py-3'}`}>
                     <div className="min-w-0">
-                        <div className={`font-serif font-bold text-wuxia-gold ${isMobile ? 'text-base tracking-[0.18em]' : 'text-lg tracking-[0.32em]'}`}>天下拍卖行</div>
-                        <div className={`mt-1 text-xs tracking-[0.16em] text-wuxia-gold/45 ${isMobile ? 'hidden' : ''}`}>AUCTION HOUSE</div>
+                        <div className={`font-serif font-bold text-wuxia-gold ${isMobile ? 'text-base tracking-[0.18em]' : 'text-lg tracking-[0.32em]'}`}>{topicProfile.auctionName}</div>
+                        <div className={`mt-1 text-xs tracking-[0.16em] text-wuxia-gold/45 ${isMobile ? 'hidden' : ''}`}>{topicProfile.shortLabel.toUpperCase()} MARKET</div>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="hidden max-w-[560px] rounded border border-wuxia-gold/20 bg-[#0f0c08] px-3 py-1.5 text-xs leading-5 text-wuxia-gold/80 sm:block whitespace-normal break-words">

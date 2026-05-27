@@ -31,6 +31,7 @@ import { checkForAppUpdate, downloadLatestApkPackage, subscribeAppUpdateProgress
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 获取货币显示模式 } from './utils/currencyDisplay';
+import { 获取题材模式配置 } from './utils/topicModeProfiles';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
 import { 获取本地图片图床迁移状态, 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 读取图片资源兜底地址, 订阅旧存档谱系迁移状态, 订阅本地图片图床迁移状态, type 旧存档谱系迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
@@ -1210,11 +1211,11 @@ const App: React.FC = () => {
         factionAuctionHandledRef.current = signatureHash;
         // 投放到拍卖行
         setAuctionHouseState((prev) => {
-            const next = 从势力互动投放拍卖品(prev, pendingItems, { scope: auctionHouseScope });
+            const next = 从势力互动投放拍卖品(prev, pendingItems, { scope: auctionHouseScope, 题材模式: state.开局配置?.题材模式 });
             return next;
         });
         console.info('[拍卖行桥接] 已从势力互动投放', pendingItems.length, '件物品');
-    }, [state.世界?.拍卖行待投放物品, auctionHouseScope]);
+    }, [state.世界?.拍卖行待投放物品, auctionHouseScope, state.开局配置?.题材模式]);
 
     const auctionRollHandledRef = React.useRef<string>('');
     React.useEffect(() => {
@@ -1229,13 +1230,14 @@ const App: React.FC = () => {
             const next = 清理并补货(prev, {
                 允许系统补货: true,
                 最大系统补货数量: activeCount < 4 ? 2 : 1,
-                目标在售数量: 12
+                目标在售数量: 12,
+                题材模式: state.开局配置?.题材模式
             });
             if (next === prev || next.拍卖品列表 === prev.拍卖品列表) return prev;
             保存拍卖行状态(next, auctionHouseScope);
             return next;
         });
-    }, [auctionHouseScope, latestAssistantMessage, state.view]);
+    }, [auctionHouseScope, latestAssistantMessage, state.view, state.开局配置?.题材模式]);
 
     React.useEffect(() => {
         const feature = state.apiConfig?.功能模型占位;
@@ -1432,6 +1434,7 @@ const App: React.FC = () => {
         };
     }, [state.view, state.apiConfig, state.角色, setters, actions, meta.imageGenerationQueue, meta.sceneImageQueue]);
 
+    const 当前题材市场名称 = React.useMemo(() => 获取题材模式配置(state.开局配置?.题材模式).auctionName, [state.开局配置?.题材模式]);
     const activeMobileWindow =
         showCharacter ? '角色' :
         state.showBattle ? '战斗' :
@@ -1450,7 +1453,7 @@ const App: React.FC = () => {
         state.showHeroinePlan ? '规划' :
         state.showMemory ? '记忆' :
         showNovelExport ? '导出小说' :
-        showAuctionHouse ? '拍卖行' :
+        showAuctionHouse ? 当前题材市场名称 :
         showCloudPlay ? '云端游玩' :
         showImageManager ? '图册' :
         showNovelDecompositionWorkbench ? '小说分解' :

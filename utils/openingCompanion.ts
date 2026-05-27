@@ -181,18 +181,22 @@ export const 修复开局伙伴社交列表 = (
     if (!seed) return Array.isArray(socialList) ? socialList : [];
 
     const source = Array.isArray(socialList) ? socialList : [];
-    if (source.length > 0) return source;
     let merged: any | null = null;
     const next: any[] = [];
 
     source.forEach((npc) => {
         if (是否疑似同一开局伙伴(npc, seed, openingConfig)) {
+            const seedArchive = seed.图片档案 && typeof seed.图片档案 === 'object' ? seed.图片档案 : undefined;
+            const mergedArchive = merged?.图片档案 && typeof merged.图片档案 === 'object' ? merged.图片档案 : undefined;
+            const npcArchive = npc?.图片档案 && typeof npc.图片档案 === 'object' ? npc.图片档案 : undefined;
             merged = {
                 ...seed,
                 ...merged,
                 ...npc,
                 id: seed.id,
                 姓名: seed.姓名,
+                头像图片URL: 取文本(npc?.头像图片URL, 取文本(merged?.头像图片URL, 取文本(seed.头像图片URL))),
+                图片档案: npcArchive || mergedArchive || seedArchive,
                 曾用名: Array.from(new Set([
                     ...(Array.isArray(seed.曾用名) ? seed.曾用名 : []),
                     ...(Array.isArray(merged?.曾用名) ? merged.曾用名 : []),

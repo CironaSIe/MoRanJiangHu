@@ -83,6 +83,70 @@ describe('拍卖行默认补货', () => {
         expect(state.拍卖品列表.filter((entry) => entry.状态 === '上架中').every((entry) => entry.物品.类型 !== '杂物' && entry.物品.类型 !== '杂项')).toBe(true);
     });
 
+    it('武侠模式会过滤系统和事件投放中的仙侠拍品', () => {
+        const state = 清理并补货({
+            拍卖品列表: [],
+            交易记录: [],
+            最近补货时间: 0,
+            行情列表: [],
+            最近行情时间: 0
+        }, { 允许系统补货: true, 最大系统补货数量: 20, 目标在售数量: 20, 题材模式: '武侠' });
+
+        const names = state.拍卖品列表.map((entry) => entry.物品.名称).join('|');
+        expect(names).not.toMatch(/储物戒|筑基丹|飞剑|灵石|法袍|阵盘|玉简/);
+        expect(state.拍卖品列表.every((entry) => entry.物品.类型 !== '法宝')).toBe(true);
+
+        const blocked = 投放事件拍卖品(state, {
+            事件名称: '武侠市集',
+            题材模式: '武侠',
+            物品: {
+                名称: '储物戒',
+                类型: '饰品',
+                品质: '极品',
+                价值: 42000
+            }
+        });
+        expect(blocked.拍卖品列表.some((entry) => entry.物品.名称 === '储物戒')).toBe(false);
+    });
+
+    it('现代和末日模式使用对应市场物品池并过滤古风仙侠拍品', () => {
+        const modern = 清理并补货({
+            拍卖品列表: [],
+            交易记录: [],
+            最近补货时间: 0,
+            行情列表: [],
+            最近行情时间: 0
+        }, { 允许系统补货: true, 最大系统补货数量: 8, 目标在售数量: 8, 题材模式: '现代都市' });
+
+        const modernNames = modern.拍卖品列表.map((entry) => entry.物品.名称).join('|');
+        expect(modernNames).toMatch(/手机|急救包|录音笔|防割手套|古玉残佩/);
+        expect(modernNames).not.toMatch(/储物戒|筑基丹|飞剑|灵石|法袍|阵盘|玉简|刀谱/);
+
+        const apocalypse = 清理并补货({
+            拍卖品列表: [],
+            交易记录: [],
+            最近补货时间: 0,
+            行情列表: [],
+            最近行情时间: 0
+        }, { 允许系统补货: true, 最大系统补货数量: 8, 目标在售数量: 8, 题材模式: '末日丧尸' });
+
+        const apocalypseNames = apocalypse.拍卖品列表.map((entry) => entry.物品.名称).join('|');
+        expect(apocalypseNames).toMatch(/净水片|罐头包|手摇电筒|弩机组件|抗生素|汽油桶/);
+        expect(apocalypseNames).not.toMatch(/储物戒|筑基丹|飞剑|灵石|法袍|阵盘|玉简|刀谱/);
+
+        const blocked = 投放事件拍卖品(apocalypse, {
+            事件名称: '营地黑市',
+            题材模式: '末日丧尸',
+            物品: {
+                名称: '储物戒',
+                类型: '饰品',
+                品质: '极品',
+                价值: 42000
+            }
+        });
+        expect(blocked.拍卖品列表.some((entry) => entry.物品.名称 === '储物戒')).toBe(false);
+    });
+
     it('localStorage 配额不足时不会打断应用加载', () => {
         const setItem = vi
             .fn()
