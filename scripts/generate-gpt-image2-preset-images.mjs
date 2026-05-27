@@ -185,7 +185,11 @@ const buildPrompt = (item) => {
     .replace(/\bdeadly\b/gi, 'ceremonial');
   return [
     settingLine,
-    'Photorealistic product photo of one physical prop, centered, isolated on warm neutral parchment background, soft studio lighting, soft shadow, clear readable silhouette, object fills most of the frame.',
+    [
+      'Realistic product photography only: the image must look like a real camera photo of one tangible physical prop, not illustration.',
+      'Centered isolated catalog shot on a warm neutral parchment or matte beige tabletop background, soft studio lighting, natural lens perspective, realistic shadow, realistic material texture, clear readable silhouette, object fills most of the frame.',
+      'Use real-world surfaces such as metal, leather, cloth, wood, paper, stone, ceramic, plastic, rubber, glass, or worn survival materials as appropriate.'
+    ].join(' '),
     `Item name: ${item.名称}.`,
     `Item class: ${qualityMap[item.品质] || item.品质} ${typeMap[item.类型] || item.类型}.`,
     material,
@@ -193,7 +197,7 @@ const buildPrompt = (item) => {
     `Form and materials: ${description}.`,
     tags ? `Visual tags: ${tags}.` : '',
     itemSpecificPrompt(item, structured),
-    'No people, no hands, no face, no full body, no UI, no card frame, no border, no collage, no text, no letters, no numbers, no Chinese characters, no calligraphy, no labels, no logo, no watermark.',
+    'No people, no hands, no face, no full body, no UI, no card frame, no border, no collage, no text, no letters, no numbers, no Chinese characters, no calligraphy, no labels, no logo, no watermark. Avoid icon style, 3D render, CGI, game concept art, guofeng illustration, anime, cartoon, painterly brushwork, vector art, plastic toy look, exaggerated glow, fantasy poster composition.',
   ].filter(Boolean).join('\n');
 };
 
@@ -406,7 +410,7 @@ async function judgeCandidates(item, a, b) {
   const prompt = [
     `You are selecting an inventory icon for a wuxia RPG item: ${item.名称}.`,
     `Type: ${item.类型}; quality: ${item.品质}.`,
-    'Choose A or B. Prefer the image that most clearly depicts the named object as a single isolated prop, with no people, no text, no UI, and no semantic mismatch.',
+    'Choose A or B. Prefer the image that most clearly looks like realistic product photography of the named object as a single isolated prop, with no people, no text, no UI, no illustration style, and no semantic mismatch.',
     'Return compact JSON only: {"choice":"A","reason":"..."}',
   ].join('\n');
   try {

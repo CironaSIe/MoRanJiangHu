@@ -148,6 +148,29 @@ const typeMap = {
 };
 
 const itemSpecificPrompt = (item) => {
+  if (/急救包/.test(item.名称)) {
+    return [
+      'must clearly be a real portable first aid kit bag or zippered medical pouch',
+      'rectangular soft fabric or hard-shell case, visible zipper seam, handle or straps',
+      'a small simple cross patch is allowed on the bag, but the object must not be just a cross symbol',
+      'no loose medical supplies scattered around, no readable text'
+    ].join(', ');
+  }
+  if (/电脑维修手册|急救手册|求生手册/.test(item.名称)) {
+    return [
+      'must clearly be a modern paperback field manual or technical handbook, not an ancient scroll or martial arts book',
+      'closed or slightly open booklet with plain cover, tabs, worn paper, diagrams suggested by abstract unreadable marks',
+      'modern practical survival or repair manual styling, no Chinese calligraphy, no ancient parchment scroll',
+      'no readable words, no logo, no brand name'
+    ].join(', ');
+  }
+  if (/防护服/.test(item.名称)) {
+    return [
+      'must clearly be a modern hazmat protective suit or disposable chemical protection coverall',
+      'white or light gray nonwoven fabric, hood, front zipper, elastic cuffs and boot covers',
+      'laid flat or hanging as an empty garment, no person, no mannequin, no armor, no medieval clothing'
+    ].join(', ');
+  }
   if (item.名称 === '蛇胆') {
     return [
       'must look like one real snake gallbladder organ, a small oval dark green translucent bile sac',
@@ -164,6 +187,13 @@ const itemSpecificPrompt = (item) => {
     ].join(', ');
   }
   if (item.类型 === '秘籍') {
+    if (/手册/.test(item.名称)) {
+      return [
+        'must clearly look like a modern practical handbook or field manual, not a blank prop',
+        'visible abstract unreadable diagrams and pseudo text blocks, modern paper booklet material',
+        'not ancient, not a scroll, not Chinese calligraphy, no readable real words'
+      ].join(', ');
+    }
     return [
       'must clearly look like an ancient martial arts manual, not a blank prop',
       'visible dense black ink-like pseudo calligraphy strokes, visible abstract meridian diagrams or martial arts figure diagrams',
@@ -186,15 +216,26 @@ const stableSeed = (name) => {
   return Math.abs(hash) % 900000000000000;
 };
 
-const buildPrompt = (item) => [
-  common,
-  `single ${qualityMap[item.品质] || 'common'} ${typeMap[item.类型] || 'prop'}`,
-  `form and materials: ${item.生图描述}`,
-  itemSpecificPrompt(item),
-  Array.isArray(item.视觉标签) && item.视觉标签.length > 0 ? `visual tags: ${item.视觉标签.join(', ')}` : '',
-  'inventory icon source image, product photography, object fills most of the frame, readable silhouette, ancient Chinese wuxia prop, plain background',
-  'absolutely no text, no letters, no numbers, no Chinese characters, no calligraphy, no captions, no labels, no watermarks, no logos, no writing on the object'
-].filter(Boolean).join('\n');
+const isModernLikeItem = (item) => {
+  const tags = Array.isArray(item.视觉标签) ? item.视觉标签.join(' ') : '';
+  return /modern|urban|laptop|smartphone|USB|battery|radio|survival|apocalypse|tool|detector|medical|ration|camp|protective|electronic|hazmat|manual|card|key/i.test(tags)
+    || /手机|电脑|U盘|电池|电台|检测|探测|维修|工具|急救|绷带|止血|抗生素|防护|口罩|护目镜|防毒|夹克|运动鞋|汽油|饼干|罐头|饮水|净水|滤芯|手册|证件|银行卡|现金|车钥匙|通行证|感染|样本|太阳能|弹药|撬棍|喷雾|警棍/.test(item.名称 || '');
+};
+
+const buildPrompt = (item) => {
+  const modernLike = isModernLikeItem(item);
+  return [
+    common.replace('single physical wuxia inventory item', modernLike ? 'single physical modern inventory item' : 'single physical wuxia inventory item'),
+    `single ${qualityMap[item.品质] || 'common'} ${typeMap[item.类型] || 'prop'}`,
+    `form and materials: ${item.生图描述}`,
+    itemSpecificPrompt(item),
+    Array.isArray(item.视觉标签) && item.视觉标签.length > 0 ? `visual tags: ${item.视觉标签.join(', ')}` : '',
+    modernLike
+      ? 'inventory icon source image, realistic modern product photography, object fills most of the frame, readable silhouette, practical contemporary prop, plain background'
+      : 'inventory icon source image, product photography, object fills most of the frame, readable silhouette, ancient Chinese wuxia prop, plain background',
+    'absolutely no text, no letters, no numbers, no Chinese characters, no calligraphy, no captions, no labels, no watermarks, no logos, no writing on the object'
+  ].filter(Boolean).join('\n');
+};
 
 const inject = (value, replacements) => {
   if (typeof value === 'string') {

@@ -226,10 +226,7 @@
     <button id="clearBtn">清空本机标记</button>
     <span class="stat" id="stat">载入中...</span>
   </div>
-  <div class="tabs" role="tablist" aria-label="预设图分类">
-    <button id="tabWuxia" class="tab active" type="button" role="tab" aria-selected="true">武侠预设</button>
-    <button id="tabXianxia" class="tab" type="button" role="tab" aria-selected="false">仙侠预设</button>
-  </div>
+  <div class="tabs" id="tabs" role="tablist" aria-label="预设图分类"></div>
 </header>
 <main>
   <div class="intro">
@@ -279,8 +276,9 @@
 </div>
 <script>
 const storageKey = 'msjh-public-item-preset-feedback-v1';
+const categoryOrder = ['武侠', '仙侠', '灵气复苏', '都市修仙', '现代都市', '末日丧尸'];
 let items = [];
-let activeCategory = '武侠';
+let activeCategory = categoryOrder[0];
 let marks = JSON.parse(localStorage.getItem(storageKey) || '{}');
 const grid = document.getElementById('grid');
 const q = document.getElementById('q');
@@ -294,14 +292,14 @@ const toggleContributionBtn = document.getElementById('toggleContributionBtn');
 const contributionPanel = document.getElementById('contributionPanel');
 const submitContributionBtn = document.getElementById('submitContributionBtn');
 const contributionStat = document.getElementById('contributionStat');
-const tabWuxia = document.getElementById('tabWuxia');
-const tabXianxia = document.getElementById('tabXianxia');
+const tabs = document.getElementById('tabs');
 const viewer = document.getElementById('viewer');
 const viewerTitle = document.getElementById('viewerTitle');
 const viewerImg = document.getElementById('viewerImg');
 const viewerClose = document.getElementById('viewerClose');
 
 function save() { localStorage.setItem(storageKey, JSON.stringify(marks)); }
+function itemKey(item) { return item.id || `${item.category || '武侠'}:${item.name}`; }
 function showToast(message) {
   toast.textContent = message;
   toast.style.display = 'block';
@@ -346,15 +344,53 @@ function closeViewer() {
 function currentProblemItems() {
   return items
     .filter(item => (item.category || '武侠') === activeCategory)
-    .filter(item => (marks[item.name] || {}).problem)
+    .filter(item => (marks[itemKey(item)] || {}).problem)
     .map(item => ({
+      id: itemKey(item),
+      category: item.category || activeCategory,
       name: item.name,
       type: item.type,
       quality: item.quality,
       source: item.source,
-      note: (marks[item.name] || {}).note || ''
+      note: (marks[itemKey(item)] || {}).note || ''
     }))
     .filter(item => item.note.trim());
+}
+function scopedItemsForActiveCategory() {
+  return items.filter(item => (item.category || '武侠') === activeCategory);
+}
+function renderTabs() {
+  tabs.textContent = '';
+  const availableCategories = new Set(items.map(item => item.category || '武侠'));
+  for (const category of categoryOrder) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'tab ' + (category === activeCategory ? 'active' : '');
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-selected', category === activeCategory ? 'true' : 'false');
+    button.disabled = !availableCategories.has(category);
+    const count = items.filter(item => (item.category || '武侠') === category).length;
+    button.textContent = `${category}预设 ${count}`;
+    button.onclick = () => setCategory(category);
+    tabs.appendChild(button);
+  }
+}
+function rebuildTypeOptions() {
+  const previous = type.value;
+  type.textContent = '';
+  const allOption = document.createElement('option');
+  allOption.value = '';
+  allOption.textContent = '全部类型';
+  type.appendChild(allOption);
+  const values = [...new Set(scopedItemsForActiveCategory().map(item => item.type))]
+    .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+  for (const value of values) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    type.appendChild(option);
+  }
+  type.value = values.includes(previous) ? previous : '';
 }
 function render() {
   const query = q.value.trim().toLowerCase();
@@ -363,9 +399,10 @@ function render() {
   const sourceFilter = source.value;
   grid.textContent = '';
   let shown = 0;
-  const scopedItems = items.filter(item => (item.category || '武侠') === activeCategory);
+  const scopedItems = scopedItemsForActiveCategory();
   for (const item of scopedItems) {
-    const mark = marks[item.name] || {};
+    const key = itemKey(item);
+    const mark = marks[key] || {};
     if (query && !item.name.toLowerCase().includes(query)) continue;
     if (typeFilter && item.type !== typeFilter) continue;
     if (sourceFilter && item.source !== sourceFilter) continue;
@@ -403,7 +440,7 @@ function render() {
     note.placeholder = '这里写问题，例如：像盔甲不是鞋';
     note.value = mark.note || '';
     note.oninput = () => {
-      marks[item.name] = { ...(marks[item.name] || {}), note: note.value };
+      marks[key] = { ...(marks[key] || {}), note: note.value };
       save();
     };
     meta.appendChild(note);
@@ -413,7 +450,7 @@ function render() {
     button.className = 'mark ' + (mark.problem ? 'active' : '');
     button.textContent = mark.problem ? '已标问题' : '标为有问题';
     button.onclick = () => {
-      marks[item.name] = { ...(marks[item.name] || {}), problem: !mark.problem, note: note.value };
+      marks[key] = { ...(marks[key] || {}), problem: !mark.problem, note: note.value };
       save();
       render();
     };
@@ -422,7 +459,7 @@ function render() {
     card.appendChild(meta);
     grid.appendChild(card);
   }
-  const problemCount = scopedItems.filter(item => (marks[item.name] || {}).problem).length;
+  const problemCount = scopedItems.filter(item => (marks[itemKey(item)] || {}).problem).length;
   const remoteCount = scopedItems.filter(item => item.source === '远程图').length;
   stat.textContent = `${activeCategory}：显示 ${shown} / 共 ${scopedItems.length}；已标问题 ${problemCount}；远程图 ${remoteCount}`;
 }
@@ -430,20 +467,19 @@ async function loadData() {
   const response = await fetch('./assets/item-preset-feedback-data.json', { cache: 'no-store' });
   if (!response.ok) throw new Error('反馈数据载入失败');
   items = await response.json();
-  [...new Set(items.map(item => item.type))].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN')).forEach(value => {
-    const option = document.createElement('option');
-    option.value = value;
-    option.textContent = value;
-    type.appendChild(option);
-  });
+  renderTabs();
+  rebuildTypeOptions();
   render();
 }
 function setCategory(category) {
+  if (!categoryOrder.includes(category)) return;
   activeCategory = category;
-  tabWuxia.classList.toggle('active', category === '武侠');
-  tabXianxia.classList.toggle('active', category === '仙侠');
-  tabWuxia.setAttribute('aria-selected', category === '武侠' ? 'true' : 'false');
-  tabXianxia.setAttribute('aria-selected', category === '仙侠' ? 'true' : 'false');
+  [...tabs.querySelectorAll('.tab')].forEach((button) => {
+    const isActive = button.textContent.startsWith(category);
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  rebuildTypeOptions();
   render();
 }
 async function submitFeedback() {
@@ -549,8 +585,6 @@ async function submitContribution() {
   }
 }
 [q, type, filter, source].forEach(node => node.addEventListener('input', render));
-tabWuxia.addEventListener('click', () => setCategory('武侠'));
-tabXianxia.addEventListener('click', () => setCategory('仙侠'));
 submitBtn.addEventListener('click', submitFeedback);
 toggleContributionBtn.addEventListener('click', () => {
   contributionPanel.classList.toggle('open');
