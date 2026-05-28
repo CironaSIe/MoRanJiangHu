@@ -49,6 +49,19 @@ const 世界观阶段超时毫秒 = 300000;
 const 境界阶段超时毫秒 = 300000;
 const 开局流式预览最小间隔毫秒 = 700;
 
+export const 选择开局境界体系来源 = (params: {
+    启用修炼体系: boolean;
+    手动境界提示词?: string;
+    是仙侠题材: boolean;
+    启用同人境界: boolean;
+}): 'disabled' | 'manual' | 'xianxia_default' | 'fandom' | 'core_default' => {
+    if (!params.启用修炼体系) return 'disabled';
+    if ((params.手动境界提示词 || '').trim()) return 'manual';
+    if (params.是仙侠题材) return 'xianxia_default';
+    if (params.启用同人境界) return 'fandom';
+    return 'core_default';
+};
+
 const 开局阶段是否使用流式请求 = (apiConfig: 当前可用接口结构): boolean => {
     const supplier = (apiConfig.供应商 || '').toLowerCase();
     const baseUrl = (apiConfig.baseUrl || '').toLowerCase();
@@ -273,7 +286,6 @@ export const 执行世界生成工作流 = async (
             ? worldConfig.manualRealmPrompt.trim()
             : '';
         const useManualWorldPrompt = normalizedManualWorldPrompt.length > 0;
-        const useManualRealmPrompt = 启用修炼体系 && normalizedManualRealmPrompt.length > 0;
         const isXianxiaOpening = openingConfig?.题材模式 === '仙侠';
         const normalizedWorldExtraRequirement = typeof worldConfig.worldExtraRequirement === 'string'
             ? worldConfig.worldExtraRequirement.trim()
@@ -283,6 +295,12 @@ export const 执行世界生成工作流 = async (
         let realmPromptContent = 启用修炼体系
             ? (fandomEnabled ? '' : (initialFandomBundle.境界母板补丁 || 核心_境界体系.内容))
             : '';
+        const realmPromptSource = 选择开局境界体系来源({
+            启用修炼体系,
+            手动境界提示词: normalizedManualRealmPrompt,
+            是仙侠题材: isXianxiaOpening,
+            启用同人境界: fandomEnabled
+        });
 
         const promptPoolWithCoreRealm = 启用修炼体系 && deps.prompts.some((item) => item.id === 核心_境界体系.id)
             ? deps.prompts
@@ -305,17 +323,17 @@ export const 执行世界生成工作流 = async (
 
         const worldGenerationCotPseudoPrompt = 世界观生成COT伪装历史消息提示词;
 
-        if (启用修炼体系 && isXianxiaOpening) {
-            if (openingStreaming) {
-                开局流式历史更新器?.更新('【生成中】加载固定仙侠境界体系...', { immediate: true });
-            }
-            realmPromptContent = initialFandomBundle.境界母板补丁 || 核心_境界体系.内容;
-        } else if (useManualRealmPrompt) {
+        if (realmPromptSource === 'manual') {
             if (openingStreaming) {
                 开局流式历史更新器?.更新('【生成中】校验手动境界提示词...', { immediate: true });
             }
             realmPromptContent = textAIService.解析境界体系提示词内容(normalizedManualRealmPrompt);
-        } else if (启用修炼体系 && fandomEnabled) {
+        } else if (realmPromptSource === 'xianxia_default') {
+            if (openingStreaming) {
+                开局流式历史更新器?.更新('【生成中】加载固定仙侠境界体系...', { immediate: true });
+            }
+            realmPromptContent = initialFandomBundle.境界母板补丁 || 核心_境界体系.内容;
+        } else if (realmPromptSource === 'fandom') {
             if (openingStreaming) {
                 开局流式历史更新器?.更新('【生成中】同人境界体系生成...', { immediate: true });
                 let pulse = 0;

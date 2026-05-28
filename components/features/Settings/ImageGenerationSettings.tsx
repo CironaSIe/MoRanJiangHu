@@ -243,6 +243,12 @@ const 构建NovelAI代理测试地址 = (): string => {
     return `${window.location.origin.replace(/\/+$/, '')}/api/novelai/ai/generate-image`;
 };
 
+const NovelAI试用验证码错误 = /recaptcha token is required for trial generation/i;
+
+const 构建NovelAIToken未生效提示 = (status: number): string => {
+    return `NovelAI 没有识别到可用的 Persistent API Token。HTTP ${status}\n当前请求被 NovelAI 当作试用生图并要求 Recaptcha，请重新填写以 pst- 开头的 Persistent API Token，保存后再点击连接测试；如果仍失败，说明这枚 Token 可能已失效或账号订阅权限不可用。`;
+};
+
 const 测试NovelAI官方连接 = async (apiKey: string): Promise<string> => {
     const token = (apiKey || '').trim();
     if (!token) throw new Error('缺少 Persistent API Token');
@@ -257,6 +263,9 @@ const 测试NovelAI官方连接 = async (apiKey: string): Promise<string> => {
         body: JSON.stringify({})
     });
     const detail = await response.text().catch(() => '');
+    if (NovelAI试用验证码错误.test(detail)) {
+        throw new Error(构建NovelAIToken未生效提示(response.status));
+    }
     const authFailure = /token|auth|unauthori[sz]ed|forbidden|permission|invalid/i.test(detail);
     if (response.status === 401 || response.status === 403) {
         throw new Error(`NovelAI Token 无效或权限不足。HTTP ${response.status}${detail ? `\n${detail.slice(0, 500)}` : ''}`);

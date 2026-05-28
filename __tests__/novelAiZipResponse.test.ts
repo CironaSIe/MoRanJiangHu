@@ -18,6 +18,13 @@ const 写Uint32LE = (target: Uint8Array, offset: number, value: number) => {
     target[offset + 3] = (value >>> 24) & 0xff;
 };
 
+const 写Uint32BE = (target: Uint8Array, offset: number, value: number) => {
+    target[offset] = (value >>> 24) & 0xff;
+    target[offset + 1] = (value >>> 16) & 0xff;
+    target[offset + 2] = (value >>> 8) & 0xff;
+    target[offset + 3] = value & 0xff;
+};
+
 const 构建带DataDescriptor的Zip = (fileName: string, fileBytes: Uint8Array): Uint8Array => {
     const encoder = new TextEncoder();
     const nameBytes = encoder.encode(fileName);
@@ -87,6 +94,42 @@ const 构建只有本地文件头的Zip = (fileName: string, fileBytes: Uint8Arr
     return zip;
 };
 
+const 构建本地文件头未声明尺寸的StoredZip = (fileName: string, fileBytes: Uint8Array): Uint8Array => {
+    const encoder = new TextEncoder();
+    const nameBytes = encoder.encode(fileName);
+    const localHeaderLength = 30 + nameBytes.length;
+    const descriptorLength = 16;
+    const zip = new Uint8Array(localHeaderLength + fileBytes.length + descriptorLength);
+
+    写Uint32LE(zip, 0, 0x04034b50);
+    写Uint16LE(zip, 4, 20);
+    写Uint16LE(zip, 6, 0x08);
+    写Uint16LE(zip, 8, 0);
+    写Uint16LE(zip, 26, nameBytes.length);
+    zip.set(nameBytes, 30);
+    zip.set(fileBytes, localHeaderLength);
+
+    const descriptorOffset = localHeaderLength + fileBytes.length;
+    写Uint32LE(zip, descriptorOffset, 0x08074b50);
+    写Uint32LE(zip, descriptorOffset + 8, fileBytes.length);
+    写Uint32LE(zip, descriptorOffset + 12, fileBytes.length);
+
+    return zip;
+};
+
+const 构建最小PNG = (): Uint8Array => {
+    const png = new Uint8Array(45);
+    png.set([137, 80, 78, 71, 13, 10, 26, 10], 0);
+    写Uint32BE(png, 8, 13);
+    png.set([73, 72, 68, 82], 12);
+    png.set([0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0], 16);
+    写Uint32BE(png, 29, 0);
+    写Uint32BE(png, 33, 0);
+    png.set([73, 69, 78, 68], 37);
+    写Uint32BE(png, 41, 0);
+    return png;
+};
+
 describe('NovelAI ZIP image response parsing', () => {
     it('extracts image_0.png from a streamed ZIP using the central directory sizes', () => {
         const pngBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3, 4]);
@@ -107,6 +150,16 @@ describe('NovelAI ZIP image response parsing', () => {
 
         expect(directResult?.fileName).toBe('image_0.png');
         expect(Array.from(directResult?.imageBytes || [])).toEqual(Array.from(pngBytes));
+        expect(Array.from(fallbackResult?.imageBytes || [])).toEqual(Array.from(pngBytes));
+    });
+
+    it('extracts an uncompressed image when ZIP local header sizes are missing', () => {
+        const pngBytes = 构建最小PNG();
+        const zipBytes = 构建本地文件头未声明尺寸的StoredZip('image_0.png', pngBytes);
+
+        const fallbackResult = __测试__从Zip提取首张图片(zipBytes);
+
+        expect(fallbackResult?.fileName).toBe('image_0.png');
         expect(Array.from(fallbackResult?.imageBytes || [])).toEqual(Array.from(pngBytes));
     });
 });

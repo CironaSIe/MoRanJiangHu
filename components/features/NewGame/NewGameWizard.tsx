@@ -647,10 +647,65 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         () => 获取同人角色替换规则列表(openingConfig, charName),
         [openingConfig, charName]
     );
+    const 构建伙伴开局配置 = () => {
+        const fallback = 默认初始伙伴配置();
+        return {
+            ...fallback,
+            enabled: partnerEnabled,
+            姓名: partnerName.trim(),
+            性别: partnerGender.trim(),
+            年龄: partnerAge,
+            出生月: partnerBirthMonth,
+            出生日: partnerBirthDay,
+            外貌: partnerAppearance.trim(),
+            性格: partnerPersonality.trim(),
+            属性: partnerStats,
+            头像图片URL: partnerAvatarUrl.trim(),
+            图片档案: 构建开局图片档案(partnerAvatarUrl, partnerPortraitUrl, 'opening_partner'),
+            背景名称: partnerBackground.名称,
+            背景描述: partnerBackground.描述,
+            背景效果: partnerBackground.效果,
+            天赋列表: partnerTalents,
+            关系: partnerRelation.trim(),
+            备注: partnerNote.trim()
+        };
+    };
+    const 构建有效开局配置 = (): OpeningConfig | undefined => {
+        if (!openingConfigEnabled && !partnerEnabled && !openingConfig.题材模式) return undefined;
+        return 规范化开局配置({
+            ...openingConfig,
+            配置约束启用: openingConfigEnabled,
+            初始伙伴: 构建伙伴开局配置()
+        });
+    };
+
+    const 当前有效开局配置 = useMemo(
+        () => 构建有效开局配置(),
+        [
+            openingConfigEnabled,
+            partnerEnabled,
+            openingConfig,
+            partnerName,
+            partnerGender,
+            partnerAge,
+            partnerBirthMonth,
+            partnerBirthDay,
+            partnerAppearance,
+            partnerPersonality,
+            partnerStats,
+            partnerAvatarUrl,
+            partnerPortraitUrl,
+            partnerBackground,
+            partnerTalents,
+            partnerRelation,
+            partnerNote
+        ]
+    );
+
     const 当前世界观生成提示词预览 = useMemo(() => 构建开局世界观生成提示词预览({
         worldConfig,
         charData: 构建角色数据(),
-        openingConfig: openingConfigEnabled ? openingConfig : undefined
+        openingConfig: 当前有效开局配置
     }), [
         worldConfig,
         charName,
@@ -666,7 +721,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         selectedBackground,
         selectedTalents,
         openingConfigEnabled,
-        openingConfig
+        openingConfig,
+        当前有效开局配置
     ]);
     const 当前主剧情接口配置 = useMemo(() => apiConfig ? 获取主剧情接口配置(apiConfig) : null, [apiConfig]);
     const aiFrameworkAvailable = 接口配置是否可用(当前主剧情接口配置);
@@ -1010,40 +1066,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
 
     const 更新伙伴属性 = (key: keyof 属性结构, value: number) => {
         setPartnerStats(prev => ({ ...prev, [key]: Math.max(属性最小值, Math.min(属性最大值, value)) }));
-    };
-
-    const 构建伙伴开局配置 = () => {
-        const fallback = 默认初始伙伴配置();
-        return {
-            ...fallback,
-            enabled: partnerEnabled,
-            姓名: partnerName.trim(),
-            性别: partnerGender.trim(),
-            年龄: partnerAge,
-            出生月: partnerBirthMonth,
-            出生日: partnerBirthDay,
-            外貌: partnerAppearance.trim(),
-            性格: partnerPersonality.trim(),
-            属性: partnerStats,
-            头像图片URL: partnerAvatarUrl.trim(),
-            图片档案: 构建开局图片档案(partnerAvatarUrl, partnerPortraitUrl, 'opening_partner'),
-            背景名称: partnerBackground.名称,
-            背景描述: partnerBackground.描述,
-            背景效果: partnerBackground.效果,
-            天赋列表: partnerTalents,
-            关系: partnerRelation.trim(),
-            备注: partnerNote.trim()
-        };
-    };
-
-    const 构建有效开局配置 = (): OpeningConfig | undefined => {
-        if (!openingConfigEnabled && !partnerEnabled) return undefined;
-        const base = openingConfigEnabled ? openingConfig : 默认开局配置();
-        return 规范化开局配置({
-            ...base,
-            配置约束启用: openingConfigEnabled,
-            初始伙伴: 构建伙伴开局配置()
-        });
     };
 
     const toggleTalent = (t: 天赋结构) => {
@@ -1913,7 +1935,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <NewGameDiyTools
                                         worldConfig={worldConfig}
                                         charData={构建角色数据()}
-                                        openingConfig={openingConfigEnabled ? openingConfig : undefined}
+                                        openingConfig={当前有效开局配置}
                                         apiConfig={apiConfig}
                                         onChange={setWorldConfig}
                                     />
@@ -2690,7 +2712,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <p>开局伙伴: <span className="text-white">{partnerEnabled ? `${partnerName.trim() || '未填写姓名'} (${partnerGender.trim() || '未填写性别'}, ${partnerAge}岁)` : '关闭'}</span></p>
                                     {partnerEnabled && <p>伙伴关系: <span className="text-white">{partnerRelation.trim() || '未填写'}</span></p>}
                                     <p>开局配置: <span className="text-white">{openingConfigEnabled ? '已启用' : '未启用'}</span></p>
-                                    <p>题材模式: <span className="text-white">{openingConfigEnabled ? openingConfig.题材模式 : '未设置'}</span></p>
+                                    <p>题材模式: <span className="text-white">{openingConfig.题材模式}</span></p>
                                     <p>关系侧重: <span className="text-white">{openingConfigEnabled ? (openingConfig.关系侧重.join('、') || '无') : '未设置'}</span></p>
                                     <p>开局切入: <span className="text-white">{openingConfigEnabled ? openingConfig.开局切入偏好 : '未设置'}</span></p>
                                     <p>同人融合: <span className="text-white">{openingConfigEnabled ? (openingConfig.同人融合.enabled ? `${openingConfig.同人融合.作品名 || '未命名作品'} / ${openingConfig.同人融合.融合强度}` : '关闭') : '未设置'}</span></p>

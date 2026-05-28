@@ -39,6 +39,12 @@ import {
     规范化OpenAI图片模型名称
 } from './imageGenerationDiagnostics';
 
+const NOVELAI_TRIAL_RECAPTCHA_PATTERN = /recaptcha token is required for trial generation/i;
+
+const 构建NovelAI试用验证码错误提示 = (status: number): string => {
+    return `图片生成请求失败: ${status} - NovelAI 没有识别到可用的 Persistent API Token，当前请求被当作试用生图并要求 Recaptcha。请在文生图设置里重新填写以 pst- 开头的 Persistent API Token，保存后点击连接测试；如果仍失败，说明这枚 Token 可能已失效或账号订阅权限不可用。`;
+};
+
 export interface 图片生成结果 {
     图片URL?: string;
     本地路径?: string;
@@ -205,6 +211,12 @@ const uint8数组转DataUrl = (bytes: Uint8Array, mimeType: string): string => {
 };
 
 const PNG签名 = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+const JPEG签名 = new Uint8Array([0xff, 0xd8, 0xff]);
+const GIF87签名 = new Uint8Array([71, 73, 70, 56, 55, 97]);
+const GIF89签名 = new Uint8Array([71, 73, 70, 56, 57, 97]);
+const RIFF签名 = new Uint8Array([82, 73, 70, 70]);
+const WEBP签名 = new Uint8Array([87, 69, 66, 80]);
+const PNG_IEND块签名 = new Uint8Array([73, 69, 78, 68]);
 const UTF8解码器 = new TextDecoder('utf-8');
 const Latin1解码器 = new TextDecoder('iso-8859-1');
 
@@ -1476,6 +1488,94 @@ const 图片字节匹配文件名 = (bytes: Uint8Array, fileName: string): boole
     return bytes.length > 0;
 };
 
+const 字节序列匹配 = (bytes: Uint8Array, offset: number, signature: Uint8Array): boolean => {
+    if (offset < 0 || offset + signature.length > bytes.length) return false;
+    for (let i = 0; i < signature.length; i += 1) {
+        if (bytes[offset + i] !== signature[i]) return false;
+    }
+    return true;
+};
+
+const 查找字节序列 = (bytes: Uint8Array, signature: Uint8Array, startIndex = 0): number => {
+    const start = Math.max(0, startIndex);
+    for (let offset = start; offset <= bytes.length - signature.length; offset += 1) {
+        if (字节序列匹配(bytes, offset, signature)) return offset;
+    }
+    return -1;
+};
+
+const 读取Uint32BE = (bytes: Uint8Array, offset: number): number => {
+    if (offset < 0 || offset + 4 > bytes.length) return 0;
+    return ((bytes[offset] << 24) >>> 0)
+        + (bytes[offset + 1] << 16)
+        + (bytes[offset + 2] << 8)
+        + bytes[offset + 3];
+};
+
+const 提取PNG范围 = (bytes: Uint8Array, start: number): Uint8Array | null => {
+    if (!字节序列匹配(bytes, start, PNG签名)) return null;
+    let offset = start + PNG签名.length;
+    while (offset + 12 <= bytes.length) {
+        const length = 读取Uint32BE(bytes, offset);
+        const typeOffset = offset + 4;
+        const dataEnd = offset + 8 + length;
+        const chunkEnd = dataEnd + 4;
+        if (!Number.isFinite(length) || chunkEnd > bytes.length) return null;
+        if (字节序列匹配(bytes, typeOffset, PNG_IEND块签名)) {
+            return bytes.subarray(start, chunkEnd);
+        }
+        offset = chunkEnd;
+    }
+    return null;
+};
+
+const 提取JPEG范围 = (bytes: Uint8Array, start: number): Uint8Array | null => {
+    if (!字节序列匹配(bytes, start, JPEG签名)) return null;
+    for (let offset = start + 3; offset < bytes.length - 1; offset += 1) {
+        if (bytes[offset] === 0xff && bytes[offset + 1] === 0xd9) {
+            return bytes.subarray(start, offset + 2);
+        }
+    }
+    return null;
+};
+
+const 提取GIF范围 = (bytes: Uint8Array, start: number): Uint8Array | null => {
+    if (!字节序列匹配(bytes, start, GIF87签名) && !字节序列匹配(bytes, start, GIF89签名)) return null;
+    for (let offset = start + 6; offset < bytes.length; offset += 1) {
+        if (bytes[offset] === 0x3b) {
+            return bytes.subarray(start, offset + 1);
+        }
+    }
+    return null;
+};
+
+const 提取WEBP范围 = (bytes: Uint8Array, start: number): Uint8Array | null => {
+    if (!字节序列匹配(bytes, start, RIFF签名) || !字节序列匹配(bytes, start + 8, WEBP签名)) return null;
+    const riffSize = 读取ZipUint32LE(bytes, start + 4);
+    const end = start + 8 + riffSize;
+    if (riffSize <= 0 || end > bytes.length) return null;
+    return bytes.subarray(start, end);
+};
+
+const 从二进制中提取首张图片 = (bytes: Uint8Array, startIndex = 0): { fileName: string; imageBytes: Uint8Array } | null => {
+    const candidates = [
+        { fileName: 'image_0.png', offset: 查找字节序列(bytes, PNG签名, startIndex), extract: 提取PNG范围 },
+        { fileName: 'image_0.jpg', offset: 查找字节序列(bytes, JPEG签名, startIndex), extract: 提取JPEG范围 },
+        { fileName: 'image_0.gif', offset: 查找字节序列(bytes, GIF87签名, startIndex), extract: 提取GIF范围 },
+        { fileName: 'image_0.gif', offset: 查找字节序列(bytes, GIF89签名, startIndex), extract: 提取GIF范围 },
+        { fileName: 'image_0.webp', offset: 查找字节序列(bytes, RIFF签名, startIndex), extract: 提取WEBP范围 }
+    ]
+        .filter((candidate) => candidate.offset >= 0)
+        .sort((a, b) => a.offset - b.offset);
+    for (const candidate of candidates) {
+        const imageBytes = candidate.extract(bytes, candidate.offset);
+        if (imageBytes?.length && 图片字节匹配文件名(imageBytes, candidate.fileName)) {
+            return { fileName: candidate.fileName, imageBytes };
+        }
+    }
+    return null;
+};
+
 const 从Zip中央目录提取首张图片 = (bytes: Uint8Array): { fileName: string; imageBytes: Uint8Array } | null => {
     for (let offset = 0; offset <= bytes.length - 46; offset += 1) {
         if (读取ZipUint32LE(bytes, offset) !== 0x02014b50) continue;
@@ -1552,6 +1652,14 @@ const 从Zip本地文件头提取首张图片 = (bytes: Uint8Array): { fileName:
                 if (图片字节匹配文件名(imageBytes, fileName)) {
                     return { fileName, imageBytes };
                 }
+            } else if (compressionMethod === 0) {
+                const imageEntry = 从二进制中提取首张图片(bytes, dataStart);
+                if (imageEntry) {
+                    return {
+                        fileName: fileName || imageEntry.fileName,
+                        imageBytes: imageEntry.imageBytes
+                    };
+                }
             }
         } catch {
             // Keep scanning in case this PK signature appeared inside compressed data.
@@ -1562,7 +1670,7 @@ const 从Zip本地文件头提取首张图片 = (bytes: Uint8Array): { fileName:
 };
 
 const 从Zip提取首张图片 = (bytes: Uint8Array): { fileName: string; imageBytes: Uint8Array } | null => (
-    从Zip中央目录提取首张图片(bytes) || 从Zip本地文件头提取首张图片(bytes)
+    从Zip中央目录提取首张图片(bytes) || 从Zip本地文件头提取首张图片(bytes) || 从二进制中提取首张图片(bytes)
 );
 
 export const __测试__从Zip中央目录提取首张图片 = 从Zip中央目录提取首张图片;
@@ -4196,6 +4304,9 @@ export const generateImageByPrompt = async (
 
     if (!response.ok) {
         const detail = await 读取失败详情文本(response, Number.POSITIVE_INFINITY);
+        if (backendType === 'novelai' && NOVELAI_TRIAL_RECAPTCHA_PATTERN.test(detail)) {
+            throw new 协议请求错误(构建NovelAI试用验证码错误提示(response.status), response.status, detail);
+        }
         if (backendType === 'novelai' && response.status >= 500 && !detail) {
             throw new 协议请求错误('图片生成请求失败: 500 - NovelAI 代理握手失败，请重启 Vite 开发服务器后重试。', response.status, detail);
         }
