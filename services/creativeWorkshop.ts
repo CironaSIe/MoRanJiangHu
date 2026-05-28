@@ -1,0 +1,151 @@
+import { 创意工坊模块列表, type 创意工坊模块条目, type 创意工坊模块类型 } from '../data/creativeWorkshopModules';
+import { RELEASE_INFO } from '../data/releaseInfo';
+import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
+
+export const 已启用创意工坊模块存储键 = 'creative_workshop_enabled_modules';
+export const 本地创意工坊模块存储键 = 'creative_workshop_local_modules';
+
+export interface 发布创意工坊模块参数 {
+    module: 创意工坊模块条目;
+    contributor?: string;
+}
+
+const API_PATH = '/api/workshop/modules';
+const HTML_FALLBACK_ERROR = '创意工坊接口没有命中服务端函数，当前请求被网站首页兜底处理。请刷新页面或更新到最新版本后重试。';
+
+const 看起来像HTML页面 = (text: string): boolean => /^\s*<!doctype\s+html\b/i.test(text) || /^\s*<html\b/i.test(text);
+
+export const 获取创意工坊API基础地址 = (): string => {
+    if (typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol) && !isNativeCapacitorEnvironment()) {
+        return window.location.origin.replace(/\/+$/, '');
+    }
+    const configured = typeof RELEASE_INFO.websiteUrl === 'string' ? RELEASE_INFO.websiteUrl.trim() : '';
+    return (configured || 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '');
+};
+
+const 构建创意工坊API地址 = (search = ''): string => {
+    const base = 获取创意工坊API基础地址();
+    const suffix = search ? `${API_PATH}${search.startsWith('?') ? search : `?${search}`}` : API_PATH;
+    return `${base}${suffix}`;
+};
+
+const 读取响应JSON = async (response: Response): Promise<any> => {
+    const text = await response.text();
+    if (看起来像HTML页面(text)) return { ok: false, error: HTML_FALLBACK_ERROR };
+    try {
+        return text ? JSON.parse(text) : {};
+    } catch {
+        const preview = text.trim().slice(0, 200);
+        return { ok: false, error: preview ? `创意工坊接口返回了非 JSON 内容：${preview}` : '创意工坊接口返回了空响应' };
+    }
+};
+
+const 规范化下载地址 = (value: unknown, id: string): string => {
+    const fallback = 构建创意工坊API地址(`action=download&id=${encodeURIComponent(id || '')}`);
+    const raw = typeof value === 'string' ? value.trim() : '';
+    if (!raw) return fallback;
+    try {
+        return new URL(raw, 获取创意工坊API基础地址()).toString();
+    } catch {
+        return fallback;
+    }
+};
+
+const 规范化模块 = (raw: any, source: 创意工坊模块条目['source']): 创意工坊模块条目 | null => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const id = typeof raw.id === 'string' ? raw.id.trim() : '';
+    const type = raw.type as 创意工坊模块类型;
+    if (!id || !['topic', 'world_rules', 'opening', 'ability'].includes(type)) return null;
+    const title = typeof raw.title === 'string' ? raw.title.trim() : '';
+    if (!title) return null;
+    return {
+        id,
+        type,
+        title,
+        subtitle: typeof raw.subtitle === 'string' ? raw.subtitle.trim() : '',
+        description: typeof raw.description === 'string' ? raw.description.trim() : '',
+        tags: Array.isArray(raw.tags) ? raw.tags.map((item: unknown) => String(item || '').trim()).filter(Boolean).slice(0, 12) : [],
+        payload: raw.payload && typeof raw.payload === 'object' && !Array.isArray(raw.payload) ? raw.payload : {},
+        injectionPreview: Array.isArray(raw.injectionPreview) ? raw.injectionPreview.map((item: unknown) => String(item || '').trim()).filter(Boolean).slice(0, 12) : [],
+        preset: raw.preset && typeof raw.preset === 'object' ? raw.preset : undefined,
+        source,
+        contributor: typeof raw.contributor === 'string' ? raw.contributor.trim() : '',
+        createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
+        updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : '',
+        downloadUrl: 规范化下载地址(raw.downloadUrl, id),
+        sha256: typeof raw.sha256 === 'string' ? raw.sha256 : ''
+    };
+};
+
+export const 读取本地创意工坊模块 = (): 创意工坊模块条目[] => {
+    if (typeof localStorage === 'undefined') return [];
+    try {
+        const parsed = JSON.parse(localStorage.getItem(本地创意工坊模块存储键) || '[]');
+        if (!Array.isArray(parsed)) return [];
+        return parsed.map((item) => 规范化模块(item, 'local')).filter(Boolean) as 创意工坊模块条目[];
+    } catch {
+        return [];
+    }
+};
+
+export const 保存本地创意工坊模块 = (modules: 创意工坊模块条目[]): void => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(本地创意工坊模块存储键, JSON.stringify(modules));
+};
+
+export const 导入本地创意工坊模块 = (module: 创意工坊模块条目): 创意工坊模块条目 => {
+    const normalized = 规范化模块({ ...module, id: module.id || `local-${Date.now()}` }, 'local');
+    if (!normalized) throw new Error('模块 JSON 格式不完整');
+    const next = [normalized, ...读取本地创意工坊模块().filter((item) => item.id !== normalized.id)].slice(0, 100);
+    保存本地创意工坊模块(next);
+    return normalized;
+};
+
+export const 列出创意工坊模块 = async (): Promise<创意工坊模块条目[]> => {
+    let cloudEntries: 创意工坊模块条目[] = [];
+    try {
+        const response = await fetch(构建创意工坊API地址(), { method: 'GET', headers: { Accept: 'application/json' } });
+        const payload = await 读取响应JSON(response);
+        if (response.ok && payload?.ok !== false && Array.isArray(payload?.entries)) {
+            cloudEntries = payload.entries.map((entry: unknown) => 规范化模块(entry, 'cloud')).filter(Boolean) as 创意工坊模块条目[];
+        }
+    } catch {
+        cloudEntries = [];
+    }
+    const seen = new Set<string>();
+    return [...创意工坊模块列表, ...读取本地创意工坊模块(), ...cloudEntries]
+        .map((entry) => ({ ...entry, source: entry.source || 'builtin' }))
+        .filter((entry) => {
+            const key = `${entry.source}:${entry.id}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+};
+
+export const 发布创意工坊模块 = async (params: 发布创意工坊模块参数): Promise<创意工坊模块条目> => {
+    const response = await fetch(构建创意工坊API地址(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ module: params.module, contributor: params.contributor || params.module.contributor || '' })
+    });
+    const payload = await 读取响应JSON(response);
+    if (!response.ok || payload?.ok === false) {
+        throw new Error(payload?.error || `发布创意工坊失败：${response.status}`);
+    }
+    const entry = 规范化模块(payload.entry, 'cloud');
+    if (!entry) throw new Error('发布创意工坊失败：服务端没有返回模块信息');
+    return entry;
+};
+
+export const 下载创意工坊模块 = async (entry: 创意工坊模块条目): Promise<创意工坊模块条目> => {
+    if (entry.source !== 'cloud') return entry;
+    const response = await fetch(entry.downloadUrl || 构建创意工坊API地址(`action=download&id=${encodeURIComponent(entry.id)}`));
+    const payload = await 读取响应JSON(response);
+    if (!response.ok || payload?.ok === false) {
+        throw new Error(payload?.error || `下载创意工坊模块失败：${response.status}`);
+    }
+    const module = 规范化模块(payload.module || payload.entry || payload, 'cloud');
+    if (!module) throw new Error('下载创意工坊模块失败：模块内容不完整');
+    return module;
+};
