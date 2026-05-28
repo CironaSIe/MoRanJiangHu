@@ -1,6 +1,7 @@
 import { 创意工坊模块列表, type 创意工坊模块条目, type 创意工坊模块类型 } from '../data/creativeWorkshopModules';
 import { RELEASE_INFO } from '../data/releaseInfo';
 import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
+import { 规范化ComfyUI工作流JSON } from './ai/comfyWorkflowTools';
 
 export const 已启用创意工坊模块存储键 = 'creative_workshop_enabled_modules';
 export const 本地创意工坊模块存储键 = 'creative_workshop_local_modules';
@@ -55,7 +56,7 @@ const 规范化模块 = (raw: any, source: 创意工坊模块条目['source']): 
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
     const id = typeof raw.id === 'string' ? raw.id.trim() : '';
     const type = raw.type as 创意工坊模块类型;
-    if (!id || !['topic', 'world_rules', 'opening', 'ability'].includes(type)) return null;
+    if (!id || !['topic', 'world_rules', 'opening', 'ability', 'comfy_workflow'].includes(type)) return null;
     const title = typeof raw.title === 'string' ? raw.title.trim() : '';
     if (!title) return null;
     return {
@@ -148,4 +149,52 @@ export const 下载创意工坊模块 = async (entry: 创意工坊模块条目):
     const module = 规范化模块(payload.module || payload.entry || payload, 'cloud');
     if (!module) throw new Error('下载创意工坊模块失败：模块内容不完整');
     return module;
+};
+
+export const 提取ComfyUI工作流模块JSON = (entry: 创意工坊模块条目): string => {
+    if (entry.type !== 'comfy_workflow') return '';
+    const payload = entry.payload || {};
+    const raw = (payload as any).workflowJson || (payload as any).ComfyUI工作流JSON || (payload as any).workflow || (payload as any).apiWorkflow;
+    if (typeof raw === 'string') return 规范化ComfyUI工作流JSON(JSON.parse(raw));
+    return 规范化ComfyUI工作流JSON(raw);
+};
+
+export const 构建ComfyUI工作流创意工坊模块 = (params: {
+    title: string;
+    workflowJson: string;
+    scope?: 'main' | 'scene' | 'nsfw' | 'all';
+    style?: string;
+    contributor?: string;
+}): 创意工坊模块条目 => {
+    const normalized = 规范化ComfyUI工作流JSON(JSON.parse(params.workflowJson));
+    const parsed = JSON.parse(normalized);
+    const nodeCount = Object.keys(parsed || {}).length;
+    const scope = params.scope || 'main';
+    const title = (params.title || '').trim() || `ComfyUI 工作流 ${new Date().toLocaleString()}`;
+    const style = (params.style || '').trim() || '通用写实';
+    return {
+        id: `local-comfy-${Date.now()}`,
+        type: 'comfy_workflow',
+        title,
+        subtitle: `${style} · ${scope === 'nsfw' ? 'NSFW 生图工作流' : scope === 'scene' ? '场景生图工作流' : scope === 'all' ? '通用生图工作流' : '普通生图工作流'}`,
+        description: `玩家贡献的 ${style} ComfyUI API workflow，可在文生图设置中通过下拉框切换使用。`,
+        tags: ['ComfyUI', 'Workflow', style, scope],
+        payload: {
+            workflowJson: normalized,
+            scope,
+            style,
+            nodeCount
+        },
+        injectionPreview: [
+            `适用范围：${scope}`,
+            `风格：${style}`,
+            `节点数量：${nodeCount}`,
+            '注入方式：选择后写入对应 ComfyUI Workflow JSON，并关闭“使用默认工作流”。',
+            '占位符：会继续支持 __PROMPT__、__NEGATIVE_PROMPT__、__WIDTH__、__HEIGHT__。'
+        ],
+        source: 'local',
+        contributor: params.contributor || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
 };

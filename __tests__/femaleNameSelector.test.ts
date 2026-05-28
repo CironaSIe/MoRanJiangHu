@@ -57,6 +57,7 @@ describe('female name selector', () => {
     it('detects common female template names for regeneration', () => {
         expect(提取命中女性姓名黑名单('【苏婉儿】她与林婉儿同时出现')).toEqual(['苏婉儿', '林婉儿']);
         expect(提取命中女性姓名黑名单({ value: { 姓名: '苏婉清' } })).toEqual(['苏婉清']);
+        expect(提取命中女性姓名黑名单('沈清婉提着剑走入山门')).toEqual(['沈清婉']);
     });
 
     it('only treats blacklist hits as invalid when they are new structured NPC names', () => {

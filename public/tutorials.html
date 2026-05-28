@@ -53,8 +53,8 @@
     p, li { color: var(--muted); font-size: 16px; line-height: 1.85; }
     a { color: #9ff4e9; text-decoration: underline; text-underline-offset: 3px; }
     code { border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.34); border-radius: 7px; padding: 2px 6px; color: #fff0bd; font-family: Consolas, monospace; }
-    pre { margin: 12px 0 0; padding: 14px; overflow-x: auto; border-radius: 14px; border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.24); color: #f8f0df; line-height: 1.65; }
-    pre code { padding: 0; background: transparent; border: 0; }
+    pre { margin: 12px 0 0; padding: 14px; overflow-x: hidden; white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 14px; border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.24); color: #f8f0df; line-height: 1.65; }
+    pre code { padding: 0; background: transparent; border: 0; white-space: inherit; overflow-wrap: inherit; }
     .lead { margin: 0; max-width: 820px; font-size: 17px; }
     .tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
     .tab {
@@ -70,15 +70,17 @@
     .tab[aria-selected="true"] { background: rgba(128, 228, 216, 0.14); border-color: rgba(128, 228, 216, 0.34); color: #dffdf9; }
     .panel { display: none; margin-top: 18px; }
     .panel.active { display: block; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-    .card { border-radius: 22px; padding: 22px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; }
+    #cnbmodel .grid { grid-template-columns: 1fr; }
+    .card { border-radius: 22px; padding: 22px; min-width: 0; }
+    .grid > * { min-width: 0; }
     .wide { grid-column: 1 / -1; }
     .steps { margin: 0; padding-left: 1.3em; }
     .note { border: 1px solid rgba(128, 228, 216, 0.25); background: rgba(128, 228, 216, 0.08); border-radius: 18px; padding: 16px 18px; color: #dffdf9; }
     .warn { border-color: rgba(255, 180, 168, 0.3); background: rgba(127, 29, 29, 0.28); color: #ffe5df; }
     .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
     .btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); background: rgba(215,170,86,.12); color: #ffe2a0; padding: 10px 16px; border-radius: 12px; text-decoration: none; font-weight: 800; }
-    .guide-image { display: block; width: 100%; margin-top: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.2); }
+    .guide-image { display: block; width: 100%; max-width: 100%; margin-top: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.2); }
     footer { margin-top: 28px; color: rgba(248,238,220,.52); font-size: 13px; text-align: center; line-height: 1.8; }
     @media (max-width: 760px) {
       .wrap { width: min(100vw - 20px, 1080px); padding-top: 20px; }
@@ -104,6 +106,7 @@
         <button class="tab" type="button" data-tab="gptimage2" aria-selected="false">GPT Image2生图</button>
         <button class="tab" type="button" data-tab="presetfeedback" aria-selected="false">预设图反馈</button>
         <button class="tab" type="button" data-tab="comfy" aria-selected="false">CNB ComfyUI</button>
+        <button class="tab" type="button" data-tab="cnbmodel" aria-selected="false">CNB 模型贡献</button>
       </div>
     </section>
 
@@ -418,7 +421,7 @@
         <article class="card">
           <h2>用户名称位置</h2>
           <p>打开 CNB 个人主页，看左侧头像下方的中文用户名称。这个名称就是游戏里的“CNB 用户名称”。</p>
-          <img class="guide-image" src="/assets/tutorial/cnb-user-name-guide.png" alt="CNB 用户名称位置示意图" />
+          <img class="guide-image" src="assets/tutorial/cnb-user-name-guide.png" alt="CNB 用户名称位置示意图" />
         </article>
         <article class="card wide">
           <h2>常见启动问题</h2>
@@ -427,6 +430,128 @@
           <pre><code>cd /workspace && \
 npm install && \
 npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-header '*'"</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section id="cnbmodel" class="panel">
+      <div class="grid">
+        <article class="card wide">
+          <h2>CNB 模型贡献教程</h2>
+          <p>如果你发现某个 ComfyUI 工作流需要额外模型，可以把模型名称和下载地址贡献到 CNB 仓库。最简单的做法是：Fork 我的 CNB 仓库，按格式添加“模型名称 + 下载地址”，然后发起合并请求。</p>
+          <p class="note">适合贡献的内容包括 checkpoint、LoRA、VAE、ControlNet、放大模型、文本编码器、clip、unet、角色或风格专用模型等。不要上传无授权、禁止分发或来源不明的模型。</p>
+        </article>
+
+        <article class="card">
+          <h2>最简单贡献方式</h2>
+          <ol class="steps">
+            <li>打开本地或 CNB 上的 ComfyUI 仓库，找到仓库根目录里的 <code>自定义下载链接.yaml</code>。</li>
+            <li>这个文件一行就是一个模型，格式固定为 <code>模型保存路径: 下载链接</code>。</li>
+            <li>新增模型记录时，把左边写成模型要保存到 ComfyUI 的路径，右边写成可直接下载的链接。</li>
+            <li>下载地址可以是 HuggingFace、ModelScope、网盘直链、CNB 仓库文件链接，或你自己维护的公开模型链接。</li>
+            <li>Fork 我的 CNB 仓库，把修改提交到自己的 Fork；提交弹窗里可以直接提交到 <code>main</code>，也可以选择创建新分支。</li>
+            <li>提交成功后回到仓库首页，点击顶部提示里的 <code>创建合并请求</code>。</li>
+            <li>在合并请求说明里写清楚这个模型对应哪个工作流、放到哪个目录、用途是什么。</li>
+          </ol>
+          <p class="note">贡献清单时请尽量保留原始文件名，例如 <code>xxx.safetensors</code>。模型名称和下载后文件名最好一致，这样自动下载脚本更容易定位。</p>
+        </article>
+
+        <article class="card wide">
+          <h2>提交修改并创建合并请求</h2>
+          <ol class="steps">
+            <li>改完 <code>自定义下载链接.yaml</code> 后，点击页面底部或编辑器里的橙色 <code>提交</code>。</li>
+            <li>在提交弹窗里填写简短描述，例如 <code>编辑文件 自定义下载链接.yaml</code>；一般可以选择 <code>直接提交到 main 分支</code>。</li>
+            <li>提交完成后回到仓库代码页，顶部会提示“比上游分支多 1 次提交，可创建合并请求”。点击 <code>创建合并请求</code>。</li>
+            <li>合并请求标题建议写清楚模型或工作流名称，说明里补充模型来源、下载链接、保存目录和授权情况。</li>
+          </ol>
+          <img class="guide-image" src="assets/tutorial/cnb-model-commit-dialog.svg" alt="CNB 提交自定义下载链接.yaml 的弹窗示意图" />
+          <img class="guide-image" src="assets/tutorial/cnb-model-create-pr.svg" alt="CNB 仓库首页创建合并请求入口示意图" />
+        </article>
+
+        <article class="card">
+          <h2>推荐记录格式</h2>
+          <p><code>自定义下载链接.yaml</code> 不是 JSON，而是最简单的 YAML 映射：左边是模型路径，右边是下载链接。一个模型一行。</p>
+          <pre><code># 一个模型一行，如果模型路径中有空格，需要加英文双引号。自动按sha256或url去重（例如下面的例子，只会添加第一个文件）
+# 文件路径可以是绝对路径，也可以是相对于comfyui或comfyui/models的路径，会自动裁剪处理
+# 模型路径: 下载链接
+
+# /workspace/comfyui/models/checkpoints/majicmixRealistic_v7.safetensors: https://cnb.cool/ai-models/digiplay/majicMIX_realistic_v7/-/lfs/7c819b6d13663ed720c2254f4fe18373107dfef2448d337913c8fc545640881e
+# models/checkpoints/majicmixRealistic_v7.safetensors: https://cnb.cool/ai-models/digiplay/majicMIX_realistic_v7/-/lfs/7c819b6d13663ed720c2254f4fe18373107dfef2448d337913c8fc545640881e
+# "checkpoints/带有 空格 的路径/majicmixRealistic_v7.safetensors": https://cnb.cool/ai-models/digiplay/majicMIX_realistic_v7/-/lfs/7c819b6d13663ed720c2254f4fe18373107dfef2448d337913c8fc545640881e
+
+models/diffusion_models/mPMix_NSFW_V9_fp8.safetensors: https://cnb.cool/bacon159-2026/model/-/lfs/96b875e4e3904555688998a07c45166322f98bb566f870b7d7e7f86cb5aecf70
+models/text_encoders/qwen_3_4b.safetensors: https://cnb.cool/ai-models/Comfy-Org/z_image_turbo/-/lfs/6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a?name=qwen_3_4b.safetensors
+models/vae/ae.safetensors: https://cnb.cool/ai-models/Comfy-Org/z_image_turbo/-/lfs/afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38?name=ae.safetensors
+models/loras/Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors: https://cnb.cool/ai-models/lightx2v/Qwen-Image-2512-Lightning/-/lfs/ad12117461cb41e2ea637fec8df6392ce8e8550c47fbe2b829ed3deb98262066?name=Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors</code></pre>
+          <p>左边常用目录包括 <code>models/checkpoints</code>、<code>models/loras</code>、<code>models/vae</code>、<code>models/controlnet</code>、<code>models/upscale_models</code>、<code>models/text_encoders</code>、<code>models/clip</code>、<code>models/unet</code>、<code>models/diffusion_models</code>。如果你只写 <code>checkpoints/xxx.safetensors</code>，脚本也会自动裁剪并归到模型目录里。</p>
+          <p class="note">PR 时直接修改 <code>自定义下载链接.yaml</code>。如果是给某个工作流补模型，在合并请求说明里写清楚“哪个工作流需要这个模型、模型应该落到哪个路径、链接来源是什么”。</p>
+        </article>
+
+        <article class="card wide">
+          <h2>提高下载速度：用 CNB 仓库存模型</h2>
+          <p>如果模型从外网下载慢，可以自己创建一个公开 CNB 仓库来存模型文件。ComfyUI 运行在 CNB 时，用 CNB 仓库里的文件链接下载，通常会走 CNB 内网，速度会快很多。</p>
+          <p class="note warn">CNB 单个用户仓库对象存储上限约 100G。要传的模型总量超过 100G 时，可以分多个 CNB 账号放；一个手机号对应一个微信账号可以注册一个 CNB 账号，可以同一个实名。</p>
+        </article>
+
+        <article class="card">
+          <h2>创建公开 model 仓库</h2>
+          <ol class="steps">
+            <li>进入 CNB 个人主页，点击 <code>代码仓库</code>。</li>
+            <li>点击右侧橙色 <code>创建仓库</code>。</li>
+            <li>仓库名称填写 <code>model</code>。名字可以随便取，叫 model 只是方便理解。</li>
+            <li>公开性选择 <code>公开</code>，确保其他人和 CNB 工作区可以访问下载链接。</li>
+            <li>点击 <code>创建</code>。</li>
+            <li>进入新仓库后点击 <code>云原生开发</code>，再点击 <code>WebIDE</code> 进入 VSCode 界面。</li>
+          </ol>
+        </article>
+
+        <article class="card">
+          <h2>上传模型文件</h2>
+          <ol class="steps">
+            <li>在 WebIDE / VSCode 左侧文件区创建合适目录，例如 <code>checkpoints</code>、<code>loras</code>、<code>vae</code>。</li>
+            <li>把本地模型文件直接拖到左侧文件区。</li>
+            <li>大模型一定要用 Git LFS 提交，否则普通 Git 很容易失败或仓库异常变大。</li>
+            <li>建议一个仓库只放一批相关模型，后续维护和复制链接更清楚。</li>
+          </ol>
+        </article>
+
+        <article class="card wide">
+          <h2>必须使用 Git LFS 提交</h2>
+          <p>需要安装并启用 Git LFS。先在 WebIDE 终端里执行 <code>git lfs install</code>；如果提示 <code>git: 'lfs' is not a git command</code> 或 <code>git-lfs: command not found</code>，说明当前环境还没装 Git LFS，需要先按 CNB / 镜像环境安装 <code>git-lfs</code> 后再继续。</p>
+          <p>安装可用后执行下面命令。文件名和目录按你的实际模型路径改。</p>
+          <pre><code>git lfs install
+git lfs track "*.safetensors"
+git lfs track "*.ckpt"
+git lfs track "*.bin"
+git lfs track "*.pth"
+git add .gitattributes
+git add checkpoints/你的模型.safetensors
+git commit -m "add model"
+git push origin main</code></pre>
+          <p class="note warn">这一步一定需要 Git LFS。不要只用普通 <code>git add</code> 硬传大模型。第一次 push 如果要求登录或授权，按 CNB 页面提示完成即可。</p>
+        </article>
+
+        <article class="card">
+          <h2>找到模型下载链接</h2>
+          <ol class="steps">
+            <li>push 成功后，回到 CNB 仓库的 <code>代码</code> 页面。</li>
+            <li>点进刚上传的模型文件，例如 <code>checkpoints/你的模型.safetensors</code>。</li>
+            <li>在文件页面复制下载链接或原始文件链接。</li>
+            <li>把这个链接填回 ComfyUI 仓库的自定义下载链接配置里。</li>
+            <li>用这个链接下载时，如果 ComfyUI 也跑在 CNB，通常会走 CNB 内网，速度会明显更快。</li>
+          </ol>
+        </article>
+
+        <article class="card">
+          <h2>PR 时请写清楚</h2>
+          <ol class="steps">
+            <li>模型名称和文件名。</li>
+            <li>下载地址。</li>
+            <li>模型应该放到哪个目录，例如 <code>models/checkpoints</code> 或 <code>models/loras</code>。</li>
+            <li>对应哪个 ComfyUI 工作流，是否必需。</li>
+            <li>来源说明和授权情况。</li>
+          </ol>
+          <p class="note">如果模型很大，建议先自己用 CNB 工作区测试一次能否下载成功，再发 PR。</p>
         </article>
       </div>
     </section>
@@ -443,7 +568,7 @@ npm run cnb:start -- "python main.py --listen 0.0.0.0 --port 8188 --enable-cors-
     };
     tabs.forEach((tab) => tab.addEventListener('click', () => activate(tab.dataset.tab)));
     const initial = (location.hash || '#worldbook').slice(1);
-    activate(['worldbook', 'aimode', 'sync', 'gptimage2', 'presetfeedback', 'comfy'].includes(initial) ? initial : 'worldbook');
+    activate(['worldbook', 'aimode', 'sync', 'gptimage2', 'presetfeedback', 'comfy', 'cnbmodel'].includes(initial) ? initial : 'worldbook');
   </script>
 </body>
 </html>

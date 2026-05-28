@@ -6,13 +6,13 @@ const CORS_HEADERS = {
 };
 
 const WORKSHOP_PREFIX = 'moranjianghu/workshop/modules';
-const MAX_MODULE_BYTES = 512 * 1024;
+const MAX_MODULE_BYTES = 2 * 1024 * 1024;
 const CHINA_TIMEZONE_OFFSET_MS = 8 * 60 * 60 * 1000;
 const encoder = new TextEncoder();
 
 type WorkshopModuleEntry = {
     id: string;
-    type: 'topic' | 'world_rules' | 'opening' | 'ability';
+    type: 'topic' | 'world_rules' | 'opening' | 'ability' | 'comfy_workflow';
     title: string;
     subtitle: string;
     description: string;
@@ -61,7 +61,7 @@ const sanitizeTags = (value: unknown): string[] => (
 );
 
 const normalizeType = (value: unknown): WorkshopModuleEntry['type'] | '' => (
-    value === 'topic' || value === 'world_rules' || value === 'opening' || value === 'ability' ? value : ''
+    value === 'topic' || value === 'world_rules' || value === 'opening' || value === 'ability' || value === 'comfy_workflow' ? value : ''
 );
 
 const buildId = (type: string): string => {
@@ -121,7 +121,7 @@ const normalizeModule = async (raw: any, contributorInput = ''): Promise<Worksho
         updatedAt: createdAt
     };
     const json = JSON.stringify(entry);
-    if (encoder.encode(json).byteLength > MAX_MODULE_BYTES) throw new Error('模块 JSON 过大，请控制在 512KB 内');
+    if (encoder.encode(json).byteLength > MAX_MODULE_BYTES) throw new Error('模块 JSON 过大，请控制在 2MB 内');
     const keys = buildKeys({}, id);
     return { ...entry, sha256: await sha256HexText(json), r2Key: keys.moduleKey };
 };

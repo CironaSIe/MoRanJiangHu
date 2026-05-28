@@ -30,6 +30,15 @@ import {
 } from '../../../services/ai/imageBackendRegistry';
 import { 规范化ComfyUI工作流JSON } from '../../../services/ai/comfyWorkflowTools';
 import {
+    下载创意工坊模块,
+    发布创意工坊模块,
+    导入本地创意工坊模块,
+    列出创意工坊模块,
+    提取ComfyUI工作流模块JSON,
+    构建ComfyUI工作流创意工坊模块
+} from '../../../services/creativeWorkshop';
+import type { 创意工坊模块条目 } from '../../../data/creativeWorkshopModules';
+import {
     构建ComfyUI精确连接失败提示,
     构建ComfyUI运行时代理端点,
     构建OpenAI图片生成端点,
@@ -210,6 +219,29 @@ const NovelAI噪点表选项: Array<{ value: 功能模型占位配置结构['Nov
     { value: 'polyexponential', label: 'Polyexponential' }
 ];
 
+const ComfyUI工作流风格选项 = [
+    '通用写实',
+    '电影剧照',
+    '国风写实',
+    '古风插画',
+    '武侠江湖',
+    '仙侠玄幻',
+    '现代都市',
+    '末日废土',
+    '生化感染',
+    '赛博朋克',
+    '二次元',
+    '厚涂插画',
+    '漫画线稿',
+    '像素图标',
+    '3D 渲染',
+    '物品静物',
+    '场景氛围',
+    '角色立绘',
+    'NSFW 成人向',
+    '自定义'
+];
+
 const 获取后端设置标签 = (backend: 功能模型占位配置结构['文生图后端类型']): string => {
     switch (backend) {
         case 'sd_webui':
@@ -338,6 +370,9 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const [discoveryError, setDiscoveryError] = useState('');
     const [testingImageConnection, setTestingImageConnection] = useState(false);
     const [testingNsfwConnection, setTestingNsfwConnection] = useState(false);
+    const [comfyWorkflowModules, setComfyWorkflowModules] = useState<创意工坊模块条目[]>([]);
+    const [comfyWorkflowLoading, setComfyWorkflowLoading] = useState(false);
+    const [comfyWorkflowBusy, setComfyWorkflowBusy] = useState('');
     const artistImportRef = React.useRef<HTMLInputElement | null>(null);
     const transformerImportRef = React.useRef<HTMLInputElement | null>(null);
     const comfyWorkflowImportRef = React.useRef<HTMLInputElement | null>(null);
@@ -355,11 +390,31 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         setTransformerPresetScope('nai');
         setProfileScope('npc');
         setDiscoveredBackends([]);
+        setComfyWorkflowModules([]);
+        setComfyWorkflowBusy('');
         setBackendConnectionStats(readImageBackendConnectionStats());
         setDiscoveryError('');
         setMainConnectionMessage('');
         setNsfwConnectionMessage('');
     }, [settings]);
+
+    const refreshComfyWorkflowModules = async () => {
+        setComfyWorkflowLoading(true);
+        try {
+            const modules = await 列出创意工坊模块();
+            setComfyWorkflowModules(modules.filter((entry) => entry.type === 'comfy_workflow'));
+        } catch (error: any) {
+            setMessage(`读取 ComfyUI 工作流工坊失败：${error?.message || '未知错误'}`);
+            setShowSuccess(false);
+        } finally {
+            setComfyWorkflowLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activePage !== 'backend' && activePage !== 'nsfw') return;
+        void refreshComfyWorkflowModules();
+    }, [activePage]);
 
     const activeConfig = useMemo<单接口配置结构 | null>(() => {
         if (!form.configs.length) return null;
@@ -910,6 +965,140 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             setMessage(error?.message || 'ComfyUI workflow 导入失败，请确认上传的是 API workflow JSON');
             setShowSuccess(false);
         }
+    };
+
+    const applyComfyWorkflowModule = async (target: 'main' | 'scene' | 'nsfw', moduleId: string) => {
+        if (!moduleId) return;
+        const entry = comfyWorkflowModules.find((item) => item.id === moduleId);
+        if (!entry) return;
+        setComfyWorkflowBusy(`${target}:${moduleId}`);
+        try {
+            const module = await 下载创意工坊模块(entry);
+            const workflowJson = 提取ComfyUI工作流模块JSON(module);
+            setForm((prev) => ({
+                ...prev,
+                功能模型占位: {
+                    ...prev.功能模型占位,
+                    ...(target === 'scene'
+                        ? { 使用默认场景ComfyUI工作流: false, 场景ComfyUI工作流JSON: workflowJson }
+                        : target === 'nsfw'
+                            ? { 使用默认NSFWComfyUI工作流: false, NSFWComfyUI工作流JSON: workflowJson }
+                            : { 使用默认ComfyUI工作流: false, ComfyUI工作流JSON: workflowJson })
+                } as 功能模型占位配置结构
+            }));
+            setMessage(`已切换到工坊工作流「${module.title}」。保存设置后生效。`);
+            setShowSuccess(true);
+        } catch (error: any) {
+            setMessage(`应用工坊工作流失败：${error?.message || '未知错误'}`);
+            setShowSuccess(false);
+        } finally {
+            setComfyWorkflowBusy('');
+        }
+    };
+
+    const publishCurrentComfyWorkflow = async (target: 'main' | 'scene' | 'nsfw') => {
+        const workflowJson = target === 'scene'
+            ? 场景ComfyUI工作流显示值
+            : target === 'nsfw'
+                ? NSFWComfyUI工作流显示值
+                : 普通ComfyUI工作流显示值;
+        const defaultUsing = target === 'scene'
+            ? 场景使用默认ComfyUI工作流
+            : target === 'nsfw'
+                ? NSFW使用默认ComfyUI工作流
+                : 普通使用默认ComfyUI工作流;
+        if (defaultUsing) {
+            setMessage('请先关闭“使用默认工作流”，再把当前自定义工作流贡献到创意工坊。');
+            setShowSuccess(false);
+            return;
+        }
+        const title = (window.prompt('给这个 ComfyUI 工作流起个名字（必填）', target === 'scene' ? '场景 ComfyUI 工作流' : target === 'nsfw' ? 'NSFW ComfyUI 工作流' : '普通 ComfyUI 工作流') || '').trim();
+        if (!title) {
+            setMessage('贡献 ComfyUI 工作流前必须填写名称，方便其他玩家在下拉框中识别。');
+            setShowSuccess(false);
+            return;
+        }
+        const styleInput = (window.prompt([
+            '选择工作流风格：请输入序号或直接写自定义风格。',
+            ...ComfyUI工作流风格选项.map((style, index) => `${index + 1}. ${style}`)
+        ].join('\n'), target === 'nsfw' ? '19' : target === 'scene' ? '17' : '1') || '').trim();
+        if (!styleInput) return;
+        const styleIndex = Number(styleInput);
+        const pickedStyle = Number.isInteger(styleIndex) && styleIndex >= 1 && styleIndex <= ComfyUI工作流风格选项.length
+            ? ComfyUI工作流风格选项[styleIndex - 1]
+            : styleInput;
+        const style = pickedStyle === '自定义'
+            ? (window.prompt('填写自定义风格名称', '') || '').trim()
+            : pickedStyle;
+        if (!style) {
+            setMessage('贡献 ComfyUI 工作流前必须选择或填写风格。');
+            setShowSuccess(false);
+            return;
+        }
+        const contributor = window.prompt('贡献者署名（可留空）', '') || '';
+        setComfyWorkflowBusy(`publish:${target}`);
+        try {
+            const module = 构建ComfyUI工作流创意工坊模块({ title, workflowJson, scope: target, style, contributor });
+            const local = 导入本地创意工坊模块(module);
+            let statusText = `已保存为本地工坊工作流「${local.title}」。`;
+            try {
+                const published = await 发布创意工坊模块({ module: local, contributor });
+                statusText = `已发布到创意工坊：${published.title}。其他玩家刷新后可在下拉框选择。`;
+            } catch (publishError: any) {
+                statusText += ` 发布到社区失败：${publishError?.message || '未知错误'}；本地仍可使用。`;
+            }
+            setMessage(statusText);
+            setShowSuccess(true);
+            await refreshComfyWorkflowModules();
+        } catch (error: any) {
+            setMessage(`保存工坊工作流失败：${error?.message || '请确认当前 workflow JSON 格式正确'}`);
+            setShowSuccess(false);
+        } finally {
+            setComfyWorkflowBusy('');
+        }
+    };
+
+    const renderComfyWorkflowWorkshopControls = (target: 'main' | 'scene' | 'nsfw', disabled = false) => {
+        const scoped = comfyWorkflowModules.filter((entry) => {
+            const scope = String((entry.payload as any)?.scope || 'all');
+            return scope === 'all' || scope === target || (target === 'main' && scope === 'npc');
+        });
+        return (
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold tracking-[0.12em] text-gray-300">工坊工作流</label>
+                        <InlineSelect
+                            value=""
+                            options={scoped.map((entry) => {
+                                const style = String((entry.payload as any)?.style || '').trim();
+                                return { value: entry.id, label: `${entry.title}${style ? ` · ${style}` : ''}${entry.contributor ? ` · ${entry.contributor}` : ''}` };
+                            })}
+                            onChange={(value) => void applyComfyWorkflowModule(target, value)}
+                            placeholder={comfyWorkflowLoading ? '正在读取工坊工作流...' : scoped.length ? '选择其他玩家上传的工作流' : '暂无可选工坊工作流'}
+                            buttonClassName="bg-black/50 border-gray-600 py-2.5"
+                            disabled={disabled || comfyWorkflowLoading || scoped.length <= 0 || Boolean(comfyWorkflowBusy)}
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => void refreshComfyWorkflowModules()}
+                        disabled={comfyWorkflowLoading}
+                        className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25 disabled:opacity-50"
+                    >
+                        {comfyWorkflowLoading ? '刷新中...' : '刷新工坊'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => void publishCurrentComfyWorkflow(target)}
+                        disabled={disabled || Boolean(comfyWorkflowBusy)}
+                        className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15 disabled:opacity-50"
+                    >
+                        {comfyWorkflowBusy === `publish:${target}` ? '发布中...' : '贡献当前工作流'}
+                    </button>
+                </div>
+            </div>
+        );
     };
 
     const 主文生图后端可直接套用到NSFW = 当前后端 === 'novelai' || 当前后端 === 'sd_webui' || 当前后端 === 'comfyui';
@@ -1600,9 +1789,10 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 className="hidden"
                             />
                         </div>
-                    </div>
-                    <textarea
-                        value={NSFWComfyUI工作流显示值}
+                        </div>
+                        {renderComfyWorkflowWorkshopControls('nsfw', !form.功能模型占位.NSFW生图独立接口启用)}
+                        <textarea
+                            value={NSFWComfyUI工作流显示值}
                         onChange={(e) => updatePlaceholder('NSFWComfyUI工作流JSON', e.target.value)}
                         rows={10}
                         placeholder={'默认会使用私密部位专用的旧版 mix ComfyUI workflow。\n可用占位符：__PROMPT__、__NEGATIVE_PROMPT__、__WIDTH__、__HEIGHT__'}
@@ -2016,6 +2206,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 />
                             </div>
                         </div>
+                        {renderComfyWorkflowWorkshopControls('main')}
                         <textarea
                             value={普通ComfyUI工作流显示值}
                             onChange={(e) => updatePlaceholder('ComfyUI工作流JSON', e.target.value)}
@@ -2586,6 +2777,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                                 />
                                             </div>
                                         </div>
+                                        {renderComfyWorkflowWorkshopControls('scene')}
                                         <textarea
                                             value={场景ComfyUI工作流显示值}
                                             onChange={(e) => updatePlaceholder('场景ComfyUI工作流JSON', e.target.value)}

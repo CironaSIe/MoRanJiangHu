@@ -470,6 +470,111 @@ const 提取变量命令NPC姓名改写 = (commands: TavernCommand[], currentSoc
     return issues;
 };
 
+const 死亡状态字段正则 = /(?:状态|生死状态|生命状态|关系状态|DEBUFF|死亡|死因|死亡原因|死亡描述)$/u;
+const 死亡判定词正则 = /死亡|已故|身亡|阵亡|战死|气绝|断气|毙命|亡故|丧命|殒命|死去|死了/u;
+const 非死亡否定词正则 = /昏死|濒死|重伤|险些身亡|差点死|未死|没有死亡|并未死亡|尚未死亡|假死|失踪|下落不明|状态未知/u;
+const 死因字段正则 = /(?:死因|死亡原因|死亡描述|死亡记录|死因说明|生死状态说明)$/u;
+const 死因线索正则 = /死因|死亡原因|因.{1,24}(?:死亡|身亡|丧命|毙命|气绝|断气)|(?:被|遭|受).{1,24}(?:杀|杀死|击杀|斩杀|处决|咬伤|感染|毒|刺穿|重创)|中毒|感染|失血|窒息|休克|伤势过重|致命|头部|胸口|胸部|腹部|心脉|经脉尽断|爆炸|坠落|溺水|烧死|冻死/u;
+
+const 命令值文本 = (value: unknown): string => {
+    if (value == null) return '';
+    if (typeof value === 'string') return value;
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
+};
+
+const 提取响应文本 = (response: GameResponse | undefined): string => {
+    if (!response) return '';
+    const logs = Array.isArray((response as any).logs)
+        ? (response as any).logs.map((log: any) => [log?.sender, log?.text].filter(Boolean).join('：')).join('\n')
+        : '';
+    return [
+        logs,
+        typeof (response as any).content === 'string' ? (response as any).content : '',
+        typeof (response as any).text === 'string' ? (response as any).text : '',
+        typeof (response as any).rawText === 'string' ? (response as any).rawText : ''
+    ].filter(Boolean).join('\n');
+};
+
+const 响应明确确认NPC死亡 = (responseText: string, npcName: string): boolean => {
+    if (!responseText || !npcName) return false;
+    const compact = responseText.replace(/\s+/g, '');
+    if (非死亡否定词正则.test(compact)) return false;
+    const escapedName = npcName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`${escapedName}.{0,60}(?:死亡|已故|身亡|阵亡|战死|气绝|断气|毙命|亡故|丧命|殒命|死去|死了)|(?:死亡|已故|身亡|阵亡|战死|气绝|断气|毙命|亡故|丧命|殒命|死去|死了).{0,60}${escapedName}`, 'u').test(compact);
+};
+
+const 响应明确给出NPC死因 = (responseText: string, npcName: string): boolean => {
+    if (!responseText || !npcName) return false;
+    const compact = responseText.replace(/\s+/g, '');
+    const nameIndex = compact.indexOf(npcName);
+    const scope = nameIndex >= 0
+        ? compact.slice(Math.max(0, nameIndex - 80), nameIndex + npcName.length + 120)
+        : compact;
+    return 死因线索正则.test(scope);
+};
+
+export const 检测NPC死亡判定风险命令 = (
+    commands: TavernCommand[],
+    currentSocial: any[],
+    response?: GameResponse
+): string[] => {
+    if (!Array.isArray(commands) || !Array.isArray(currentSocial)) return [];
+    const responseText = 提取响应文本(response);
+    const byIndex = new Map<number, {
+        death: boolean;
+        hpZero: boolean;
+        commandCause: boolean;
+    }>();
+
+    const ensure = (index: number) => {
+        const existing = byIndex.get(index);
+        if (existing) return existing;
+        const next = { death: false, hpZero: false, commandCause: false };
+        byIndex.set(index, next);
+        return next;
+    };
+
+    commands.forEach((cmd: any) => {
+        const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '').replace(/^gameState\./, '');
+        const match = normalizedKey.match(/^社交\[(\d+)\](?:\.(.+))?$/u);
+        if (!match) return;
+        const index = Number(match[1]);
+        if (!Number.isInteger(index) || index < 0) return;
+        const field = match[2] || '';
+        const valueText = 命令值文本(cmd?.value);
+        const state = ensure(index);
+        const wholeObject = !field;
+
+        if ((field === '当前血量' && Number(cmd?.value) === 0) || (wholeObject && Number(cmd?.value?.当前血量) === 0)) {
+            state.hpZero = true;
+        }
+        if ((死亡状态字段正则.test(field) || wholeObject) && 死亡判定词正则.test(valueText) && !非死亡否定词正则.test(valueText)) {
+            state.death = true;
+        }
+        if ((死因字段正则.test(field) || wholeObject) && 死因线索正则.test(valueText) && !非死亡否定词正则.test(valueText)) {
+            state.commandCause = true;
+        }
+    });
+
+    const issues: string[] = [];
+    byIndex.forEach((state, index) => {
+        if (!state.death) return;
+        const name = 规范化姓名键(currentSocial[index]?.姓名) || `社交[${index}]`;
+        const missing: string[] = [];
+        if (!state.hpZero) missing.push('当前血量归零');
+        if (!响应明确确认NPC死亡(responseText, name)) missing.push('正文明确死亡');
+        if (!state.commandCause && !响应明确给出NPC死因(responseText, name)) missing.push('明确死因');
+        if (missing.length > 0) {
+            issues.push(`${name} 缺少${missing.join('、')}`);
+        }
+    });
+    return issues;
+};
+
 const 包含非法伪索引 = (key: string): boolean => /(?:\[(?:-?\d+|last|tail|尾项|最后一项)\])/i.test((key || '').trim())
     && (
         /\[-\d+\]/.test((key || '').trim())
@@ -647,6 +752,14 @@ export const 执行变量模型校准工作流 = async (
     const deletionIssues = 检测社交删除风险命令(dedupedCommands, params.baseState.社交);
     if (deletionIssues.length > 0) {
         const message = `变量生成试图删除或替换既有 NPC：${deletionIssues.join('；')}。未经玩家手动确认，变量生成只能更新 NPC 字段，不能删除角色或整组覆盖社交列表。`;
+        const error = new Error(message);
+        (error as any).parseDetail = message;
+        throw error;
+    }
+
+    const deathIssues = 检测NPC死亡判定风险命令(dedupedCommands, params.baseState.社交, params.parsedResponse);
+    if (deathIssues.length > 0) {
+        const message = `变量生成试图把 NPC 判定为死亡/已故，但证据不足：${deathIssues.join('；')}。死亡判定必须同时满足：当前血量归零、正文明确死亡、明确死因；否则只能写重伤、濒死、失踪或状态未知。请重新生成变量命令。`;
         const error = new Error(message);
         (error as any).parseDetail = message;
         throw error;

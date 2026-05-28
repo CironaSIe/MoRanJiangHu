@@ -1,7 +1,8 @@
 import type { 开局预设方案结构 } from './newGamePresets';
 import { 题材模式配置表, 题材模式顺序 } from '../utils/topicModeProfiles';
+import { 默认ComfyUI工作流JSON, 默认NSFWComfyUI工作流JSON } from './defaultComfyWorkflow';
 
-export type 创意工坊模块类型 = 'topic' | 'world_rules' | 'opening' | 'ability';
+export type 创意工坊模块类型 = 'topic' | 'world_rules' | 'opening' | 'ability' | 'comfy_workflow';
 export type 创意工坊模块来源 = 'builtin' | 'cloud' | 'local';
 
 export interface 创意工坊模块条目 {
@@ -112,7 +113,8 @@ export const 创意工坊模块分区: Array<{ id: 创意工坊模块类型; tit
     { id: 'topic', title: '题材模板', description: '套用题材口径、货币、地图空间和基础提示词。' },
     { id: 'world_rules', title: '世界规则', description: '注入感染、文明密度、资源、市场和基础设施规则。' },
     { id: 'opening', title: '开局配置', description: '注入第一幕切入、关系锚点、组织和同行者约束。' },
-    { id: 'ability', title: '能力体系', description: '注入境界、觉醒、堕化或非超凡成长边界。' }
+    { id: 'ability', title: '能力体系', description: '注入境界、觉醒、堕化或非超凡成长边界。' },
+    { id: 'comfy_workflow', title: 'ComfyUI 工作流', description: '分享可用于普通、场景或 NSFW 生图的 API workflow JSON。' }
 ];
 
 const 题材默认角色: Record<keyof typeof 题材模式配置表, { 姓名: string; 背景: string; 天赋: string[]; 开局补充: string }> = {
@@ -149,28 +151,51 @@ const 构建题材模块 = (mode: keyof typeof 题材模式配置表): 创意工
 
 const 构建世界规则模块 = (mode: keyof typeof 题材模式配置表): 创意工坊模块条目 => {
     const profile = 题材模式配置表[mode];
+    const isZombie = mode === '末日丧尸';
+    const extraPayload = isZombie ? {
+        infectionRules: '感染以咬伤、血液和污染体液传播；风险受伤口、防护装备、暴露时间、噪音、血腥味和光源影响。',
+        quarantineRules: '营地、医院、军方残部和隔离区会设置检疫、观察期、物资消毒和感染者处置规则。',
+        threatRules: '噪音、血腥味、强光、拥挤路线和错误移动会提高尸群聚集风险；防护装备会降低但不能免疫风险。'
+    } : {};
     return {
         id: `world-rules-${profile.value}`,
         type: 'world_rules',
-        title: `${profile.shortLabel}世界规则`,
+        title: isZombie ? '末日丧尸世界规则' : `${profile.shortLabel}世界规则`,
         subtitle: `${profile.auctionName}、${profile.marketVerb}`,
-        description: `为${profile.label}补齐世界边界、交易折价、地图组织和资源规则。`,
-        tags: [profile.shortLabel, '世界规则', '货币'],
+        description: isZombie
+            ? '补齐末日丧尸的感染路径、防护隔离、噪音仇恨、营地信用、补给折价和地图组织规则。'
+            : `为${profile.label}补齐世界边界、交易折价、地图组织和资源规则。`,
+        tags: isZombie ? [profile.shortLabel, '感染机制', '营地信用'] : [profile.shortLabel, '世界规则', '货币'],
         payload: {
             worldExtraRequirement: profile.worldDefaults.worldExtraRequirement,
             currencyExchangePrompt: profile.currencyExchangePrompt,
             marketVerb: profile.marketVerb,
-            mapPrompt: profile.mapPrompt
+            mapPrompt: profile.mapPrompt,
+            ...extraPayload
         },
         injectionPreview: [
             `worldConfig.worldExtraRequirement：${profile.worldDefaults.worldExtraRequirement}`,
             `货币折算提示：${profile.currencyExchangePrompt}`,
             `地图生成提示：${profile.mapPrompt}`,
-            `市场行为词：${profile.marketVerb}`
+            `市场行为词：${profile.marketVerb}`,
+            ...(isZombie ? [
+                '感染机制：咬伤、血液和污染体液传播，防护装备降低但不能免疫风险。',
+                '仇恨规则：噪音、血腥味、强光和拥挤路线会提高尸群聚集风险。',
+                '营地规则：检疫、隔离、物资消毒、通行权和营地信用会影响交易。'
+            ] : [])
         ],
         source: 'builtin',
         contributor: '官方',
-        preset: 构建题材预设(`workshop_world_rules_${profile.value}`, `工坊·${profile.shortLabel}世界规则`, `${profile.label}世界规则包。`, mode, 构建角色(题材默认角色[mode].姓名, 题材默认角色[mode].背景, 题材默认角色[mode].天赋), profile.worldDefaults.worldExtraRequirement)
+        preset: 构建题材预设(
+            `workshop_world_rules_${profile.value}`,
+            `工坊·${profile.shortLabel}世界规则`,
+            `${profile.label}世界规则包。`,
+            mode,
+            构建角色(题材默认角色[mode].姓名, 题材默认角色[mode].背景, 题材默认角色[mode].天赋),
+            isZombie
+                ? `${profile.worldDefaults.worldExtraRequirement} 感染规则：咬伤/血液/污染体液传播；噪音、血腥味、光源和防护装备影响风险；营地会执行检疫、隔离、物资消毒和通行权规则。`
+                : profile.worldDefaults.worldExtraRequirement
+        )
     };
 };
 
@@ -238,80 +263,50 @@ const 构建能力模块 = (mode: keyof typeof 题材模式配置表): 创意工
     };
 };
 
+const 构建ComfyUI工作流模块 = (
+    id: string,
+    title: string,
+    style: string,
+    scope: 'main' | 'scene' | 'nsfw' | 'all',
+    workflowJson: string,
+    description: string
+): 创意工坊模块条目 => {
+    let nodeCount = 0;
+    try {
+        nodeCount = Object.keys(JSON.parse(workflowJson)).length;
+    } catch {
+        nodeCount = 0;
+    }
+    return {
+        id,
+        type: 'comfy_workflow',
+        title,
+        subtitle: `${style} · ${scope === 'nsfw' ? 'NSFW 生图' : scope === 'scene' ? '场景生图' : '普通生图'}`,
+        description,
+        tags: ['ComfyUI', 'Workflow', style, scope],
+        payload: {
+            workflowJson,
+            scope,
+            style,
+            nodeCount
+        },
+        injectionPreview: [
+            `适用范围：${scope}`,
+            `风格：${style}`,
+            `节点数量：${nodeCount}`,
+            '注入方式：选择后写入对应 ComfyUI Workflow JSON，并关闭“使用默认工作流”。'
+        ],
+        source: 'builtin',
+        contributor: '官方'
+    };
+};
+
 export const 创意工坊模块列表: 创意工坊模块条目[] = [
     ...题材模式顺序.map(构建题材模块),
     ...题材模式顺序.map(构建世界规则模块),
     ...题材模式顺序.map(构建开局模块),
     ...题材模式顺序.map(构建能力模块),
-    {
-        id: 'world-rules-zombie-classic',
-        type: 'world_rules',
-        title: '经典生化感染规则',
-        subtitle: '咬伤/血液传播，噪音与气味拉仇恨',
-        description: '补齐感染路径、防护、隔离、补给折价和营地信用规则，适合末日丧尸题材。',
-        tags: ['感染机制', '噪音', '营地信用'],
-        payload: {
-            worldExtraRequirement: 题材模式配置表.末日丧尸.worldDefaults.worldExtraRequirement,
-            currencyExchangePrompt: 题材模式配置表.末日丧尸.currencyExchangePrompt,
-            marketVerb: 题材模式配置表.末日丧尸.marketVerb
-        },
-        injectionPreview: [
-            `worldConfig.worldExtraRequirement：${题材模式配置表.末日丧尸.worldDefaults.worldExtraRequirement}`,
-            `货币折算提示：${题材模式配置表.末日丧尸.currencyExchangePrompt}`,
-            `市场行为词：${题材模式配置表.末日丧尸.marketVerb}`
-        ],
-        source: 'builtin',
-        contributor: '官方',
-        preset: 构建题材预设('workshop_world_rules_zombie_classic', '工坊·经典生化感染规则', '带感染机制、噪音风险和物资交易口径的末日规则包。', '末日丧尸', 构建角色('韩野', '医生/护士', ['静心观微', '耐苦心性']), '感染规则：咬伤/血液传播；噪音、血腥味、光源和防护装备影响风险；交易以食水、药品、弹药、燃油、情报和通行权折价。')
-    },
-    {
-        id: 'opening-low-pressure-sect',
-        type: 'opening',
-        title: '低阶宗门开局',
-        subtitle: '师门牵引、同门承接、资源压力',
-        description: '适合仙侠/灵气复苏，第一幕从低阶宗门和资源压力进入，避免开局过强。',
-        tags: ['开局配置', '师门', '同门'],
-        payload: {
-            初始关系模板: '师门牵引',
-            关系侧重: ['师门', '友情'],
-            开局切入偏好: '门派起手',
-            开局生成门派: true,
-            开局生成同门: true
-        },
-        injectionPreview: [
-            'openingConfig.初始关系模板：师门牵引',
-            'openingConfig.关系侧重：师门、友情',
-            'openingConfig.开局生成门派/同门：true'
-        ],
-        source: 'builtin',
-        contributor: '官方',
-        preset: 构建题材预设('workshop_opening_low_pressure_sect', '工坊·低阶宗门开局', '师门牵引、同门承接、资源压力清晰的低阶仙侠开局。', '仙侠', 构建角色('顾青衡', '宗门旧徒', ['稳扎稳打', '药灵体']), '开局必须落在低阶宗门或坊市边缘，资源紧张但目标明确。')
-    },
-    {
-        id: 'ability-xianxia-manual-realm',
-        type: 'ability',
-        title: '标准仙侠境界体系',
-        subtitle: '练气到化神，保留手动覆盖优先级',
-        description: '提供可导入的手动境界提示词，玩家也可以继续覆盖为自定义体系。',
-        tags: ['境界', '仙侠', '手动提示词'],
-        payload: {
-            manualRealmPrompt: '境界体系：练气、筑基、金丹、元婴、化神。每个大境界分初期/中期/后期/圆满；突破需要资源、心境、功法契合与风险。不要让跨大境界胜利变成常态，法宝、丹药和秘境收益必须有代价。'
-        },
-        injectionPreview: [
-            'worldConfig.manualRealmPrompt：练气、筑基、金丹、元婴、化神。',
-            '覆盖方式：安装为开局预设后写入世界配置的手动境界提示词。',
-            '边界要求：突破需要资源、心境、功法契合与风险。'
-        ],
-        source: 'builtin',
-        contributor: '官方',
-        preset: {
-            ...构建题材预设('workshop_ability_xianxia_manual_realm', '工坊·标准仙侠境界体系', '带手动境界提示词的仙侠能力体系包。', '仙侠', 构建角色('陆云川', '散修遗孤', ['灵觉敏锐', '耐苦心性'])),
-            worldConfig: {
-                ...题材模式配置表.仙侠.worldDefaults,
-                difficulty: 'normal',
-                manualWorldPrompt: 题材模式配置表.仙侠.promptLines.join('\n'),
-                manualRealmPrompt: '境界体系：练气、筑基、金丹、元婴、化神。每个大境界分初期/中期/后期/圆满；突破需要资源、心境、功法契合与风险。不要让跨大境界胜利变成常态，法宝、丹药和秘境收益必须有代价。'
-            }
-        }
-    }
+    构建ComfyUI工作流模块('comfy-workflow-default-main', '默认普通 ComfyUI 工作流', '通用写实', 'main', 默认ComfyUI工作流JSON, '官方默认普通生图 workflow，适合 NPC、物品和常规画面。'),
+    构建ComfyUI工作流模块('comfy-workflow-default-scene', '默认场景 ComfyUI 工作流', '场景氛围', 'scene', 默认ComfyUI工作流JSON, '官方默认场景生图 workflow，适合环境、地点和横竖屏场景图。'),
+    构建ComfyUI工作流模块('comfy-workflow-default-nsfw', '默认 NSFW ComfyUI 工作流', 'NSFW 成人向', 'nsfw', 默认NSFWComfyUI工作流JSON, '官方默认 NSFW 生图 workflow，适合私密部位与成人向独立接口。')
 ];
