@@ -1581,12 +1581,12 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
         }
         const ok = requestConfirm
             ? await requestConfirm({
-                title: '发布到创意工坊',
-                message: '将上传当前小说分解分享 ZIP 到官方创意工坊对象存储，供其他玩家下载导入。分享包会包含分解结果、任务和快照，并保留可选原文数据。是否继续？',
+                title: '发布小说分解模块',
+                message: '将上传当前小说分解分享 ZIP 到官方创意工坊的“小说分解模块”分区，供其他玩家下载导入。分享包会包含分解结果、任务和快照，并保留可选原文数据。是否继续？',
                 confirmText: '发布',
                 cancelText: '取消'
             })
-            : window.confirm('将上传当前小说分解分享 ZIP 到官方创意工坊对象存储，供其他玩家下载导入。是否继续？');
+            : window.confirm('将上传当前小说分解分享 ZIP 到官方创意工坊的“小说分解模块”分区，供其他玩家下载导入。是否继续？');
         if (!ok) return;
         setWorkshopPublishing(true);
         try {
@@ -2089,7 +2089,7 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                     disabled={workshopPublishing}
                                     className="px-5 py-2.5 rounded-lg text-xs font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-all disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    {workshopPublishing ? '发布中...' : '发布到创意工坊'}
+                                    {workshopPublishing ? '发布中...' : '发布为小说分解模块'}
                                 </button>
                                 <div className="flex-1"></div>
                                 <button
@@ -2110,9 +2110,9 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                 <div className="rounded-xl border border-white/5 bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-md p-6 shadow-xl space-y-5">
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-white/5 pb-5">
                         <div>
-                            <h4 className="text-lg font-serif font-semibold text-wuxia-gold tracking-wide">创意工坊</h4>
+                            <h4 className="text-lg font-serif font-semibold text-wuxia-gold tracking-wide">创意工坊 · 小说分解模块</h4>
                             <div className="mt-1.5 text-xs text-gray-400/80 leading-relaxed max-w-2xl">
-                                玩家分享的小说分解模块会上传到官方对象存储，其他玩家可以直接下载并导入。这里的模块格式和“分享 ZIP”一致，后续可直接固化为内置模块。
+                                创意工坊是玩家内容总入口；当前分区只收录小说分解分享 ZIP。题材模板、世界规则、开局配置、职业身份、能力体系等贡献会作为后续独立分区接入，下载后可分别注入到新建角色和世界生成流程。
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -2130,7 +2130,7 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                 disabled={!selectedDataset || workshopPublishing}
                                 className="px-4 py-2 rounded-lg text-xs font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-all disabled:opacity-50"
                             >
-                                {workshopPublishing ? '发布中...' : '发布当前数据集'}
+                                {workshopPublishing ? '发布中...' : '发布当前小说分解'}
                             </button>
                         </div>
                     </div>
@@ -2139,7 +2139,7 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                         <div className="rounded-xl border border-white/5 bg-black/25 p-8 text-center text-sm text-gray-400">正在读取创意工坊模块...</div>
                     ) : workshopEntries.length <= 0 ? (
                         <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-8 text-center">
-                            <div className="text-sm font-medium text-gray-300">创意工坊暂时还没有公开模块</div>
+                            <div className="text-sm font-medium text-gray-300">当前分区暂时还没有公开小说分解模块</div>
                             <div className="mt-1 text-xs text-gray-500">可以先发布当前数据集；发布后会同时写入 R2 和 hi168 对象存储。</div>
                         </div>
                     ) : (

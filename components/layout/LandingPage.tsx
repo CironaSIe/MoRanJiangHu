@@ -6,6 +6,7 @@ import { checkForAppUpdate, downloadLatestApkPackage, openExternalUrl } from '..
 import { fetchOnlinePresencePublicStats, type OnlinePresencePublicStats } from '../../services/onlinePresence';
 import { isNativeCapacitorEnvironment, setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
 import { ThemePreset } from '../../types';
+import CreativeWorkshopModal from '../features/Workshop/CreativeWorkshopModal';
 
 const hasFullscreenElement = () => {
     const doc = document as Document & {
@@ -402,6 +403,7 @@ const LandingPage: React.FC<Props> = ({
     const [presenceHistory, setPresenceHistory] = React.useState<在线人数小时点[]>([]);
     const [supportDetailsOpen, setSupportDetailsOpen] = React.useState(false);
     const [localPlayOpen, setLocalPlayOpen] = React.useState(false);
+    const [workshopOpen, setWorkshopOpen] = React.useState(false);
     const [backgroundIndex, setBackgroundIndex] = React.useState(0);
 
     React.useEffect(() => {
@@ -589,7 +591,7 @@ const LandingPage: React.FC<Props> = ({
                             云端游玩
                         </GameButton>
 
-                        <GameButton onClick={onNovelDecomposition} variant="secondary" className="border-opacity-50 py-4 text-lg opacity-95 shadow-lg hover:opacity-100">
+                        <GameButton onClick={() => setWorkshopOpen(true)} variant="secondary" className="border-opacity-50 py-4 text-lg opacity-95 shadow-lg hover:opacity-100">
                             创意工坊
                         </GameButton>
 
@@ -770,6 +772,12 @@ const LandingPage: React.FC<Props> = ({
                     </div>
                 </div>
             )}
+
+            <CreativeWorkshopModal
+                open={workshopOpen}
+                onClose={() => setWorkshopOpen(false)}
+                onNovelDecomposition={onNovelDecomposition}
+            />
         </div>
     );
 };

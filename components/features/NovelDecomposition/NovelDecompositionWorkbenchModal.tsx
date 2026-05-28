@@ -22,7 +22,7 @@ const NovelDecompositionWorkbenchModal: React.FC<Props> = ({ open, settings, onS
                     <div className="shrink-0 flex items-center justify-between gap-4 border-b border-wuxia-gold/10 bg-black/40 px-5 py-4">
                         <div>
                             <h2 className="text-lg md:text-xl font-serif font-bold text-wuxia-gold tracking-[0.18em]">小说分解工作台</h2>
-                            <div className="mt-1 text-[11px] text-gray-400">导入、拆章、任务管理、进度续跑、注入校对与分享导入导出统一在这里完成。</div>
+                            <div className="mt-1 text-[11px] text-gray-400">这是创意工坊里的“小说分解模块”编辑区；其他题材模板、世界规则、开局配置等投稿会拆成独立模块。</div>
                         </div>
                         <button
                             type="button"

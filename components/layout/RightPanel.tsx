@@ -117,7 +117,7 @@ const RightPanel: React.FC<Props> = ({
         { label: '记忆', action: onOpenMemory, color: 'primary' as const, changeKeys: ['记忆系统'] },
         ...(onOpenNovelExport ? [{ label: '导出小说', action: onOpenNovelExport, color: 'secondary' as const }] : []),
         ...(onOpenImageManager ? [{ label: '图册', action: onOpenImageManager, color: 'secondary' as const }] : []),
-        ...(onOpenNovelDecomposition ? [{ label: '小说分解', action: onOpenNovelDecomposition, color: 'secondary' as const }] : []),
+        ...(onOpenNovelDecomposition ? [{ label: '分解工坊', action: onOpenNovelDecomposition, color: 'secondary' as const }] : []),
     ];
 
     const systemItems = [
