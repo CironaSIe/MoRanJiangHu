@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import GameButton from '../../ui/GameButton';
 import { 接口设置结构, OpeningConfig, WorldGenConfig, 小说拆分数据集结构, 角色数据结构, 天赋结构, 背景结构, 游戏难度 } from '../../../types';
-import { 预设天赋, 预设背景 } from '../../../data/presets';
+import { 预设天赋, 预设背景, 获取题材预设天赋, 获取题材预设背景 } from '../../../data/presets';
 import type { 开局预设方案结构 } from '../../../data/newGamePresets';
 import type { 创意工坊模块条目, 创意工坊模块类型 } from '../../../data/creativeWorkshopModules';
 import type { 题材模式类型 } from '../../../models/system';
@@ -12,10 +12,11 @@ import * as dbService from '../../../services/dbService';
 import { 读取小说拆分数据集列表 } from '../../../services/novelDecompositionStore';
 import { 合并去重开局预设方案, 标准化开局预设方案, 生成自定义开局预设ID, 自定义开局预设存储键 } from '../../../utils/customNewGamePresets';
 import {
-    关系侧重选项,
+    获取题材关系侧重选项,
+    获取题材开局切入偏好选项,
+    获取题材开局配置文案,
     同人来源类型选项,
     同人融合强度选项,
-    开局切入偏好选项,
     题材模式选项,
     属性最大值,
     属性最小值,
@@ -295,13 +296,17 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         });
         return Array.from(map.values());
     };
+    const 当前题材预设背景 = useMemo(() => 获取题材预设背景(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前题材预设天赋 = useMemo(() => 获取题材预设天赋(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前题材预设背景名称集合 = useMemo(() => new Set(当前题材预设背景.map(item => item.名称)), [当前题材预设背景]);
+    const 当前题材预设天赋名称集合 = useMemo(() => new Set(当前题材预设天赋.map(item => item.名称)), [当前题材预设天赋]);
     const 全部背景选项 = useMemo(
-        () => [...预设背景, ...自定义背景列表.filter(item => !预设背景.some(p => p.名称 === item.名称))],
-        [自定义背景列表]
+        () => [...当前题材预设背景, ...自定义背景列表.filter(item => !当前题材预设背景.some(p => p.名称 === item.名称))],
+        [当前题材预设背景, 自定义背景列表]
     );
     const 全部天赋选项 = useMemo(
-        () => [...预设天赋, ...自定义天赋列表.filter(item => !预设天赋.some(p => p.名称 === item.名称))],
-        [自定义天赋列表]
+        () => [...当前题材预设天赋, ...自定义天赋列表.filter(item => !当前题材预设天赋.some(p => p.名称 === item.名称))],
+        [当前题材预设天赋, 自定义天赋列表]
     );
     const 当前抽卡出身选项 = useMemo(
         () => 根据名称映射抽卡(出身抽卡名称列表, 全部背景选项),
@@ -317,6 +322,12 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     useEffect(() => {
         set天赋抽卡名称列表(prev => 补全天赋抽卡名称列表(prev, 全部天赋选项, 天赋抽卡数量));
     }, [全部天赋选项]);
+    useEffect(() => {
+        setSelectedBackground(prev => 全部背景选项.some(item => item.名称 === prev.名称) ? prev : 全部背景选项[0] || 预设背景[0]);
+        setPartnerBackground(prev => 全部背景选项.some(item => item.名称 === prev.名称) ? prev : 全部背景选项[0] || 预设背景[0]);
+        setSelectedTalents(prev => prev.filter(item => 全部天赋选项.some(option => option.名称 === item.名称)));
+        setPartnerTalents(prev => prev.filter(item => 全部天赋选项.some(option => option.名称 === item.名称)));
+    }, [全部背景选项, 全部天赋选项]);
     useEffect(() => {
         set出身已重Roll次数(0);
         set出身抽卡轮次(1);
@@ -337,7 +348,23 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             alert(`当前难度“${当前难度设定.label}”的天赋重 roll 次数已用完`);
             return;
         }
-        set天赋抽卡名称列表(抽取天赋卡牌(全部天赋选项, 天赋抽卡数量).map(item => item.名称));
+        set天赋抽卡名称列表(prev => {
+            const targetCount = Math.max(0, Math.min(天赋抽卡数量, 全部天赋选项.length));
+            const 可用天赋名称集合 = new Set(全部天赋选项.map(item => item.名称));
+            const 已选天赋名称 = selectedTalents
+                .map(item => item.名称)
+                .filter((名称, index, list) => 可用天赋名称集合.has(名称) && list.indexOf(名称) === index);
+            const 固定名称 = [
+                ...prev.filter(名称 => 已选天赋名称.includes(名称)),
+                ...已选天赋名称.filter(名称 => !prev.includes(名称))
+            ].slice(0, targetCount);
+            const 固定名称集合 = new Set(固定名称);
+            const 补充名称 = 抽取天赋卡牌(
+                全部天赋选项.filter(item => !固定名称集合.has(item.名称)),
+                targetCount - 固定名称.length
+            ).map(item => item.名称);
+            return [...固定名称, ...补充名称];
+        });
         set天赋抽卡轮次(prev => prev + 1);
         set天赋已重Roll次数(prev => prev + 1);
     };
@@ -360,12 +387,12 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         setShowCustomPresetEditor(false);
     };
     const 根据名称查找背景 = (名称: string): 背景结构 => {
-        const hit = [...预设背景, ...自定义背景列表].find(item => item.名称 === 名称);
+        const hit = [...全部背景选项, ...预设背景, ...自定义背景列表].find(item => item.名称 === 名称);
         return hit || 预设背景[0];
     };
     const 根据名称查找天赋列表 = (名称列表: string[]): 天赋结构[] => (
         名称列表
-            .map((名称) => [...预设天赋, ...自定义天赋列表].find(item => item.名称 === 名称))
+            .map((名称) => [...全部天赋选项, ...预设天赋, ...自定义天赋列表].find(item => item.名称 === 名称))
             .filter((item): item is 天赋结构 => Boolean(item))
             .slice(0, 3)
     );
@@ -744,12 +771,22 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     ]);
     const 当前主剧情接口配置 = useMemo(() => apiConfig ? 获取主剧情接口配置(apiConfig) : null, [apiConfig]);
     const aiFrameworkAvailable = 接口配置是否可用(当前主剧情接口配置);
+    const 当前开局配置文案 = useMemo(() => 获取题材开局配置文案(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前关系侧重选项 = useMemo(() => 获取题材关系侧重选项(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前开局切入偏好选项 = useMemo(() => 获取题材开局切入偏好选项(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前伙伴关系占位 = 当前题材配置.group === 'apocalypse'
+        ? '例如：同路幸存者、搜救搭档、营地队友、旧识'
+        : 当前题材配置.group === 'modern'
+            ? '例如：青梅竹马、同事、邻居、项目搭档、好友'
+            : 当前题材配置.group === 'urban_xianxia'
+                ? '例如：青梅竹马、同道、调查搭档、机构协作者'
+            : 当前题材配置.group === 'xianxia'
+                ? '例如：青梅竹马、同门道友、护道人、好友'
+                : '例如：青梅竹马、同门师妹、护卫、好友';
     const 更新题材模式 = (题材模式: OpeningConfig['题材模式']) => {
         setOpeningConfig((prev) => ({
             ...prev,
-            题材模式,
-            开局生成门派: 获取题材模式配置(题材模式).group === 'modern' || 获取题材模式配置(题材模式).group === 'apocalypse' ? false : prev.开局生成门派,
-            开局生成同门: 获取题材模式配置(题材模式).group === 'modern' || 获取题材模式配置(题材模式).group === 'apocalypse' ? false : prev.开局生成同门
+            题材模式
         }));
         setWorldConfig((prev) => 合并题材世界默认值(题材模式, prev) as WorldGenConfig);
     };
@@ -1917,7 +1954,14 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             label={openingConfig.同人融合.enabled ? '已启用' : '已关闭'}
                                             onToggle={() => setOpeningConfig((prev) => ({
                                                 ...prev,
-                                                同人融合: { ...prev.同人融合, enabled: !prev.同人融合.enabled }
+                                                同人融合: prev.同人融合.enabled
+                                                    ? {
+                                                        ...prev.同人融合,
+                                                        enabled: false,
+                                                        启用附加小说: false,
+                                                        附加小说数据集ID: ''
+                                                    }
+                                                    : { ...prev.同人融合, enabled: true }
                                             }))}
                                         />
                                     </div>
@@ -2433,7 +2477,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                                     <div className="flex items-center justify-between gap-3">
                                                         <div className={`font-bold text-base font-serif ${isSelected ? 'text-wuxia-gold' : 'text-gray-200'}`}>
                                                             {bg.名称}
-                                                            {!预设背景.some(p => p.名称 === bg.名称) ? ' · 自定义' : ''}
+                                                            {!当前题材预设背景名称集合.has(bg.名称) ? ' · 自定义' : ''}
                                                         </div>
                                                         <span className={`text-[10px] tracking-[0.25em] font-mono ${isSelected ? 'text-wuxia-cyan' : 'text-gray-500 group-hover:text-wuxia-cyan/70'}`}>IDENTITY</span>
                                                     </div>
@@ -2591,7 +2635,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                                     <div className="flex items-center justify-between gap-3">
                                                         <div className={`font-bold text-base font-serif ${isSelected ? 'text-wuxia-red' : 'text-gray-200'}`}>
                                                             {t.名称}
-                                                            {!预设天赋.some(p => p.名称 === t.名称) ? ' · 自定义' : ''}
+                                                            {!当前题材预设天赋名称集合.has(t.名称) ? ' · 自定义' : ''}
                                                         </div>
                                                         <span className={`text-[10px] tracking-[0.25em] font-mono ${isSelected ? 'text-wuxia-cyan' : 'text-gray-500 group-hover:text-wuxia-cyan/70'}`}>{isSelected ? 'SELECTED' : 'TRAIT'}</span>
                                                     </div>
@@ -2663,7 +2707,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm text-wuxia-cyan font-bold">与主角关系</label>
-                                            <input value={partnerRelation} onChange={e => setPartnerRelation(e.target.value)} placeholder="例如：青梅竹马、同门师妹、护卫、好友" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
+                                            <input value={partnerRelation} onChange={e => setPartnerRelation(e.target.value)} placeholder={当前伙伴关系占位} className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm text-wuxia-cyan font-bold">外貌</label>
@@ -2779,7 +2823,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                 <div className="border-b border-wuxia-gold/30 pb-4 mb-5">
                                     <div className="text-[11px] uppercase tracking-[0.35em] text-wuxia-cyan/70 font-mono">Opening Structure</div>
                                     <h3 className="text-2xl font-serif font-bold text-wuxia-gold mt-2">开局配置</h3>
-                                    <p className="text-xs text-gray-400 mt-2 leading-6">题材模式已移到“世界观”。这里只决定初始关系侧重、第一幕切入方式和初始组织生成。</p>
+                                    <p className="text-xs text-gray-400 mt-2 leading-6">{当前开局配置文案.intro}</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2792,11 +2836,11 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                         <label className="text-sm text-wuxia-cyan font-bold">开局切入偏好</label>
                                         <InlineSelect
                                             value={openingConfig.开局切入偏好}
-                                            options={开局切入偏好选项.map((item) => ({ value: item.value, label: item.label }))}
+                                            options={当前开局切入偏好选项.map((item) => ({ value: item.value, label: item.label }))}
                                             onChange={(开局切入偏好) => setOpeningConfig((prev) => ({ ...prev, 开局切入偏好 }))}
                                         />
                                         <div className="text-[11px] text-gray-500 leading-6">
-                                            {开局切入偏好选项.find((item) => item.value === openingConfig.开局切入偏好)?.hint}
+                                            {当前开局切入偏好选项.find((item) => item.value === openingConfig.开局切入偏好)?.hint}
                                         </div>
                                     </div>
                                 </div>
@@ -2804,7 +2848,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                 <div className="mt-6">
                                     <label className="text-sm text-wuxia-cyan font-bold">关系侧重（最多 2 项）</label>
                                     <div className="mt-3 flex flex-wrap gap-3">
-                                        {关系侧重选项.map((item) => {
+                                        {当前关系侧重选项.map((item) => {
                                             const active = openingConfig.关系侧重.includes(item.value);
                                             const disabled = !active && openingConfig.关系侧重.length >= 2;
                                             return (
@@ -2824,30 +2868,34 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             );
                                         })}
                                     </div>
-                                    <div className="mt-2 text-[11px] text-gray-500">已选 {openingConfig.关系侧重.length}/2。会优先影响初始社交网的情绪结构。</div>
+                                    <div className="mt-2 text-[11px] text-gray-500">已选 {openingConfig.关系侧重.length}/2。{当前开局配置文案.relationHelper}</div>
                                 </div>
 
                                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
                                         <div>
-                                            <div className="text-sm text-gray-200">开局生成门派</div>
-                                            <div className="text-[11px] text-gray-500 mt-1">开启后第0回合会直接拥有可用门派，而不是只靠旧存档兜底。</div>
+                                            <div className="text-sm text-gray-200">{当前开局配置文案.organizationTitle}</div>
+                                            <div className="text-[11px] text-gray-500 mt-1">{当前开局配置文案.organizationDescription}</div>
                                         </div>
                                         <开关按钮
                                             checked={openingConfig.开局生成门派 !== false}
                                             label={openingConfig.开局生成门派 !== false ? '生成' : '不生成'}
-                                            onToggle={() => setOpeningConfig((prev) => ({ ...prev, 开局生成门派: prev.开局生成门派 === false }))}
+                                            onToggle={() => {
+                                                setOpeningConfig((prev) => ({ ...prev, 开局生成门派: prev.开局生成门派 === false }));
+                                            }}
                                         />
                                     </div>
                                     <div className="flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
                                         <div>
-                                            <div className="text-sm text-gray-200">开局生成同门</div>
-                                            <div className="text-[11px] text-gray-500 mt-1">开启后会生成多层次同门名录，少数主要角色加若干普通同门。</div>
+                                            <div className="text-sm text-gray-200">{当前开局配置文案.memberTitle}</div>
+                                            <div className="text-[11px] text-gray-500 mt-1">{当前开局配置文案.memberDescription}</div>
                                         </div>
                                         <开关按钮
                                             checked={openingConfig.开局生成同门 !== false}
                                             label={openingConfig.开局生成同门 !== false ? '生成' : '不生成'}
-                                            onToggle={() => setOpeningConfig((prev) => ({ ...prev, 开局生成同门: prev.开局生成同门 === false }))}
+                                            onToggle={() => {
+                                                setOpeningConfig((prev) => ({ ...prev, 开局生成同门: prev.开局生成同门 === false }));
+                                            }}
                                         />
                                     </div>
                                 </div>

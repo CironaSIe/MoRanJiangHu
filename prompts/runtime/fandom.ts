@@ -171,6 +171,14 @@ const 提取标题区块 = (source: string, title: string): string => {
     return (blockMatch?.[1] || '').trim();
 };
 
+const 提取首个标题区块 = (source: string, titles: string[]): string => {
+    for (const title of titles) {
+        const block = 提取标题区块(source, title);
+        if (block) return block;
+    }
+    return '';
+};
+
 const 读取境界映射母板 = (
     sourceText: string | undefined,
     sourceType: 'realm_prompt' | 'world_prompt'
@@ -549,7 +557,7 @@ const 读取境界区块集合 = (
     const endpointBlock = 提取标题区块(source, '终点文案');
     const stageBlock = 提取标题区块(source, '阶段推进表');
     const breakthroughBlock = 提取标题区块(source, '大境突破表');
-    const hardLimitBlock = 提取标题区块(source, '武侠硬边界');
+    const hardLimitBlock = 提取首个标题区块(source, ['武侠硬边界', '仙侠硬边界', '都市硬边界', '末日硬边界', '题材硬边界', '能力硬边界', '硬边界']);
     if (!mappingBlock && !nineAndAbilityBlock && !diffBlock && !endpointBlock && !stageBlock && !breakthroughBlock && !hardLimitBlock) {
         return undefined;
     }
@@ -577,6 +585,18 @@ const 读取境界区块优先级 = (params?: { realmPrompt?: string; worldPromp
         || 构建默认境界区块集合(effectiveSchema);
 };
 
+const 补全境界映射母板 = (schema?: 境界映射母板): 境界映射母板 => {
+    const sourceMapping = new Map((schema?.mapping || []).map((item) => [item.level, item.label]));
+    return {
+        strategy: schema?.strategy || '现体系回退',
+        source: schema?.source || 'default',
+        mapping: 默认境界映射.map((item) => ({
+            level: item.level,
+            label: sourceMapping.get(item.level) || item.label
+        }))
+    };
+};
+
 const 构建境界区块文本 = (blocks: 境界区块集合): string => [
     '【境界映射母板】',
     blocks.境界映射母板,
@@ -602,6 +622,39 @@ const 构建境界区块文本 = (blocks: 境界区块集合): string => [
 
 export const 默认境界母板提示词 = 构建境界母板展示文本(构建默认境界母板());
 
+export const 归一化或补全境界体系提示词 = (content: string): string => {
+    const source = 提取境界体系正文(content);
+    const schema = 补全境界映射母板(读取境界映射母板(source, 'realm_prompt'));
+    const fallbackBlocks = 构建默认境界区块集合(schema);
+    const blocks = 读取境界区块集合(source, schema) || fallbackBlocks;
+    blocks.境界映射母板 = schema.mapping.map((item) => `${item.level} => ${item.label}`).join('\n');
+
+    let validation = 校验境界体系提示词完整性(构建境界区块文本(blocks));
+    if (validation.ok) return validation.normalizedText;
+
+    if (validation.missingSubMarkers.length > 0 || validation.missingSections.includes('九阶命名与能力边界')) {
+        blocks.九阶命名与能力边界 = fallbackBlocks.九阶命名与能力边界;
+    }
+    if (validation.missingSections.includes('境界差距口径')) {
+        blocks.境界差距口径 = fallbackBlocks.境界差距口径;
+    }
+    if (validation.missingSections.includes('终点文案')) {
+        blocks.终点文案 = fallbackBlocks.终点文案;
+    }
+    if (validation.missingStageJumps.length > 0 || validation.missingSections.includes('阶段推进表')) {
+        blocks.阶段推进表 = fallbackBlocks.阶段推进表;
+    }
+    if (validation.missingBreakthroughJumps.length > 0 || validation.missingSections.includes('大境突破表')) {
+        blocks.大境突破表 = fallbackBlocks.大境突破表;
+    }
+    if (validation.missingSections.includes('武侠硬边界')) {
+        blocks.武侠硬边界 = fallbackBlocks.武侠硬边界;
+    }
+
+    validation = 校验境界体系提示词完整性(构建境界区块文本(blocks));
+    return validation.ok ? validation.normalizedText : 构建境界区块文本(fallbackBlocks);
+};
+
 export const 校验境界体系提示词完整性 = (content: string): {
     ok: boolean;
     normalizedText: string;
@@ -612,6 +665,10 @@ export const 校验境界体系提示词完整性 = (content: string): {
     missingBreakthroughJumps: string[];
 } => {
     const normalizedText = 提取境界体系正文(content);
+    const hardBoundaryBlock = 提取首个标题区块(normalizedText, ['武侠硬边界', '仙侠硬边界', '都市硬边界', '末日硬边界', '题材硬边界', '能力硬边界', '硬边界']);
+    const normalizedForValidation = hardBoundaryBlock && !normalizedText.includes('【武侠硬边界】')
+        ? `${normalizedText.trim()}\n\n【武侠硬边界】\n${hardBoundaryBlock}`
+        : normalizedText;
     const requiredSections = [
         '境界映射母板',
         '九阶命名与能力边界',
@@ -621,17 +678,17 @@ export const 校验境界体系提示词完整性 = (content: string): {
         '终点文案',
         '武侠硬边界'
     ];
-    const missingSections = requiredSections.filter((section) => !normalizedText.includes(`【${section}】`));
-    const schema = 读取境界映射母板(normalizedText, 'realm_prompt');
+    const missingSections = requiredSections.filter((section) => !normalizedForValidation.includes(`【${section}】`));
+    const schema = 读取境界映射母板(normalizedForValidation, 'realm_prompt');
     const mappedLevels = new Set((schema?.mapping || []).map((item) => item.level));
     const missingMappings = 默认累计境界映射数值列表.filter((level) => !mappedLevels.has(level));
-    const nineAndAbilityBlock = 提取标题区块(normalizedText, '九阶命名与能力边界');
+    const nineAndAbilityBlock = 提取标题区块(normalizedForValidation, '九阶命名与能力边界');
     const missingSubMarkers = [
         nineAndAbilityBlock.includes('九阶命名顺序固定') ? '' : '九阶命名顺序固定',
         nineAndAbilityBlock.includes('境界能力边界') ? '' : '境界能力边界'
     ].filter(Boolean);
-    const stageBlock = 提取标题区块(normalizedText, '阶段推进表');
-    const breakthroughBlock = 提取标题区块(normalizedText, '大境突破表');
+    const stageBlock = 提取标题区块(normalizedForValidation, '阶段推进表');
+    const breakthroughBlock = 提取标题区块(normalizedForValidation, '大境突破表');
     const missingStageJumps = 默认累计境界阶段推进跳转列表.filter((jump) => !stageBlock.includes(jump));
     const missingBreakthroughJumps = 默认累计境界大境突破跳转列表.filter((jump) => !breakthroughBlock.includes(jump));
 
@@ -642,7 +699,7 @@ export const 校验境界体系提示词完整性 = (content: string): {
             && missingSubMarkers.length === 0
             && missingStageJumps.length === 0
             && missingBreakthroughJumps.length === 0,
-        normalizedText,
+        normalizedText: normalizedForValidation,
         missingSections,
         missingMappings,
         missingSubMarkers,

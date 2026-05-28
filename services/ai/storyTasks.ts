@@ -25,7 +25,7 @@ import {
 import { 小说拆分COT提示词 } from '../../prompts/runtime/novelDecompositionCot';
 import { 同人规划分析附加系统提示词, 同人规划分析附加COT提示词 } from '../../prompts/runtime/fandomPlanningAnalysis';
 import { 同人世界演变附加系统提示词, 同人世界演变附加COT提示词 } from '../../prompts/runtime/fandomWorldEvolution';
-import { 校验境界体系提示词完整性 } from '../../prompts/runtime/fandom';
+import { 归一化或补全境界体系提示词, 校验境界体系提示词完整性 } from '../../prompts/runtime/fandom';
 import { 默认COT伪装历史消息提示词 } from '../../prompts/runtime/defaults';
 import { 获取变量校准COT提示词 } from '../../prompts/runtime/variableCot';
 import { 构建AI角色声明提示词 } from '../../prompts/runtime/roleIdentity';
@@ -456,7 +456,8 @@ export const 解析境界体系提示词内容 = (content: string): string => {
         : source;
     if (!tagged) throw new Error('同人境界体系生成解析失败: 未找到<境界体系>标签');
 
-    const validation = 校验境界体系提示词完整性(tagged);
+    const repaired = 归一化或补全境界体系提示词(tagged);
+    const validation = 校验境界体系提示词完整性(repaired);
     if (!validation.ok) {
         const detail = [
             validation.missingSections.length > 0 ? `缺少区块: ${validation.missingSections.join('、')}` : '',

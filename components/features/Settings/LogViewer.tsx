@@ -127,26 +127,26 @@ const LogViewer: React.FC = () => {
                 <div className="grid grid-cols-4 gap-1.5 md:flex md:flex-wrap md:gap-2">
                     <button
                         onClick={handleCopy}
-                        className="px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-wuxia-gold/50 text-wuxia-gold bg-[#332812] hover:border-wuxia-gold/80"
+                        className="log-viewer-action log-viewer-action-copy px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-wuxia-gold/50 text-wuxia-gold bg-[#332812] hover:border-wuxia-gold/80"
                     >
                         {copied ? '已复制' : '复制'}
                     </button>
                     <button
                         onClick={handleExport}
-                        className="px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-sky-500/45 text-sky-200 bg-sky-950/25 hover:border-sky-300/60"
+                        className="log-viewer-action log-viewer-action-export px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-sky-500/45 text-sky-200 bg-sky-950/25 hover:border-sky-300/60"
                     >
                         导出
                     </button>
                     <button
                         onClick={handleSubmitReport}
                         disabled={reporting || filteredLogs.length === 0 || quota.remaining <= 0}
-                        className="px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-emerald-500/45 text-emerald-200 bg-emerald-950/25 hover:border-emerald-300/60 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="log-viewer-action log-viewer-action-report px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-emerald-500/45 text-emerald-200 bg-emerald-950/25 hover:border-emerald-300/60 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {reporting ? '上报中' : '上报'}
                     </button>
                     <button
                         onClick={clearDiagnosticLogs}
-                        className="px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-red-900/60 text-red-300 bg-red-950/20 hover:bg-red-900/25"
+                        className="log-viewer-action log-viewer-action-clear px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-red-900/60 text-red-300 bg-red-950/20 hover:bg-red-900/25"
                     >
                         清空
                     </button>

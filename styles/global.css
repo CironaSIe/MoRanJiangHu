@@ -289,6 +289,31 @@ html[data-theme="day"] textarea::placeholder {
   color: rgba(71, 85, 105, 0.72) !important;
 }
 
+html[data-theme="day"] .log-viewer-action {
+  background-color: rgba(255, 252, 244, 0.94) !important;
+  box-shadow: 0 1px 2px rgba(75, 63, 38, 0.12);
+}
+
+html[data-theme="day"] .log-viewer-action-copy {
+  color: #713f12 !important;
+  border-color: rgba(180, 83, 9, 0.58) !important;
+}
+
+html[data-theme="day"] .log-viewer-action-export {
+  color: #075985 !important;
+  border-color: rgba(2, 132, 199, 0.5) !important;
+}
+
+html[data-theme="day"] .log-viewer-action-report {
+  color: #065f46 !important;
+  border-color: rgba(5, 150, 105, 0.5) !important;
+}
+
+html[data-theme="day"] .log-viewer-action-clear {
+  color: #991b1b !important;
+  border-color: rgba(185, 28, 28, 0.5) !important;
+}
+
 html[data-theme="day"] .backdrop-blur,
 html[data-theme="day"] .backdrop-blur-sm,
 html[data-theme="day"] .backdrop-blur-md,

@@ -133,6 +133,56 @@ describe('门派状态规范化', () => {
         expect(openingBase.角色.门派职位).toBe('杂役弟子');
     });
 
+    it('末日丧尸开局生成的是营地和幸存者成员而不是门派模板', () => {
+        const openingBase = 创建开场基础状态(
+            {
+                姓名: '陈砾',
+                出身背景: { 名称: '维修工' },
+                所属门派ID: 'none',
+                门派职位: '无',
+                门派贡献: 0
+            } as any,
+            {} as any,
+            {
+                题材模式: '末日丧尸',
+                开局生成门派: true,
+                开局生成同门: true
+            } as any
+        );
+
+        expect(openingBase.玩家门派.名称).toMatch(/营地|避难所|车队|安全点|哨站|救援站/);
+        expect(openingBase.玩家门派.玩家职位).toBe('营地成员');
+        expect(openingBase.玩家门派.藏经阁列表).toEqual([]);
+        expect(openingBase.玩家门派.兑换列表.map((item: any) => item.物品名称)).toContain('净水包');
+        expect(openingBase.玩家门派.重要成员.some((member: any) => /营地|物资|巡逻|医护|维修|哨兵|搜救|同行者/.test(member.身份))).toBe(true);
+        expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/门派任务|同门|弟子|藏经阁|山门/);
+    });
+
+    it('现代都市开局生成的是现实组织和成员而不是门派模板', () => {
+        const openingBase = 创建开场基础状态(
+            {
+                姓名: '周行',
+                出身背景: { 名称: '普通职员' },
+                所属门派ID: 'none',
+                门派职位: '无',
+                门派贡献: 0
+            } as any,
+            {} as any,
+            {
+                题材模式: '现代都市',
+                开局生成门派: true,
+                开局生成同门: true
+            } as any
+        );
+
+        expect(openingBase.玩家门派.名称).toMatch(/公司|项目组|事务所|社区中心|门店|合作团队/);
+        expect(openingBase.玩家门派.玩家职位).toBe('成员');
+        expect(openingBase.玩家门派.藏经阁列表).toEqual([]);
+        expect(openingBase.玩家门派.兑换列表.map((item: any) => item.物品名称)).toContain('备用手机');
+        expect(openingBase.玩家门派.重要成员.some((member: any) => /负责人|同事|行政|技术|外勤|合作伙伴|社区|实习/.test(member.身份))).toBe(true);
+        expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/门派任务|同门|弟子|藏经阁|山门/);
+    });
+
     it('开局门派会按当前门派生成入门功法，不再固定为青云剑法', () => {
         const openingBase = 创建开场基础状态(
             {

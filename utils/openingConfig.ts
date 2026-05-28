@@ -10,7 +10,7 @@ import type {
     同人来源类型,
     同人融合强度类型
 } from '../types';
-import { 获取题材模式选项, 规范化题材模式 } from './topicModeProfiles';
+import { 获取题材模式配置, 获取题材模式选项, 规范化题材模式 } from './topicModeProfiles';
 
 export const 新开局步骤列表 = ['世界观', '天赋背景', '角色基础', '开局伙伴', '开局配置', '确认生成'] as const;
 
@@ -139,6 +139,127 @@ export const 开局切入偏好选项: Array<{ value: 开局切入偏好类型; 
     { value: '门派起手', label: '门派起手', hint: '优先落在山门、偏院、堂口、习武地等门派场景。' },
     { value: '风波前夜', label: '风波前夜', hint: '允许有将起未起的异动，但仍保持第一幕克制。' }
 ];
+
+export type 题材开局配置文案 = {
+    intro: string;
+    relationHelper: string;
+    organizationEnabled: boolean;
+    organizationTitle: string;
+    organizationDescription: string;
+    memberTitle: string;
+    memberDescription: string;
+    organizationOffHint: string;
+    relationLabels: Partial<Record<关系侧重类型, string>>;
+    cutInLabels: Partial<Record<开局切入偏好类型, { label: string; hint: string }>>;
+    promptBoundary: string;
+};
+
+export const 获取题材开局配置文案 = (mode?: 题材模式类型): 题材开局配置文案 => {
+    const profile = 获取题材模式配置(mode);
+    if (profile.group === 'apocalypse') {
+        return {
+            intro: '题材模式已移到“世界观”。这里只决定初始关系侧重、第一幕切入方式；末日题材会按幸存者语境生成关系与场景。',
+            relationHelper: '会优先影响初始幸存者关系网的情绪结构。',
+            organizationEnabled: true,
+            organizationTitle: '开局生成营地',
+            organizationDescription: '开启后第0回合会生成可承接的营地、避难所、车队、军方残部或幸存者小队。',
+            memberTitle: '开局生成队友',
+            memberDescription: '开启后生成初始队友、营地成员、临时同行者或幸存者关系名录。',
+            organizationOffHint: '',
+            relationLabels: { 师门: '队伍', 友情: '互助', 利益: '物资', 仇怨: '冲突' },
+            cutInLabels: {
+                在途起手: { label: '转移起手', hint: '开局落在转移、搜刮、撤离、车队或封锁线附近。' },
+                家宅起手: { label: '避难点起手', hint: '优先落在家中、避难所、仓库、药房或临时安全屋。' },
+                门派起手: { label: '营地起手', hint: '优先落在幸存者营地、临时据点、军方残部或安全区边缘。' }
+            },
+            promptBoundary: '末日丧尸开局不得生成古代门派、宗门、师门、同门、山门、藏经阁或门派贡献语感；兼容变量 `玩家门派` 只能承载营地、避难所、车队、军方残部、医疗点、黑市网络或幸存者小队。'
+        };
+    }
+    if (profile.group === 'modern') {
+        return {
+            intro: '题材模式已移到“世界观”。这里只决定初始关系侧重、第一幕切入方式；现代都市会按现实社会语境生成关系与场景。',
+            relationHelper: '会优先影响初始现实社交网、职场/家庭/城市关系的情绪结构。',
+            organizationEnabled: true,
+            organizationTitle: '开局生成组织',
+            organizationDescription: '开启后第0回合会生成可承接的公司、学校、社区、项目组、门店或合作团队。',
+            memberTitle: '开局生成成员',
+            memberDescription: '开启后生成联系人、同事、亲友、邻里、合作对象或组织成员名录。',
+            organizationOffHint: '',
+            relationLabels: { 师门: '职场', 情缘: '情感', 利益: '合作', 仇怨: '矛盾' },
+            cutInLabels: {
+                在途起手: { label: '通勤起手', hint: '开局落在通勤、出差、路口、地铁、网约车或城市移动途中。' },
+                家宅起手: { label: '住处起手', hint: '优先落在出租屋、家中、小区、店铺或办公室。' },
+                门派起手: { label: '组织起手', hint: '优先落在公司、学校、社区、项目组、门店或合作现场。' }
+            },
+            promptBoundary: '现代都市开局不得生成古代门派、宗门、师门、同门、山门、藏经阁、门派贡献或江湖门派任务；兼容变量 `玩家门派` 只能承载公司、学校、社区、家庭、媒体、项目组、店铺、合作团队等现实社会结构。'
+        };
+    }
+    if (profile.group === 'urban_xianxia') {
+        return {
+            intro: '题材模式已移到“世界观”。这里只决定初始关系侧重、第一幕切入方式和隐秘组织/同道生成。',
+            relationHelper: '会优先影响初始社交网、现实身份与隐秘圈层的情绪结构。',
+            organizationEnabled: true,
+            organizationTitle: profile.value === '灵气复苏' ? '开局生成机构' : '开局生成隐门',
+            organizationDescription: profile.value === '灵气复苏'
+                ? '开启后可生成研究小组、临时管控机构、觉醒者互助点或异常处理小队，而不是古代门派。'
+                : '开启后可生成隐秘修行家族、暗线组织、同道据点或都市隐门。',
+            memberTitle: profile.value === '灵气复苏' ? '开局生成协作者' : '开局生成同道',
+            memberDescription: profile.value === '灵气复苏'
+                ? '开启后生成协作者、调查员、研究员、觉醒者同伴或互助者名录。'
+                : '开启后生成同道、师承联系人、家族成员或暗线伙伴名录。',
+            organizationOffHint: '',
+            relationLabels: { 师门: profile.value === '灵气复苏' ? '机构' : '隐门', 利益: '资源', 仇怨: '旧怨' },
+            cutInLabels: {
+                在途起手: { label: '城市途中', hint: '开局落在通勤、调查、转移、赶赴异常点或城市途中场景。' },
+                家宅起手: { label: '住处起手', hint: '优先落在住处、学校、医院、公司、店铺或家族据点。' },
+                门派起手: { label: profile.value === '灵气复苏' ? '机构起手' : '隐门起手', hint: profile.value === '灵气复苏' ? '优先落在研究机构、管控点、互助点或异常处理现场。' : '优先落在隐门据点、家族内场、暗市入口或修行圈碰头处。' }
+            },
+            promptBoundary: '现代/都市修行题材不得把普通社会直接写成古代山门宗门；若生成组织，必须贴合研究机构、管控点、隐秘家族、暗市、公司学校或都市据点等现代场景。'
+        };
+    }
+    if (profile.group === 'xianxia') {
+        return {
+            intro: '题材模式已移到“世界观”。这里只决定初始关系侧重、第一幕切入方式和宗门/同道生成。',
+            relationHelper: '会优先影响初始修真社交网的情绪结构。',
+            organizationEnabled: true,
+            organizationTitle: '开局生成宗门',
+            organizationDescription: '开启后第0回合会直接拥有可用宗门、仙坊或修真势力承接。',
+            memberTitle: '开局生成同道',
+            memberDescription: '开启后会生成师长、同门、道友或宗门外缘人物名录。',
+            organizationOffHint: '',
+            relationLabels: { 师门: '宗门' },
+            cutInLabels: {
+                在途起手: { label: '行旅起手', hint: '开局落在赶路、飞舟、坊市路口、山道或秘境入口途中。' },
+                家宅起手: { label: '洞府起手', hint: '优先落在洞府、院落、仙坊住处、家族旧宅等内场。' },
+                门派起手: { label: '宗门起手', hint: '优先落在山门、外门院、讲经堂、演法台或宗门任务现场。' }
+            },
+            promptBoundary: '仙侠开局可以生成宗门、师长、同门、道友与坊市关系，但应使用修真/宗门语境，不要写成现代公司或末日营地。'
+        };
+    }
+    return {
+        intro: '题材模式已移到“世界观”。这里只决定初始关系侧重、第一幕切入方式和初始门派生成。',
+        relationHelper: '会优先影响初始社交网的情绪结构。',
+        organizationEnabled: true,
+        organizationTitle: '开局生成门派',
+        organizationDescription: '开启后第0回合会直接拥有可用门派，而不是只靠旧存档兜底。',
+        memberTitle: '开局生成同门',
+        memberDescription: '开启后会生成多层次同门名录，少数主要角色加若干普通同门。',
+        organizationOffHint: '',
+        relationLabels: {},
+        cutInLabels: {},
+        promptBoundary: '武侠开局可以生成门派、师门、同门、帮会或江湖关系，但不要越界写成仙侠宗门飞升、现代公司制度或末日营地。'
+    };
+};
+
+export const 获取题材关系侧重选项 = (mode?: 题材模式类型): Array<{ value: 关系侧重类型; label: string }> => {
+    const copy = 获取题材开局配置文案(mode);
+    return 关系侧重选项.map((item) => ({ ...item, label: copy.relationLabels[item.value] || item.label }));
+};
+
+export const 获取题材开局切入偏好选项 = (mode?: 题材模式类型): Array<{ value: 开局切入偏好类型; label: string; hint: string }> => {
+    const copy = 获取题材开局配置文案(mode);
+    return 开局切入偏好选项.map((item) => ({ ...item, ...(copy.cutInLabels[item.value] || {}) }));
+};
 
 export const 题材模式选项: Array<{ value: 题材模式类型; label: string; hint: string }> = 获取题材模式选项();
 
@@ -379,6 +500,8 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
     const 融合强度 = 同人融合强度选项.some((item) => item.value === raw?.同人融合?.融合强度)
         ? raw.同人融合.融合强度
         : fallback.同人融合.融合强度;
+    const 同人融合启用 = raw?.同人融合?.enabled === true;
+    const 启用附加小说 = 同人融合启用 && raw?.同人融合?.启用附加小说 === true;
 
     return {
         配置约束启用: raw?.配置约束启用 !== false,
@@ -390,7 +513,7 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
         开局生成同门: raw?.开局生成同门 !== false,
         初始伙伴: 规范化初始伙伴配置(raw?.初始伙伴 ?? fallback.初始伙伴),
         同人融合: {
-            enabled: raw?.同人融合?.enabled === true,
+            enabled: 同人融合启用,
             作品名: 读取文本(raw?.同人融合?.作品名),
             来源类型,
             融合强度,
@@ -399,8 +522,8 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
             替换目标角色名: 读取文本(raw?.同人融合?.替换目标角色名),
             附加替换角色名列表: 规范化角色替换名称列表(raw?.同人融合?.附加替换角色名列表),
             附加角色替换规则列表: 规范化角色替换规则列表(raw?.同人融合?.附加角色替换规则列表),
-            启用附加小说: raw?.同人融合?.启用附加小说 === true,
-            附加小说数据集ID: 读取文本(raw?.同人融合?.附加小说数据集ID)
+            启用附加小说,
+            附加小说数据集ID: 启用附加小说 ? 读取文本(raw?.同人融合?.附加小说数据集ID) : ''
         }
     };
 };

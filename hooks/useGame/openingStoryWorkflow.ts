@@ -71,8 +71,8 @@ import { 保护开局生成门派状态 } from './storyState';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
 
 const 开局规划分析请求超时毫秒 = 90000;
-const 开场剧情首次流式响应超时毫秒 = 90000;
-const 开场剧情流式空闲超时毫秒 = 45000;
+const 开场剧情首次流式响应超时毫秒 = 240000;
+const 开场剧情流式空闲超时毫秒 = 90000;
 
 type 开场命令基态 = {
     角色: 角色数据结构;

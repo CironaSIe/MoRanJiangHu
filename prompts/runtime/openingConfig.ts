@@ -1,5 +1,6 @@
 import type { OpeningConfig } from '../../types';
 import { 构建修炼体系附加块 } from '../../utils/promptFeatureToggles';
+import { 获取题材开局配置文案 } from '../../utils/openingConfig';
 import { 获取题材模式配置, 题材是否仙侠 } from '../../utils/topicModeProfiles';
 
 export const 是否仙侠开局模式 = (openingConfig?: OpeningConfig | null): boolean => (
@@ -25,11 +26,19 @@ export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null
     const 关系侧重 = Array.isArray(openingConfig.关系侧重) && openingConfig.关系侧重.length > 0
         ? openingConfig.关系侧重.join('、')
         : '无';
+    const 开局文案 = 获取题材开局配置文案(openingConfig.题材模式);
     return [
         '【本次开局配置约束】',
         构建题材模式提示词(openingConfig),
         `- 关系侧重：${关系侧重}。生成初始社交网时，应优先让人物结构与关系情绪落在这些方向上。`,
         `- 开局切入偏好：${openingConfig.开局切入偏好}。第一幕镜头与气氛优先贴近该切入方式，不要无痕偏离。`,
+        `- 题材开局边界：${开局文案.promptBoundary}`,
+        openingConfig.开局生成门派 === false
+            ? '- 开局组织变量：本次明确不生成 `玩家门派` 或等价门派/宗门变量；如题材需要组织归属，只写进地点、社交、任务或世界观语境，不写成门派系统。'
+            : `- 开局组织变量：允许生成与题材匹配的初始组织，界面语义为“${开局文案.organizationTitle}”。`,
+        openingConfig.开局生成同门 === false
+            ? '- 开局成员名录：本次明确不生成同门/同道/队友名录变量；社交人物必须按剧情证据自然落位。'
+            : `- 开局成员名录：允许生成与题材匹配的初始成员，界面语义为“${开局文案.memberTitle}”。`,
         '- 若开局偏好与建档、世界观存在冲突，以建档硬约束和 world_prompt 为上位，但仍应尽量保留关系侧重与切入偏好的方向。'
     ].join('\n');
 };
