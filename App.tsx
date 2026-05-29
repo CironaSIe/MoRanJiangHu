@@ -628,10 +628,10 @@ const App: React.FC = () => {
         return unsubscribe;
     }, [actions]);
     React.useEffect(() => {
-        const next = 清理并补货(读取拍卖行状态(auctionHouseScope));
+        const next = 清理并补货(读取拍卖行状态(auctionHouseScope), { 题材模式: state.开局配置?.题材模式 });
         setAuctionHouseState(next);
         保存拍卖行状态(next, auctionHouseScope);
-    }, [auctionHouseScope]);
+    }, [auctionHouseScope, state.开局配置?.题材模式]);
     React.useEffect(() => {
         const handleAuctionLoaded = (event: Event) => {
             const detail = (event as CustomEvent<{ scope?: string; state?: 拍卖行状态 }>).detail;
@@ -1435,7 +1435,15 @@ const App: React.FC = () => {
         };
     }, [state.view, state.apiConfig, state.角色, setters, actions, meta.imageGenerationQueue, meta.sceneImageQueue]);
 
-    const 当前题材市场名称 = React.useMemo(() => 获取题材模式配置(state.开局配置?.题材模式).auctionName, [state.开局配置?.题材模式]);
+    const 当前题材配置 = React.useMemo(() => 获取题材模式配置(state.开局配置?.题材模式), [state.开局配置?.题材模式]);
+    const 当前题材市场名称 = 当前题材配置.auctionName;
+    const 组织入口显示名称 = 当前题材配置.group === 'apocalypse'
+        ? '营地'
+        : 当前题材配置.group === 'modern'
+            ? '组织'
+            : 当前题材配置.group === 'xianxia' || 当前题材配置.group === 'urban_xianxia'
+                ? '宗门'
+                : '门派';
     const 功法显示名称 = state.开局配置?.题材模式 === '末日丧尸'
         ? '技能'
         : state.开局配置?.题材模式 === '现代都市'
@@ -1447,12 +1455,12 @@ const App: React.FC = () => {
         state.showEquipment ? '装备' :
         state.showInventory ? '背包' :
         state.showSocial ? '社交' :
-        (启用修炼体系 && state.showKungfu) ? '功法' :
+        (启用修炼体系 && state.showKungfu) ? 功法显示名称 :
         state.showSkills ? '技艺' :
         state.showWorld ? '世界' :
         state.showMap ? '地图' :
         state.showTeam ? '队伍' :
-        state.showSect ? '门派' :
+        state.showSect ? 组织入口显示名称 :
         state.showTask ? '任务' :
         state.showAgreement ? '约定' :
         state.showStory ? '剧情' :
@@ -2895,6 +2903,8 @@ const App: React.FC = () => {
                                 onOpenMemory={openMemory}
                                 onOpenNovelExport={openNovelExport}
                                 onOpenAuctionHouse={openAuctionHouse}
+                                auctionHouseLabel={当前题材市场名称}
+                                sectLabel={组织入口显示名称}
                                 onOpenImageManager={openImageManagerWithCheck}
                                 onOpenNovelDecomposition={() => { void openNovelDecompositionWorkbench(); }}
                                 worldEvolutionEnabled={meta.worldEvolutionEnabled}
@@ -3017,6 +3027,8 @@ const App: React.FC = () => {
                         enableKungfu={启用修炼体系}
                         enableImageManager={true}
                         enableNovelDecomposition={true}
+                        auctionHouseLabel={当前题材市场名称}
+                        sectLabel={组织入口显示名称}
                     />
 
                     {!hideBottomTicker && (

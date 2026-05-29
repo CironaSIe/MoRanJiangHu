@@ -13,6 +13,7 @@ type InlineSelectProps<T extends string = string> = {
     disabled?: boolean;
     buttonClassName?: string;
     panelClassName?: string;
+    optionClassName?: string;
 };
 
 const InlineSelect = <T extends string>({
@@ -22,7 +23,8 @@ const InlineSelect = <T extends string>({
     placeholder = '请选择',
     disabled = false,
     buttonClassName = '',
-    panelClassName = ''
+    panelClassName = '',
+    optionClassName = ''
 }: InlineSelectProps<T>) => {
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement | null>(null);
@@ -106,7 +108,7 @@ const InlineSelect = <T extends string>({
                                         onChange(option.value);
                                         setOpen(false);
                                     }}
-                                    className={`w-full px-3 py-2 text-left text-sm transition-colors flex items-center justify-between gap-2 ${
+                                    className={`w-full px-3 py-2 text-left ${optionClassName || 'text-sm'} transition-colors flex items-center justify-between gap-2 ${
                                         active
                                             ? 'bg-wuxia-gold/15 text-wuxia-gold'
                                             : 'text-gray-200 hover:bg-white/5'

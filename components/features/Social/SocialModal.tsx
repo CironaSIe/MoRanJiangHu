@@ -164,18 +164,19 @@ const SocialModal: React.FC<Props> = ({
         (npc as any).对主角称呼,
         (npc as any).档案?.对主角称呼
     );
-    const 读取胸部描述 = (npc: NPC结构): string => {
-        return 取首个非空文本((npc as any).胸部描述);
+    const 清理名器描述标签 = (value: string): string => {
+        const text = 取首个非空文本(value);
+        if (!text) return '';
+        return text
+            .replace(/^[\s"'“”‘’【】\[\]（）()]*[^：:]{1,18}[：:]\s*/u, '')
+            .replace(/(?:胸部|小穴|屁穴|肉棒)?\s*(?:拥有|带有|具备)?\s*[“"']?[^，。；;：:]{1,18}[”"']?\s*名器标签[，。；;]?\s*/gu, '')
+            .replace(/名器标签[：:]\s*[^，。；;]+[，。；;]?\s*/gu, '')
+            .trim();
     };
-    const 读取小穴描述 = (npc: NPC结构): string => {
-        return 取首个非空文本((npc as any).小穴描述);
-    };
-    const 读取屁穴描述 = (npc: NPC结构): string => {
-        return 取首个非空文本((npc as any).屁穴描述);
-    };
-    const 读取肉棒描述 = (npc: NPC结构): string => {
-        return 取首个非空文本((npc as any).肉棒描述);
-    };
+    const 读取胸部描述 = (npc: NPC结构): string => 清理名器描述标签(取首个非空文本((npc as any).胸部描述));
+    const 读取小穴描述 = (npc: NPC结构): string => 清理名器描述标签(取首个非空文本((npc as any).小穴描述));
+    const 读取屁穴描述 = (npc: NPC结构): string => 清理名器描述标签(取首个非空文本((npc as any).屁穴描述));
+    const 读取肉棒描述 = (npc: NPC结构): string => 清理名器描述标签(取首个非空文本((npc as any).肉棒描述));
     const 读取男娘设定 = (npc: NPC结构): string => {
         return 取首个非空文本((npc as any).男娘设定);
     };
@@ -194,9 +195,12 @@ const SocialModal: React.FC<Props> = ({
                 名称: typeof item?.名称 === 'string' ? item.名称.trim() : '',
                 品质: typeof item?.品质 === 'string' ? item.品质.trim() : '',
                 稳定描述: typeof item?.稳定描述 === 'string' ? item.稳定描述.trim() : '',
-                标签: Array.isArray(item?.效果?.标签)
-                    ? item.效果.标签.map((tag: unknown) => typeof tag === 'string' ? tag.trim() : '').filter(Boolean).slice(0, 4)
-                    : []
+                标签: Array.from(new Set([
+                    typeof item?.名称 === 'string' ? item.名称.trim() : '',
+                    ...(Array.isArray(item?.效果?.标签)
+                        ? item.效果.标签.map((tag: unknown) => typeof tag === 'string' ? tag.trim() : '').filter(Boolean)
+                        : [])
+                ].filter(Boolean))).slice(0, 4)
             }))
             .filter((item) => item.部位 && item.名称);
     };
@@ -636,23 +640,23 @@ const SocialModal: React.FC<Props> = ({
                                                 </span>
                                             </div>
 
-                                            <div className="flex flex-wrap gap-2 mb-3">
+                                            <div className="flex flex-wrap gap-1.5 mb-3 leading-none">
                                                 {显示境界 && currentNPC.境界 && (
-                                                    <span className="text-xs bg-black/60 border border-wuxia-gold/20 px-2 py-1 rounded text-wuxia-gold/80 shadow-inner">LV.{currentNPC.境界}</span>
+                                                    <span className="max-w-[14rem] truncate text-[11px] leading-none bg-black/60 border border-wuxia-gold/20 px-2 py-1 rounded text-wuxia-gold/80 shadow-inner">LV.{currentNPC.境界}</span>
                                                 )}
-                                                <span className="text-xs bg-black/60 border border-white/10 px-2 py-1 rounded text-gray-300">{currentNPC.身份}</span>
-                                                <span className={`text-xs px-2 py-1 flex items-center gap-1 rounded border border-white/10 bg-black/60 ${当前角色已死亡 ? 'text-gray-300' : currentNPC.是否在场 ? 'text-emerald-400' : 'text-gray-500'}`}>
+                                                <span className="max-w-[18rem] truncate text-[11px] leading-none bg-black/60 border border-white/10 px-2 py-1 rounded text-gray-300">{currentNPC.身份}</span>
+                                                <span className={`text-[11px] leading-none px-2 py-1 flex items-center gap-1 rounded border border-white/10 bg-black/60 ${当前角色已死亡 ? 'text-gray-300' : currentNPC.是否在场 ? 'text-emerald-400' : 'text-gray-500'}`}>
                                                     <span className={`w-1.5 h-1.5 rounded-full ${当前角色已死亡 ? 'bg-gray-400' : currentNPC.是否在场 ? 'bg-emerald-400 animate-pulse' : 'bg-gray-600'}`}></span>
                                                     {当前角色已死亡 ? '已故' : currentNPC.是否在场 ? '在场中' : '离场'}
                                                 </span>
                                                 {currentNPC?.图片档案?.已选立绘图片ID && (
-                                                    <span className="text-xs bg-sky-950/30 border border-sky-500/30 px-2 py-1 rounded text-sky-200">已设立绘</span>
+                                                    <span className="text-[11px] leading-none bg-sky-950/30 border border-sky-500/30 px-2 py-1 rounded text-sky-200">已设立绘</span>
                                                 )}
                                                 {currentNPC?.图片档案?.已选背景图片ID && (
-                                                    <span className="text-xs bg-fuchsia-950/30 border border-fuchsia-500/30 px-2 py-1 rounded text-fuchsia-200">已设背景</span>
+                                                    <span className="text-[11px] leading-none bg-fuchsia-950/30 border border-fuchsia-500/30 px-2 py-1 rounded text-fuchsia-200">已设背景</span>
                                                 )}
                                                 {currentNPC.是否队友 && (
-                                                    <span className="text-xs bg-wuxia-gold/10 border border-wuxia-gold/30 px-2 py-1 rounded text-wuxia-gold flex items-center gap-1 shadow-[0_0_8px_rgba(212,175,55,0.2)]">
+                                                    <span className="text-[11px] leading-none bg-wuxia-gold/10 border border-wuxia-gold/30 px-2 py-1 rounded text-wuxia-gold flex items-center gap-1 shadow-[0_0_8px_rgba(212,175,55,0.2)]">
                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
                                                             <path fillRule="evenodd" d="M12.516 2.17a.75.75 0 00-1.032 0 11.209 11.209 0 01-7.877 3.08.75.75 0 00-.722.515A12.74 12.74 0 002.25 9.735c0 5.936 2.302 11.332 6.136 15.166a.75.75 0 001.03 0 11.209 11.209 0 017.878-3.08.75.75 0 00.72-.514 12.74 12.74 0 00.635-3.971 12.74 12.74 0 00-.635-3.971.75.75 0 00-.72-.514 11.209 11.209 0 01-7.878 3.08.75.75 0 00-1.03 0C5.553 14.168 3.25 8.773 3.25 2.836A12.74 12.74 0 013.886 6.8c.189.923.473 1.83.844 2.71a.75.75 0 00.72.514 11.209 11.209 0 017.878-3.08.75.75 0 001.03 0z" clipRule="evenodd" />
                                                         </svg>
@@ -1035,6 +1039,38 @@ const SocialModal: React.FC<Props> = ({
                                                             </div>
                                                         )}
 
+                                                        <div className="mb-5 rounded-lg border border-fuchsia-700/35 bg-fuchsia-950/10 p-3">
+                                                            <div className="mb-3 flex items-center justify-between gap-2">
+                                                                <div className="text-[10px] font-bold tracking-[0.22em] text-fuchsia-300">名器档案</div>
+                                                                <div className="text-[9px] font-mono text-fuchsia-300/50">TAGGED PROFILE</div>
+                                                            </div>
+                                                            {当前名器档案.length > 0 ? (
+                                                                <div className="grid grid-cols-1 gap-2 xl:grid-cols-3">
+                                                                    {当前名器档案.map((item) => (
+                                                                        <div key={`${item.部位}_${item.名称}`} className="rounded border border-fuchsia-800/30 bg-black/35 p-2">
+                                                                            <div className="flex flex-wrap items-center gap-1.5 leading-none">
+                                                                                <span className="text-[10px] text-fuchsia-200/70">{item.部位}</span>
+                                                                                <span className="text-xs font-bold text-fuchsia-100">{item.名称}</span>
+                                                                                <span className={`rounded border px-1.5 py-0.5 text-[9px] leading-none ${item.品质 === '无' ? 'border-gray-700 text-gray-500' : 'border-wuxia-gold/40 text-wuxia-gold'}`}>{item.品质 || '未定'}</span>
+                                                                            </div>
+                                                                            {item.标签.length > 0 && (
+                                                                                <div className="mt-2 flex flex-wrap gap-1">
+                                                                                    {item.标签.map((tag) => (
+                                                                                        <span key={tag} className="rounded bg-fuchsia-500/10 px-1.5 py-0.5 text-[9px] leading-none text-fuchsia-200/80">{tag}</span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                            {item.稳定描述 && (
+                                                                                <div className="mt-2 text-[11px] leading-relaxed text-fuchsia-100/70">{清理名器描述标签(item.稳定描述)}</div>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="rounded border border-dashed border-fuchsia-900/30 bg-black/20 p-3 text-center text-[10px] tracking-widest text-fuchsia-200/40">暂无名器档案</div>
+                                                            )}
+                                                        </div>
+
                                                         <div className="grid grid-cols-3 gap-2 mb-5">
                                                             {香闺部位列表.map((item) => {
                                                                 const result = 读取香闺秘档图片结果(currentNPC, item.key);
@@ -1085,34 +1121,6 @@ const SocialModal: React.FC<Props> = ({
                                                         <div className="grid grid-cols-2 gap-3 mb-5">
                                                             <PrivateTag label="性癖" value={读取性癖(currentNPC) || '暂无记录'} color="text-pink-400" />
                                                             <PrivateTag label="敏感点" value={读取敏感点(currentNPC) || '暂无记录'} color="text-red-400" />
-                                                        </div>
-
-                                                        <div className="mb-5 rounded-lg border border-fuchsia-700/35 bg-fuchsia-950/10 p-3">
-                                                            <div className="mb-3 flex items-center justify-between gap-2">
-                                                                <div className="text-[10px] font-bold tracking-[0.22em] text-fuchsia-300">名器标签</div>
-                                                                <div className="text-[9px] font-mono text-fuchsia-300/50">TAGGED PROFILE</div>
-                                                            </div>
-                                                            {当前名器档案.length > 0 ? (
-                                                                <div className="space-y-2">
-                                                                    {当前名器档案.map((item) => (
-                                                                        <div key={`${item.部位}_${item.名称}`} className="rounded border border-fuchsia-800/30 bg-black/35 p-2">
-                                                                            <div className="flex flex-wrap items-center gap-2">
-                                                                                <span className="text-[10px] text-fuchsia-200/70">{item.部位}</span>
-                                                                                <span className="text-sm font-bold text-fuchsia-200">{item.名称}</span>
-                                                                                <span className={`rounded border px-1.5 py-0.5 text-[9px] ${item.品质 === '无' ? 'border-gray-700 text-gray-500' : 'border-wuxia-gold/40 text-wuxia-gold'}`}>{item.品质 || '未定'}</span>
-                                                                                {item.标签.map((tag) => (
-                                                                                    <span key={tag} className="rounded bg-fuchsia-500/10 px-1.5 py-0.5 text-[9px] text-fuchsia-200/80">{tag}</span>
-                                                                                ))}
-                                                                            </div>
-                                                                            {item.稳定描述 && (
-                                                                                <div className="mt-1 text-[11px] leading-relaxed text-fuchsia-100/70">{item.稳定描述}</div>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="rounded border border-dashed border-fuchsia-900/30 bg-black/20 p-3 text-center text-[10px] tracking-widest text-fuchsia-200/40">暂无名器标签</div>
-                                                            )}
                                                         </div>
 
                                                         {/* Womb & Pregnancy Records (New Section) */}

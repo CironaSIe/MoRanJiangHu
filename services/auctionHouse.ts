@@ -169,6 +169,35 @@ const 行情模板: Array<Omit<拍卖行情, 'ID' | '过期时间'>> = [
     { 标题: '雅玩回落', 描述: '富户收手观望，饰品与旧玩更容易压价成交。', 影响类型: '饰品', 价格倍率: 0.92, 热点标签: '雅玩回落' },
 ];
 
+const 现代行情模板: Array<Omit<拍卖行情, 'ID' | '过期时间'>> = [
+    { 标题: '同城急单', 描述: '同城跑腿和二手平台交易增多，电子设备与实用工具更容易溢价。', 影响类型: '杂物', 价格倍率: 1.16, 热点标签: '同城急单' },
+    { 标题: '医疗紧张', 描述: '附近医院排队加重，基础急救用品和消耗品被提前囤走。', 影响类型: '消耗品', 价格倍率: 1.2, 热点标签: '医疗紧张' },
+    { 标题: '劳保补仓', 描述: '仓储和工地集中补采购，防护装备与工具类货品短线走高。', 影响类型: '装备', 价格倍率: 1.14, 热点标签: '劳保补仓' },
+    { 标题: '古玩观望', 描述: '藏家暂时压价，饰品和旧物成交价有所回落。', 影响类型: '饰品', 价格倍率: 0.93, 热点标签: '古玩观望' },
+];
+
+const 都市修行行情模板: Array<Omit<拍卖行情, 'ID' | '过期时间'>> = [
+    { 标题: '暗市问价', 描述: '觉醒者圈层开始打听异常材料，灰色渠道报价被抬高。', 影响类型: '材料', 价格倍率: 1.22, 热点标签: '暗市问价' },
+    { 标题: '防护热卖', 描述: '几起异常事故后，护具和应急装备需求明显增加。', 影响类型: '装备', 价格倍率: 1.18, 热点标签: '防护热卖' },
+    { 标题: '古物走高', 描述: '疑似灵物的古玩被反复转手，饰品类报价短时上扬。', 影响类型: '饰品', 价格倍率: 1.2, 热点标签: '古物走高' },
+    { 标题: '药品限购', 描述: '药房和诊所加强限购，恢复类消耗品更抢手。', 影响类型: '消耗品', 价格倍率: 1.16, 热点标签: '药品限购' },
+];
+
+const 末日行情模板: Array<Omit<拍卖行情, 'ID' | '过期时间'>> = [
+    { 标题: '净水紧缺', 描述: '水源检测结果恶化，净水片和容器类物资被营地集中收购。', 影响类型: '消耗品', 价格倍率: 1.28, 热点标签: '净水紧缺' },
+    { 标题: '夜巡加码', 描述: '感染群夜间活动增加，照明、防护和静音武器需求走高。', 影响类型: '装备', 价格倍率: 1.2, 热点标签: '夜巡加码' },
+    { 标题: '燃油管制', 描述: '车队暂停外放燃油，小桶汽油和维修材料价格上扬。', 影响类型: '材料', 价格倍率: 1.24, 热点标签: '燃油管制' },
+    { 标题: '罐头回落', 描述: '一处仓库刚被清理，普通食物短时供应变宽。', 影响类型: '消耗品', 价格倍率: 0.9, 热点标签: '罐头回落' },
+];
+
+const 获取题材行情模板 = (mode?: 拍卖题材模式): Array<Omit<拍卖行情, 'ID' | '过期时间'>> => {
+    const profile = 获取题材模式配置(mode);
+    if (profile.group === 'modern') return 现代行情模板;
+    if (profile.group === 'apocalypse') return 末日行情模板;
+    if (profile.group === 'urban_xianxia') return 都市修行行情模板;
+    return 行情模板;
+};
+
 const 随机ID = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 const 读数 = (value: unknown, fallback = 0) => {
     const parsed = Number(value);
@@ -477,13 +506,25 @@ export const 保存拍卖行状态 = (state: 拍卖行状态, scope?: string) =>
 
 export const 创建默认拍卖行状态 = (): 拍卖行状态 => 清理并补货(创建空拍卖行状态(), { 允许系统补货: false }); // 新档不自动补货
 
-export const 生成行情列表 = (force = false, previous: 拍卖行情[] = [], previousTime = 0): { 行情列表: 拍卖行情[]; 最近行情时间: number } => {
+const 行情是否不符合题材 = (market: 拍卖行情, mode?: 拍卖题材模式): boolean => {
+    const profile = 获取题材模式配置(mode);
+    const text = [market?.标题, market?.描述, market?.热点标签].filter(Boolean).join(' ');
+    if (profile.group === 'modern' || profile.group === 'apocalypse') {
+        return /镖局|镖道|宗门|门派|坊市|药铺|铸坊|玄铁|毒砂|秘籍|旧谱|江湖|灵石|灵宝|丹药|法宝|符箓/u.test(text);
+    }
+    if (profile.group === 'wuxia') {
+        return /同城|二手平台|医院|工地|仓储|觉醒者|异常|感染|营地|车队|燃油|罐头|净水/u.test(text);
+    }
+    return false;
+};
+
+export const 生成行情列表 = (force = false, previous: 拍卖行情[] = [], previousTime = 0, mode?: 拍卖题材模式): { 行情列表: 拍卖行情[]; 最近行情时间: number } => {
     const now = Date.now();
-    const activePrevious = previous.filter((item) => item.过期时间 > now);
+    const activePrevious = previous.filter((item) => item.过期时间 > now && !行情是否不符合题材(item, mode));
     if (!force && activePrevious.length > 0 && now - previousTime < 6 * HOUR_MS) {
         return { 行情列表: activePrevious, 最近行情时间: previousTime || now };
     }
-    const shuffled = [...行情模板].sort(() => Math.random() - 0.5);
+    const shuffled = [...获取题材行情模板(mode)].sort(() => Math.random() - 0.5);
     const count = 2 + Math.floor(Math.random() * 2);
     return {
         行情列表: shuffled.slice(0, count).map((template) => ({
@@ -497,7 +538,7 @@ export const 生成行情列表 = (force = false, previous: 拍卖行情[] = [],
 
 export const 清理并补货 = (state: 拍卖行状态, options?: { 允许系统补货?: boolean; 最大系统补货数量?: number; 目标在售数量?: number; 题材模式?: 拍卖题材模式 }): 拍卖行状态 => {
     const now = Date.now();
-    const 行情 = 生成行情列表(false, state.行情列表 || [], state.最近行情时间);
+    const 行情 = 生成行情列表(false, state.行情列表 || [], state.最近行情时间, options?.题材模式);
     const cleaned = (state.拍卖品列表 || [])
         .filter((entry) => !是否旧系统兜底拍卖品(entry))
         .filter((entry) => {

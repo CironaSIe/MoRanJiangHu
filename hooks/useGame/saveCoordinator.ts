@@ -543,7 +543,7 @@ export const 创建存档数据 = (
         环境信息: envSource,
         历史记录: historySnapshot
     });
-    const auctionHouseSource = snapshot?.auctionHouse || 读取拍卖行状态(auctionHouseScope);
+    const auctionHouseSource = snapshot?.auctionHouse || 清理并补货(读取拍卖行状态(auctionHouseScope), { 题材模式: currentState.开局配置?.题材模式 });
     const filteredSceneImageArchive = 过滤当前存档场景图片档案(sceneImageArchiveSource, historySnapshot, deps);
     const filteredCharacterAnchors = 过滤当前存档角色锚点(
         currentState.角色锚点列表,
@@ -890,8 +890,8 @@ export const 执行读取存档 = async (
     });
     const auctionScope = 构建拍卖行存储作用域(save);
     const loadedAuctionState = save.拍卖行 && typeof save.拍卖行 === 'object'
-        ? 清理并补货(save.拍卖行 as 拍卖行状态)
-        : 读取拍卖行状态(auctionScope);
+        ? 清理并补货(save.拍卖行 as 拍卖行状态, { 题材模式: save.开局配置?.题材模式 })
+        : 清理并补货(读取拍卖行状态(auctionScope), { 题材模式: save.开局配置?.题材模式 });
     保存拍卖行状态(loadedAuctionState, auctionScope);
     trace('auction.set.done');
     if (typeof window !== 'undefined') {

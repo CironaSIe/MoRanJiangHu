@@ -36,6 +36,8 @@ interface Props {
     enableKungfu?: boolean;
     enableImageManager?: boolean;
     enableNovelDecomposition?: boolean;
+    auctionHouseLabel?: string;
+    sectLabel?: string;
 }
 
 type IconName =
@@ -101,7 +103,9 @@ const MobileQuickMenu: React.FC<Props> = ({
     enablePlanningPanel = true,
     enableKungfu = true,
     enableImageManager = false,
-    enableNovelDecomposition = false
+    enableNovelDecomposition = false,
+    auctionHouseLabel = '拍卖',
+    sectLabel = '门派'
 }) => {
     const [collapsed, setCollapsed] = useState(false);
     const [showAllMenus, setShowAllMenus] = useState(false);
@@ -117,30 +121,31 @@ const MobileQuickMenu: React.FC<Props> = ({
         MENU_META.battle,
         MENU_META.equipment,
         MENU_META.inventory,
-        MENU_META.auction_house,
+        { ...MENU_META.auction_house, label: auctionHouseLabel },
         MENU_META.social,
         ...(enableKungfu ? [MENU_META.kungfu] : []),
         MENU_META.map,
         MENU_META.team,
+        { ...MENU_META.sect, label: sectLabel },
         MENU_META.task,
         ...(enableWorldPanel ? [MENU_META.world] : []),
         MENU_META.story,
         MENU_META.save,
         ...(enabled ? [MENU_META.music] : []),
         MENU_META.settings,
-    ]), [enableKungfu, enableWorldPanel, enabled]);
+    ]), [auctionHouseLabel, enableKungfu, enableWorldPanel, enabled, sectLabel]);
 
     const allMenus = useMemo<MenuMeta[]>(() => ([
         MENU_META.character,
         MENU_META.battle,
         MENU_META.equipment,
         MENU_META.inventory,
-        MENU_META.auction_house,
+        { ...MENU_META.auction_house, label: auctionHouseLabel },
         MENU_META.social,
         ...(enableKungfu ? [MENU_META.kungfu] : []),
         MENU_META.map,
         MENU_META.team,
-        MENU_META.sect,
+        { ...MENU_META.sect, label: sectLabel },
         MENU_META.task,
         MENU_META.agreement,
         ...(enableWorldPanel ? [MENU_META.world] : []),
@@ -153,7 +158,7 @@ const MobileQuickMenu: React.FC<Props> = ({
         MENU_META.save,
         MENU_META.load,
         MENU_META.settings,
-    ]), [enableHeroinePlan, enableImageManager, enableKungfu, enableNovelDecomposition, enablePlanningPanel, enableWorldPanel]);
+    ]), [auctionHouseLabel, enableHeroinePlan, enableImageManager, enableKungfu, enableNovelDecomposition, enablePlanningPanel, enableWorldPanel, sectLabel]);
 
     const handleMenuClick = (menu: MenuId) => {
         onMenuClick(menu);

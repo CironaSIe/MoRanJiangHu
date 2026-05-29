@@ -295,4 +295,40 @@ describe('item image prompt classification', () => {
         expect(negativePrompt).toContain('electronic device');
         expect(negativePrompt).toContain('manufactured object');
     });
+
+    it('renders modern assault rifles as firearms instead of ancient spears', () => {
+        const item = {
+            名称: '磨损的自动步枪',
+            类型: '武器',
+            品质: '良品',
+            描述: '枪身磨损严重，弹匣和枪托仍可使用。'
+        };
+        const prompt = 构建物品图提示词(item);
+        const negativePrompt = 构建物品负面提示词(item);
+
+        expect(prompt).toContain('modern assault rifle');
+        expect(prompt).toContain('receiver, barrel, magazine, stock');
+        expect(prompt).toContain('strict modern firearm prop only');
+        expect(prompt).not.toContain('strict traditional wuxia weapon prop only');
+        expect(negativePrompt).toContain('spear');
+        expect(negativePrompt).toContain('polearm');
+        expect(negativePrompt).not.toContain('modern weapon, firearm, gun');
+    });
+
+    it('renders tactical vests as wearable gear instead of shields', () => {
+        const item = {
+            名称: '战术背心',
+            类型: '防具',
+            品质: '良品',
+            描述: '带有模块化织带和弹匣袋的旧战术背心。'
+        };
+        const prompt = 构建物品图提示词(item);
+        const negativePrompt = 构建物品负面提示词(item);
+
+        expect(prompt).toContain('wearable tactical vest');
+        expect(prompt).toContain('MOLLE webbing');
+        expect(prompt).toContain('strict wearable tactical vest item');
+        expect(negativePrompt).toContain('shield only');
+        expect(negativePrompt).toContain('medieval shield');
+    });
 });

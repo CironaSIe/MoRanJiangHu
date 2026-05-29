@@ -26,13 +26,20 @@ const 古风晋升梯队: RankStep[] = [
 
 const 末日晋升梯队: RankStep[] = [
     { rank: '营地成员', lvl: 1, required: 0, discount: 0, perks: ['基础配给', '公共训练'] },
-    { rank: '外勤成员', lvl: 2, required: 100, discount: 0.05, perks: ['外勤任务', '物资库九五折'] },
-    { rank: '搜救队员', lvl: 3, required: 350, discount: 0.1, perks: ['搜救路线', '物资库九折'] },
-    { rank: '安全骨干', lvl: 4, required: 900, discount: 0.15, perks: ['夜巡资格', '训练资料优先'] },
-    { rank: '指挥骨干', lvl: 5, required: 1600, discount: 0.18, perks: ['行动调度', '物资库八二折'] },
-    { rank: '副负责人', lvl: 6, required: 3200, discount: 0.22, perks: ['库存调阅', '撤离路线权限'] },
-    { rank: '负责人', lvl: 7, required: 6500, discount: 0.26, perks: ['据点决策', '全库调配'] }
+    { rank: '营地骨干', lvl: 2, required: 150, discount: 0.06, perks: ['分工权限', '物资库九四折'] },
+    { rank: '营地管理人员', lvl: 3, required: 600, discount: 0.12, perks: ['行动排班', '训练资料优先'] },
+    { rank: '营地核心管理', lvl: 4, required: 1600, discount: 0.18, perks: ['库存调阅', '路线权限'] },
+    { rank: '营地统治者', lvl: 5, required: 4200, discount: 0.25, perks: ['据点决策', '全库调配'] }
 ];
+
+const 末日旧职位映射: Record<string, string> = {
+    外勤成员: '营地骨干',
+    搜救队员: '营地骨干',
+    安全骨干: '营地管理人员',
+    指挥骨干: '营地管理人员',
+    副负责人: '营地核心管理',
+    负责人: '营地统治者'
+};
 
 const 现代晋升梯队: RankStep[] = [
     { rank: '成员', lvl: 1, required: 0, discount: 0, perks: ['基础事务', '公共资料'] },
@@ -100,7 +107,7 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
         exchangeHint: '营地贡献足够即可领取物资。领取消耗当前贡献，不影响分工晋升所需的累计贡献。',
         spendHint: '晋升只看累计贡献，物资库领取只消耗当前可用贡献。',
         rankLadder: 末日晋升梯队,
-        rankMap: {} as Record<string, string>
+        rankMap: 末日旧职位映射
     };
 };
 
@@ -130,13 +137,17 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
     }, [activeTab, 未加入门派]);
 
     const 累计贡献 = Math.max(sectData.玩家贡献 || 0, sectData.累计贡献 || 0);
-    const 当前职位步骤 = 文案.rankLadder.find((item) => item.rank === sectData.玩家职位)
+    const 当前职位名称 = 显示职位(sectData.玩家职位);
+    const 当前职位步骤 = 文案.rankLadder.find((item) => item.rank === 当前职位名称)
         || [...文案.rankLadder].reverse().find((item) => 累计贡献 >= item.required)
         || 文案.rankLadder[0];
     const 当前折扣 = 当前职位步骤?.discount || 0;
     const 当前折扣文本 = 当前折扣 > 0 ? `${Math.round((1 - 当前折扣) * 100)}折` : '无折扣';
     const 计算折后贡献 = (price: number) => Math.max(1, Math.ceil(price * (1 - 当前折扣)));
-    const 取职位等级 = (rank?: string) => 文案.rankLadder.find((item) => item.rank === rank)?.lvl ?? 职位等级排序[rank || ''] ?? 0;
+    const 取职位等级 = (rank?: string) => {
+        const normalizedRank = 显示职位(rank);
+        return 文案.rankLadder.find((item) => item.rank === normalizedRank)?.lvl ?? 职位等级排序[rank || ''] ?? 0;
+    };
     const 职位可达 = (requiredRank?: string) => 取职位等级(sectData.玩家职位) >= 取职位等级(requiredRank || 文案.rankLadder[0]?.rank);
     const 战力分布 = sectData.战力分布 && typeof sectData.战力分布 === 'object' ? sectData.战力分布 : {};
     const 月俸规则 = sectData.月俸规则;
@@ -244,7 +255,7 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                         <div className="space-y-4 relative">
                                             {文案.rankLadder.map(({ rank, lvl, required, perks }) => {
                                                 const currentLvl = 当前职位步骤?.lvl || 0;
-                                                const isCurrent = rank === sectData.玩家职位;
+                                                const isCurrent = rank === 当前职位名称;
                                                 const isPassed = lvl < currentLvl;
                                                 const contributionReady = 累计贡献 >= required;
 

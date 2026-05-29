@@ -50,13 +50,19 @@ const r2VersionedApkKey = `${prefix}/${versionedApkFileName}`;
 const r2LatestApkKey = `${prefix}/latest.apk`;
 const r2VersionedApkUrl = `${legacyDownloadBaseUrl}/${encodeURIComponent(versionedApkFileName)}`;
 const r2LatestApkUrl = `${legacyDownloadBaseUrl}/latest.apk`;
+const workerVersionedApkUrl = websiteBaseUrl
+  ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedApkFileName)}`
+  : '';
+const workerLatestApkUrl = websiteBaseUrl
+  ? `${websiteBaseUrl}/api/apk/latest.apk`
+  : '';
 const versionedApkUrl = readEnv(
   'MORAN_RELEASE_VERSIONED_APK_URL',
-  skipApkUpload && hi168VersionedApkUrl
+  workerVersionedApkUrl || (skipApkUpload && hi168VersionedApkUrl
     ? hi168VersionedApkUrl
-    : (websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedApkFileName)}` : (releaseInfo.apkDownloadUrl || hi168VersionedApkUrl))
+    : (releaseInfo.apkDownloadUrl || hi168VersionedApkUrl))
 );
-const legacyLatestApkUrl = readEnv('MORAN_RELEASE_LATEST_APK_URL', releaseInfo.apkDownloadUrl || hi168LatestApkUrl);
+const legacyLatestApkUrl = readEnv('MORAN_RELEASE_LATEST_APK_URL', workerLatestApkUrl || releaseInfo.apkDownloadUrl || hi168LatestApkUrl);
 const preferredApkProvider = readEnv('MORAN_RELEASE_PREFERRED_APK_PROVIDER', 'r2') === 'hi168' ? 'hi168' : 'r2';
 const apkBuffer = fs.readFileSync(apkPath);
 const apkSha256 = crypto.createHash('sha256').update(apkBuffer).digest('hex');

@@ -599,10 +599,22 @@ const InputArea: React.FC<Props> = ({
     const effectivePlanningProgress = planningProgress || openingPlanningProgress;
     const effectiveVariableGenerationProgress = variableGenerationProgress || openingVariableGenerationProgress;
     const isOpeningQueue = Boolean(openingVariableGenerationProgress || openingWorldEvolutionProgress || openingPlanningProgress);
+    const openingQueueHasError = [openingVariableGenerationProgress, openingWorldEvolutionProgress, openingPlanningProgress]
+        .some((item) => item?.phase === 'error');
+    const openingQueueRunning = [openingVariableGenerationProgress, openingWorldEvolutionProgress, openingPlanningProgress]
+        .some((item) => item?.phase === 'start');
+    const openingFinalProgress = openingQueueHasError
+        ? null
+        : (openingQueueRunning
+            ? { phase: undefined, text: '等待独立阶段完成后写入存档。' }
+            : { phase: 'done', text: '开局独立阶段已结束，当前状态可落盘。' });
     const pipelineStages = (isOpeningQueue ? [
+        { id: 'opening-input', label: '玩家建档输入', progress: { phase: 'done', text: '已完成开局建档与玩家设定。' } },
+        { id: 'opening-story', label: '开局主剧情', progress: { phase: 'done', text: '主剧情已生成，后续为独立初始化阶段。' } },
         { id: 'variable', label: '开局变量生成', progress: openingVariableGenerationProgress },
         { id: 'world', label: '开局动态世界', progress: openingWorldEvolutionProgress },
-        { id: 'planning', label: '开局规划分析', progress: openingPlanningProgress }
+        { id: 'planning', label: '开局规划分析', progress: openingPlanningProgress },
+        { id: 'opening-save', label: '最终落盘', progress: openingFinalProgress }
     ] : [
         { id: 'polish', label: '文章优化', progress: polishProgress },
         { id: 'variable', label: '变量生成', progress: effectiveVariableGenerationProgress },
@@ -621,6 +633,13 @@ const InputArea: React.FC<Props> = ({
     const queueBadgeClass = queueRunning
         ? 'border-wuxia-cyan/60 bg-gradient-to-r from-wuxia-cyan/20 via-wuxia-gold/15 to-wuxia-cyan/20 text-wuxia-cyan animate-pulse shadow-[0_0_18px_rgba(34,211,238,0.2)]'
         : 'border-wuxia-gold/35 bg-black text-wuxia-gold/90 shadow-[0_10px_30px_rgba(0,0,0,0.35)]';
+    const RunningSpinner = ({ small = false }: { small?: boolean }) => (
+        <span className={`relative inline-flex shrink-0 items-center justify-center ${small ? 'h-4 w-4' : 'h-5 w-5'}`} aria-hidden="true">
+            <span className="absolute inset-0 rounded-full border border-wuxia-cyan/25 animate-ping" />
+            <span className="absolute inset-0 rounded-full border-2 border-wuxia-cyan/25 border-t-wuxia-cyan border-r-wuxia-gold animate-spin" />
+            <span className={`${small ? 'h-1 w-1' : 'h-1.5 w-1.5'} rounded-full bg-wuxia-cyan shadow-[0_0_10px_rgba(34,211,238,0.9)]`} />
+        </span>
+    );
     const 取阶段状态文案 = (phase?: string): string => {
         if (!phase) return '待命';
         if (phase === 'start') return '处理中';
@@ -717,13 +736,12 @@ const InputArea: React.FC<Props> = ({
                                 <button
                                     type="button"
                                     onClick={() => setQueueCollapsed(true)}
-                                    className={`h-7 w-40 border text-sm tracking-[0.18em] transition hover:bg-neutral-950 ${queueBadgeClass}`}
-                                    style={{ clipPath: 'polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)' }}
+                                    className={`h-8 min-w-[15rem] max-w-full rounded-full border px-4 text-sm tracking-[0.08em] transition hover:bg-neutral-950 ${queueBadgeClass}`}
                                     title="收起独立更新阶段队列"
                                 >
-                                    <span className="inline-flex items-center justify-center gap-2">
-                                        {queueRunning && <span className="inline-block w-3 h-3 border-2 border-wuxia-cyan/40 border-t-wuxia-cyan rounded-full animate-spin" />}
-                                        <span>{queueRunning ? `${currentRunningStage?.label || ''}运行中` : '收起队列'}</span>
+                                    <span className="inline-flex min-w-0 items-center justify-center gap-2">
+                                        {queueRunning && <RunningSpinner />}
+                                        <span className="min-w-0 truncate">{queueRunning ? `${currentRunningStage?.label || ''}运行中` : '收起队列'}</span>
                                     </span>
                                 </button>
                             </div>
@@ -733,13 +751,12 @@ const InputArea: React.FC<Props> = ({
                                 <button
                                     type="button"
                                     onClick={() => setQueueCollapsed(false)}
-                                    className={`h-8 px-4 min-w-[8rem] border text-sm tracking-[0.18em] transition hover:bg-neutral-950 ${queueBadgeClass}`}
-                                    style={{ clipPath: 'polygon(12% 0%, 88% 0%, 100% 100%, 0% 100%)' }}
+                                    className={`h-9 min-w-[15rem] max-w-[calc(100vw-2rem)] rounded-full border px-4 text-sm tracking-[0.08em] transition hover:bg-neutral-950 ${queueBadgeClass}`}
                                     title="展开独立更新阶段队列"
                                 >
-                                    <span className="inline-flex items-center justify-center gap-2">
-                                        {queueRunning && <span className="inline-block w-3 h-3 border-2 border-wuxia-cyan/40 border-t-wuxia-cyan rounded-full animate-spin" />}
-                                        <span>{queueRunning ? `${currentRunningStage?.label || '队列'}运行中` : '队列'}</span>
+                                    <span className="inline-flex min-w-0 items-center justify-center gap-2">
+                                        {queueRunning && <RunningSpinner />}
+                                        <span className="min-w-0 truncate">{queueRunning ? `${currentRunningStage?.label || '队列'}运行中` : '队列'}</span>
                                     </span>
                                 </button>
                             </div>
@@ -772,7 +789,7 @@ const InputArea: React.FC<Props> = ({
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         <span className="text-gray-500 text-xs">{index + 1}.</span>
                                                         {phase === 'start' ? (
-                                                            <span className="inline-block w-3 h-3 border-2 border-wuxia-cyan/40 border-t-wuxia-cyan rounded-full animate-spin" />
+                                                            <RunningSpinner small />
                                                         ) : (
                                                             <span className={取阶段状态色(phase)}>●</span>
                                                         )}

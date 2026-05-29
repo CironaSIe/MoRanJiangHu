@@ -214,18 +214,19 @@ const MobileSocial: React.FC<Props> = ({
         (npc as any).对主角称呼,
         (npc as any).档案?.对主角称呼
     );
-    const 读取胸部描述 = (npc: NPC结构): string => {
-        return 取首个非空文本((npc as any).胸部描述);
+    const 清理名器描述标签 = (value: string): string => {
+        const text = 取首个非空文本(value);
+        if (!text) return '';
+        return text
+            .replace(/^[\s"'“”‘’【】\[\]（）()]*[^：:]{1,18}[：:]\s*/u, '')
+            .replace(/(?:胸部|小穴|屁穴|肉棒)?\s*(?:拥有|带有|具备)?\s*[“"']?[^，。；;：:]{1,18}[”"']?\s*名器标签[，。；;]?\s*/gu, '')
+            .replace(/名器标签[：:]\s*[^，。；;]+[，。；;]?\s*/gu, '')
+            .trim();
     };
-    const 读取小穴描述 = (npc: NPC结构): string => {
-        return 取首个非空文本((npc as any).小穴描述);
-    };
-    const 读取屁穴描述 = (npc: NPC结构): string => {
-        return 取首个非空文本((npc as any).屁穴描述);
-    };
-    const 读取肉棒描述 = (npc: NPC结构): string => {
-        return 取首个非空文本((npc as any).肉棒描述);
-    };
+    const 读取胸部描述 = (npc: NPC结构): string => 清理名器描述标签(取首个非空文本((npc as any).胸部描述));
+    const 读取小穴描述 = (npc: NPC结构): string => 清理名器描述标签(取首个非空文本((npc as any).小穴描述));
+    const 读取屁穴描述 = (npc: NPC结构): string => 清理名器描述标签(取首个非空文本((npc as any).屁穴描述));
+    const 读取肉棒描述 = (npc: NPC结构): string => 清理名器描述标签(取首个非空文本((npc as any).肉棒描述));
     const 读取男娘设定 = (npc: NPC结构): string => {
         return 取首个非空文本((npc as any).男娘设定);
     };
@@ -236,6 +237,23 @@ const MobileSocial: React.FC<Props> = ({
         (npc as any).性癖
     );
     const 读取敏感点 = (npc: NPC结构): string => 取首个非空文本((npc as any).敏感点);
+    const 读取名器档案 = (npc: NPC结构): Array<{ 部位: string; 名称: string; 品质: string; 稳定描述: string; 标签: string[] }> => {
+        const source = Array.isArray((npc as any)?.名器档案) ? (npc as any).名器档案 : [];
+        return source
+            .map((item: any) => ({
+                部位: typeof item?.部位 === 'string' ? item.部位.trim() : '',
+                名称: typeof item?.名称 === 'string' ? item.名称.trim() : '',
+                品质: typeof item?.品质 === 'string' ? item.品质.trim() : '',
+                稳定描述: typeof item?.稳定描述 === 'string' ? item.稳定描述.trim() : '',
+                标签: Array.from(new Set([
+                    typeof item?.名称 === 'string' ? item.名称.trim() : '',
+                    ...(Array.isArray(item?.效果?.标签)
+                        ? item.效果.标签.map((tag: unknown) => typeof tag === 'string' ? tag.trim() : '').filter(Boolean)
+                        : [])
+                ].filter(Boolean))).slice(0, 4)
+            }))
+            .filter((item) => item.部位 && item.名称);
+    };
     const 读取香闺秘档图片结果 = (npc: NPC结构, part: 香闺秘档部位类型) => {
         const source = (npc as any)?.图片档案?.香闺秘档部位档案?.[part];
         return source && typeof source === 'object' ? source : undefined;
@@ -423,6 +441,7 @@ const MobileSocial: React.FC<Props> = ({
                 { key: '屁穴', label: '屁穴描述', text: 读取屁穴描述(currentNPC) || '暂无记录' }
             ])
         : [];
+    const 当前名器档案 = currentNPC ? 读取名器档案(currentNPC) : [];
     const 生成香闺部位键 = (npcId: string, part: 香闺秘档部位类型) => `${npcId}_${part}`;
 
     // Helper for Privacy Tags
@@ -1244,7 +1263,7 @@ const MobileSocial: React.FC<Props> = ({
                                             </div>
                                             
                                             {/* SPECIAL EVENT: FIRST TIME TAKEN BY PLAYER */}
-                                            {!currentNPC.是否处女 && currentNPC.初夜夺取者 === playerName && (
+                                             {!currentNPC.是否处女 && currentNPC.初夜夺取者 === playerName && (
                                                 <div className="mb-4 p-3 bg-gradient-to-r from-pink-950/80 to-black border border-pink-500/40 rounded-lg relative overflow-hidden">
                                                     <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-wuxia-gold/5 blur-xl"></div>
                                                     <div className="relative z-10 flex flex-col">
@@ -1263,10 +1282,42 @@ const MobileSocial: React.FC<Props> = ({
                                                             </div>
                                                         )}
                                                     </div>
-                                                </div>
-                                            )}
+                                                 </div>
+                                             )}
 
-                                            <div className="flex flex-col gap-2 mb-4">
+                                             <div className="mb-4 rounded-lg border border-fuchsia-700/35 bg-fuchsia-950/10 p-2.5">
+                                                 <div className="mb-2.5 flex items-center justify-between gap-2">
+                                                     <div className="text-[9px] font-bold tracking-[0.18em] text-fuchsia-300">名器档案</div>
+                                                     <div className="text-[8px] font-mono text-fuchsia-300/50">TAGGED</div>
+                                                 </div>
+                                                 {当前名器档案.length > 0 ? (
+                                                     <div className="space-y-2">
+                                                         {当前名器档案.map((item) => (
+                                                             <div key={`${item.部位}_${item.名称}`} className="rounded border border-fuchsia-800/30 bg-black/35 p-2">
+                                                                 <div className="flex flex-wrap items-center gap-1.5 leading-none">
+                                                                     <span className="text-[9px] text-fuchsia-200/70">{item.部位}</span>
+                                                                     <span className="text-[11px] font-bold text-fuchsia-100">{item.名称}</span>
+                                                                     <span className={`rounded border px-1.5 py-0.5 text-[8px] leading-none ${item.品质 === '无' ? 'border-gray-700 text-gray-500' : 'border-wuxia-gold/40 text-wuxia-gold'}`}>{item.品质 || '未定'}</span>
+                                                                 </div>
+                                                                 {item.标签.length > 0 && (
+                                                                     <div className="mt-1.5 flex flex-wrap gap-1">
+                                                                         {item.标签.map((tag) => (
+                                                                             <span key={tag} className="rounded bg-fuchsia-500/10 px-1.5 py-0.5 text-[8px] leading-none text-fuchsia-200/80">{tag}</span>
+                                                                         ))}
+                                                                     </div>
+                                                                 )}
+                                                                 {item.稳定描述 && (
+                                                                     <div className="mt-1.5 text-[10px] leading-5 text-fuchsia-100/70">{清理名器描述标签(item.稳定描述)}</div>
+                                                                 )}
+                                                             </div>
+                                                         ))}
+                                                     </div>
+                                                 ) : (
+                                                     <div className="rounded border border-dashed border-fuchsia-900/30 bg-black/20 p-2.5 text-center text-[9px] tracking-widest text-fuchsia-200/40">暂无名器档案</div>
+                                                 )}
+                                             </div>
+
+                                             <div className="flex flex-col gap-2 mb-4">
                                                 {香闺部位列表.map((item) => {
                                                     const result = 读取香闺秘档图片结果(currentNPC, item.key);
                                                     const imageUrl = 获取图片展示地址(result);

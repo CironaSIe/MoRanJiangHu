@@ -526,7 +526,9 @@ const WorkflowGraphSettings: React.FC<{
                     }}
                     disabled={normalized.configs.length === 0 || !onSave}
                     placeholder="选择渠道"
-                    buttonClassName="min-h-0 rounded-sm border-gray-700 bg-black/35 px-2 py-1 text-[10px]"
+                    buttonClassName="h-7 min-h-0 rounded-sm border-gray-700 bg-black/35 px-2 py-1 text-[9px] leading-4"
+                    panelClassName="text-[10px]"
+                    optionClassName="px-2 py-1.5 text-[10px] leading-4"
                 />
                 <div className="flex gap-1">
                     <div className="min-w-0 flex-1">
@@ -542,7 +544,9 @@ const WorkflowGraphSettings: React.FC<{
                             }}
                             disabled={modelOptions.length === 0 || !onSave}
                             placeholder="选择模型"
-                            buttonClassName="min-h-0 rounded-sm border-gray-700 bg-black/35 px-2 py-1 text-[10px]"
+                            buttonClassName="h-7 min-h-0 rounded-sm border-gray-700 bg-black/35 px-2 py-1 text-[9px] leading-4"
+                            panelClassName="text-[10px]"
+                            optionClassName="px-2 py-1.5 text-[10px] leading-4"
                         />
                     </div>
                     <button

@@ -23,6 +23,8 @@ interface Props {
     onOpenImageManager?: () => void;
     onOpenNovelDecomposition?: () => void;
     onOpenAuctionHouse?: () => void;
+    auctionHouseLabel?: string;
+    sectLabel?: string;
     worldEvolutionEnabled?: boolean;
     worldEvolutionUpdating?: boolean;
     enableWorldPanel?: boolean;
@@ -58,6 +60,8 @@ const RightPanel: React.FC<Props> = ({
     onOpenImageManager,
     onOpenNovelDecomposition,
     onOpenAuctionHouse,
+    auctionHouseLabel = '拍卖行',
+    sectLabel = '门派',
     worldEvolutionEnabled = false,
     worldEvolutionUpdating = false,
     enableWorldPanel = true,
@@ -97,7 +101,7 @@ const RightPanel: React.FC<Props> = ({
         { label: '战斗', action: onOpenBattle, color: 'primary' as const, changeKeys: ['战斗'] },
         { label: '装备', action: onOpenEquipment, color: 'primary' as const, changeKeys: ['装备'] },
         { label: '背包', action: onOpenInventory, color: 'primary' as const, changeKeys: ['背包'] },
-        ...(onOpenAuctionHouse ? [{ label: '拍卖行', action: onOpenAuctionHouse, color: 'primary' as const }] : []),
+        ...(onOpenAuctionHouse ? [{ label: auctionHouseLabel, action: onOpenAuctionHouse, color: 'primary' as const }] : []),
         { label: '社交', action: onOpenSocial, color: 'primary' as const, changeKeys: ['社交'] },
         ...(enableWorldPanel ? [{
             label: worldEvolutionUpdating ? '世界·更新中' : '世界',
@@ -111,7 +115,7 @@ const RightPanel: React.FC<Props> = ({
         { label: '队伍', action: onOpenTeam, color: 'primary' as const, changeKeys: ['队伍'] },
         ...(enableKungfu ? [{ label: kungfuLabel, action: onOpenKungfu, color: 'primary' as const, changeKeys: ['功法'] }] : []),
         { label: '地图', action: onOpenMap, color: 'primary' as const, changeKeys: ['地图'] },
-        { label: '门派', action: onOpenSect, color: 'primary' as const, changeKeys: ['玩家门派'] },
+        { label: sectLabel, action: onOpenSect, color: 'primary' as const, changeKeys: ['玩家门派'] },
         { label: '任务', action: onOpenTask, color: 'primary' as const, changeKeys: ['任务列表'] },
         { label: '约定', action: onOpenAgreement, color: 'primary' as const, changeKeys: ['约定列表'] },
         { label: '剧情', action: onOpenStory, color: 'primary' as const, changeKeys: ['剧情'] },

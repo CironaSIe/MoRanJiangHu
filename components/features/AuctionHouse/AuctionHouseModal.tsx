@@ -151,13 +151,13 @@ const AuctionHouseModal: React.FC<Props> = ({
     });
 
     const handleRefresh = () => {
-        const market = 生成行情列表(true, auctionState.行情列表 || [], auctionState.最近行情时间);
+        const market = 生成行情列表(true, auctionState.行情列表 || [], auctionState.最近行情时间, openingConfig?.题材模式);
         const next = 清理并补货({
             ...auctionState,
             行情列表: market.行情列表,
             最近行情时间: market.最近行情时间,
             最近补货时间: 0,
-        });
+        }, { 题材模式: openingConfig?.题材模式 });
         updateAuctionState(next);
         notify('市场已刷新', '牙行撤换旧货，并重新挂出受行情影响的新货。', 'success');
     };
