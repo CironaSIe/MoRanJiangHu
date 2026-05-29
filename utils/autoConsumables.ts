@@ -1,4 +1,5 @@
 import type { 游戏物品, 角色数据结构 } from '../types';
+import { 获取题材模式配置 } from './topicModeProfiles';
 
 type AutoConsumableTemplate = {
     id: string;
@@ -12,6 +13,7 @@ type AutoConsumableTemplate = {
 
 type 自动丹药预设选项 = {
     启用饱腹口渴系统?: boolean;
+    题材模式?: unknown;
 };
 
 const AUTO_CONSUMABLES: AutoConsumableTemplate[] = [
@@ -56,6 +58,55 @@ const AUTO_CONSUMABLES: AutoConsumableTemplate[] = [
     }
 ];
 
+const APOCALYPSE_CONSUMABLES: AutoConsumableTemplate[] = [
+    {
+        id: 'auto_survival_water',
+        name: '饮水瓶',
+        description: '营地常备饮水，水分过低时会自动饮用。',
+        visual: 'scratched reusable water bottle filled with clean water, apocalypse survival gear, no label',
+        value: 40,
+        count: 2,
+        effects: [{ 目标属性: '当前水分', 数值: 55 }]
+    },
+    {
+        id: 'auto_survival_biscuit',
+        name: '压缩饼干',
+        description: '便携口粮，饱腹过低时会自动食用。',
+        visual: 'plain compressed ration biscuits in torn unlabeled foil packet, no readable text',
+        value: 55,
+        count: 3,
+        effects: [{ 目标属性: '当前饱腹', 数值: 50 }]
+    },
+    {
+        id: 'auto_survival_first_aid',
+        name: '医用绷带',
+        description: '基础外伤处理物资，精力过低时会自动用于简单处理。',
+        visual: 'roll of clean medical bandage and gauze pads, no label or text',
+        value: 70,
+        count: 2,
+        effects: [{ 目标属性: '当前精力', 数值: 45 }]
+    }
+];
+
+const MODERN_CONSUMABLES: AutoConsumableTemplate[] = [
+    {
+        id: 'auto_modern_first_aid',
+        name: '急救包',
+        description: '现代急救用品，精力过低时会自动用于简单处理。',
+        visual: 'compact first aid kit opened to show bandages and medical supplies, no readable labels',
+        value: 120,
+        count: 1,
+        effects: [{ 目标属性: '当前精力', 数值: 45 }]
+    }
+];
+
+const 获取自动消耗品模板 = (options?: 自动丹药预设选项): AutoConsumableTemplate[] => {
+    const profile = 获取题材模式配置(options?.题材模式);
+    if (profile.group === 'apocalypse') return APOCALYPSE_CONSUMABLES;
+    if (profile.group === 'modern') return MODERN_CONSUMABLES;
+    return AUTO_CONSUMABLES;
+};
+
 const 取文本 = (value: unknown, fallback = ''): string => (
     typeof value === 'string' ? value.trim() : fallback
 );
@@ -65,7 +116,7 @@ const 取数字 = (value: unknown, fallback = 0): number => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const 创建丹药物品 = (template: AutoConsumableTemplate): 游戏物品 => ({
+const 创建自动消耗品 = (template: AutoConsumableTemplate): 游戏物品 => ({
     ID: template.id,
     名称: template.name,
     描述: template.description,
@@ -82,19 +133,19 @@ const 创建丹药物品 = (template: AutoConsumableTemplate): 游戏物品 => (
     使用效果: template.effects,
     视觉描述: template.visual,
     视觉描述来源: '默认消耗品写实预设',
-    视觉标签: ['写实道具', '丹药', '可复用图标'],
+    视觉标签: ['写实道具', '自动消耗品', '可复用图标'],
     毒性: template.name === '破境丹' ? 2 : 0,
     物品来源类型: '未知',
-    来源描述: '系统按生存与突破规则预设的基础丹药。'
+    来源描述: '系统按题材模式、生存与突破规则预设的基础消耗品。'
 } as 游戏物品);
 
 export const 补齐自动丹药预设 = (items: any[], options?: 自动丹药预设选项): any[] => {
     const next = Array.isArray(items) ? [...items] : [];
     const names = new Set(next.map((item) => 取文本(item?.名称)).filter(Boolean));
-    AUTO_CONSUMABLES.forEach((template) => {
+    获取自动消耗品模板(options).forEach((template) => {
         if (options?.启用饱腹口渴系统 === false && template.name === '辟谷丹') return;
         if (!names.has(template.name)) {
-            next.push(创建丹药物品(template));
+            next.push(创建自动消耗品(template));
             names.add(template.name);
         }
     });
@@ -105,7 +156,11 @@ export const 补齐自动丹药预设 = (items: any[], options?: 自动丹药预
  * 这些 ID 专门留给系统按生存与突破规则预设的基础丹药。
  * 用来判断：角色用完后，不应该在下一回合被补齐逻辑再次塞回来。
  */
-export const 自动预设丹药ID集合 = new Set(AUTO_CONSUMABLES.map((template) => template.id));
+export const 自动预设丹药ID集合 = new Set([
+    ...AUTO_CONSUMABLES,
+    ...APOCALYPSE_CONSUMABLES,
+    ...MODERN_CONSUMABLES
+].map((template) => template.id));
 export const 自动预设丹药名称集合 = new Set(AUTO_CONSUMABLES.map((template) => template.name));
 
 const 匹配效果 = (item: any, target: string): number => {

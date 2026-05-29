@@ -117,6 +117,37 @@ const 标准化模型名 = (value: string): string => {
     return afterSlash.replace(/^models\//, '');
 };
 
+export const 规范化请求模型名称 = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return '';
+    if (/^[\x20-\x7E]+$/.test(raw)) return raw;
+
+    let candidate = raw;
+    for (let index = 0; index < 3; index += 1) {
+        const next = candidate
+            .replace(/[\s_-]*[（(【\[][^）)】\]]*[）)】\]]\s*$/u, '')
+            .trim();
+        if (next === candidate) break;
+        candidate = next;
+    }
+
+    if (/^[\x20-\x7E]+$/.test(candidate)) return candidate;
+
+    const nonAsciiIndex = [...candidate].findIndex((char) => char.charCodeAt(0) > 0x7E);
+    if (nonAsciiIndex > 0) {
+        const asciiPrefix = [...candidate]
+            .slice(0, nonAsciiIndex)
+            .join('')
+            .replace(/[\s_\-:/\\[(（【]+$/u, '')
+            .trim();
+        if (/[A-Za-z0-9]/.test(asciiPrefix) && /^[\x20-\x7E]+$/.test(asciiPrefix)) {
+            return asciiPrefix;
+        }
+    }
+
+    return raw;
+};
+
 export const 是否DeepSeek原生接口配置 = (apiConfig: 当前可用接口结构): boolean => {
     if (apiConfig.供应商 === 'deepseek') return true;
 
@@ -1057,14 +1088,15 @@ const 请求OpenAI家族文本 = async (
     let requestMessages = messages;
 
     for (let pass = 0; pass < 3; pass++) {
-        const endpoint = 构建OpenAI端点(apiConfig.baseUrl, apiConfig.供应商, apiConfig.model, {
+        const requestModel = 规范化请求模型名称(apiConfig.model);
+        const endpoint = 构建OpenAI端点(apiConfig.baseUrl, apiConfig.供应商, requestModel, {
             protocol,
             prefixMode: usePrefixMode
         });
         if (!endpoint) throw new Error('Missing API Base URL');
         const maxOutputTokens = 计算最大输出Token(apiConfig);
         const body: Record<string, unknown> = {
-            model: apiConfig.model,
+            model: requestModel || apiConfig.model,
             messages: requestMessages,
             temperature,
             stream: useStream,
@@ -1085,7 +1117,7 @@ const 请求OpenAI家族文本 = async (
         if (useStream && 支持原生流式请求()) {
             写入流式诊断日志('use native stream transport', {
                 endpoint,
-                model: apiConfig.model,
+                model: requestModel || apiConfig.model,
                 supplier: apiConfig.供应商
             });
             try {
@@ -1118,7 +1150,7 @@ const 请求OpenAI家族文本 = async (
         if (useStream && 支持XHR流式请求()) {
             写入流式诊断日志('use xhr stream transport', {
                 endpoint,
-                model: apiConfig.model,
+                model: requestModel || apiConfig.model,
                 supplier: apiConfig.供应商
             });
             try {
@@ -1192,7 +1224,7 @@ const 请求OpenAI家族文本 = async (
         try {
             写入流式诊断日志('use fetch stream transport', {
                 endpoint,
-                model: apiConfig.model,
+                model: requestModel || apiConfig.model,
                 supplier: apiConfig.供应商,
                 contentType
             });

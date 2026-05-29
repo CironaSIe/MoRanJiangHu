@@ -11,10 +11,61 @@ interface Props {
 }
 
 type Tab = 'hall' | 'exchange' | 'library' | 'members';
+type RankStep = { rank: string; lvl: number; required: number; discount: number; perks: string[] };
+
+const 古风晋升梯队: RankStep[] = [
+    { rank: '杂役弟子', lvl: 1, required: 0, discount: 0, perks: ['基础任务', '入门补给'] },
+    { rank: '外门弟子', lvl: 2, required: 100, discount: 0.05, perks: ['藏经阁入门典籍', '聚宝阁九五折'] },
+    { rank: '内门弟子', lvl: 3, required: 350, discount: 0.1, perks: ['进阶典籍', '聚宝阁九折'] },
+    { rank: '真传弟子', lvl: 4, required: 900, discount: 0.15, perks: ['真传典籍优先', '聚宝阁八五折'] },
+    { rank: '执事', lvl: 5, required: 1600, discount: 0.18, perks: ['执事任务', '聚宝阁八二折'] },
+    { rank: '长老', lvl: 6, required: 3200, discount: 0.22, perks: ['高阶典籍调阅', '聚宝阁七八折'] },
+    { rank: '副掌门', lvl: 7, required: 6500, discount: 0.26, perks: ['门派要务', '聚宝阁七四折'] },
+    { rank: '掌门', lvl: 8, required: 12000, discount: 0.3, perks: ['全阁调阅', '聚宝阁七折'] }
+];
+
+const 末日晋升梯队: RankStep[] = [
+    { rank: '营地成员', lvl: 1, required: 0, discount: 0, perks: ['基础配给', '公共训练'] },
+    { rank: '外勤成员', lvl: 2, required: 100, discount: 0.05, perks: ['外勤任务', '物资库九五折'] },
+    { rank: '搜救队员', lvl: 3, required: 350, discount: 0.1, perks: ['搜救路线', '物资库九折'] },
+    { rank: '安全骨干', lvl: 4, required: 900, discount: 0.15, perks: ['夜巡资格', '训练资料优先'] },
+    { rank: '指挥骨干', lvl: 5, required: 1600, discount: 0.18, perks: ['行动调度', '物资库八二折'] },
+    { rank: '副负责人', lvl: 6, required: 3200, discount: 0.22, perks: ['库存调阅', '撤离路线权限'] },
+    { rank: '负责人', lvl: 7, required: 6500, discount: 0.26, perks: ['据点决策', '全库调配'] }
+];
+
+const 现代晋升梯队: RankStep[] = [
+    { rank: '成员', lvl: 1, required: 0, discount: 0, perks: ['基础事务', '公共资料'] },
+    { rank: '外勤成员', lvl: 2, required: 100, discount: 0.05, perks: ['外勤事项', '资源库九五折'] },
+    { rank: '专业骨干', lvl: 3, required: 350, discount: 0.1, perks: ['专项资料', '资源库九折'] },
+    { rank: '项目骨干', lvl: 4, required: 900, discount: 0.15, perks: ['项目权限', '培训优先'] },
+    { rank: '协调负责人', lvl: 5, required: 1600, discount: 0.18, perks: ['资源协调', '预算建议'] },
+    { rank: '负责人', lvl: 6, required: 3200, discount: 0.22, perks: ['关键决策', '资源调配'] }
+];
 
 const 获取组织显示文案 = (sectData: 详细门派结构) => {
     const text = JSON.stringify(sectData || {});
     const isApocalypse = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|医疗维修|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(text);
+    const isModern = !isApocalypse && /现代|都市|公司|项目组|事务所|社区中心|门店|合作团队|合同|客户|技术成员|行政联系人|培训|手机|电脑/u.test(text);
+    if (isModern) {
+        return {
+            hall: '组织总览',
+            exchange: '资源库',
+            library: '资料库',
+            members: '成员名录',
+            rankPath: '岗位晋升',
+            contribution: '组织信用',
+            organizationPower: '组织能力',
+            memberCount: '成员',
+            capabilitySuffix: '',
+            rules: '守则',
+            principle: '组织准则',
+            exchangeHint: '信用额度足够即可申领。申领消耗当前信用，不影响晋升所需的累计信用。',
+            spendHint: '晋升只看累计生成过的信用，资源库申领只消耗当前可用信用。',
+            rankLadder: 现代晋升梯队,
+            rankMap: {} as Record<string, string>
+        };
+    }
     if (!isApocalypse) {
         return {
             hall: '宗门大殿',
@@ -27,6 +78,10 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
             memberCount: '弟子',
             capabilitySuffix: '',
             rules: '戒律',
+            principle: '宗门宗旨',
+            exchangeHint: '贡献点足够即可兑换。兑换消耗当前贡献，不影响晋升所需的累计贡献。',
+            spendHint: '晋升只看累计生成过的贡献点，聚宝阁兑换只消耗当前可用贡献。',
+            rankLadder: 古风晋升梯队,
             rankMap: {} as Record<string, string>
         };
     }
@@ -41,16 +96,11 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
         memberCount: '成员',
         capabilitySuffix: '能力值',
         rules: '守则',
-        rankMap: {
-            杂役弟子: '营地成员',
-            外门弟子: '外勤成员',
-            内门弟子: '搜救队员',
-            真传弟子: '安全骨干',
-            执事: '指挥骨干',
-            长老: '副负责人',
-            副掌门: '负责人',
-            掌门: '总负责人'
-        } as Record<string, string>
+        principle: '据点准则',
+        exchangeHint: '营地贡献足够即可领取物资。领取消耗当前贡献，不影响分工晋升所需的累计贡献。',
+        spendHint: '晋升只看累计贡献，物资库领取只消耗当前可用贡献。',
+        rankLadder: 末日晋升梯队,
+        rankMap: {} as Record<string, string>
     };
 };
 
@@ -80,42 +130,14 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
     }, [activeTab, 未加入门派]);
 
     const 累计贡献 = Math.max(sectData.玩家贡献 || 0, sectData.累计贡献 || 0);
-    const 晋升门槛: Record<string, number> = {
-        杂役弟子: 0,
-        外门弟子: 100,
-        内门弟子: 350,
-        真传弟子: 900,
-        执事: 1600,
-        长老: 3200,
-        副掌门: 6500,
-        掌门: 12000
-    };
-    const 职位折扣: Record<string, number> = {
-        杂役弟子: 0,
-        外门弟子: 0.05,
-        内门弟子: 0.1,
-        真传弟子: 0.15,
-        执事: 0.18,
-        长老: 0.22,
-        副掌门: 0.26,
-        掌门: 0.3
-    };
-    const 职位特权: Record<string, string[]> = {
-        杂役弟子: ['基础任务', '入门补给'],
-        外门弟子: ['藏经阁入门典籍', '聚宝阁九五折'],
-        内门弟子: ['进阶典籍', '聚宝阁九折'],
-        真传弟子: ['真传典籍优先', '聚宝阁八五折'],
-        执事: ['执事任务', '聚宝阁八二折'],
-        长老: ['高阶典籍调阅', '聚宝阁七八折'],
-        副掌门: ['门派要务', '聚宝阁七四折'],
-        掌门: ['全阁调阅', '聚宝阁七折']
-    };
-    const 当前折扣 = 职位折扣[sectData.玩家职位] || 0;
+    const 当前职位步骤 = 文案.rankLadder.find((item) => item.rank === sectData.玩家职位)
+        || [...文案.rankLadder].reverse().find((item) => 累计贡献 >= item.required)
+        || 文案.rankLadder[0];
+    const 当前折扣 = 当前职位步骤?.discount || 0;
     const 当前折扣文本 = 当前折扣 > 0 ? `${Math.round((1 - 当前折扣) * 100)}折` : '无折扣';
     const 计算折后贡献 = (price: number) => Math.max(1, Math.ceil(price * (1 - 当前折扣)));
-    const 职位可达 = (requiredRank?: string) => (
-        (职位等级排序[sectData.玩家职位] || 0) >= (职位等级排序[requiredRank || '杂役弟子'] || 0)
-    );
+    const 取职位等级 = (rank?: string) => 文案.rankLadder.find((item) => item.rank === rank)?.lvl ?? 职位等级排序[rank || ''] ?? 0;
+    const 职位可达 = (requiredRank?: string) => 取职位等级(sectData.玩家职位) >= 取职位等级(requiredRank || 文案.rankLadder[0]?.rank);
     const 战力分布 = sectData.战力分布 && typeof sectData.战力分布 === 'object' ? sectData.战力分布 : {};
     const 月俸规则 = sectData.月俸规则;
 
@@ -202,7 +224,7 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                     <div className="absolute top-0 right-0 p-4 opacity-10 text-[120px] font-serif leading-none pointer-events-none">宗</div>
                                     <h4 className="text-wuxia-gold font-bold text-lg mb-4 flex items-center gap-2">
                                         <span className="w-1 h-6 bg-wuxia-gold"></span>
-                                        {文案.hall === '据点总览' ? '据点准则' : '宗门宗旨'}
+                                        {文案.principle}
                                     </h4>
                                     <p className="text-gray-300 font-serif leading-loose text-lg indent-8">
                                         “{sectData.简介}”
@@ -220,11 +242,10 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                      <div className="bg-black/30 border border-gray-700 p-6 rounded-lg">
                                         <h4 className="text-gray-100 font-bold text-sm uppercase tracking-widest mb-4">{文案.rankPath}</h4>
                                         <div className="space-y-4 relative">
-                                            {Object.entries(职位等级排序).sort((a,b) => a[1] - b[1]).map(([rank, lvl]) => {
-                                                const currentLvl = 职位等级排序[sectData.玩家职位] || 0;
+                                            {文案.rankLadder.map(({ rank, lvl, required, perks }) => {
+                                                const currentLvl = 当前职位步骤?.lvl || 0;
                                                 const isCurrent = rank === sectData.玩家职位;
                                                 const isPassed = lvl < currentLvl;
-                                                const required = 晋升门槛[rank] ?? lvl * 200;
                                                 const contributionReady = 累计贡献 >= required;
 
                                                 if (lvl > currentLvl + 2 || lvl < currentLvl - 1) return null;
@@ -241,7 +262,7 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                                             <div className={`font-bold ${isCurrent ? 'text-wuxia-gold' : 'text-gray-100'}`}>{显示职位(rank)}</div>
                                                             <div className="mt-1 text-xs text-gray-200">累计贡献 {累计贡献} / {required}</div>
                                                             <div className="mt-1 text-[11px] text-gray-400">
-                                                                {(职位特权[rank] || []).join(' · ') || '暂无特权'}
+                                                                {perks.join(' · ') || '暂无特权'}
                                                             </div>
                                                         </div>
                                                         {isCurrent && <span className="text-xs text-wuxia-gold border border-wuxia-gold px-2 rounded">当前</span>}
@@ -263,12 +284,12 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                                  <div className="mt-2 text-2xl font-mono font-bold text-emerald-200">{累计贡献}</div>
                                              </div>
                                          </div>
-                                          <p className="mt-4 text-sm leading-6 text-gray-200">晋升只看累计生成过的贡献点，聚宝阁兑换只消耗当前可用贡献。</p>
+                                          <p className="mt-4 text-sm leading-6 text-gray-200">{文案.spendHint}</p>
                                           <div className="mt-4 rounded border border-wuxia-gold/20 bg-black/25 p-3">
                                              <div className="text-xs tracking-widest text-wuxia-gold/70">当前身份特权</div>
-                                             <div className="mt-2 text-sm text-gray-100">{显示职位(sectData.玩家职位)} · 聚宝阁{当前折扣文本}</div>
+                                             <div className="mt-2 text-sm text-gray-100">{显示职位(sectData.玩家职位)} · {文案.exchange}{当前折扣文本}</div>
                                              <div className="mt-2 flex flex-wrap gap-2">
-                                                 {(职位特权[sectData.玩家职位] || ['基础事务']).map(item => (
+                                                 {(当前职位步骤?.perks || ['基础事务']).map(item => (
                                                      <span key={item} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-gray-200">{文案.rankMap[item] || item}</span>
                                                  ))}
                                               </div>
@@ -315,8 +336,8 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                         {activeTab === 'exchange' && (
                              <div className="space-y-5 animate-slide-in">
                                  <div className="rounded-lg border border-wuxia-gold/20 bg-wuxia-gold/5 p-4">
-                                     <div className="text-lg font-bold text-wuxia-gold">聚宝阁</div>
-                                     <p className="mt-2 text-sm leading-6 text-gray-300">贡献点足够即可兑换。兑换消耗当前贡献，不影响晋升所需的累计贡献。</p>
+                                     <div className="text-lg font-bold text-wuxia-gold">{文案.exchange}</div>
+                                     <p className="mt-2 text-sm leading-6 text-gray-300">{文案.exchangeHint}</p>
                                  </div>
                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                                      {sectData.兑换列表.map(good => {

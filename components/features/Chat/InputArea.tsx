@@ -598,13 +598,18 @@ const InputArea: React.FC<Props> = ({
     const effectiveWorldEvolutionProgress = worldEvolutionProgress || openingWorldEvolutionProgress;
     const effectivePlanningProgress = planningProgress || openingPlanningProgress;
     const effectiveVariableGenerationProgress = variableGenerationProgress || openingVariableGenerationProgress;
-    const pipelineStages = [
+    const isOpeningQueue = Boolean(openingVariableGenerationProgress || openingWorldEvolutionProgress || openingPlanningProgress);
+    const pipelineStages = (isOpeningQueue ? [
+        { id: 'variable', label: '开局变量生成', progress: openingVariableGenerationProgress },
+        { id: 'world', label: '开局动态世界', progress: openingWorldEvolutionProgress },
+        { id: 'planning', label: '开局规划分析', progress: openingPlanningProgress }
+    ] : [
         { id: 'polish', label: '文章优化', progress: polishProgress },
         { id: 'variable', label: '变量生成', progress: effectiveVariableGenerationProgress },
         { id: 'world', label: '动态世界', progress: effectiveWorldEvolutionProgress },
         { id: 'planning', label: '规划分析', progress: effectivePlanningProgress },
         { id: 'map', label: '地图更新', progress: mapUpdateProgress }
-    ];
+    ]);
     const queueVisible = pipelineStages.some((stage) => Boolean(stage.progress));
     const historyStages = pipelineStages.filter((stage) => {
         const commandTexts = (stage.progress as { commandTexts?: string[] } | null)?.commandTexts;
@@ -741,7 +746,7 @@ const InputArea: React.FC<Props> = ({
                         ) : (
                             <div className="rounded-lg border border-wuxia-gold/25 bg-black p-3 space-y-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] max-h-[32svh] sm:max-h-[40vh] md:max-h-[58vh] overflow-y-auto no-scrollbar">
                                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                                    <div className="text-wuxia-gold">独立更新阶段队列</div>
+                                    <div className="text-wuxia-gold">{isOpeningQueue ? '开局初始化队列' : '独立更新阶段队列'}</div>
                                     <div className="text-gray-400">
                                         当前阶段：{currentRunningStage?.label || '无'}
                                         {' | '}

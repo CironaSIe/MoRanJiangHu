@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { 应用Claude兼容末尾User修正, 请求模型文本, type 通用消息 } from '../services/ai/chatCompletionClient';
+import { 应用Claude兼容末尾User修正, 请求模型文本, 规范化请求模型名称, type 通用消息 } from '../services/ai/chatCompletionClient';
 import type { 当前可用接口结构 } from '../utils/apiConfig';
 
 const baseConfig: 当前可用接口结构 = {
@@ -68,5 +68,30 @@ describe('chatCompletionClient Claude compatible message normalization', () => {
         expect(result).toBe('pong');
         expect(fetchMock).toHaveBeenCalled();
         expect(String(fetchMock.mock.calls[0][0])).toBe('https://qianfan.baidubce.com/v2/coding/chat/completions');
+    });
+
+    it('strips Chinese display suffixes from OpenAI-compatible model ids before sending requests', async () => {
+        expect(规范化请求模型名称('gemini-3.1-pro-high-search-真流-[星星公益站-CLI渠道]'))
+            .toBe('gemini-3.1-pro-high-search');
+        expect(规范化请求模型名称('deepseek-v3.2（公益渠道）')).toBe('deepseek-v3.2');
+
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+            choices: [{ message: { content: 'pong' } }]
+        }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' }
+        }));
+
+        await 请求模型文本({
+            ...baseConfig,
+            model: 'gemini-3.1-pro-high-search-真流-[星星公益站-CLI渠道]'
+        }, [{ role: 'user', content: 'ping' }], {
+            signal: undefined,
+            streamOptions: { stream: false },
+            errorDetailLimit: 500
+        });
+
+        const requestBody = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
+        expect(requestBody.model).toBe('gemini-3.1-pro-high-search');
     });
 });

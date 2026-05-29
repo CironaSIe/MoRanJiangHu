@@ -28,7 +28,7 @@ export interface 门派任务 {
 export interface 门派商品 {
     id: string;
     物品名称: string; // 直接使用中文名称
-    类型: '武学' | '丹药' | '装备' | '材料';
+    类型: '武学' | '丹药' | '装备' | '材料' | string;
     兑换价格: number; // 贡献点
     库存: number;
     要求职位: string; // e.g. "内门弟子"
@@ -37,7 +37,7 @@ export interface 门派商品 {
 export interface 门派藏经 {
     id: string;
     名称: string;
-    类型: '功法' | '身法' | '心法' | '杂学';
+    类型: '功法' | '身法' | '心法' | '杂学' | string;
     品阶: string;
     简介: string;
     要求职位: string;
@@ -76,6 +76,9 @@ export interface 详细门派结构 {
     名称: string;
     简介: string;
     门规: string[];
+    组织语义?: string;
+    组织类型?: string;
+    题材组织类型?: string;
     
     // 资源
     门派资金: number;

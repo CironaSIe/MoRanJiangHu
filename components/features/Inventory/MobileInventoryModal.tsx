@@ -12,9 +12,11 @@ import {
 import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 import { 获取物品明细分组 } from '../../../utils/rulebook';
 import { 是否杂物类物品 } from '../../../utils/inventoryActions';
+import { 获取题材模式配置 } from '../../../utils/topicModeProfiles';
 
 interface Props {
     character: any;
+    openingConfig?: any;
     onClose: () => void;
     onCharacterChange?: (nextCharacter: any) => void;
     onSellItem?: (itemId: string) => { ok: boolean; message: string } | void;
@@ -29,6 +31,15 @@ type ItemCategory = '全部' | '装备' | '任务道具' | '消耗品' | '材料
 const TYPE_ORDER = ['武器', '防具', '饰品', '任务道具', '秘籍', '消耗品', '材料', '杂物', '杂项'];
 const QUALITY_ORDER = ['传说', '绝世', '极品', '上品', '良品', '凡品'];
 const CATEGORIES: ItemCategory[] = ['全部', '装备', '任务道具', '消耗品', '材料', '秘籍', '杂物'];
+
+const 获取背包标题 = (openingConfig?: any): string => {
+    const profile = 获取题材模式配置(openingConfig?.题材模式);
+    if (profile.group === 'apocalypse') return '求生背包';
+    if (profile.group === 'modern') return '随身物品';
+    if (profile.group === 'urban_xianxia') return '随身行囊';
+    if (profile.group === 'xianxia') return '仙途行囊';
+    return '江湖行囊';
+};
 
 const getSafeNumber = (value: unknown, fallback = 0) => {
     const parsed = Number(value);
@@ -90,7 +101,7 @@ const MobileDetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ 
     </div>
 );
 
-const MobileInventoryModal: React.FC<Props> = ({ character, onClose, onCharacterChange, onSellItem, onDiscardItem, onSellAllMisc, onDiscardAllMisc, onRegenerateItemImage }) => {
+const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClose, onCharacterChange, onSellItem, onDiscardItem, onSellAllMisc, onDiscardAllMisc, onRegenerateItemImage }) => {
     const [activeCategory, setActiveCategory] = useState<ItemCategory>('全部');
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
     const [actionMessage, setActionMessage] = useState('');
@@ -209,7 +220,7 @@ const MobileInventoryModal: React.FC<Props> = ({ character, onClose, onCharacter
         <div className="inventory-modal-body mobile-inventory-modal-body fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fadeIn" style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}>
             <div className="relative flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900 shadow-2xl">
                 <div className="flex h-12 shrink-0 items-center justify-between border-b border-gray-800 bg-black/40 px-4">
-                    <span className="font-bold tracking-wider text-gray-200">行囊</span>
+                    <span className="font-bold tracking-wider text-gray-200">{获取背包标题(openingConfig)}</span>
                     <div className="flex items-center gap-3">
                         <span className={`text-xs font-mono ${isOverloaded ? 'text-red-500' : 'text-gray-500'}`}>
                             {totalWeight}/{maxWeight}斤

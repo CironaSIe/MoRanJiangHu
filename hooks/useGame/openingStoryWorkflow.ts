@@ -455,6 +455,15 @@ const 读取提示词内容 = (promptPool: 提示词结构[], promptId: string):
     return typeof matched?.内容 === 'string' ? matched.内容.trim() : '';
 };
 
+const 获取开局阶段渠道键 = (config: any, mainConfig?: any | null): string => {
+    if (!config) return '';
+    return [
+        String(config.id || config.名称 || config.供应商 || '').trim(),
+        String(config.baseUrl || '').trim().replace(/\/+$/, ''),
+        String(config.apiKey || '').trim()
+    ].filter(Boolean).join('|') || String(mainConfig?.id || mainConfig?.名称 || mainConfig?.供应商 || '').trim();
+};
+
 export const 执行开场剧情生成工作流 = async (
     contextData: any,
     promptSnapshot: 提示词结构[],
@@ -1202,20 +1211,27 @@ export const 执行开场剧情生成工作流 = async (
         const worldEvolutionFeatureEnabled = deps.apiConfig?.功能模型占位?.世界演变功能启用 !== false;
         const planningFeatureEnabled = deps.apiConfig?.功能模型占位?.规划分析功能启用 !== false;
         const openingWorldApi = 获取世界演变接口配置(deps.apiConfig);
+        const openingPlanningApi = 获取规划分析接口配置(deps.apiConfig);
+        const 开局世界与规划可并行 = worldEvolutionFeatureEnabled
+            && planningFeatureEnabled
+            && 接口配置是否可用(openingWorldApi)
+            && 接口配置是否可用(openingPlanningApi)
+            && 获取开局阶段渠道键(openingWorldApi, apiForOpening) !== 获取开局阶段渠道键(openingPlanningApi, apiForOpening);
+        let pendingOpeningWorldStage: Promise<any> | null = null;
         if (!worldEvolutionFeatureEnabled) {
             deps.设置开局世界演变进度({
                 phase: 'skipped',
                 text: '动态世界功能未开启，已跳过。'
             });
         } else if (接口配置是否可用(openingWorldApi)) {
-            const worldStage = await 执行可重试开局阶段({
+            const 运行开局动态世界阶段 = () => 执行可重试开局阶段({
                 stageLabel: '开局动态世界',
                 beforeAttempt: (attempt) => {
                     deps.设置开局世界演变进度({
                         phase: 'start',
                         text: attempt > 1
                             ? `正在重新初始化动态世界...（第 ${attempt} 次手动重试）`
-                            : '正在初始化动态世界...'
+                            : (开局世界与规划可并行 ? '正在初始化动态世界...（与规划分析并行）' : '正在初始化动态世界...')
                     });
                 },
                 onAutoRetry: (attempt, maxAttempts, reason) => {
@@ -1300,8 +1316,12 @@ export const 执行开场剧情生成工作流 = async (
                 },
                 getErrorText: (error: any) => error?.message || '动态世界初始化失败'
             });
-            const worldResult = worldStage.result;
-            if (worldStage.completed && worldResult) {
+            const worldStage = 开局世界与规划可并行 ? null : await 运行开局动态世界阶段();
+            if (开局世界与规划可并行) {
+                pendingOpeningWorldStage = 运行开局动态世界阶段();
+            }
+            const worldResult = worldStage?.result;
+            if (worldStage?.completed && worldResult) {
                 const worldInitCommands = 规范化世界演变命令列表(worldResult.commands as any);
                 openingWorldInitUpdates = 整理客户可见世界大事(
                     Array.isArray(worldResult.updates)
@@ -1365,7 +1385,6 @@ export const 执行开场剧情生成工作流 = async (
             }
         } catch (_) { /* 静默 */ }
 
-        const openingPlanningApi = 获取规划分析接口配置(deps.apiConfig);
         if (!planningFeatureEnabled) {
             deps.设置开局规划进度({
                 phase: 'skipped',
@@ -1522,6 +1541,42 @@ export const 执行开场剧情生成工作流 = async (
             });
         }
 
+        if (pendingOpeningWorldStage) {
+            const worldStage = await pendingOpeningWorldStage;
+            const worldResult = worldStage?.result;
+            if (worldStage?.completed && worldResult) {
+                const worldInitCommands = 规范化世界演变命令列表(worldResult.commands as any);
+                openingWorldInitUpdates = 整理客户可见世界大事(
+                    Array.isArray(worldResult.updates)
+                        ? worldResult.updates.map((item) => (item || '').trim()).filter(Boolean)
+                        : [],
+                    worldInitCommands
+                );
+                deps.设置开局世界演变进度({
+                    phase: worldInitCommands.length > 0 || openingWorldInitUpdates.length > 0
+                        ? 'done'
+                        : 'skipped',
+                    text: (
+                        worldInitCommands.length > 0 || openingWorldInitUpdates.length > 0
+                            ? '动态世界初始化完成。'
+                            : '动态世界初始化未产生更新。'
+                    ),
+                    rawText: worldResult.rawText,
+                    commandTexts: 构建带索引命令文本(worldInitCommands)
+                });
+                if (worldInitCommands.length > 0) {
+                    responseForExecution = {
+                        ...responseForExecution,
+                        tavern_commands: [
+                            ...(Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands : []),
+                            ...worldInitCommands
+                        ]
+                    };
+                    simulatedOpeningState = 保护开局门派(deps.processResponseCommands(responseForExecution, commandBaseState, { applyState: false }));
+                }
+            }
+        }
+
         const displayAiData: GameResponse = {
             ...aiData,
             tavern_commands: Array.isArray(responseForExecution.tavern_commands) ? [...responseForExecution.tavern_commands] : []
@@ -1536,7 +1591,8 @@ export const 执行开场剧情生成工作流 = async (
         const hasOpeningCommands = Array.isArray(responseForExecution?.tavern_commands) && responseForExecution.tavern_commands.length > 0;
         if (!hasOpeningCommands) {
             deps.设置角色(deps.规范化角色物品容器映射(openingStateAfterCommands.角色, {
-                启用饱腹口渴系统: openingGameConfig.启用饱腹口渴系统
+                启用饱腹口渴系统: openingGameConfig.启用饱腹口渴系统,
+                题材模式: options?.开局配置?.题材模式
             }));
             deps.设置环境(deps.规范化环境信息(openingStateAfterCommands.环境));
             deps.设置世界(deps.规范化世界状态(openingStateAfterCommands.世界));
