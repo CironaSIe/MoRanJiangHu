@@ -1464,7 +1464,7 @@ export const 执行主剧情发送工作流 = async (
 
                 const 应用文章优化结果 = (polishStage: Awaited<ReturnType<typeof 执行文章优化阶段>>) => {
                     const polished = polishStage?.result;
-                    if (polishStage.completed && polished) {
+                    if (polishStage?.completed && polished) {
                         if (polished.applied) {
                             displayAiData = polished.response;
                             finalDisplayResponse = {
@@ -1575,8 +1575,8 @@ export const 执行主剧情发送工作流 = async (
                     应用文章优化结果(polishStage);
                     variableStage = await 执行变量生成阶段(finalDisplayResponse);
                 }
-                variableGenerationResult = variableStage.result ?? null;
-                if (variableStage.completed && variableGenerationResult?.mergedParsed) {
+                variableGenerationResult = variableStage?.result ?? null;
+                if (variableStage?.completed && variableGenerationResult?.mergedParsed) {
                     responseForExecution = variableGenerationResult.mergedParsed;
                     finalParsedResponse = variableGenerationResult.mergedParsed;
                     finalDisplayResponse = 合并变量结果到展示响应(displayAiData, variableGenerationResult.mergedParsed);

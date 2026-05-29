@@ -392,6 +392,27 @@ const SocialModal: React.FC<Props> = ({
             ])
         : [];
     const 当前名器档案 = currentNPC ? 读取名器档案(currentNPC) : [];
+    const 读取部位名器档案 = (part: string) => 当前名器档案.find((item) => item.部位 === part);
+    const 名器标签框: React.FC<{ part: string }> = ({ part }) => {
+        const archive = 读取部位名器档案(part);
+        if (!archive) return null;
+        return (
+            <div className="mb-2 rounded border border-fuchsia-800/35 bg-fuchsia-950/15 p-2">
+                <div className="flex flex-wrap items-center gap-1.5 leading-none">
+                    <span className="text-[9px] font-bold tracking-[0.16em] text-fuchsia-300">名器</span>
+                    <span className="text-[11px] font-bold text-fuchsia-100">{archive.名称 || '无名器'}</span>
+                    <span className={`rounded border px-1.5 py-0.5 text-[8px] leading-none ${archive.品质 === '无' ? 'border-gray-700 text-gray-500' : 'border-wuxia-gold/40 text-wuxia-gold'}`}>{archive.品质 || '未定'}</span>
+                </div>
+                {archive.标签.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                        {archive.标签.map((tag) => (
+                            <span key={tag} className="rounded bg-fuchsia-500/10 px-1.5 py-0.5 text-[8px] leading-none text-fuchsia-200/80">{tag}</span>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
     const 生成香闺部位键 = (npcId: string, part: 香闺秘档部位类型) => `${npcId}_${part}`;
 
     // Helper for Privacy Tags
@@ -1039,38 +1060,6 @@ const SocialModal: React.FC<Props> = ({
                                                             </div>
                                                         )}
 
-                                                        <div className="mb-5 rounded-lg border border-fuchsia-700/35 bg-fuchsia-950/10 p-3">
-                                                            <div className="mb-3 flex items-center justify-between gap-2">
-                                                                <div className="text-[10px] font-bold tracking-[0.22em] text-fuchsia-300">名器档案</div>
-                                                                <div className="text-[9px] font-mono text-fuchsia-300/50">TAGGED PROFILE</div>
-                                                            </div>
-                                                            {当前名器档案.length > 0 ? (
-                                                                <div className="grid grid-cols-1 gap-2 xl:grid-cols-3">
-                                                                    {当前名器档案.map((item) => (
-                                                                        <div key={`${item.部位}_${item.名称}`} className="rounded border border-fuchsia-800/30 bg-black/35 p-2">
-                                                                            <div className="flex flex-wrap items-center gap-1.5 leading-none">
-                                                                                <span className="text-[10px] text-fuchsia-200/70">{item.部位}</span>
-                                                                                <span className="text-xs font-bold text-fuchsia-100">{item.名称}</span>
-                                                                                <span className={`rounded border px-1.5 py-0.5 text-[9px] leading-none ${item.品质 === '无' ? 'border-gray-700 text-gray-500' : 'border-wuxia-gold/40 text-wuxia-gold'}`}>{item.品质 || '未定'}</span>
-                                                                            </div>
-                                                                            {item.标签.length > 0 && (
-                                                                                <div className="mt-2 flex flex-wrap gap-1">
-                                                                                    {item.标签.map((tag) => (
-                                                                                        <span key={tag} className="rounded bg-fuchsia-500/10 px-1.5 py-0.5 text-[9px] leading-none text-fuchsia-200/80">{tag}</span>
-                                                                                    ))}
-                                                                                </div>
-                                                                            )}
-                                                                            {item.稳定描述 && (
-                                                                                <div className="mt-2 text-[11px] leading-relaxed text-fuchsia-100/70">{清理名器描述标签(item.稳定描述)}</div>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="rounded border border-dashed border-fuchsia-900/30 bg-black/20 p-3 text-center text-[10px] tracking-widest text-fuchsia-200/40">暂无名器档案</div>
-                                                            )}
-                                                        </div>
-
                                                         <div className="grid grid-cols-3 gap-2 mb-5">
                                                             {香闺部位列表.map((item) => {
                                                                 const result = 读取香闺秘档图片结果(currentNPC, item.key);
@@ -1107,6 +1096,7 @@ const SocialModal: React.FC<Props> = ({
                                                                                 </button>
                                                                             ) : (
                                                                                 <div className="p-3">
+                                                                                    <名器标签框 part={item.key} />
                                                                                     <p className="font-serif leading-relaxed text-xs text-pink-100/90 italic">
                                                                                         {item.text}
                                                                                     </p>

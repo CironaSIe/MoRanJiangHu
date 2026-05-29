@@ -195,6 +195,8 @@ type 开局独立阶段进度 = {
     text?: string;
     rawText?: string;
     commandTexts?: string[];
+    channelName?: string;
+    modelName?: string;
 };
 
 type 世界生成选项 = {
@@ -321,6 +323,7 @@ type 右下角提示结构 = {
     title: string;
     message: string;
     tone?: 'info' | 'success' | 'error';
+    previewUrl?: string;
 };
 
 export const useGame = () => {
@@ -1626,7 +1629,8 @@ export const useGame = () => {
                 message: matchedTask.状态 === 'success'
                     ? `${monitor.npcName}的${monitor.构图}已生成完成。`
                     : `${monitor.npcName}的${monitor.构图}生成失败：${matchedTask.错误信息 || '未知错误'}`,
-                tone: matchedTask.状态 === 'success' ? 'success' : 'error'
+                tone: matchedTask.状态 === 'success' ? 'success' : 'error',
+                previewUrl: matchedTask.状态 === 'success' ? 获取图片展示地址(matchedTask) : undefined
             });
             return false;
         });
@@ -1655,7 +1659,8 @@ export const useGame = () => {
                 message: matchedTask.状态 === 'success'
                     ? `${monitor.npcName}的${monitor.部位}特写已生成完成。`
                     : `${monitor.npcName}的${monitor.部位}特写生成失败：${matchedTask.错误信息 || '未知错误'}`,
-                tone: matchedTask.状态 === 'success' ? 'success' : 'error'
+                tone: matchedTask.状态 === 'success' ? 'success' : 'error',
+                previewUrl: matchedTask.状态 === 'success' ? 获取图片展示地址(matchedTask) : undefined
             });
             return false;
         });
@@ -1681,7 +1686,8 @@ export const useGame = () => {
                 message: matchedTask.状态 === 'success'
                     ? `${monitor.摘要 || '当前正文场景'}已生成完成。`
                     : `${monitor.摘要 || '当前正文场景'}生成失败：${matchedTask.错误信息 || '未知错误'}`,
-                tone: matchedTask.状态 === 'success' ? 'success' : 'error'
+                tone: matchedTask.状态 === 'success' ? 'success' : 'error',
+                previewUrl: matchedTask.状态 === 'success' ? 获取图片展示地址(matchedTask) : undefined
             });
             return false;
         });

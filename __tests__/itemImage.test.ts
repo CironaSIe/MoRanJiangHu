@@ -193,6 +193,41 @@ describe('item image prompt classification', () => {
         expect(negativePrompt).toContain('dark robe');
     });
 
+    it('renders modified crossbows as crossbows instead of polearms', () => {
+        const item = {
+            名称: '改装弩',
+            类型: '武器',
+            品质: '良品',
+            描述: '用废旧零件重新调校的静音弩，适合末世近距离伏击。'
+        };
+        const prompt = 构建物品图提示词(item);
+        const negativePrompt = 构建物品负面提示词(item);
+
+        expect(prompt).toContain('modified compact crossbow');
+        expect(prompt).toContain('horizontal bow limbs');
+        expect(prompt).toContain('stock, trigger');
+        expect(prompt).not.toContain('spear weapon');
+        expect(negativePrompt).toContain('polearm');
+        expect(negativePrompt).toContain('staff');
+    });
+
+    it('treats old military uniforms as soft cloth garments instead of armor', () => {
+        const item = {
+            名称: '旧军装',
+            类型: '防具',
+            品质: '凡品',
+            描述: '一套磨旧的军装，袖口已经起毛，只有基础遮蔽作用。'
+        };
+        const prompt = 构建物品图提示词(item);
+        const negativePrompt = 构建物品负面提示词(item);
+
+        expect(prompt).toContain('worn modern military uniform');
+        expect(prompt).toContain('soft textile clothing item');
+        expect(prompt).not.toContain('strict wearable armor item');
+        expect(negativePrompt).toContain('lamellar armor');
+        expect(negativePrompt).toContain('metal plates');
+    });
+
     it('keeps exclusions in the negative prompt for cloth shoes instead of the positive prompt', () => {
         const item = {
             名称: '千层底布鞋',
