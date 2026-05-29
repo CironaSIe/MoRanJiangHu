@@ -102,8 +102,17 @@ const MODERN_CONSUMABLES: AutoConsumableTemplate[] = [
 
 const 获取自动消耗品模板 = (options?: 自动丹药预设选项): AutoConsumableTemplate[] => {
     const profile = 获取题材模式配置(options?.题材模式);
-    if (profile.group === 'apocalypse') return APOCALYPSE_CONSUMABLES;
+    if (profile.group === 'apocalypse') {
+        const templates = APOCALYPSE_CONSUMABLES;
+        if (options?.启用饱腹口渴系统 === false) {
+            return templates.filter((template) => !template.effects.some((effect) => effect.目标属性 === '当前饱腹' || effect.目标属性 === '当前水分'));
+        }
+        return templates;
+    }
     if (profile.group === 'modern') return MODERN_CONSUMABLES;
+    if (options?.启用饱腹口渴系统 === false) {
+        return AUTO_CONSUMABLES.filter((template) => !template.effects.some((effect) => effect.目标属性 === '当前饱腹' || effect.目标属性 === '当前水分'));
+    }
     return AUTO_CONSUMABLES;
 };
 
@@ -143,7 +152,6 @@ export const 补齐自动丹药预设 = (items: any[], options?: 自动丹药预
     const next = Array.isArray(items) ? [...items] : [];
     const names = new Set(next.map((item) => 取文本(item?.名称)).filter(Boolean));
     获取自动消耗品模板(options).forEach((template) => {
-        if (options?.启用饱腹口渴系统 === false && template.name === '辟谷丹') return;
         if (!names.has(template.name)) {
             next.push(创建自动消耗品(template));
             names.add(template.name);
@@ -162,6 +170,13 @@ export const 自动预设丹药ID集合 = new Set([
     ...MODERN_CONSUMABLES
 ].map((template) => template.id));
 export const 自动预设丹药名称集合 = new Set(AUTO_CONSUMABLES.map((template) => template.name));
+export const 全部自动预设消耗品名称集合 = new Set([
+    ...AUTO_CONSUMABLES,
+    ...APOCALYPSE_CONSUMABLES,
+    ...MODERN_CONSUMABLES
+].map((template) => template.name));
+export const 古风丹药预设名称集合 = 自动预设丹药名称集合;
+export const 生存补给预设名称集合 = new Set(['辟谷丹', '饮水瓶', '压缩饼干']);
 
 const 匹配效果 = (item: any, target: string): number => {
     const effects = Array.isArray(item?.使用效果) ? item.使用效果 : [];

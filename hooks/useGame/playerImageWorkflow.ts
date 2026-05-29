@@ -20,7 +20,7 @@ type 主角图片工作流依赖 = {
     规范化角色物品容器映射: (raw?: any) => 角色数据结构;
     执行自动存档: (snapshot?: { role?: 角色数据结构; history?: any[]; force?: boolean }) => Promise<unknown> | unknown;
     获取历史记录: () => any[];
-    推送右下角提示: (toast: { title: string; message: string; tone?: 'info' | 'success' | 'error' }) => void;
+    推送右下角提示: (toast: { title: string; message: string; tone?: 'info' | 'success' | 'error'; previewUrl?: string }) => void;
     加载NPC生图工作流: () => Promise<any>;
     apiConfig: any;
     获取文生图接口配置: (config: any) => 当前可用接口结构 | null;
@@ -270,10 +270,14 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
                 更新NPC最近生图结果: (_npcKey: string, updater: (player: 角色数据结构) => any) => 更新玩家最近生图结果(updater)
             });
             if (meta?.showToast !== false) {
+                const latestPlayer = deps.获取角色();
+                const latestArchive = 合并NPC图片档案(latestPlayer?.图片档案, latestPlayer);
+                const previewUrl = 获取图片展示地址(latestArchive?.最近生图结果 || latestPlayer?.最近生图结果);
                 deps.推送右下角提示({
                     title: '主角生图完成',
                     message: `${playerName}的${options?.构图 || '头像'}已写入主角图片档案。`,
-                    tone: 'success'
+                    tone: 'success',
+                    previewUrl: previewUrl || undefined
                 });
             }
         } catch (error: any) {

@@ -550,6 +550,9 @@ const App: React.FC = () => {
         环境信息: state.环境,
         历史记录: state.历史记录
     }), [state.游戏初始时间, state.角色, state.环境, state.历史记录]);
+    const currentRealmPrompt = React.useMemo(() => (
+        (state.prompts || []).find((prompt) => prompt?.id === 'core_realm')?.内容 || ''
+    ), [state.prompts]);
     const runAppUpdateCheck = React.useCallback(async (options?: { silentNoUpdate?: boolean; auto?: boolean }) => {
         try {
             await checkForAppUpdate(options);
@@ -2867,6 +2870,7 @@ const App: React.FC = () => {
                                      openingWorldEvolutionProgress={meta.openingWorldEvolutionProgress}
                                      openingPlanningProgress={meta.openingPlanningProgress}
                                      openingVariableGenerationProgress={meta.openingVariableGenerationProgress}
+                                     mainStoryModelInfo={mainStoryApiInfo}
                                      externalDraft={chatDraftRequest}
                                      options={currentOptions}
                                  />
@@ -2998,8 +3002,18 @@ const App: React.FC = () => {
                                                 : 'border-sky-600/50 bg-sky-950/85 text-sky-100'
                                     }`}
                                 >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
+                                    <div className="flex items-start gap-3">
+                                        {toast.previewUrl && (
+                                            <div className="shrink-0 h-16 w-16 overflow-hidden rounded-lg border border-white/20 bg-black/25">
+                                                <img
+                                                    src={toast.previewUrl}
+                                                    alt=""
+                                                    className="h-full w-full object-cover"
+                                                    loading="lazy"
+                                                />
+                                            </div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
                                             <div className="font-semibold" style={{ fontSize: 'var(--ui-compact-font-size, 14px)' }}>{toast.title}</div>
                                             <div className="mt-1 opacity-90" style={{ fontSize: 'var(--ui-compact-font-size, 14px)', lineHeight: '1.55' }}>{toast.message}</div>
                                         </div>
@@ -3653,6 +3667,7 @@ const App: React.FC = () => {
                         <懒加载边界>
                             <EquipmentModal 
                                 character={state.角色} 
+                                openingConfig={state.开局配置}
                                 onCharacterChange={(nextCharacter: any) => {
                                     setters.setCharacter(nextCharacter);
                                     void actions.performAutoSave?.({ role: nextCharacter, force: true });
@@ -3669,6 +3684,8 @@ const App: React.FC = () => {
                                     character={state.角色}
                                     battle={state.战斗}
                                     contextText={latestBattleContextText}
+                                    openingConfig={state.开局配置}
+                                    realmPrompt={currentRealmPrompt}
                                     onClose={() => setters.setShowBattle(false)}
                                 />
                             ) : (
@@ -3677,6 +3694,8 @@ const App: React.FC = () => {
                                     battle={state.战斗}
                                     teammates={state.社交}
                                     contextText={latestBattleContextText}
+                                    openingConfig={state.开局配置}
+                                    realmPrompt={currentRealmPrompt}
                                     onClose={() => setters.setShowBattle(false)}
                                 />
                             )}

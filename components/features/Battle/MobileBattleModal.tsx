@@ -8,6 +8,8 @@ interface Props {
     character: 角色数据结构;
     battle: 战斗状态结构;
     contextText?: string;
+    openingConfig?: any;
+    realmPrompt?: string;
     onClose: () => void;
 }
 
@@ -38,7 +40,7 @@ const 条形值: React.FC<{
     );
 };
 
-const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '', onClose }) => {
+const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '', openingConfig, realmPrompt, onClose }) => {
     const 敌方列表 = (Array.isArray(battle?.敌方) ? battle.敌方 : []) as 扩展敌方[];
     const 存活敌人数 = 敌方列表.filter((enemy) => (enemy?.当前血量 || 0) > 0).length;
     const 可视化 = 生成战斗可视化数据(character, battle, contextText);
@@ -64,8 +66,9 @@ const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '
     const 玩家总血量当前 = 部位当前.reduce((sum, n) => sum + Math.max(0, Number(n) || 0), 0);
     const 玩家总血量上限 = 部位上限.reduce((sum, n) => sum + Math.max(0, Number(n) || 0), 0);
     const 境界值 = Math.max(1, Number(character.境界层级) || 1);
-    const 玩家是仙侠 = 推断单位仙侠(character);
-    const 玩家境界展示 = 获取单位境界显示(character, `境界值 ${境界值}`, { forceXianxia: 玩家是仙侠 });
+    const realmDisplayOptions = React.useMemo(() => ({ realmPrompt, openingConfig }), [realmPrompt, openingConfig]);
+    const 玩家是仙侠 = openingConfig?.题材模式 === '仙侠' || 推断单位仙侠(character);
+    const 玩家境界展示 = 获取单位境界显示(character, `境界值 ${境界值}`, { ...realmDisplayOptions, forceXianxia: 玩家是仙侠 });
  
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[210] flex items-center justify-center p-3 md:hidden animate-fadeIn">
@@ -155,7 +158,7 @@ const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '
                                             <div className="flex items-start justify-between">
                                                 <div>
                                                     <div className="text-sm text-gray-100 font-serif">{enemy?.名字 || `敌方${idx + 1}`}</div>
-                                                    <div className="text-[10px] text-gray-500 mt-0.5">{获取单位境界显示(enemy, '未知境界', { forceXianxia: 玩家是仙侠 || 推断单位仙侠(enemy) })}</div>
+                                                    <div className="text-[10px] text-gray-500 mt-0.5">{获取单位境界显示(enemy, '未知境界', { ...realmDisplayOptions, forceXianxia: 玩家是仙侠 || 推断单位仙侠(enemy) })}</div>
                                                 </div>
                                                 <div className="text-right text-[10px] font-mono">
                                                     <div className="text-red-300">攻 {enemy?.战斗力 || 0}</div>

@@ -165,6 +165,7 @@ interface Props {
     canQuickRestart?: boolean;
     options?: unknown[]; // Quick actions from the last turn
     externalDraft?: { text: string; token: number } | null;
+    mainStoryModelInfo?: { channelName?: string; modelName?: string };
     openingWorldEvolutionProgress?: WorldEvolutionProgress | null;
     openingPlanningProgress?: PlanningProgress | null;
     openingVariableGenerationProgress?: VariableGenerationProgress | null;
@@ -187,6 +188,7 @@ const InputArea: React.FC<Props> = ({
     canQuickRestart = false,
     options = [],
     externalDraft = null,
+    mainStoryModelInfo = undefined,
     openingWorldEvolutionProgress = null,
     openingPlanningProgress = null,
     openingVariableGenerationProgress = null
@@ -606,14 +608,35 @@ const InputArea: React.FC<Props> = ({
     const openingFinalProgress = openingQueueHasError
         ? null
         : (openingQueueRunning
-            ? { phase: undefined, text: '等待独立阶段完成后写入存档。' }
-            : { phase: 'done', text: '开局独立阶段已结束，当前状态可落盘。' });
+            ? { phase: undefined, text: '等待独立阶段完成后写入存档。', channelName: '本地状态处理', modelName: '不调用 AI' }
+            : { phase: 'done', text: '开局独立阶段已结束，当前状态可落盘。', channelName: '本地状态处理', modelName: '不调用 AI' });
+    const openingLocalProgress = { phase: 'done', text: '已完成开局建档与玩家设定。', channelName: '本地输入', modelName: '不调用 AI' };
+    const openingStoryProgress = {
+        phase: 'done',
+        text: '主剧情已生成，后续为独立初始化阶段。',
+        channelName: mainStoryModelInfo?.channelName || '未配置渠道',
+        modelName: mainStoryModelInfo?.modelName || '未选择模型'
+    };
+    const openingPolishProgress = {
+        phase: 'skipped',
+        text: '开局主剧情生成后不再调用文章优化；文章优化会从正式回合开始参与。',
+        channelName: '开局阶段不调用',
+        modelName: '不调用 AI'
+    };
+    const openingMapProgress = {
+        phase: 'skipped',
+        text: '开局地图由初始化状态兜底建立；正文后的自动地图更新会从正式回合开始参与。',
+        channelName: '开局阶段不调用',
+        modelName: '不调用 AI'
+    };
     const pipelineStages = (isOpeningQueue ? [
-        { id: 'opening-input', label: '玩家建档输入', progress: { phase: 'done', text: '已完成开局建档与玩家设定。' } },
-        { id: 'opening-story', label: '开局主剧情', progress: { phase: 'done', text: '主剧情已生成，后续为独立初始化阶段。' } },
+        { id: 'opening-input', label: '玩家建档输入', progress: openingLocalProgress },
+        { id: 'opening-story', label: '开局主剧情', progress: openingStoryProgress },
+        { id: 'opening-polish', label: '开局文章优化', progress: openingPolishProgress },
         { id: 'variable', label: '开局变量生成', progress: openingVariableGenerationProgress },
         { id: 'world', label: '开局动态世界', progress: openingWorldEvolutionProgress },
         { id: 'planning', label: '开局规划分析', progress: openingPlanningProgress },
+        { id: 'opening-map', label: '开局地图更新', progress: openingMapProgress },
         { id: 'opening-save', label: '最终落盘', progress: openingFinalProgress }
     ] : [
         { id: 'polish', label: '文章优化', progress: polishProgress },

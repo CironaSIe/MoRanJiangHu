@@ -11,6 +11,7 @@ import { 设置键 } from '../../utils/settingsSchema';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { 按功能开关过滤提示词内容 } from '../../utils/promptFeatureToggles';
+import { 构建题材默认境界体系提示词, 题材是否使用默认现代境界 } from '../../utils/topicRealmDefaults';
 
 type 世界生成选项 = {
     清空前端变量?: boolean;
@@ -53,11 +54,13 @@ export const 选择开局境界体系来源 = (params: {
     启用修炼体系: boolean;
     手动境界提示词?: string;
     是仙侠题材: boolean;
+    题材模式?: unknown;
     启用同人境界: boolean;
-}): 'disabled' | 'manual' | 'xianxia_default' | 'fandom' | 'core_default' => {
+}): 'disabled' | 'manual' | 'xianxia_default' | 'topic_default' | 'fandom' | 'core_default' => {
     if (!params.启用修炼体系) return 'disabled';
     if ((params.手动境界提示词 || '').trim()) return 'manual';
     if (params.是仙侠题材) return 'xianxia_default';
+    if (题材是否使用默认现代境界(params.题材模式)) return 'topic_default';
     if (params.启用同人境界) return 'fandom';
     return 'core_default';
 };
@@ -300,6 +303,7 @@ export const 执行世界生成工作流 = async (
             启用修炼体系,
             手动境界提示词: normalizedManualRealmPrompt,
             是仙侠题材: isXianxiaOpening,
+            题材模式: openingConfig?.题材模式,
             启用同人境界: fandomEnabled
         });
 
@@ -334,6 +338,11 @@ export const 执行世界生成工作流 = async (
                 开局流式历史更新器?.更新('【生成中】加载固定仙侠境界体系...', { immediate: true });
             }
             realmPromptContent = initialFandomBundle.境界母板补丁 || 核心_境界体系.内容;
+        } else if (realmPromptSource === 'topic_default') {
+            if (openingStreaming) {
+                开局流式历史更新器?.更新('【生成中】加载题材专属境界体系...', { immediate: true });
+            }
+            realmPromptContent = 构建题材默认境界体系提示词(openingConfig?.题材模式) || 核心_境界体系.内容;
         } else if (realmPromptSource === 'fandom') {
             if (openingStreaming) {
                 开局流式历史更新器?.更新('【生成中】同人境界体系生成...', { immediate: true });

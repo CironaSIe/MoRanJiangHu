@@ -71,6 +71,7 @@ import { 保护开局生成门派状态 } from './storyState';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
 
 const 开局规划分析请求超时毫秒 = 90000;
+const 开场剧情慢首包提示毫秒 = 30000;
 const 开场剧情首次流式响应超时毫秒 = 240000;
 const 开场剧情流式空闲超时毫秒 = 90000;
 
@@ -464,6 +465,33 @@ const 获取开局阶段渠道键 = (config: any, mainConfig?: any | null): stri
     ].filter(Boolean).join('|') || String(mainConfig?.id || mainConfig?.名称 || mainConfig?.供应商 || '').trim();
 };
 
+const 构建开局阶段模型信息 = (
+    stageLabel: string,
+    config: any,
+    mainConfig?: any | null
+): { channelName: string; modelName: string } => {
+    const modelName = String(config?.model || mainConfig?.model || '').trim() || '未选择模型';
+    const baseChannel = String(config?.名称 || config?.供应商 || mainConfig?.名称 || mainConfig?.供应商 || '').trim() || '未配置渠道';
+    const isIndependent = Boolean(config && mainConfig && (
+        String(config.baseUrl || '') !== String(mainConfig.baseUrl || '')
+        || String(config.model || '') !== String(mainConfig.model || '')
+        || String(config.apiKey || '') !== String(mainConfig.apiKey || '')
+    ));
+    return {
+        channelName: isIndependent ? `${stageLabel}独立渠道：${baseChannel}` : baseChannel,
+        modelName
+    };
+};
+
+const 附加开局阶段模型信息 = <T extends { channelName?: string; modelName?: string }>(
+    progress: T,
+    info: { channelName: string; modelName: string }
+): T => ({
+    ...progress,
+    channelName: progress.channelName || info.channelName,
+    modelName: progress.modelName || info.modelName
+});
+
 export const 执行开场剧情生成工作流 = async (
     contextData: any,
     promptSnapshot: 提示词结构[],
@@ -486,6 +514,7 @@ export const 执行开场剧情生成工作流 = async (
     deps.设置历史记录(initialHistory);
     let openingStreamHeartbeat: ReturnType<typeof setInterval> | null = null;
     let openingDeltaReceived = false;
+    let openingAnyDeltaReceived = false;
     const openingEnv = deps.规范化环境信息(contextData?.环境 || deps.环境);
     let streamMarker = 0;
     const openingRequestStartedAt = Date.now();
@@ -720,6 +749,7 @@ export const 执行开场剧情生成工作流 = async (
 
         streamMarker = Date.now();
         if (useStreaming) {
+            const openingStreamWaitingStartedAt = Date.now();
             deps.设置历史记录([
                 ...initialHistory,
                 {
@@ -731,16 +761,20 @@ export const 执行开场剧情生成工作流 = async (
             ]);
             let pulse = 0;
             openingStreamHeartbeat = setInterval(() => {
-                if (openingDeltaReceived) return;
+                if (openingDeltaReceived || openingAnyDeltaReceived) return;
                 pulse = (pulse + 1) % 4;
                 const dots = '.'.repeat(pulse) || '.';
+                const waitingMs = Date.now() - openingStreamWaitingStartedAt;
+                const waitingText = waitingMs >= 开场剧情慢首包提示毫秒
+                    ? `【等待中】模型首包较慢，仍在等待开场剧情${dots}`
+                    : `【生成中】开场剧情生成${dots}`;
                 deps.设置历史记录(prev => prev.map(item => {
                     if (
                         item.timestamp === streamMarker &&
                         item.role === 'assistant' &&
                         !item.structuredResponse
                     ) {
-                        return { ...item, content: `【生成中】开场剧情生成${dots}` };
+                        return { ...item, content: waitingText };
                     }
                     return item;
                 }));
@@ -917,12 +951,12 @@ export const 执行开场剧情生成工作流 = async (
         const aiResult = await deps.执行带自动重试的生成请求({
             enabled: openingAutoRetryEnabled,
             onRetry: (attempt, maxAttempts, reason) => {
-                if (useStreaming) {
+                if (useStreaming && !openingAnyDeltaReceived) {
                     deps.设置历史记录(prev => deps.更新流式草稿为自动重试提示(prev, attempt, maxAttempts, reason));
                 }
             },
             action: async () => {
-                if (useStreaming) {
+                if (useStreaming && !openingAnyDeltaReceived) {
                     openingDeltaReceived = false;
                 }
                 const requestOpeningStory = (
@@ -939,6 +973,11 @@ export const 执行开场剧情生成工作流 = async (
                                 stream: true,
                                 onDelta: (_delta, accumulated) => {
                                     openingDeltaReceived = true;
+                                    openingAnyDeltaReceived = true;
+                                    if (openingStreamHeartbeat) {
+                                        clearInterval(openingStreamHeartbeat);
+                                        openingStreamHeartbeat = null;
+                                    }
                                     markStreamActivity?.();
                                     deps.设置历史记录(prev => prev.map(item => {
                                         if (
@@ -1080,11 +1119,15 @@ export const 执行开场剧情生成工作流 = async (
         let openingWorldInitUpdates: string[] = [];
 
         const openingVariableApi = 获取变量计算接口配置(deps.apiConfig);
+        const openingVariableInfo = 构建开局阶段模型信息('变量生成', openingVariableApi, apiForOpening);
+        const 设置开局变量生成进度 = (progress: any) => {
+            deps.设置开局变量生成进度(附加开局阶段模型信息(progress, openingVariableInfo));
+        };
         if (接口配置是否可用(openingVariableApi)) {
             const variableStage = await 执行可重试开局阶段({
                 stageLabel: '开局变量生成',
                 beforeAttempt: (attempt) => {
-                    deps.设置开局变量生成进度({
+                    设置开局变量生成进度({
                         phase: 'start',
                         text: attempt > 1
                             ? `正在重新生成开局变量...（第 ${attempt} 次手动重试）`
@@ -1092,7 +1135,7 @@ export const 执行开场剧情生成工作流 = async (
                     });
                 },
                 onAutoRetry: (attempt, maxAttempts, reason) => {
-                    deps.设置开局变量生成进度({
+                    设置开局变量生成进度({
                         phase: 'start',
                         text: `开局变量生成请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ''}`
                     });
@@ -1153,13 +1196,13 @@ export const 执行开场剧情生成工作流 = async (
                     );
                 },
                 onError: (errorText) => {
-                    deps.设置开局变量生成进度({
+                    设置开局变量生成进度({
                         phase: 'error',
                         text: `${errorText || '开局变量生成失败'}\n等待选择：重试当前阶段，或跳过继续。`
                     });
                 },
                 onSkip: (errorText) => {
-                    deps.设置开局变量生成进度({
+                    设置开局变量生成进度({
                         phase: 'skipped',
                         text: `开局变量生成失败，已按用户选择跳过。${errorText ? `\n${errorText}` : ''}`
                     });
@@ -1168,11 +1211,11 @@ export const 执行开场剧情生成工作流 = async (
             });
             const openingVariableResult = variableStage.result;
             const openingVariableStartIndex = (Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands.length : 0) + 1;
-            if (variableStage.completed) {
+            if (variableStage?.completed) {
                 const variableCommands = Array.isArray(openingVariableResult?.commands)
                     ? openingVariableResult.commands
                     : [];
-                deps.设置开局变量生成进度({
+                设置开局变量生成进度({
                     phase: variableCommands.length > 0 ? 'done' : 'skipped',
                     text: variableCommands.length > 0
                         ? '开局变量生成完成。'
@@ -1190,7 +1233,7 @@ export const 执行开场剧情生成工作流 = async (
                     };
                     simulatedOpeningState = 保护开局门派(deps.processResponseCommands(responseForExecution, commandBaseState, { applyState: false }));
                     立即并入开局变量状态(responseForExecution);
-                    deps.设置开局变量生成进度({
+                    设置开局变量生成进度({
                         phase: 'done',
                         text: '开局变量生成完成，并已立即并入前台初始化状态。',
                         rawText: typeof openingVariableResult?.rawText === 'string' ? openingVariableResult.rawText : '',
@@ -1200,7 +1243,7 @@ export const 执行开场剧情生成工作流 = async (
                 }
             }
         } else {
-            deps.设置开局变量生成进度({
+            设置开局变量生成进度({
                 phase: 'skipped',
                 text: '变量生成独立链路未启用，已跳过。'
             });
@@ -1212,6 +1255,14 @@ export const 执行开场剧情生成工作流 = async (
         const planningFeatureEnabled = deps.apiConfig?.功能模型占位?.规划分析功能启用 !== false;
         const openingWorldApi = 获取世界演变接口配置(deps.apiConfig);
         const openingPlanningApi = 获取规划分析接口配置(deps.apiConfig);
+        const openingWorldInfo = 构建开局阶段模型信息('动态世界', openingWorldApi, apiForOpening);
+        const openingPlanningInfo = 构建开局阶段模型信息('规划分析', openingPlanningApi, apiForOpening);
+        const 设置开局世界演变进度 = (progress: any) => {
+            deps.设置开局世界演变进度(附加开局阶段模型信息(progress, openingWorldInfo));
+        };
+        const 设置开局规划进度 = (progress: any) => {
+            deps.设置开局规划进度(附加开局阶段模型信息(progress, openingPlanningInfo));
+        };
         const 开局世界与规划可并行 = worldEvolutionFeatureEnabled
             && planningFeatureEnabled
             && 接口配置是否可用(openingWorldApi)
@@ -1219,7 +1270,7 @@ export const 执行开场剧情生成工作流 = async (
             && 获取开局阶段渠道键(openingWorldApi, apiForOpening) !== 获取开局阶段渠道键(openingPlanningApi, apiForOpening);
         let pendingOpeningWorldStage: Promise<any> | null = null;
         if (!worldEvolutionFeatureEnabled) {
-            deps.设置开局世界演变进度({
+            设置开局世界演变进度({
                 phase: 'skipped',
                 text: '动态世界功能未开启，已跳过。'
             });
@@ -1227,7 +1278,7 @@ export const 执行开场剧情生成工作流 = async (
             const 运行开局动态世界阶段 = () => 执行可重试开局阶段({
                 stageLabel: '开局动态世界',
                 beforeAttempt: (attempt) => {
-                    deps.设置开局世界演变进度({
+                    设置开局世界演变进度({
                         phase: 'start',
                         text: attempt > 1
                             ? `正在重新初始化动态世界...（第 ${attempt} 次手动重试）`
@@ -1235,7 +1286,7 @@ export const 执行开场剧情生成工作流 = async (
                     });
                 },
                 onAutoRetry: (attempt, maxAttempts, reason) => {
-                    deps.设置开局世界演变进度({
+                    设置开局世界演变进度({
                         phase: 'start',
                         text: `开局动态世界请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ''}`
                     });
@@ -1303,13 +1354,13 @@ export const 执行开场剧情生成工作流 = async (
                     );
                 },
                 onError: (errorText) => {
-                    deps.设置开局世界演变进度({
+                    设置开局世界演变进度({
                         phase: 'error',
                         text: `${errorText || '动态世界初始化失败'}\n等待选择：重试当前阶段，或跳过继续。`
                     });
                 },
                 onSkip: (errorText) => {
-                    deps.设置开局世界演变进度({
+                    设置开局世界演变进度({
                         phase: 'skipped',
                         text: `动态世界初始化失败，已按用户选择跳过。${errorText ? `\n${errorText}` : ''}`
                     });
@@ -1329,7 +1380,7 @@ export const 执行开场剧情生成工作流 = async (
                         : [],
                     worldInitCommands
                 );
-                deps.设置开局世界演变进度({
+                设置开局世界演变进度({
                     phase: worldInitCommands.length > 0 || openingWorldInitUpdates.length > 0
                         ? 'done'
                         : 'skipped',
@@ -1353,7 +1404,7 @@ export const 执行开场剧情生成工作流 = async (
                 }
             }
         } else {
-            deps.设置开局世界演变进度({
+            设置开局世界演变进度({
                 phase: 'skipped',
                 text: '动态世界独立链路未启用，已跳过。'
             });
@@ -1386,7 +1437,7 @@ export const 执行开场剧情生成工作流 = async (
         } catch (_) { /* 静默 */ }
 
         if (!planningFeatureEnabled) {
-            deps.设置开局规划进度({
+            设置开局规划进度({
                 phase: 'skipped',
                 text: '规划分析功能未开启，已跳过。'
             });
@@ -1395,7 +1446,7 @@ export const 执行开场剧情生成工作流 = async (
                 stageLabel: '开局规划分析',
                 forceAutoRetry: true,
                 beforeAttempt: (attempt) => {
-                    deps.设置开局规划进度({
+                    设置开局规划进度({
                         phase: 'start',
                         text: attempt > 1
                             ? `正在重新初始化剧情与规划...（第 ${attempt} 次手动重试）`
@@ -1403,7 +1454,7 @@ export const 执行开场剧情生成工作流 = async (
                     });
                 },
                 onAutoRetry: (attempt, maxAttempts, reason) => {
-                    deps.设置开局规划进度({
+                    设置开局规划进度({
                         phase: 'start',
                         text: `开局规划请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ''}`
                     });
@@ -1499,13 +1550,13 @@ export const 执行开场剧情生成工作流 = async (
                     };
                 },
                 onError: (errorText) => {
-                    deps.设置开局规划进度({
+                    设置开局规划进度({
                         phase: 'error',
                         text: `${errorText || '剧情规划初始化失败'}\n等待选择：重试当前阶段，或跳过继续。`
                     });
                 },
                 onSkip: (errorText) => {
-                    deps.设置开局规划进度({
+                    设置开局规划进度({
                         phase: 'skipped',
                         text: `剧情规划初始化失败，已按用户选择跳过。${errorText ? `\n${errorText}` : ''}`
                     });
@@ -1513,9 +1564,9 @@ export const 执行开场剧情生成工作流 = async (
                 getErrorText: (error: any) => error?.message || '剧情规划初始化失败'
             });
             const planningStageResult = planningStage.result;
-            if (planningStage.completed && planningStageResult) {
+            if (planningStage?.completed && planningStageResult) {
                 const { planningResult, planningCommands } = planningStageResult;
-                deps.设置开局规划进度({
+                设置开局规划进度({
                     phase: planningResult.shouldUpdate && planningCommands.length > 0 ? 'done' : 'skipped',
                     text: planningResult.shouldUpdate && planningCommands.length > 0
                         ? '剧情规划初始化完成。'
@@ -1535,7 +1586,7 @@ export const 执行开场剧情生成工作流 = async (
                 }
             }
         } else {
-            deps.设置开局规划进度({
+            设置开局规划进度({
                 phase: 'skipped',
                 text: '规划分析独立链路未启用，已跳过。'
             });
@@ -1552,7 +1603,7 @@ export const 执行开场剧情生成工作流 = async (
                         : [],
                     worldInitCommands
                 );
-                deps.设置开局世界演变进度({
+                设置开局世界演变进度({
                     phase: worldInitCommands.length > 0 || openingWorldInitUpdates.length > 0
                         ? 'done'
                         : 'skipped',

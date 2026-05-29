@@ -52,7 +52,7 @@ export const 获取货币完整单位标签 = (
     key: keyof 角色金钱,
     mode: 货币显示模式 = 'wuxia'
 ): string => {
-    if (mode === 'xianxia') return 获取货币单位标签(key, mode);
+    if (mode !== 'wuxia') return 获取货币单位标签(key, mode);
     if (key === '金元宝') return '金元宝';
     if (key === '银子') return '银子';
     return '铜钱';
