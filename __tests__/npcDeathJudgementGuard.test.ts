@@ -43,4 +43,29 @@ describe('NPC death judgement guard', () => {
             logs: [{ sender: '旁白', text: '韩小霜被尸群咬伤感染后失血休克，最终死亡。' }]
         } as unknown as GameResponse)).toEqual([]);
     });
+
+    it('does not treat erotic exaggeration as a death fact', () => {
+        const commands: TavernCommand[] = [
+            { action: 'set', key: '社交[0].当前血量', value: 0 },
+            { action: 'set', key: '社交[0].生死状态', value: '死亡' },
+            { action: 'set', key: '社交[0].死因', value: '欢好时喊了一句要死了' }
+        ];
+
+        expect(检测NPC死亡判定风险命令(commands, social, {
+            logs: [{ sender: '韩小霜', text: '她抱紧你，喘息着喊了一句“要死了”，但神色分明仍清醒。' }]
+        } as unknown as GameResponse)).toEqual([
+            '韩小霜 缺少正文明确死亡、明确死因'
+        ]);
+    });
+
+    it('accepts irreversible annihilation wording as explicit death and cause', () => {
+        const commands: TavernCommand[] = [
+            { action: 'set', key: '社交[0].当前血量', value: 0 },
+            { action: 'set', key: '社交[0].生死状态', value: '死亡' }
+        ];
+
+        expect(检测NPC死亡判定风险命令(commands, social, {
+            logs: [{ sender: '旁白', text: '韩小霜被你一掌打到陨落，肉身灰飞烟灭，神魂俱灭。' }]
+        } as unknown as GameResponse)).toEqual([]);
+    });
 });

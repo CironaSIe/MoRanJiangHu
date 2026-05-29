@@ -28,7 +28,7 @@ interface Props {
 
 const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)?.性别 || '').trim() === '女';
 const 死亡状态正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|已故)/;
-const NPC是否死亡 = (npc?: NPC结构 | null): boolean => {
+export const NPC是否死亡 = (npc?: NPC结构 | null): boolean => {
     if (!npc) return false;
     const 当前血量 = Number((npc as any).当前血量);
     const 最大血量 = Number((npc as any).最大血量);
@@ -37,8 +37,7 @@ const NPC是否死亡 = (npc?: NPC结构 | null): boolean => {
         (npc as any).状态,
         (npc as any).生死状态,
         (npc as any).生命状态,
-        (npc as any).死亡描述,
-        ...(Array.isArray((npc as any).DEBUFF) ? (npc as any).DEBUFF.flatMap((item: any) => [item?.名称, item?.描述, item?.效果]) : [])
+        (npc as any).死亡描述
     ].filter(Boolean).join(' ');
     return 死亡状态正则.test(statusText);
 };

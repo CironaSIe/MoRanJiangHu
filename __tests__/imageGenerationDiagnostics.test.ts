@@ -5,6 +5,7 @@ import {
     构建ComfyUI运行时代理端点,
     构建OpenAI图片生成端点,
     构建通用生图连接失败提示,
+    翻译连接测试错误,
     规范化OpenAI图片基础地址,
     规范化OpenAI图片模型名称
 } from '../services/ai/imageGenerationDiagnostics';
@@ -50,6 +51,17 @@ describe('imageGenerationDiagnostics', () => {
         expect(message).toContain('Stable Diffusion WebUI 连接失败');
         expect(message).toContain('API/CORS');
         expect(message).toContain('NetworkError');
+    });
+
+    it('translates NovelAI IP allow-list denials without dumping raw JSON first', () => {
+        const message = 翻译连接测试错误({
+            message: 'API Error: 403 - {"error":{"code":"access_denied","message":"您的 IP 不在令牌允许访问的列表中"}}'
+        }, { backendLabel: 'NovelAI', baseUrl: 'https://image.novelai.net' });
+
+        expect(message).toContain('NovelAI拒绝访问');
+        expect(message).toContain('IP 不在这枚 Token 允许访问的列表中');
+        expect(message).toContain('IP 白名单');
+        expect(message).not.toContain('{"error"');
     });
 
     it('normalizes pucoding image console URLs to the OpenAI-compatible image endpoint', () => {

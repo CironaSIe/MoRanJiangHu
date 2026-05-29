@@ -267,6 +267,38 @@ describe('NPC old save compatibility', () => {
         expect(npc.图片档案?.最近生图结果?.构图).toBe('部位特写');
     });
 
+    it('removes unsupported death debuffs from living NPC data', () => {
+        const [npc] = 规范化社交列表([
+            {
+                id: 'npc_bad_death_debuff',
+                姓名: '林婉儿',
+                性别: '女',
+                当前血量: 80,
+                最大血量: 100,
+                状态: '死亡',
+                生死状态: '死亡',
+                DEBUFF: [
+                    {
+                        名称: '死亡',
+                        描述: '死亡和绝望的废墟中，心神受到冲击。',
+                        效果: '角色已死亡，气血归零，不能继续作为在场行动角色。',
+                        结束时间: '永久'
+                    },
+                    {
+                        名称: '惊惧',
+                        描述: '目睹废墟惨状后心神不宁。',
+                        效果: '行动判定略微下降。'
+                    }
+                ]
+            }
+        ], { 合并同名: false });
+
+        expect(npc.当前血量).toBe(80);
+        expect(npc.状态).toBeUndefined();
+        expect(npc.生死状态).toBeUndefined();
+        expect(npc.DEBUFF.map((item: any) => item.名称)).toEqual(['惊惧']);
+    });
+
     it('keeps legacy template-like female major names and completes artifact tags', () => {
         const [npc] = 规范化社交列表([
             {

@@ -35,8 +35,7 @@ const NPC是否死亡 = (npc?: NPC结构 | null): boolean => {
         (npc as any).状态,
         (npc as any).生死状态,
         (npc as any).生命状态,
-        (npc as any).死亡描述,
-        ...(Array.isArray((npc as any).DEBUFF) ? (npc as any).DEBUFF.flatMap((item: any) => [item?.名称, item?.描述, item?.效果]) : [])
+        (npc as any).死亡描述
     ].filter(Boolean).join(' ');
     return 死亡状态正则.test(statusText);
 };

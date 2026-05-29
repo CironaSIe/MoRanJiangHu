@@ -40,9 +40,14 @@ import {
 } from './imageGenerationDiagnostics';
 
 const NOVELAI_TRIAL_RECAPTCHA_PATTERN = /recaptcha token is required for trial generation/i;
+const NOVELAI_ACCESS_DENIED_PATTERN = /access_denied|ip .*not .*allow|ip .*not .*allowed|ip.*白名单|ip.*允许访问|不在令牌允许访问的列表/i;
 
 const 构建NovelAI试用验证码错误提示 = (status: number): string => {
     return `图片生成请求失败: ${status} - NovelAI 没有识别到可用的 Persistent API Token，当前请求被当作试用生图并要求 Recaptcha。请在文生图设置里重新填写以 pst- 开头的 Persistent API Token，保存后点击连接测试；如果仍失败，说明这枚 Token 可能已失效或账号订阅权限不可用。`;
+};
+
+const 构建NovelAI访问受限错误提示 = (status: number): string => {
+    return `图片生成请求失败: ${status} - NovelAI 拒绝访问：当前 IP 不在这枚 Token 允许访问的列表中。请在 NovelAI 后台调整 Token 的 IP 白名单，或更换允许当前网络出口 IP 的 Persistent API Token；连接测试和真实生图都需要通过同一项权限检查。`;
 };
 
 export interface 图片生成结果 {
@@ -4306,6 +4311,9 @@ export const generateImageByPrompt = async (
         const detail = await 读取失败详情文本(response, Number.POSITIVE_INFINITY);
         if (backendType === 'novelai' && NOVELAI_TRIAL_RECAPTCHA_PATTERN.test(detail)) {
             throw new 协议请求错误(构建NovelAI试用验证码错误提示(response.status), response.status, detail);
+        }
+        if (backendType === 'novelai' && response.status === 403 && NOVELAI_ACCESS_DENIED_PATTERN.test(detail)) {
+            throw new 协议请求错误(构建NovelAI访问受限错误提示(response.status), response.status, detail);
         }
         if (backendType === 'novelai' && response.status >= 500 && !detail) {
             throw new 协议请求错误('图片生成请求失败: 500 - NovelAI 代理握手失败，请重启 Vite 开发服务器后重试。', response.status, detail);

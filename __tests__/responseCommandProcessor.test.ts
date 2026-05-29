@@ -414,6 +414,109 @@ describe('responseCommandProcessor NPC death guard', () => {
         expect(npc.死亡描述).toContain('韩小霜');
         expect(npc.DEBUFF.some((item: any) => item.名称 === '死亡')).toBe(true);
     });
+
+    it('does not mark a lover dead from erotic "要死了" dialogue', () => {
+        const state = 构建基础状态();
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_han_xiaoshuang',
+                姓名: '韩小霜',
+                性别: '女',
+                身份: '恋人',
+                是否在场: true,
+                当前血量: 88,
+                最大血量: 100
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '韩小霜', text: '她抱紧你，喘息着喊了一句“要死了”，随后伏在你怀里平复呼吸。' }
+            ],
+            tavern_commands: [
+                { action: 'set', key: '社交[0].当前血量', value: 0 },
+                { action: 'set', key: '社交[0].状态', value: '死亡' }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        const npc = result.社交[0] as any;
+        expect(npc.当前血量).toBe(88);
+        expect(npc.状态).not.toBe('死亡');
+        expect(npc.生死状态).toBeUndefined();
+        expect((npc.DEBUFF || []).some((item: any) => item?.名称 === '死亡')).toBe(false);
+    });
+
+    it('marks a named enemy dead when the response says they were annihilated without the word death', () => {
+        const state = 构建基础状态();
+        state.环境 = { 时间: '五月初三 午时' } as any;
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_enemy',
+                姓名: '血衣客',
+                性别: '男',
+                身份: '敌人',
+                是否在场: true,
+                当前血量: 5,
+                最大血量: 100
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '血衣客被你打到陨落，肉身灰飞烟灭，连神魂也随风散尽。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        const npc = result.社交[0] as any;
+        expect(npc.状态).toBe('死亡');
+        expect(npc.生死状态).toBe('死亡');
+        expect(npc.生命状态).toBe('死亡');
+        expect(npc.死亡描述).toContain('血衣客');
+        expect(npc.DEBUFF.some((item: any) => item.名称 === '死亡')).toBe(true);
+    });
+
+    it('blocks AI commands that create a death debuff from generic death-themed prose', () => {
+        const state = 构建基础状态();
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_lin_waner',
+                姓名: '林婉儿',
+                性别: '女',
+                是否在场: true,
+                当前血量: 80,
+                最大血量: 100,
+                DEBUFF: []
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '众人踏入死亡和绝望的废墟中，林婉儿脸色发白，却仍跟在队伍后方。' }
+            ],
+            tavern_commands: [
+                { action: 'set', key: '社交[0].当前血量', value: 0 },
+                { action: 'set', key: '社交[0].状态', value: '死亡' },
+                {
+                    action: 'push',
+                    key: '社交[0].DEBUFF',
+                    value: {
+                        名称: '死亡',
+                        描述: '死亡和绝望的废墟中，心神受到冲击。',
+                        效果: '角色已死亡，气血归零，不能继续作为在场行动角色。',
+                        结束时间: '永久'
+                    }
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        const npc = result.社交[0] as any;
+        expect(npc.当前血量).toBe(80);
+        expect(npc.状态).not.toBe('死亡');
+        expect(npc.生死状态).toBeUndefined();
+        expect((npc.DEBUFF || []).some((item: any) => item?.名称 === '死亡')).toBe(false);
+        expect(npc.是否在场).toBe(true);
+    });
 });
 
 describe('responseCommandProcessor equipment guard', () => {

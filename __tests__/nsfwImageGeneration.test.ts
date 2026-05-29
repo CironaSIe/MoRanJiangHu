@@ -237,6 +237,38 @@ describe('接口配置是否可用', () => {
     });
 });
 
+describe('获取文生图接口配置', () => {
+    it('keeps runtime image generation disabled when the main switch is off', () => {
+        const settings = 构建测试接口设置({
+            文生图功能启用: false,
+            文生图后端类型: 'novelai',
+            文生图模型API地址: 'https://image.novelai.net',
+            文生图模型API密钥: 'pst-test',
+            文生图模型使用模型: 'nai-diffusion-4-5-full'
+        });
+
+        expect(获取文生图接口配置(settings)).toBeNull();
+    });
+
+    it('can build a NovelAI config for connection tests before the main switch is enabled', () => {
+        const settings = 构建测试接口设置({
+            文生图功能启用: false,
+            文生图后端类型: 'novelai',
+            文生图模型API地址: 'https://image.novelai.net',
+            文生图模型API密钥: 'pst-test',
+            文生图模型使用模型: 'nai-diffusion-4-5-full'
+        });
+
+        const result = 获取文生图接口配置(settings, { 忽略文生图总开关: true });
+
+        expect(result?.图片后端类型).toBe('novelai');
+        expect(result?.baseUrl).toBe('https://image.novelai.net');
+        expect(result?.apiKey).toBe('pst-test');
+        expect(result?.model).toBe('nai-diffusion-4-5-full');
+        expect(接口配置是否可用(result)).toBe(true);
+    });
+});
+
 describe('获取NSFW文生图接口配置', () => {
     it('returns null when image generation is disabled', () => {
         const settings = 构建测试接口设置({ 文生图功能启用: false });

@@ -93,6 +93,11 @@
 - Prefer `node`, explicit UTF-8 file reads/writes, or commands that preserve Unicode text.
 - If a shell workaround is needed, solve the underlying decoding issue once and record the fix, rather than repeatedly narrating the same encoding detour.
 
+## Root-Cause Bugfix Rule
+
+- When the user asks to fix a problem, first consider whether the symptom is isolated or part of a larger workflow/data-integrity issue. If it is part of a larger issue, fix the whole chain, not only the visible symptom.
+- After locating a defect, keep tracing until the root cause is understood. Do not stop at hiding raw errors, changing display text, or masking bad state. If a fix only improves presentation, also determine why the bad state or failure happened and repair the upstream cause when feasible.
+
 ## Local UI Debug Path
 
 When the target is UI verification, layout validation, mobile top-bar checks, or APK/web consistency checks, do not block on model or API configuration first. Prefer entering a real in-game view from an existing save.

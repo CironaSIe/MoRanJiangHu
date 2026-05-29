@@ -33,6 +33,10 @@ export const 翻译连接测试错误 = (error: any, context?: { baseUrl?: strin
     const baseUrl = context?.baseUrl ? `\n当前地址：${context.baseUrl}` : '';
     const backendLabel = context?.backendLabel || '接口';
 
+    if (/access_denied|ip .*not .*allow|ip .*not .*allowed|ip.*白名单|ip.*允许访问|不在令牌允许访问的列表/.test(lower)) {
+        return `${backendLabel}拒绝访问。当前 IP 不在这枚 Token 允许访问的列表中。${baseUrl}\n请在服务商后台调整 Token 的 IP 白名单，或更换允许当前网络出口 IP 的 Token。`;
+    }
+
     if (/failed to fetch|networkerror|network error|load failed|fetch failed|cors|cross-origin|refused|timeout|abort|econnrefused|enotfound|certificate|ssl/.test(lower)) {
         return `${backendLabel}连接失败。可能是服务器没有启动、地址或端口填错、网络不可达、浏览器跨域拦截，或本地/云端后端已经休眠。${baseUrl}\n建议先在浏览器打开该地址确认能访问；如果是 CNB/ComfyUI，请保持 VS Code 工作区页面一直打开，并确认后端开启了 CORS。${raw ? `\n原始错误：${raw}` : ''}`;
     }

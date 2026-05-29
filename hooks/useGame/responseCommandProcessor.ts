@@ -16,6 +16,7 @@ import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
 import { sanitizeInventoryCommand } from './inventoryCommandGuard';
 import { 姓名含已知中文姓氏 } from '../../utils/chineseName';
 import { 合并保留既有NPC列表, 命令存在社交删除风险 } from '../../utils/npcRetentionGuard';
+import { 提取NPC死亡风险命令索引, 状态效果是死亡判定 } from '../../utils/npcDeathGuard';
 
 const 占位开局时间 = '1:01:01:00:00';
 
@@ -794,9 +795,9 @@ const 应用女性关系目标主要角色兜底 = (
     return changed ? nextList : socialList;
 };
 
-const 死亡事实肯定正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|当场(?:死|亡|身亡|毙命)|再无(?:气息|生机)|命丧|头颅落地|心脉(?:断绝|俱断)|被[^。！？\n\r]{0,24}杀死|杀死(?:了)?)/;
-const 死亡事实否定正则 = /(未死|没死|没有死|并未死|尚未死|不曾死|差点|险些|几乎|差一点|差些|昏死|假死|装死|濒死|垂死|重伤|保住(?:了)?性命|留有一线生机|逃过一劫)/;
-const 死亡状态正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|已故)/;
+const 死亡事实肯定正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|陨落|灰飞烟灭|魂飞魄散|形神俱灭|神魂俱灭|化为飞灰|尸骨无存|当场(?:死|亡|身亡|毙命)|再无(?:气息|生机)|命丧|头颅落地|心脉(?:断绝|俱断)|被[^。！？\n\r]{0,24}(?:杀死|轰杀|打到陨落|打成飞灰|碾碎|湮灭)|杀死(?:了)?)/;
+const 死亡事实否定正则 = /(未死|没死|没有死|并未死|尚未死|不曾死|差点|险些|几乎|差一点|差些|昏死|假死|装死|濒死|垂死|重伤|保住(?:了)?性命|留有一线生机|逃过一劫|要死了|爽死了|舒服死了|羞死了|吓死了|笑死了|累死了|疼死了)/;
+const 死亡状态正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|已故|陨落|灰飞烟灭|魂飞魄散|形神俱灭|神魂俱灭|化为飞灰|尸骨无存)/;
 
 const 提取死亡事实句 = (responseFactText: string): string => {
     const sentences = 拆分事实句(responseFactText);
@@ -809,27 +810,31 @@ const 提取死亡事实相关NPC索引 = (deathSentence: string, socialList: an
         .map((npc: any, index: number) => ({ npc, index, names: 读取NPC名称列表(npc) }))
         .filter((item) => item.names.length > 0);
     const mentioned = candidates.filter((item) => item.names.some((name) => deathSentence.includes(name)));
-    if (mentioned.length === 1) return mentioned[0].index;
+    const scoreCandidate = (item: { npc: any; index: number; names: string[] }) => {
+        const nameScores = item.names.map((name) => {
+            const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const 被动死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,12}被[^。！？\\n\\r]{0,36}(?:杀死|斩杀|击杀|害死|毙命|贯穿|斩落|刺死|砍死|轰杀|打到陨落|打成飞灰|碾碎|湮灭)`).test(deathSentence);
+            const 主体死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,24}(?:死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|陨落|灰飞烟灭|魂飞魄散|形神俱灭|神魂俱灭|化为飞灰|尸骨无存|再无(?:气息|生机)|心脉(?:断绝|俱断))`).test(deathSentence);
+            const 宾语死亡 = new RegExp(`(?:杀死|斩杀|击杀|害死|刺死|砍死|轰杀|打到陨落|打成飞灰|碾碎|湮灭)(?:了)?[^。！？\\n\\r]{0,12}${escapedName}`).test(deathSentence);
+            const 疑似施害者 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,12}(?:杀死|斩杀|击杀|害死|刺死|砍死|轰杀|打到陨落|打成飞灰|碾碎|湮灭)`).test(deathSentence);
+            return {
+                name,
+                score: (被动死亡 ? 4 : 0) + (主体死亡 ? 3 : 0) + (宾语死亡 ? 4 : 0) - (疑似施害者 ? 3 : 0)
+            };
+        }).sort((a, b) => b.score - a.score || deathSentence.indexOf(a.name) - deathSentence.indexOf(b.name));
+        return {
+            ...item,
+            name: nameScores[0]?.name || item.names[0],
+            score: nameScores[0]?.score || 0
+        };
+    };
+    if (mentioned.length === 1) {
+        const scored = scoreCandidate(mentioned[0]);
+        return scored.score > 0 ? scored.index : null;
+    }
     if (mentioned.length > 1) {
         const scored = mentioned
-            .map((item) => {
-                const nameScores = item.names.map((name) => {
-                    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const 被动死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,12}被[^。！？\\n\\r]{0,36}(?:杀死|斩杀|击杀|害死|毙命|贯穿|斩落|刺死|砍死)`).test(deathSentence);
-                    const 主体死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,24}(?:死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|再无(?:气息|生机)|心脉(?:断绝|俱断))`).test(deathSentence);
-                    const 宾语死亡 = new RegExp(`(?:杀死|斩杀|击杀|害死|刺死|砍死)(?:了)?[^。！？\\n\\r]{0,12}${escapedName}`).test(deathSentence);
-                    const 疑似施害者 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,12}(?:杀死|斩杀|击杀|害死|刺死|砍死)`).test(deathSentence);
-                    return {
-                        name,
-                        score: (被动死亡 ? 4 : 0) + (主体死亡 ? 3 : 0) + (宾语死亡 ? 4 : 0) - (疑似施害者 ? 3 : 0)
-                    };
-                }).sort((a, b) => b.score - a.score || deathSentence.indexOf(a.name) - deathSentence.indexOf(b.name));
-                return {
-                    ...item,
-                    name: nameScores[0]?.name || item.names[0],
-                    score: nameScores[0]?.score || 0
-                };
-            })
+            .map(scoreCandidate)
             .sort((a, b) => b.score - a.score || deathSentence.indexOf(a.name) - deathSentence.indexOf(b.name));
         if (scored[0]?.score > 0 && scored[0].score > (scored[1]?.score ?? -Infinity)) return scored[0].index;
         const presentMentioned = mentioned.filter((item) => item.npc?.是否在场 === true);
@@ -847,11 +852,7 @@ const NPC死亡字段含无依据死亡状态 = (npc: any): boolean => {
 };
 
 const NPC已有死亡依据 = (npc: any): boolean => {
-    const evidenceText = [
-        npc?.死亡描述,
-        ...(Array.isArray(npc?.DEBUFF) ? npc.DEBUFF.flatMap((item: any) => [item?.名称, item?.描述, item?.效果]) : [])
-    ].filter(Boolean).join(' ');
-    return 死亡状态正则.test(evidenceText);
+    return typeof npc?.死亡时间 === 'string' && npc.死亡时间.trim().length > 0;
 };
 
 const 清理无依据死亡状态 = (socialList: any[]): any[] => {
@@ -874,6 +875,14 @@ const 清理无依据死亡状态 = (socialList: any[]): any[] => {
         if (死亡状态正则.test(String(next.生死状态 || ''))) delete next.生死状态;
         if (死亡状态正则.test(String(next.生命状态 || ''))) delete next.生命状态;
         if (死亡状态正则.test(String(next.死亡描述 || ''))) delete next.死亡描述;
+        if (Array.isArray(next.DEBUFF)) {
+            const filteredDebuff = next.DEBUFF.filter((item: any) => !状态效果是死亡判定(item));
+            if (filteredDebuff.length > 0) {
+                next.DEBUFF = filteredDebuff;
+            } else {
+                delete next.DEBUFF;
+            }
+        }
         return next;
     });
     return changed ? nextList : socialList;
@@ -899,10 +908,7 @@ const 应用死亡事实到NPC = (
     return socialList.map((npc: any, index: number) => {
         if (index !== targetIndex || !npc || typeof npc !== 'object') return npc;
         const currentDebuffs = Array.isArray(npc.DEBUFF) ? npc.DEBUFF : [];
-        const hasDeathDebuff = currentDebuffs.some((item: any) => {
-            const text = [item?.名称, item?.描述, item?.效果].filter(Boolean).join(' ');
-            return 死亡状态正则.test(text);
-        });
+        const hasDeathDebuff = currentDebuffs.some((item: any) => 状态效果是死亡判定(item));
         const deathDebuff = {
             名称: '死亡',
             描述: deathSentence || '角色已死亡。',
@@ -921,8 +927,7 @@ const 应用死亡事实到NPC = (
             死亡描述: npc.死亡描述 || deathSentence,
             DEBUFF: hasDeathDebuff
                 ? currentDebuffs.map((item: any) => {
-                    const text = [item?.名称, item?.描述, item?.效果].filter(Boolean).join(' ');
-                    return 死亡状态正则.test(text)
+                    return 状态效果是死亡判定(item)
                         ? { ...deathDebuff, ...item, 名称: item?.名称 || '死亡' }
                         : item;
                 })
@@ -1088,7 +1093,9 @@ export const 执行响应命令处理 = (
     const responseFactText = 提取响应事实文本(response);
     const dialogueSenderKeys = 提取对白发送者集合(response, charBuffer?.姓名);
     if (Array.isArray(response.tavern_commands)) {
-        response.tavern_commands.forEach(cmd => {
+        const deathRiskCommandIndices = 提取NPC死亡风险命令索引(response.tavern_commands, socialBuffer, response);
+        response.tavern_commands.forEach((cmd, commandIndex) => {
+            if (deathRiskCommandIndices.has(commandIndex)) return;
             const safeCmd = 净化新增社交命令(
                 净化社交姓名命令(
                     sanitizeInventoryCommand(

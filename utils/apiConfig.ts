@@ -2022,12 +2022,15 @@ const 获取已选发现ComfyUI后端URL = (backendId: unknown): string => {
     return 规范化已发现ComfyUI后端URL(backend?.url);
 };
 
-export const 获取文生图接口配置 = (settings: 接口设置结构): 当前可用接口结构 | null => {
+export const 获取文生图接口配置 = (
+    settings: 接口设置结构,
+    options?: { 忽略文生图总开关?: boolean }
+): 当前可用接口结构 | null => {
     const current = 获取文生图基础接口配置(settings);
     if (!current) return null;
 
     const feature = (settings as any)?.功能模型占位;
-    const enabled = Boolean(feature?.文生图功能启用);
+    const enabled = Boolean(feature?.文生图功能启用) || Boolean(options?.忽略文生图总开关);
     const 图片后端类型 = feature?.文生图后端类型 === 'novelai' || feature?.文生图后端类型 === 'sd_webui' || feature?.文生图后端类型 === 'comfyui'
         ? feature.文生图后端类型
         : 'openai';

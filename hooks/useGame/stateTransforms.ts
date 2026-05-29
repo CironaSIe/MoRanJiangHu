@@ -8,6 +8,7 @@ import { 归一化六维到境界预算 } from '../../utils/attributeBudget';
 import { 姓名含已知中文姓氏 } from '../../utils/chineseName';
 import { 构建默认技艺 } from '../../utils/skillDefaults';
 import { 是否储物扩容物品, 规范化储物扩容物品, 同步角色储物负重上限, 重算背包物品负重 } from '../../utils/storageCarry';
+import { 状态效果是死亡判定 } from '../../utils/npcDeathGuard';
 
 const 深拷贝 = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
 const 默认装备模板 = {
@@ -2234,6 +2235,37 @@ const NPC图片记录可作头像 = (record: any): boolean => (
     && Boolean(规范化文本(record?.id))
 );
 
+const NPC死亡状态正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|已故)/u;
+
+const NPC有死亡事实依据 = (npc: any, 战斗数值: { 当前血量: number; 最大血量: number }): boolean => {
+    void 战斗数值;
+    return typeof npc?.死亡时间 === 'string' && npc.死亡时间.trim().length > 0;
+};
+
+const 移除无依据死亡字段 = (
+    npc其他字段: Record<string, any>,
+    有死亡事实依据: boolean,
+    战斗数值: { 当前血量: number; 最大血量: number }
+): Record<string, any> => {
+    if (有死亡事实依据) return npc其他字段;
+    const next = { ...npc其他字段 };
+    if (NPC死亡状态正则.test(String(next.状态 || ''))) {
+        next.状态 = 战斗数值.当前血量 <= 0 && 战斗数值.最大血量 > 0 ? '重伤' : undefined;
+        if (next.状态 === undefined) delete next.状态;
+    }
+    if (NPC死亡状态正则.test(String(next.生死状态 || ''))) delete next.生死状态;
+    if (NPC死亡状态正则.test(String(next.生命状态 || ''))) delete next.生命状态;
+    if (NPC死亡状态正则.test(String(next.死亡描述 || ''))) delete next.死亡描述;
+    return next;
+};
+
+const 过滤无依据死亡DEBUFF = (
+    list: Array<{ 名称: string; 描述: string; 效果: string; 结束时间?: string }>,
+    有死亡事实依据: boolean
+): Array<{ 名称: string; 描述: string; 效果: string; 结束时间?: string }> => (
+    有死亡事实依据 ? list : list.filter((item) => !状态效果是死亡判定(item))
+);
+
 const NPC图片记录可作立绘 = (record: any): boolean => (
     record?.状态 === 'success'
     && (record?.构图 === '半身' || record?.构图 === '立绘')
@@ -2436,7 +2468,7 @@ const 规范化NPC简介 = (npc: any, identity: string): string => {
 
 const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
     const npc = rawNpc && typeof rawNpc === 'object' ? rawNpc : {};
-    const npc其他字段 = { ...npc };
+    let npc其他字段 = { ...npc };
     const 外貌描写 = 取首个非空文本(
         npc?.外貌描写,
         npc?.外貌,
@@ -2460,7 +2492,7 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
     const 当前装备 = 补齐NPC装备(npc?.当前装备, npc);
     const 背包 = 补齐NPC背包(npc?.背包 ?? npc?.物品列表, npc);
     const BUFF = 标准化NPC状态效果(npc?.BUFF ?? npc?.buff ?? npc?.增益);
-    const DEBUFF = 标准化NPC状态效果(npc?.DEBUFF ?? npc?.debuff ?? npc?.负面状态);
+    const rawDEBUFF = 标准化NPC状态效果(npc?.DEBUFF ?? npc?.debuff ?? npc?.负面状态);
     const 出身背景 = (() => {
         const normalized = 标准化出身背景(npc?.出身背景);
         if (normalized.名称 || normalized.描述 || normalized.效果) return normalized;
@@ -2501,6 +2533,9 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
     }
     const 基础属性 = 标准化NPC基础属性(npc);
     const 战斗数值 = 标准化NPC战斗数值(npc);
+    const 有死亡事实依据 = NPC有死亡事实依据(npc, 战斗数值);
+    npc其他字段 = 移除无依据死亡字段(npc其他字段, 有死亡事实依据, 战斗数值);
+    const DEBUFF = 过滤无依据死亡DEBUFF(rawDEBUFF, 有死亡事实依据);
     const 部位状态 = 标准化NPC部位状态(npc, 战斗数值);
     const 核心性格特征 = 取首个非空文本(npc?.核心性格特征);
     const 好感度突破条件 = 取首个非空文本(npc?.好感度突破条件);
@@ -2652,8 +2687,6 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
         .filter((item, index, list) => list.findIndex((candidate) => candidate.名称 === item.名称 && candidate.类型 === item.类型) === index);
     const mergedBuff = [...标准化NPC状态效果(left?.BUFF), ...标准化NPC状态效果(right?.BUFF)]
         .filter((item, index, list) => list.findIndex((candidate) => candidate.名称 === item.名称) === index);
-    const mergedDebuff = [...标准化NPC状态效果(left?.DEBUFF), ...标准化NPC状态效果(right?.DEBUFF)]
-        .filter((item, index, list) => list.findIndex((candidate) => candidate.名称 === item.名称) === index);
     const mergedSkills = 标准化NPC技艺([...标准化NPC技艺(left?.技艺), ...标准化NPC技艺(right?.技艺)]);
     const mergedBackground = (() => {
         const rightBackground = 标准化出身背景(right?.出身背景);
@@ -2710,6 +2743,11 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
             : (Number.isFinite(Number(left?.最大内力)) ? Number(left.最大内力) : undefined)
     };
     const mergedCombat = 标准化NPC战斗数值(mergedBaseForCombat);
+    const mergedDebuff = 过滤无依据死亡DEBUFF(
+        [...标准化NPC状态效果(left?.DEBUFF), ...标准化NPC状态效果(right?.DEBUFF)]
+            .filter((item, index, list) => list.findIndex((candidate) => candidate.名称 === item.名称) === index),
+        NPC有死亡事实依据({ ...left, ...right }, mergedCombat)
+    );
     const mergedBag = mergedRawBag;
     const mergedName = 选择合并后NPC姓名(left, right) || `角色${fallbackIndex}`;
     const legacyPlaceholderName = (() => {
