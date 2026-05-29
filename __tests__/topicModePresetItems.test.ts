@@ -62,4 +62,14 @@ describe('题材模式预设物品清单', () => {
 
         expect(missingImages).toEqual([]);
     });
+
+    it('现代与末日预设清单不混入古风修仙基础补给', () => {
+        const forbidden = ['辟谷丹', '回气丹', '凝元丹', '破境丹', '紫铜丹炉', '玄铁丹炉'];
+        for (const mode of ['现代都市', '末日丧尸'] as 题材模式类型[]) {
+            const names = 获取题材模式预设物品库(mode).map((item) => item.名称);
+            for (const name of forbidden) {
+                expect(names, `${mode} 不应包含 ${name}`).not.toContain(name);
+            }
+        }
+    });
 });

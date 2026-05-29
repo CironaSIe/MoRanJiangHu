@@ -152,8 +152,13 @@ describe('门派状态规范化', () => {
 
         expect(openingBase.玩家门派.名称).toMatch(/营地|避难所|车队|安全点|哨站|救援站/);
         expect(openingBase.玩家门派.玩家职位).toBe('营地成员');
-        expect(openingBase.玩家门派.藏经阁列表).toEqual([]);
+        expect(openingBase.玩家门派.组织语义).toBe('营地');
+        expect(openingBase.玩家门派.藏经阁列表?.length).toBeGreaterThan(0);
+        expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).toMatch(/感染|搜救|枪械|训练|防护/);
+        expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).not.toMatch(/剑法|心法|身法|藏经阁|聚宝阁|弟子|宗门|门派|吐纳|丹田/);
+        expect(openingBase.角色.功法列表).toEqual([]);
         expect(openingBase.玩家门派.兑换列表.map((item: any) => item.物品名称)).toContain('净水包');
+        expect(JSON.stringify(openingBase.玩家门派.兑换列表)).not.toMatch(/辟谷丹|回气丹|凝元丹|破境丹/);
         expect(openingBase.玩家门派.重要成员.some((member: any) => /营地|物资|巡逻|医护|维修|哨兵|搜救|同行者/.test(member.身份))).toBe(true);
         expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/门派任务|同门|弟子|藏经阁|山门/);
     });
@@ -177,10 +182,30 @@ describe('门派状态规范化', () => {
 
         expect(openingBase.玩家门派.名称).toMatch(/公司|项目组|事务所|社区中心|门店|合作团队/);
         expect(openingBase.玩家门派.玩家职位).toBe('成员');
-        expect(openingBase.玩家门派.藏经阁列表).toEqual([]);
+        expect(openingBase.玩家门派.组织语义).toBe('组织');
+        expect(openingBase.玩家门派.藏经阁列表?.length).toBeGreaterThan(0);
+        expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).toMatch(/培训|协调|设备|外勤|应急|资料/);
+        expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).not.toMatch(/剑法|心法|身法|藏经阁|聚宝阁|弟子|宗门|门派|吐纳|丹田/);
+        expect(openingBase.角色.功法列表).toEqual([]);
         expect(openingBase.玩家门派.兑换列表.map((item: any) => item.物品名称)).toContain('备用手机');
         expect(openingBase.玩家门派.重要成员.some((member: any) => /负责人|同事|行政|技术|外勤|合作伙伴|社区|实习/.test(member.身份))).toBe(true);
         expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/门派任务|同门|弟子|藏经阁|山门/);
+    });
+
+    it('末日组织会替换历史存档里的古风资料和丹药兑换', () => {
+        const normalized = 规范化门派状态({
+            ID: 'camp_001',
+            名称: '铁栅安全点',
+            组织语义: '营地',
+            玩家职位: '营地成员',
+            藏经阁列表: [{ id: 'old', 名称: '入门剑法', 类型: '功法', 简介: '藏经阁典籍', 要求职位: '杂役弟子', 要求累计贡献: 0 }],
+            兑换列表: [{ id: 'old_good', 物品名称: '辟谷丹', 类型: '丹药', 兑换价格: 30, 库存: 1, 要求职位: '杂役弟子' }]
+        } as any);
+
+        expect(JSON.stringify(normalized.藏经阁列表)).toMatch(/感染|搜救|枪械|训练|防护/);
+        expect(JSON.stringify(normalized.藏经阁列表)).not.toMatch(/剑法|藏经阁|杂役弟子/);
+        expect(normalized.兑换列表.map((item: any) => item.物品名称)).toContain('净水包');
+        expect(JSON.stringify(normalized.兑换列表)).not.toMatch(/辟谷丹|丹药/);
     });
 
     it('开局门派会按当前门派生成入门功法，不再固定为青云剑法', () => {

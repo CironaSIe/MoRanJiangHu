@@ -156,7 +156,7 @@ const MobileSettingsModal: React.FC<Props> = ({
 
     const renderTabContent = () => {
         if (activeTab === 'api') return <ApiSettings settings={apiConfig} onSave={onSaveApi} />;
-        if (activeTab === 'workflow_graph') return <WorkflowGraphSettings settings={apiConfig} onNavigate={(tab) => onTabChange(tab as SettingsTab)} />;
+        if (activeTab === 'workflow_graph') return <WorkflowGraphSettings settings={apiConfig} onSave={onSaveApi} onNavigate={(tab) => onTabChange(tab as SettingsTab)} />;
         if (activeTab === 'image_generation') return <ImageGenerationSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'recall') return <RecallModelSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'memory_summary_model') return <MemorySummaryModelSettings settings={apiConfig} onSave={onSaveApi} />;

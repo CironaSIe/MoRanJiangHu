@@ -13,9 +13,11 @@ import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 import { 获取物品明细分组 } from '../../../utils/rulebook';
 import { 是否杂物类物品 } from '../../../utils/inventoryActions';
 import { 规范化消耗品使用效果 } from '../../../utils/itemEffects';
+import { 获取题材模式配置 } from '../../../utils/topicModeProfiles';
 
 interface Props {
     character: any;
+    openingConfig?: any;
     onClose: () => void;
     onCharacterChange?: (nextCharacter: any) => void;
     onSellItem?: (itemId: string) => { ok: boolean; message: string } | void;
@@ -39,6 +41,15 @@ const CATEGORY_COLORS: Record<ItemCategory, string> = {
     杂物: 'text-stone-400',
 };
 const CATEGORIES: ItemCategory[] = ['全部', '装备', '任务道具', '消耗品', '材料', '秘籍', '杂物'];
+
+const 获取背包标题 = (openingConfig?: any): string => {
+    const profile = 获取题材模式配置(openingConfig?.题材模式);
+    if (profile.group === 'apocalypse') return '求生背包';
+    if (profile.group === 'modern') return '随身物品';
+    if (profile.group === 'urban_xianxia') return '随身行囊';
+    if (profile.group === 'xianxia') return '仙途行囊';
+    return '江湖行囊';
+};
 
 const getSafeNumber = (value: unknown, fallback = 0) => {
     const parsed = Number(value);
@@ -182,7 +193,7 @@ const renderItemIcon = (type: string, className: string) => {
     return icons[type] || icons.杂物;
 };
 
-const InventoryModal: React.FC<Props> = ({ character, onClose, onCharacterChange, onSellItem, onDiscardItem, onSellAllMisc, onDiscardAllMisc, onRegenerateItemImage }) => {
+const InventoryModal: React.FC<Props> = ({ character, openingConfig, onClose, onCharacterChange, onSellItem, onDiscardItem, onSellAllMisc, onDiscardAllMisc, onRegenerateItemImage }) => {
     const [activeCategory, setActiveCategory] = useState<ItemCategory>('全部');
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
     const [actionMessage, setActionMessage] = useState('');
@@ -342,7 +353,7 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
                     <div className="flex items-center gap-3">
                         <div className="h-2 w-2 rounded-full bg-wuxia-gold shadow-[0_0_10px_rgba(212,175,55,0.8)] animate-pulse" />
                         <h3 className="font-serif text-2xl font-bold tracking-[0.32em] text-wuxia-gold drop-shadow-md">
-                            仙途行囊
+                            {获取背包标题(openingConfig)}
                             <span className="ml-3 rounded-full border border-wuxia-gold/25 px-2.5 py-1 font-mono text-[11px] tracking-widest text-wuxia-gold/70">
                                 INVENTORY
                             </span>

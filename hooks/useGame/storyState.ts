@@ -75,10 +75,10 @@ const 门派职位贡献门槛: Record<string, number> = {
     掌门: 12000,
 };
 
-const 标准门派职位列表 = Object.keys(职位等级排序);
+const 标准门派职位列表 = ['杂役弟子', '外门弟子', '内门弟子', '真传弟子', '执事', '长老', '副掌门', '掌门'];
 
 const 补全门派职位 = (source: any, totalContribution = 0, fallback = '无'): string => {
-    const customOrganizationKind = 取文本(source?.组织语义 || source?.组织类型 || source?.题材组织类型);
+    const customOrganizationKind = 推导组织语义(source);
     const explicitCustomRank = [
         source?.玩家职位,
         source?.门派职位,
@@ -141,6 +141,31 @@ export const 是否无门派标识 = (value: any): boolean => {
     if (value === null || value === undefined) return true;
     const normalized = typeof value === 'string' ? value.trim().replace(/\s+/g, '') : String(value).trim();
     return 无门派文本集合.has(normalized);
+};
+
+type 组织题材 = '营地' | '组织' | '宗门' | '门派' | '';
+
+const 推导组织语义 = (source?: any, openingConfig?: OpeningConfig): 组织题材 => {
+    const explicit = 取文本(source?.组织语义 || source?.组织类型 || source?.题材组织类型);
+    if (['营地', '组织', '宗门', '门派'].includes(explicit)) return explicit as 组织题材;
+    if (openingConfig?.题材模式 === '末日丧尸') return '营地';
+    if (openingConfig?.题材模式 === '现代都市') return '组织';
+    if (openingConfig?.题材模式 === '仙侠') return '宗门';
+    const text = [
+        source?.ID,
+        source?.名称,
+        source?.玩家职位,
+        source?.门派职位,
+        source?.简介,
+        ...(Array.isArray(source?.门规) ? source.门规 : []),
+        ...(Array.isArray(source?.兑换列表) ? source.兑换列表.map((item: any) => `${item?.物品名称 || ''}${item?.类型 || ''}${item?.要求职位 || ''}`) : []),
+        ...(Array.isArray(source?.藏经阁列表) ? source.藏经阁列表.map((item: any) => `${item?.名称 || ''}${item?.类型 || ''}${item?.简介 || ''}${item?.要求职位 || ''}`) : []),
+        ...(Array.isArray(source?.重要成员) ? source.重要成员.map((item: any) => `${item?.身份 || ''}${item?.境界 || ''}${item?.简介 || ''}`) : [])
+    ].map((item) => 取文本(item)).filter(Boolean).join(' ');
+    if (/末日|丧尸|感染|尸群|营地|避难|安全点|据点|车队|哨站|救援站|搜救|巡逻|后勤|弹药|口粮|净水|燃油|维修|隔离/u.test(text)) return '营地';
+    if (/现代|都市|公司|项目组|事务所|社区中心|门店|合作团队|合同|客户|技术成员|行政联系人|外勤成员|电脑|手机|培训|项目/u.test(text)) return '组织';
+    if (/仙宗|剑宗|道院|灵门|玄府|真宫|炼气|筑基|灵根|灵力|符箓|御气/u.test(text)) return '宗门';
+    return '';
 };
 
 const 规范化章节时间校准 = (value: any): 剧情系统结构['章节时间校准'] => (
@@ -442,6 +467,68 @@ const 提取门派典籍前缀 = (sectName: string): string => {
 const 创建默认藏经阁列表 = (sectName = '本门', openingConfig?: OpeningConfig): NonNullable<详细门派结构['藏经阁列表']> => {
     const seed = 生成稳定哈希(`${sectName}|${openingConfig?.题材模式 || ''}|藏经阁`);
     const prefix = 提取门派典籍前缀(sectName);
+    if (openingConfig?.题材模式 === '末日丧尸') {
+        return [
+            {
+                id: `camp_doc_${生成稳定哈希(`${sectName}|infection`).toString(36)}`,
+                名称: `${prefix}感染防护手册`,
+                类型: '防护训练',
+                品阶: '基础',
+                简介: `${sectName}整理的隔离、咬伤处理、血污清理和噪音控制流程，适合新成员先读。`,
+                要求职位: '营地成员',
+                要求累计贡献: 0
+            },
+            {
+                id: `camp_doc_${生成稳定哈希(`${sectName}|shooting`).toString(36)}`,
+                名称: `${prefix}基础枪械演练`,
+                类型: '射击训练',
+                品阶: '进阶',
+                简介: `${sectName}用于教授持枪姿势、短点射、换弹、枪声管控和弹药节约的演练资料。`,
+                要求职位: '外勤成员',
+                要求累计贡献: 120
+            },
+            {
+                id: `camp_doc_${生成稳定哈希(`${sectName}|rescue`).toString(36)}`,
+                名称: `${prefix}搜救路线课`,
+                类型: '搜救训练',
+                品阶: '进阶',
+                简介: `${sectName}标注安全屋、物资点、尸群绕行线和撤离信号，供一线搜救队复盘使用。`,
+                要求职位: '搜救队员',
+                要求累计贡献: 260
+            }
+        ] as any;
+    }
+    if (openingConfig?.题材模式 === '现代都市') {
+        return [
+            {
+                id: `org_doc_${生成稳定哈希(`${sectName}|coordination`).toString(36)}`,
+                名称: `${prefix}现场协调手册`,
+                类型: '培训资料',
+                品阶: '基础',
+                简介: `${sectName}沉淀的沟通、记录、排期和风险报备方法，帮助成员把现实事务办稳。`,
+                要求职位: '成员',
+                要求累计贡献: 0
+            },
+            {
+                id: `org_doc_${生成稳定哈希(`${sectName}|tech`).toString(36)}`,
+                名称: `${prefix}设备维护课`,
+                类型: '技能培训',
+                品阶: '进阶',
+                简介: `${sectName}用于教授电脑、手机、监控和常用设备排障的内部培训资料。`,
+                要求职位: '技术成员',
+                要求累计贡献: 120
+            },
+            {
+                id: `org_doc_${生成稳定哈希(`${sectName}|field`).toString(36)}`,
+                名称: `${prefix}外勤应急指南`,
+                类型: '外勤训练',
+                品阶: '进阶',
+                简介: `${sectName}整理的路线规划、现场沟通、急救和突发事件留证流程。`,
+                要求职位: '外勤成员',
+                要求累计贡献: 260
+            }
+        ] as any;
+    }
     const isXianxia = openingConfig?.题材模式 === '仙侠';
     const martialStyle = 按种子取项(
         isXianxia
@@ -610,6 +697,9 @@ const 补齐开局仙侠字段 = (charData: 角色数据结构, openingConfig?: 
 const 补齐开局角色功法 = (charData: 角色数据结构, sect: 详细门派结构): 角色数据结构 => {
     const currentSkills = Array.isArray((charData as any)?.功法列表) ? 深拷贝((charData as any).功法列表) : [];
     if (currentSkills.length > 0) return { ...charData, 功法列表: currentSkills };
+    if (['营地', '组织'].includes(推导组织语义(sect))) {
+        return { ...charData, 功法列表: currentSkills };
+    }
     if (!sect || 是否无门派标识(sect.ID) || !Array.isArray(sect.藏经阁列表) || sect.藏经阁列表.length === 0) {
         return { ...charData, 功法列表: currentSkills };
     }
@@ -699,6 +789,45 @@ const 创建默认同门名录 = (sectName: string, openingConfig?: OpeningConfi
     });
 };
 
+const 题材资料库是否违和 = (items: any[], organizationKind: 组织题材): boolean => {
+    if (!Array.isArray(items) || items.length === 0) return false;
+    const text = JSON.stringify(items);
+    if (organizationKind === '营地') {
+        return /藏经阁|功法|心法|身法|剑法|刀法|拳谱|掌法|弟子|宗门|门派|吐纳|丹田|内功|轻功/u.test(text);
+    }
+    if (organizationKind === '组织') {
+        return /藏经阁|功法|心法|身法|剑法|刀法|拳谱|掌法|弟子|宗门|门派|吐纳|丹田|内功|轻功/u.test(text);
+    }
+    return false;
+};
+
+const 题材兑换列表是否违和 = (items: any[], organizationKind: 组织题材): boolean => {
+    if (!Array.isArray(items) || items.length === 0) return false;
+    const text = JSON.stringify(items);
+    if (organizationKind === '营地' || organizationKind === '组织') {
+        return /辟谷丹|回气丹|凝元丹|破境丹|筑基丹|引气丹|聚灵丹|混元丹|玉骨扇|丹炉|法器|灵石/u.test(text);
+    }
+    return false;
+};
+
+const 按人数平衡分布 = (total: number, entries: Array<[string, number]>): Record<string, number> => {
+    const safeTotal = Math.max(0, Math.floor(total));
+    if (safeTotal <= 0) return {};
+    const result: Record<string, number> = {};
+    let used = 0;
+    entries.forEach(([key, value]) => {
+        const count = Math.max(0, Math.floor(value));
+        result[key] = count;
+        used += count;
+    });
+    const diff = safeTotal - used;
+    if (diff !== 0 && entries.length > 0) {
+        const target = entries[0][0];
+        result[target] = Math.max(0, (result[target] || 0) + diff);
+    }
+    return result;
+};
+
 const 创建开局门派种子数据 = (
     charData: 角色数据结构,
     openingConfig?: OpeningConfig
@@ -745,7 +874,7 @@ const 创建开局门派种子数据 = (
 };
 
 const 推导门派规模数据 = (source: any, displayName: string) => {
-    const organizationKind = 取文本(source?.组织语义 || source?.组织类型 || source?.题材组织类型);
+    const organizationKind = 推导组织语义(source);
     const isApocalypse = organizationKind === '营地';
     const isModern = organizationKind === '组织';
     const rawTotal = 取数字(source?.弟子总数 ?? source?.成员总数 ?? source?.门人总数, 0);
@@ -781,28 +910,28 @@ const 推导门派规模数据 = (source: any, displayName: string) => {
         : {};
     const fallbackDistribution = total > 0
         ? isApocalypse
-            ? {
-                后勤: Math.max(0, Math.floor(total * 0.35)),
-                巡逻: Math.max(0, Math.floor(total * 0.25)),
-                医疗维修: Math.max(0, Math.floor(total * 0.18)),
-                搜救战斗: Math.max(0, Math.floor(total * 0.16)),
-                指挥骨干: Math.max(0, total >= 30 ? Math.max(1, Math.floor(total * 0.04)) : 0)
-            }
+            ? 按人数平衡分布(total, [
+                ['后勤', total * 0.35],
+                ['巡逻', total * 0.25],
+                ['医疗维修', total * 0.18],
+                ['搜救战斗', total * 0.16],
+                ['指挥骨干', total >= 30 ? Math.max(1, total * 0.04) : 0]
+            ])
             : isModern
-                ? {
-                    基础成员: Math.max(0, Math.floor(total * 0.45)),
-                    执行成员: Math.max(0, Math.floor(total * 0.30)),
-                    专业骨干: Math.max(0, Math.floor(total * 0.18)),
-                    管理协调: Math.max(0, Math.floor(total * 0.06)),
-                    核心负责人: Math.max(0, total >= 30 ? Math.max(1, Math.floor(total * 0.01)) : 0)
-                }
-                : {
-            凡俗: Math.max(0, Math.floor(total * 0.45)),
-            入门: Math.max(0, Math.floor(total * 0.35)),
-            中坚: Math.max(0, Math.floor(total * 0.16)),
-            高手: Math.max(0, Math.floor(total * 0.035)),
-            顶尖: Math.max(0, total >= 80 ? Math.max(1, Math.floor(total * 0.005)) : 0)
-        }
+                ? 按人数平衡分布(total, [
+                    ['基础成员', total * 0.45],
+                    ['执行成员', total * 0.30],
+                    ['专业骨干', total * 0.18],
+                    ['管理协调', total * 0.06],
+                    ['核心负责人', total >= 30 ? Math.max(1, total * 0.01) : 0]
+                ])
+                : 按人数平衡分布(total, [
+                    ['凡俗', total * 0.45],
+                    ['入门', total * 0.35],
+                    ['中坚', total * 0.16],
+                    ['高手', total * 0.035],
+                    ['顶尖', total >= 80 ? Math.max(1, total * 0.005) : 0]
+                ])
         : {};
     const stipend = source?.月俸规则 && typeof source.月俸规则 === 'object' && !Array.isArray(source.月俸规则)
         ? source.月俸规则
@@ -860,7 +989,7 @@ export const 创建开局门派状态 = (
         组织语义: seedData.organizationKind,
         弟子总数: seedData.total,
         兑换列表: isApocalypse ? 创建默认营地物资列表() : isModern ? 创建默认现代组织资源列表() : isXianxia ? 创建默认仙侠聚宝阁商品() : 创建默认聚宝阁商品(),
-        藏经阁列表: isApocalypse || isModern ? [] : 创建默认藏经阁列表(baseName, openingConfig),
+        藏经阁列表: 创建默认藏经阁列表(baseName, openingConfig),
         任务列表: [],
         重要成员: 创建默认同门名录(baseName, openingConfig)
     });
@@ -870,7 +999,7 @@ export const 创建开局门派状态 = (
 export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
     const base = 创建空门派状态();
     const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-    const organizationKind = 取文本(source?.组织语义 || source?.组织类型 || source?.题材组织类型);
+    const organizationKind = 推导组织语义(source);
     const isApocalypseOrganization = organizationKind === '营地';
     const isModernOrganization = organizationKind === '组织';
     const id = 取文本(source?.ID, base.ID);
@@ -892,6 +1021,17 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
     );
     const playerRank = 补全门派职位(source, totalContribution, isActiveSect ? '杂役弟子' : base.玩家职位);
     const scaleData = 推导门派规模数据(source, displayName);
+    const defaultLibraryConfig = isApocalypseOrganization
+        ? ({ 题材模式: '末日丧尸' } as OpeningConfig)
+        : isModernOrganization
+            ? ({ 题材模式: '现代都市' } as OpeningConfig)
+            : organizationKind === '宗门'
+                ? ({ 题材模式: '仙侠' } as OpeningConfig)
+                : undefined;
+    const rawLibrary = Array.isArray(source?.藏经阁列表) ? source.藏经阁列表 : [];
+    const shouldReplaceLibrary = 题材资料库是否违和(rawLibrary, organizationKind);
+    const rawExchange = Array.isArray(source?.兑换列表) ? source.兑换列表 : [];
+    const shouldReplaceExchange = 题材兑换列表是否违和(rawExchange, organizationKind);
     const safeIntro = typeof source?.简介 === 'string' && source.简介.trim() && !含幕后生成占位文本(source.简介)
         ? source.简介.trim()
         : isApocalypseOrganization
@@ -908,6 +1048,7 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
     return {
         ID: id,
         名称: displayName,
+        组织语义: organizationKind || undefined,
         简介: isActiveSect ? safeIntro : base.简介,
         门规: safeRules.length > 0
             ? safeRules
@@ -927,7 +1068,9 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
         累计贡献: totalContribution,
         任务列表: safeTasks,
         兑换列表: Array.isArray(source?.兑换列表) && source.兑换列表.length > 0
-            ? source.兑换列表
+            ? (shouldReplaceExchange
+                ? (isApocalypseOrganization ? 创建默认营地物资列表() : isModernOrganization ? 创建默认现代组织资源列表() : source.兑换列表)
+                : source.兑换列表)
             : (isActiveSect
                 ? isApocalypseOrganization
                     ? 创建默认营地物资列表()
@@ -936,8 +1079,8 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
                         : 创建默认聚宝阁商品()
                 : []),
         藏经阁列表: Array.isArray(source?.藏经阁列表) && source.藏经阁列表.length > 0
-            ? source.藏经阁列表
-            : (isActiveSect && !isApocalypseOrganization && !isModernOrganization ? 创建默认藏经阁列表(displayName) : []),
+            ? (shouldReplaceLibrary ? 创建默认藏经阁列表(displayName, defaultLibraryConfig) : source.藏经阁列表)
+            : (isActiveSect ? 创建默认藏经阁列表(displayName, defaultLibraryConfig) : []),
         重要成员: isActiveSect ? 补齐门派重要成员(source?.重要成员) : []
     };
 };

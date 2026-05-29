@@ -3548,6 +3548,7 @@ const App: React.FC = () => {
                             {isMobile ? (
                                 <MobileInventoryModal 
                                     character={state.角色} 
+                                    openingConfig={state.开局配置}
                                     onCharacterChange={(nextCharacter: any) => {
                                         setters.setCharacter(nextCharacter);
                                         void actions.performAutoSave?.({ role: nextCharacter, force: true });
@@ -3562,6 +3563,7 @@ const App: React.FC = () => {
                             ) : (
                                 <InventoryModal 
                                     character={state.角色} 
+                                    openingConfig={state.开局配置}
                                     onCharacterChange={(nextCharacter: any) => {
                                         setters.setCharacter(nextCharacter);
                                         void actions.performAutoSave?.({ role: nextCharacter, force: true });
