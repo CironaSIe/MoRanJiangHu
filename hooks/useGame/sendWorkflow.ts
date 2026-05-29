@@ -1858,7 +1858,7 @@ export const 执行主剧情发送工作流 = async (
                 deps.检查主角每回合生图(finalState.角色);
 
                 if (回合结束自动存档已开启) {
-                    void deps.performAutoSave({
+                    await deps.performAutoSave({
                         history: [...updatedDisplayHistory, queuedAiMsg],
                         role: finalState.角色,
                         env: finalState.环境,
