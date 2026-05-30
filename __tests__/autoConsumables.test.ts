@@ -121,6 +121,9 @@ describe('题材模式自动消耗品预设', () => {
         const names = items.map((item: any) => item.名称);
         expect(names).toEqual(expect.arrayContaining(['饮水瓶', '压缩饼干', '医用绷带']));
         expect(names).not.toEqual(expect.arrayContaining(['辟谷丹', '回气丹', '凝元丹', '破境丹']));
+        ['辟谷丹', '回气丹', '凝元丹', '破境丹'].forEach((name) => {
+            expect(names).not.toContain(name);
+        });
     });
 
     it('现代都市模式不会补入修仙丹药', () => {
@@ -177,8 +180,23 @@ describe('stateTransforms 只补一次系统丹药预设', () => {
         const normalized = 规范化角色物品容器映射(role, { 题材模式: '末日丧尸' });
         const names = normalized.物品列表.map((item: any) => item.名称);
         expect(names).toEqual(expect.arrayContaining(['饮水瓶', '压缩饼干', '医用绷带']));
-        expect(names).not.toContain('回气丹');
-        expect(names).not.toContain('辟谷丹');
+        ['辟谷丹', '回气丹', '凝元丹', '破境丹'].forEach((name) => {
+            expect(names).not.toContain(name);
+        });
+    });
+
+    it('末日旧丹药会在题材归一时被清理，不会混入初始物品', () => {
+        const role: any = {
+            姓名: '测试',
+            物品列表: 补齐自动丹药预设([]),
+            已补齐系统丹药预设: false
+        };
+        const normalized = 规范化角色物品容器映射(role, { 题材模式: '末日丧尸' });
+        const names = normalized.物品列表.map((item: any) => item.名称);
+        expect(names).toEqual(expect.arrayContaining(['饮水瓶', '压缩饼干', '医用绷带']));
+        ['辟谷丹', '回气丹', '凝元丹', '破境丹'].forEach((name) => {
+            expect(names).not.toContain(name);
+        });
     });
 });
 

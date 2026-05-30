@@ -271,6 +271,7 @@ export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): Gam
         const sender = 清理说话人(rawSender) || '旁白';
         if (!text) return [];
         if (sender === '旁白') return [{ sender, text }];
+        if (sender === '奖励') return [{ sender, text }];
         if (/^(【)?(?:判定|NSFW判定|先机|瞄准|接战|对撞|对抗|防御|化解|伤害|态势|反击|反馈|消耗|洞察|衰退)(】)?$/.test(sender)) {
             return [{ sender, text }];
         }

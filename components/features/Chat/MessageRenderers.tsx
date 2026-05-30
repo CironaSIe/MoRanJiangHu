@@ -5,7 +5,7 @@ import { use图片资源回源预取 } from '../../../hooks/useImageAssetPrefetc
 import { 构建区域文字样式 } from '../../../utils/visualSettings';
 import { 获取图片展示地址, 获取图片资源文本地址 } from '../../../utils/imageAssets';
 import { 根据差额校正判定结果 } from '../../../utils/judgmentFormat';
-import { IconHeart, IconEye, IconBattery, IconShield, IconCompass, IconExplosion, IconDice } from '../../ui/Icons';
+import { IconHeart, IconEye, IconBattery, IconShield, IconCompass, IconExplosion, IconDice, IconCoins } from '../../ui/Icons';
 
 type JudgmentModifier = {
     key: string;
@@ -281,6 +281,100 @@ export const NarratorRenderer: React.FC<{ text: string; visualConfig?: 视觉设
     return (
         <div className="narrator-renderer w-full my-1 px-8 py-2 bg-white/5 backdrop-blur-sm border-x-4 border-wuxia-gold/55 leading-relaxed relative overflow-hidden rounded-md shadow-lg transition-all duration-300" style={style}>
             <p className="relative z-10 whitespace-pre-wrap break-words tracking-wide" style={{ fontSize: 'inherit', lineHeight: 'inherit' }}>{text}</p>
+        </div>
+    );
+};
+
+const 解析奖励正文 = (text: string): {
+    taskTitle: string;
+    issuer: string;
+    completionLine: string;
+    rewardLine: string;
+    rewards: string[];
+} => {
+    const lines = String(text || '')
+        .split(/\n+/)
+        .map(line => line.trim())
+        .filter(Boolean);
+    const completionLine = lines.find(line => line.includes('【任务完成】')) || '';
+    const rewardLine = lines.find(line => line.includes('【奖励到账】')) || '';
+    const taskTitle = (
+        rewardLine.match(/「([^」]+)」/)?.[1]
+        || completionLine.match(/「([^」]+)」/)?.[1]
+        || '任务'
+    ).trim();
+    const issuer = (
+        rewardLine.match(/由(.+?)发放/)?.[1]
+        || completionLine.match(/已由(.+?)确认完成/)?.[1]
+        || '任务发布人'
+    ).trim();
+    const rewardBody = (
+        rewardLine.match(/发放[：:]\s*([\s\S]*?)(?:。|$)/)?.[1]
+        || ''
+    ).trim();
+    const rewards = rewardBody
+        .split(/[、，,；;]/)
+        .map(item => item.trim())
+        .filter(Boolean)
+        .filter(item => !/背包|贡献|技艺和属性点已同步/.test(item));
+    return { taskTitle, issuer, completionLine, rewardLine, rewards };
+};
+
+const 奖励标签样式 = (reward: string): string => {
+    if (/物品|x\d+|×\d+|\*\d+/i.test(reward)) return 'border-emerald-500/35 bg-emerald-500/12 text-emerald-950';
+    if (/贡献|信用|额度/.test(reward)) return 'border-amber-500/45 bg-amber-400/18 text-amber-950';
+    if (/技艺|技能|熟练度/.test(reward)) return 'border-sky-500/35 bg-sky-500/12 text-sky-950';
+    if (/属性点|境界/.test(reward)) return 'border-violet-500/35 bg-violet-500/12 text-violet-950';
+    if (/铜钱|银子|银两|元宝|金元宝/.test(reward)) return 'border-yellow-600/35 bg-yellow-400/16 text-yellow-950';
+    return 'border-stone-400/45 bg-stone-200/65 text-stone-950';
+};
+
+export const RewardRenderer: React.FC<{ text: string; visualConfig?: 视觉设置结构 }> = ({ text, visualConfig }) => {
+    const style = 构建区域文字样式(visualConfig, '旁白');
+    const parsed = 解析奖励正文(text);
+    return (
+        <div className="reward-renderer w-full my-4 sm:my-5 px-1.5 sm:px-4 flex justify-center" data-reward-card="true" style={style}>
+            <div className="relative w-full sm:w-11/12 md:w-5/6 lg:w-3/4 overflow-hidden rounded-xl border-2 border-amber-500/45 bg-[#fff8e6] text-[#24170a] shadow-[0_18px_45px_rgba(0,0,0,0.22)]">
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 via-emerald-500 to-sky-500" />
+                <div className="flex flex-col gap-3 px-4 py-4 sm:px-5 sm:py-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-600/35 bg-amber-500/18 text-amber-800 shadow-sm">
+                                <IconCoins size={22} />
+                            </span>
+                            <div className="min-w-0">
+                                <div className="text-[11px] font-black tracking-[0.18em] text-amber-800/80">任务完成</div>
+                                <div className="truncate text-base font-black text-stone-950 sm:text-lg">{parsed.taskTitle}</div>
+                            </div>
+                        </div>
+                        <div className="max-w-full rounded-lg border border-stone-300 bg-white/70 px-3 py-1.5 text-[12px] font-bold text-stone-800 shadow-sm">
+                            {parsed.issuer} 确认并发放
+                        </div>
+                    </div>
+
+                    {parsed.rewards.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                            {parsed.rewards.map((reward, index) => (
+                                <span
+                                    key={`${reward}-${index}`}
+                                    className={`max-w-full rounded-lg border px-2.5 py-1.5 text-[12px] font-black leading-relaxed shadow-sm ${奖励标签样式(reward)}`}
+                                    title={reward}
+                                >
+                                    {reward}
+                                </span>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="rounded-lg border border-stone-300 bg-white/70 px-3 py-2 text-[13px] font-semibold text-stone-700">
+                            奖励说明已确认，相关变量已同步。
+                        </div>
+                    )}
+
+                    <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[12px] font-semibold leading-relaxed text-emerald-950">
+                        背包、贡献、技艺、属性点等成长项已同步写入当前存档。
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

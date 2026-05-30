@@ -1322,6 +1322,10 @@ export const 执行主剧情发送工作流 = async (
             { commandCount: 获取响应命令数量(finalParsedResponse) }
         );
         let finalState = immediateState;
+        finalDisplayResponse = {
+            ...finalDisplayResponse,
+            logs: Array.isArray(finalParsedResponse.logs) ? [...finalParsedResponse.logs] : finalDisplayResponse.logs
+        };
         const nextGameTime = 环境时间转标准串(immediateState.环境) || "未知时间";
         const immediateEntry = 构建即时记忆条目(nextGameTime, sendInput, finalDisplayResponse);
         const shortEntry = 构建短期记忆条目(nextGameTime, finalDisplayResponse);
@@ -2035,6 +2039,10 @@ export const 执行主剧情发送工作流 = async (
                     剧情: deps.规范化剧情状态(calibratedFinalStory, finalState.环境)
                 };
                 deps.设置剧情(finalState.剧情);
+                finalDisplayResponse = {
+                    ...finalDisplayResponse,
+                    logs: Array.isArray(finalParsedResponse.logs) ? [...finalParsedResponse.logs] : finalDisplayResponse.logs
+                };
 
                 const queuedAiMsg: 聊天记录结构 = {
                     ...newAiMsg,

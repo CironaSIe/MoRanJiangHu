@@ -13,6 +13,7 @@ import {
 } from '../../types';
 import { applyStateCommand, normalizeStateCommandKey } from '../../utils/stateHelpers';
 import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
+import { 结算已完成任务奖励 } from '../../utils/taskRewards';
 import { sanitizeInventoryCommand } from './inventoryCommandGuard';
 import { 姓名含已知中文姓氏 } from '../../utils/chineseName';
 import { 合并保留既有NPC列表, 命令存在社交删除风险 } from '../../utils/npcRetentionGuard';
@@ -97,7 +98,8 @@ type 响应命令处理依赖 = {
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
     规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
     规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
-    规范化角色物品容器映射: (raw?: any, options?: { 当前时间?: unknown; 事件文本?: string }) => 角色数据结构;
+    规范化角色物品容器映射: (raw?: any, options?: { 当前时间?: unknown; 事件文本?: string; 启用饱腹口渴系统?: boolean; 题材模式?: unknown }) => 角色数据结构;
+    角色规范化选项?: { 启用饱腹口渴系统?: boolean; 题材模式?: unknown };
     战斗结束自动清空: (battle: 战斗状态结构, story?: 剧情系统结构) => 战斗状态结构;
     设置角色?: (value: 角色数据结构) => void;
     设置环境?: (value: 环境信息结构) => void;
@@ -1166,7 +1168,8 @@ export const 执行响应命令处理 = (
         battleBuffer = deps.战斗结束自动清空(battleBuffer, storyBuffer);
         charBuffer = deps.规范化角色物品容器映射(charBuffer, {
             当前时间: envBuffer,
-            事件文本: responseFactText
+            事件文本: responseFactText,
+            ...deps.角色规范化选项
         });
         socialBuffer = deps.规范化社交列表(
             补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
@@ -1217,6 +1220,20 @@ export const 执行响应命令处理 = (
             同人剧情规划: deps.规范化同人剧情规划状态(fandomStoryPlanBuffer),
             同人女主剧情规划: deps.规范化同人女主剧情规划状态(fandomHeroinePlanBuffer)
         };
+        const rewardSettlement = 结算已完成任务奖励({
+            response,
+            state: finalState,
+            normalizeRole: deps.规范化角色物品容器映射,
+            roleNormalizeOptions: deps.角色规范化选项
+        });
+        if (rewardSettlement.changed) {
+            finalState = {
+                ...finalState,
+                角色: rewardSettlement.state.角色,
+                玩家门派: deps.规范化门派状态(rewardSettlement.state.玩家门派),
+                任务列表: 规范化任务列表自动结算(rewardSettlement.state.任务列表)
+            };
+        }
         const calibrated = deps.命令后校准?.(finalState);
         if (calibrated) {
             finalState = 'state' in calibrated ? calibrated.state : calibrated;
@@ -1289,24 +1306,38 @@ export const 执行响应命令处理 = (
         同人剧情规划: deps.规范化同人剧情规划状态(fandomStoryPlanBuffer),
         同人女主剧情规划: deps.规范化同人女主剧情规划状态(fandomHeroinePlanBuffer)
     };
+    const rewardSettlement = 结算已完成任务奖励({
+        response,
+        state: finalState,
+        normalizeRole: deps.规范化角色物品容器映射,
+        roleNormalizeOptions: deps.角色规范化选项
+    });
+    if (rewardSettlement.changed) {
+        finalState = {
+            ...finalState,
+            角色: rewardSettlement.state.角色,
+            玩家门派: deps.规范化门派状态(rewardSettlement.state.玩家门派),
+            任务列表: 规范化任务列表自动结算(rewardSettlement.state.任务列表)
+        };
+    }
     const calibrated = deps.命令后校准?.(finalState);
     if (calibrated) {
         finalState = 'state' in calibrated ? calibrated.state : calibrated;
-        if (shouldApplyState) {
-            deps.设置角色?.(finalState.角色);
-            deps.设置环境?.(finalState.环境);
-            deps.设置社交?.(finalState.社交);
-            deps.设置世界?.(finalState.世界);
-            deps.设置战斗?.(finalState.战斗);
-            deps.设置玩家门派?.(finalState.玩家门派);
-            deps.设置任务列表?.(finalState.任务列表);
-            deps.设置约定列表?.(finalState.约定列表);
-            deps.设置剧情?.(finalState.剧情);
-            deps.设置剧情规划?.(finalState.剧情规划);
-            deps.设置女主剧情规划?.(finalState.女主剧情规划);
-            deps.设置同人剧情规划?.(finalState.同人剧情规划);
-            deps.设置同人女主剧情规划?.(finalState.同人女主剧情规划);
-        }
     };
+    if (shouldApplyState) {
+        deps.设置角色?.(finalState.角色);
+        deps.设置环境?.(finalState.环境);
+        deps.设置社交?.(finalState.社交);
+        deps.设置世界?.(finalState.世界);
+        deps.设置战斗?.(finalState.战斗);
+        deps.设置玩家门派?.(finalState.玩家门派);
+        deps.设置任务列表?.(finalState.任务列表);
+        deps.设置约定列表?.(finalState.约定列表);
+        deps.设置剧情?.(finalState.剧情);
+        deps.设置剧情规划?.(finalState.剧情规划);
+        deps.设置女主剧情规划?.(finalState.女主剧情规划);
+        deps.设置同人剧情规划?.(finalState.同人剧情规划);
+        deps.设置同人女主剧情规划?.(finalState.同人女主剧情规划);
+    }
     return finalState;
 };

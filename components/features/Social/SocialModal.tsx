@@ -7,7 +7,7 @@ import { 构建NPC记忆展示结果 } from '../../../hooks/useGame/npcMemorySum
 import { use图片资源回源预取 } from '../../../hooks/useImageAssetPrefetch';
 import { 获取图片展示地址 } from '../../../utils/imageAssets';
 import { 格式化月日 } from '../../../utils/characterVitals';
-import { IconBeads, IconHeart, IconMars, IconScroll } from '../../ui/Icons';
+import { IconBeads, IconHeart, IconMars, IconScroll, IconSparkles } from '../../ui/Icons';
 
 interface Props {
     socialList: NPC结构[];
@@ -529,31 +529,33 @@ const SocialModal: React.FC<Props> = ({
                                     )}
                                 </div>
 
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 overflow-hidden">
                                     <div className={`social-roster-card__name font-serif font-bold text-base truncate ${isSelected ? 'text-wuxia-gold drop-shadow-sm' : 'text-gray-200'}`}>
                                         {npc.姓名}
                                     </div>
-                                    <div className="social-roster-card__meta text-[10px] text-gray-500 flex items-center gap-1.5 mt-0.5">
+                                    <div className="social-roster-card__meta text-[10px] text-gray-500 flex items-center gap-1 mt-0.5 min-w-0 overflow-hidden">
                                         {显示境界 && npc.境界 && (
                                             <>
-                                                <span className="truncate">{npc.境界}</span>
+                                                <span className="min-w-0 truncate">{npc.境界}</span>
                                                 <span className="w-1 h-1 rounded-full bg-gray-700 shrink-0"></span>
                                             </>
                                         )}
-                                        <span className={npcDead ? 'text-gray-400' : npc.是否在场 ? 'text-emerald-400/90' : 'text-gray-600'}>
+                                        <span className={`shrink-0 whitespace-nowrap ${npcDead ? 'text-gray-400' : npc.是否在场 ? 'text-emerald-400/90' : 'text-gray-600'}`}>
                                             {npcDead ? '已故' : npc.是否在场 ? '在场' : '离线'}
                                         </span>
                                     </div>
-                                    <div className="social-roster-card__relation text-[10px] text-pink-400/80 mt-1 truncate">
+                                    <div className="social-roster-card__relation text-[10px] text-pink-400/80 mt-1 min-w-0 truncate">
                                         {npc.关系状态 || '萍水相逢'}
                                     </div>
                                 </div>
-                                <div className="text-right shrink-0 flex flex-col items-end justify-center">
+                                <div className="w-10 text-right shrink-0 flex flex-col items-end justify-center overflow-hidden">
                                     <div className="text-xs font-mono text-wuxia-red drop-shadow-[0_0_5px_rgba(220,38,38,0.3)] inline-flex items-center gap-1">
                                         <IconHeart size={12} /> {npc.好感度}
                                     </div>
                                     {npc.是否主要角色 && (
-                                        <div className="text-[8px] tracking-widest text-wuxia-gold/80 bg-wuxia-gold/10 px-1 py-0.5 rounded border border-wuxia-gold/20 mt-1">MAIN</div>
+                                        <div className="mt-1 flex h-4 w-4 items-center justify-center rounded-full border border-wuxia-gold/30 bg-wuxia-gold/10 text-wuxia-gold/85" title="主要角色">
+                                            <IconSparkles size={10} />
+                                        </div>
                                     )}
                                 </div>
                             </button>

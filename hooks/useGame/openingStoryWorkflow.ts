@@ -21,7 +21,7 @@ import type {
     世界书结构
 } from '../../types';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
-import { 获取世界演变接口配置, 获取规划分析接口配置, 获取变量计算接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
+import { 获取世界演变接口配置, 获取规划分析接口配置, 获取变量计算接口配置, 获取文章优化接口配置, 获取地图自动更新接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 核心_开局思维链, 获取开局思维链提示词 } from '../../prompts/core/cotOpening';
 import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 获取开场初始化任务提示词 } from '../../prompts/runtime/opening';
@@ -69,6 +69,7 @@ import { 执行变量模型校准工作流 } from './variableModelWorkflow';
 import { 合并变量校准结果到响应 as 合并变量生成结果到响应 } from './variableCalibrationMerge';
 import { 保护开局生成门派状态 } from './storyState';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
+import { 生成地图更新 } from './mapUpdateWorkflow';
 
 const 开局规划分析请求超时毫秒 = 90000;
 const 开场剧情慢首包提示毫秒 = 30000;
@@ -145,9 +146,11 @@ type 开场剧情生成依赖 = {
     设置玩家门派: (value: 详细门派结构) => void;
     设置任务列表: (value: any[]) => void;
     设置约定列表: (value: any[]) => void;
+    设置开局文章优化进度: (value: any) => void;
     设置开局变量生成进度: (value: any) => void;
     设置开局世界演变进度: (value: any) => void;
     设置开局规划进度: (value: any) => void;
+    设置开局地图更新进度: (value: any) => void;
     设置游戏初始时间: (value: string) => void;
     记录变量生成上下文: (params: {
         playerInput: string;
@@ -178,7 +181,7 @@ type 开场剧情生成依赖 = {
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构;
     规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
     规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
-    规范化角色物品容器映射: (raw?: any, options?: { 启用饱腹口渴系统?: boolean }) => 角色数据结构;
+    规范化角色物品容器映射: (raw?: any, options?: { 启用饱腹口渴系统?: boolean; 题材模式?: unknown }) => 角色数据结构;
     规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => any[];
     规范化世界状态: (raw?: any) => 世界数据结构;
     规范化战斗状态: (raw?: any) => 战斗状态结构;
@@ -196,6 +199,12 @@ type 开场剧情生成依赖 = {
     估算消息Token: (messages: Array<{ role?: string; content?: string; name?: string }>, model?: string) => number;
     估算AI输出Token: (text: string, model?: string) => number;
     计算回复耗时秒: (startedAt: number, finishedAt?: number) => number;
+    文章优化功能已开启: () => boolean;
+    执行正文润色: (
+        response: GameResponse,
+        rawSource: string,
+        options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal; allowExpansionForLength?: boolean; minLength?: number }
+    ) => Promise<{ applied: boolean; response: GameResponse; error?: string; rawText?: string }>;
     触发新增NPC自动生图: (npcs: any[]) => void;
     触发主角自动生图?: (player: 角色数据结构) => void;
     触发场景自动生图: (params: {
@@ -1043,9 +1052,9 @@ export const 执行开场剧情生成工作流 = async (
             commandBaseState,
             options?.开局配置
         );
-        const openingBodyText = 提取响应完整正文文本(aiData);
-        const openingVariablePlanText = typeof aiData?.t_var_plan === 'string' ? aiData.t_var_plan.trim() : '';
-        const openingPlanText = 提取响应规划文本(aiData);
+        let openingBodyText = 提取响应完整正文文本(aiData);
+        let openingVariablePlanText = typeof aiData?.t_var_plan === 'string' ? aiData.t_var_plan.trim() : '';
+        let openingPlanText = 提取响应规划文本(aiData);
         const openingWorldPrompt = 按功能开关过滤提示词内容(
             读取提示词内容(openingPromptSnapshot, 'core_world'),
             openingGameConfig
@@ -1117,6 +1126,92 @@ export const 执行开场剧情生成工作流 = async (
             }
         };
         let openingWorldInitUpdates: string[] = [];
+
+        const openingPolishApi = 获取文章优化接口配置(deps.apiConfig);
+        const openingPolishInfo = 构建开局阶段模型信息('文章优化', openingPolishApi, apiForOpening);
+        const 设置开局文章优化进度 = (progress: any) => {
+            deps.设置开局文章优化进度(附加开局阶段模型信息(progress, openingPolishInfo));
+        };
+        if (!deps.文章优化功能已开启()) {
+            设置开局文章优化进度({
+                phase: 'skipped',
+                text: '文章优化功能未开启，已跳过。'
+            });
+        } else if (接口配置是否可用(openingPolishApi)) {
+            const polishStage = await 执行可重试开局阶段({
+                stageLabel: '开局文章优化',
+                beforeAttempt: (attempt) => {
+                    设置开局文章优化进度({
+                        phase: 'start',
+                        text: attempt > 1
+                            ? `正在重新优化开局正文...（第 ${attempt} 次手动重试）`
+                            : '正在优化开局正文...'
+                    });
+                },
+                onAutoRetry: (attempt, maxAttempts, reason) => {
+                    设置开局文章优化进度({
+                        phase: 'start',
+                        text: `开局文章优化请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ''}`
+                    });
+                },
+                run: () => deps.执行正文润色(
+                    responseForExecution,
+                    aiResult.rawText,
+                    {
+                        playerInput: '',
+                        signal: controller.signal,
+                        allowExpansionForLength: true,
+                        minLength: openingGameConfig.字数要求
+                    }
+                ),
+                onError: (errorText) => {
+                    设置开局文章优化进度({
+                        phase: 'error',
+                        text: `${errorText || '开局文章优化失败'}\n等待选择：重试当前阶段，或跳过继续。`
+                    });
+                },
+                onSkip: (errorText) => {
+                    设置开局文章优化进度({
+                        phase: 'skipped',
+                        text: `开局文章优化失败，已按用户选择跳过。${errorText ? `\n${errorText}` : ''}`
+                    });
+                },
+                getErrorText: (error: any) => error?.message || '开局文章优化失败'
+            });
+            const polished = polishStage.result;
+            if (polishStage?.completed && polished) {
+                if (polished.applied) {
+                    responseForExecution = {
+                        ...polished.response,
+                        tavern_commands: Array.isArray(responseForExecution.tavern_commands)
+                            ? [...responseForExecution.tavern_commands]
+                            : []
+                    };
+                    aiData = responseForExecution;
+                    openingBodyText = 提取响应完整正文文本(aiData);
+                    openingVariablePlanText = typeof aiData?.t_var_plan === 'string' ? aiData.t_var_plan.trim() : openingVariablePlanText;
+                    openingPlanText = 提取响应规划文本(aiData) || openingPlanText;
+                    simulatedOpeningState = 保护开局门派(deps.processResponseCommands(responseForExecution, commandBaseState, { applyState: false }));
+                    渲染开场结构化正文草稿();
+                    设置开局文章优化进度({
+                        phase: 'done',
+                        text: `开局正文已优化（模型：${polished.response.body_optimized_model || '未知'}）。`,
+                        rawText: polished.rawText || ''
+                    });
+                } else {
+                    设置开局文章优化进度({
+                        phase: 'skipped',
+                        text: polished.error || '开局文章优化未应用，保留原文。',
+                        rawText: polished.rawText || ''
+                    });
+                }
+            }
+        } else {
+            设置开局文章优化进度({
+                phase: 'skipped',
+                text: '文章优化独立链路未启用，已跳过。'
+            });
+        }
 
         const openingVariableApi = 获取变量计算接口配置(deps.apiConfig);
         const openingVariableInfo = 构建开局阶段模型信息('变量生成', openingVariableApi, apiForOpening);
@@ -1628,8 +1723,104 @@ export const 执行开场剧情生成工作流 = async (
             }
         }
 
+        const mapGenerationEnabled = deps.apiConfig?.功能模型占位?.地图生成功能启用 !== false;
+        const openingMapApi = 获取地图自动更新接口配置(deps.apiConfig);
+        const openingMapInfo = 构建开局阶段模型信息('地图更新', openingMapApi, apiForOpening);
+        const 设置开局地图更新进度 = (progress: any) => {
+            deps.设置开局地图更新进度(附加开局阶段模型信息(progress, openingMapInfo));
+        };
+        if (!mapGenerationEnabled) {
+            设置开局地图更新进度({
+                phase: 'skipped',
+                text: '地图生成功能未开启，已跳过开局地图更新。'
+            });
+        } else if (接口配置是否可用(openingMapApi)) {
+            const mapStage = await 执行可重试开局阶段({
+                stageLabel: '开局地图更新',
+                beforeAttempt: (attempt) => {
+                    设置开局地图更新进度({
+                        phase: 'start',
+                        text: attempt > 1
+                            ? `正在重新执行开局地图更新...（第 ${attempt} 次手动重试）`
+                            : '正在根据开局正文与初始化变量更新地图...'
+                    });
+                },
+                onAutoRetry: (attempt, maxAttempts, reason) => {
+                    设置开局地图更新进度({
+                        phase: 'start',
+                        text: `开局地图更新请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ''}`
+                    });
+                },
+                run: async () => {
+                    const mapContextResponse: GameResponse = {
+                        ...aiData,
+                        tavern_commands: Array.isArray(responseForExecution.tavern_commands)
+                            ? [...responseForExecution.tavern_commands]
+                            : []
+                    };
+                    const result = await 生成地图更新({
+                        mode: 'auto_incremental',
+                        apiSettings: deps.apiConfig,
+                        环境: simulatedOpeningState.环境,
+                        世界: simulatedOpeningState.世界,
+                        社交: simulatedOpeningState.社交,
+                        角色: simulatedOpeningState.角色,
+                        gameConfig: openingGameConfig,
+                        worldbooks: deps.worldbooks,
+                        currentResponse: mapContextResponse,
+                        stateBase: simulatedOpeningState,
+                        signal: controller.signal
+                    });
+                    if (result.phase === 'error') {
+                        throw new Error(result.statusText || '开局地图更新失败');
+                    }
+                    return result;
+                },
+                onError: (errorText) => {
+                    设置开局地图更新进度({
+                        phase: 'error',
+                        text: `${errorText || '开局地图更新失败'}\n等待选择：重试当前阶段，或跳过继续。`
+                    });
+                },
+                onSkip: (errorText) => {
+                    设置开局地图更新进度({
+                        phase: 'skipped',
+                        text: `开局地图更新失败，已按用户选择跳过。${errorText ? `\n${errorText}` : ''}`
+                    });
+                },
+                getErrorText: (error: any) => error?.message || '开局地图更新失败'
+            });
+            const mapResult = mapStage.result;
+            if (mapStage?.completed && mapResult) {
+                const mapCommands = Array.isArray(mapResult.commands) ? mapResult.commands : [];
+                const mapStartIndex = (Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands.length : 0) + 1;
+                设置开局地图更新进度({
+                    phase: mapResult.phase,
+                    text: mapResult.statusText || (mapCommands.length > 0 ? '开局地图更新完成。' : '开局地图无需更新。'),
+                    rawText: mapResult.rawText,
+                    commandTexts: 构建带索引命令文本(mapCommands, mapStartIndex)
+                });
+                if (mapCommands.length > 0) {
+                    responseForExecution = {
+                        ...responseForExecution,
+                        tavern_commands: [
+                            ...(Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands : []),
+                            ...mapCommands
+                        ]
+                    };
+                    simulatedOpeningState = 保护开局门派(deps.processResponseCommands(responseForExecution, commandBaseState, { applyState: false }));
+                }
+            }
+        } else {
+            设置开局地图更新进度({
+                phase: 'skipped',
+                text: '地图更新独立链路未启用，已跳过。'
+            });
+        }
+
         const displayAiData: GameResponse = {
             ...aiData,
+            logs: Array.isArray(responseForExecution.logs) ? [...responseForExecution.logs] : aiData.logs,
             tavern_commands: Array.isArray(responseForExecution.tavern_commands) ? [...responseForExecution.tavern_commands] : []
         };
         const openingStateAfterCommands = 保护开局门派(deps.processResponseCommands(responseForExecution, commandBaseState));

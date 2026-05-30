@@ -120,6 +120,7 @@ import {
     默认文章优化提示词
 } from '../prompts/runtime/defaults';
 import { 构建文生图运行时额外提示词 } from '../prompts/runtime/nsfw';
+import { 构建题材生图额外要求 } from '../utils/topicImageGuidance';
 import { 构建AI角色声明提示词 } from '../prompts/runtime/roleIdentity';
 import {
     构建字数要求提示词,
@@ -427,6 +428,7 @@ export const useGame = () => {
     const NPC自动香闺秘档生图签名Ref = useRef<Set<string>>(new Set());
     const 角色锚点补全进行中Ref = useRef<Set<string>>(new Set());
     const 主要角色资源补全签名Ref = useRef('');
+    const 全部NPC头像补全签名Ref = useRef('');
     const 生图存档作用域Ref = useRef(`image_scope_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const 生图存档AbortControllerRef = useRef<AbortController>(new AbortController());
     const [NPC生图任务队列, setNPC生图任务队列] = useState<NPC生图任务记录[]>([]);
@@ -452,6 +454,7 @@ export const useGame = () => {
         NPC自动生图签名Ref.current.clear();
         NPC自动香闺秘档生图签名Ref.current.clear();
         角色锚点补全进行中Ref.current.clear();
+        全部NPC头像补全签名Ref.current = '';
         setNPC生图任务队列([]);
         set场景生图任务队列([]);
         后台手动生图监控Ref.current = [];
@@ -466,9 +469,11 @@ export const useGame = () => {
     const [聊天区强制置底令牌, set聊天区强制置底令牌] = useState(0);
     const [变量生成中, set变量生成中] = useState(false);
     const [后台队列处理中, set后台队列处理中] = useState(false);
+    const [开局文章优化进度, set开局文章优化进度] = useState<开局独立阶段进度 | null>(null);
     const [开局变量生成进度, set开局变量生成进度] = useState<开局独立阶段进度 | null>(null);
     const [开局世界演变进度, set开局世界演变进度] = useState<开局独立阶段进度 | null>(null);
     const [开局规划进度, set开局规划进度] = useState<开局独立阶段进度 | null>(null);
+    const [开局地图更新进度, set开局地图更新进度] = useState<开局独立阶段进度 | null>(null);
     const [内置提示词列表, set内置提示词列表] = useState<内置提示词条目结构[]>([]);
     const [世界书列表, set世界书列表] = useState<世界书结构[]>([]);
     const [世界书预设组列表, set世界书预设组列表] = useState<世界书预设组结构[]>([]);
@@ -1699,7 +1704,8 @@ export const useGame = () => {
     const 构建文生图额外要求 = (extra?: string): string => {
         const runtimeGameConfig = 规范化游戏设置(gameConfig);
         const runtimeImageExtraPrompt = 构建文生图运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig);
-        return [(extra || '').trim(), runtimeImageExtraPrompt].filter(Boolean).join('\n\n').trim();
+        const topicImageGuidance = 构建题材生图额外要求(开局配置?.题材模式);
+        return [(extra || '').trim(), runtimeImageExtraPrompt, topicImageGuidance].filter(Boolean).join('\n\n').trim();
     };
     const {
         触发场景自动生图,
@@ -2158,6 +2164,40 @@ export const useGame = () => {
         });
     };
 
+    const 构建全部NPC头像缺口签名 = (npcListRaw: any[]): string => {
+        const config = 读取文生图功能配置();
+        if (!config.总开关 || !config.NPC开关 || config.重要性筛选 !== '全部') return '';
+        return (Array.isArray(npcListRaw) ? npcListRaw : [])
+            .filter((npc: any) => NPC符合自动生图条件(npc))
+            .filter((npc: any) => !NPC是否已有成功构图(npc, ['头像']))
+            .map((npc: any) => {
+                const id = 读取NPC文本字段(npc, 'id');
+                const name = 读取NPC文本字段(npc, '姓名');
+                const gender = 读取NPC文本字段(npc, '性别');
+                return id ? `id:${id}` : (name ? `name:${gender}:${name}` : '');
+            })
+            .filter(Boolean)
+            .join('|');
+    };
+
+    const 自动补全全部NPC头像 = async (targetNpcList?: any[]) => {
+        const config = 读取文生图功能配置();
+        if (!config.总开关 || !config.NPC开关 || config.重要性筛选 !== '全部') return;
+        const npcList = (Array.isArray(targetNpcList) ? targetNpcList : 社交)
+            .filter((npc: any) => NPC符合自动生图条件(npc))
+            .filter((npc: any) => !NPC是否已有成功构图(npc, ['头像']));
+
+        for (const npc of npcList) {
+            const npcId = 读取NPC文本字段(npc, 'id') || 读取NPC文本字段(npc, '姓名');
+            try {
+                await 执行NPC自动构图任务(npc, '头像', { force: true });
+            } catch (error) {
+                console.warn('全部NPC头像自动补全失败', npcId, error);
+            }
+            await new Promise(resolve => window.setTimeout(resolve, 300));
+        }
+    };
+
     const 构建主要角色资源缺口签名 = (npcList: any[]): string => {
         return (Array.isArray(npcList) ? npcList : [])
             .filter((npc) => npc?.是否主要角色 === true && typeof npc?.id === 'string' && npc.id.trim())
@@ -2240,6 +2280,30 @@ export const useGame = () => {
         }, 300);
         return () => window.clearTimeout(timerId);
     }, [社交, gameConfig?.启用NSFW模式, gameConfig?.启用男娘NSFW内容, apiConfig]);
+
+    useEffect(() => {
+        const missingSignature = 构建全部NPC头像缺口签名(社交);
+        if (!missingSignature) return;
+
+        const feature = apiConfig?.功能模型占位 as any;
+        const resourceSignature = [
+            feature?.文生图功能启用 === true ? 'image:on' : 'image:off',
+            feature?.NPC生图启用 === true ? 'npc:on' : 'npc:off',
+            feature?.NPC生图重要性筛选 || '',
+            feature?.NPC生图性别筛选 || '',
+            feature?.文生图后端类型 || feature?.图片后端类型 || '',
+            feature?.文生图模型使用模型 || '',
+            feature?.文生图模型API地址 || '',
+            missingSignature
+        ].join('__');
+        if (全部NPC头像补全签名Ref.current === resourceSignature) return;
+        全部NPC头像补全签名Ref.current = resourceSignature;
+
+        const timerId = window.setTimeout(() => {
+            void 自动补全全部NPC头像(社交);
+        }, 500);
+        return () => window.clearTimeout(timerId);
+    }, [社交, apiConfig]);
 
     const 世界演变功能已开启 = (): boolean => {
         const feature = apiConfig?.功能模型占位 as any;
@@ -2440,7 +2504,10 @@ export const useGame = () => {
     }, [玩家门派, 社交, 历史记录]);
 
     const 应用开场基态 = (openingBase: ReturnType<typeof 创建开场基础状态>) => {
-        设置角色(规范化角色物品容器映射(openingBase.角色));
+        设置角色(规范化角色物品容器映射(openingBase.角色, {
+            启用饱腹口渴系统: gameConfig?.启用饱腹口渴系统,
+            题材模式: 开局配置?.题材模式
+        }));
         设置环境(规范化环境信息(openingBase.环境));
         设置游戏初始时间(openingBase.游戏初始时间 || '');
         设置社交(规范化社交列表(openingBase.社交));
@@ -2546,6 +2613,10 @@ export const useGame = () => {
             规范化同人剧情规划状态,
             规范化同人女主剧情规划状态,
             规范化角色物品容器映射,
+            角色规范化选项: {
+                启用饱腹口渴系统: gameConfig?.启用饱腹口渴系统,
+                题材模式: 开局配置?.题材模式
+            },
             战斗结束自动清空,
             设置角色,
             设置环境,
@@ -2579,7 +2650,11 @@ export const useGame = () => {
                     规范化女主剧情规划状态,
                     规范化同人剧情规划状态,
                     规范化同人女主剧情规划状态,
-                    规范化角色物品容器映射
+                    规范化角色物品容器映射: (raw?: any, calibrationOptions?: any) => 规范化角色物品容器映射(raw, {
+                        ...calibrationOptions,
+                        启用饱腹口渴系统: gameConfig?.启用饱腹口渴系统,
+                        题材模式: 开局配置?.题材模式
+                    })
                 });
                 return {
                     ...calibrated,
@@ -2917,9 +2992,11 @@ export const useGame = () => {
         isStreaming: boolean = true,
         options?: 发送选项
     ): Promise<发送结果> => {
+        set开局文章优化进度(null);
         set开局变量生成进度(null);
         set开局世界演变进度(null);
         set开局规划进度(null);
+        set开局地图更新进度(null);
         if (variableGenerationAbortControllerRef.current) {
             variableGenerationAbortControllerRef.current.abort();
         }
@@ -3250,9 +3327,11 @@ export const useGame = () => {
         设置同人剧情规划,
         设置同人女主剧情规划,
         设置开局配置,
+        设置开局文章优化进度: set开局文章优化进度,
         设置开局变量生成进度: set开局变量生成进度,
         设置开局世界演变进度: set开局世界演变进度,
         设置开局规划进度: set开局规划进度,
+        设置开局地图更新进度: set开局地图更新进度,
         setWorldEvents,
         应用并同步记忆系统,
         清空变量生成上下文缓存,
@@ -3293,6 +3372,8 @@ export const useGame = () => {
         估算消息Token,
         估算AI输出Token,
         计算回复耗时秒,
+        文章优化功能已开启,
+        执行正文润色,
         触发新增NPC自动生图,
         触发主角自动生图: (player) => {
             const handler = 主角自动生图处理器Ref.current;
@@ -3527,9 +3608,11 @@ export const useGame = () => {
             sceneImageQueue: 场景生图任务队列,
             variableGenerationRunning: 变量生成中,
             postStoryQueueRunning: 后台队列处理中,
+            openingPolishProgress: 开局文章优化进度,
             openingWorldEvolutionProgress: 开局世界演变进度,
             openingPlanningProgress: 开局规划进度,
             openingVariableGenerationProgress: 开局变量生成进度,
+            openingMapUpdateProgress: 开局地图更新进度,
             builtinPromptEntries: 内置提示词列表,
             worldbooks: 世界书列表,
             worldbookPresetGroups: 世界书预设组列表,

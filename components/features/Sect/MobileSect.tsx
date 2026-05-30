@@ -103,17 +103,19 @@ const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook
     const 文案 = useMemo(() => 获取组织显示文案(sectData), [sectData]);
     const 显示职位 = (rank?: string) => 文案.rankMap[String(rank || '').trim()] || rank || '无';
     const 累计贡献 = Math.max(sectData.玩家贡献 || 0, sectData.累计贡献 || 0);
-    const 当前职位名称 = 显示职位(sectData.玩家职位);
-    const 当前职位步骤 = 文案.rankLadder.find((item) => item.rank === 当前职位名称)
-        || [...文案.rankLadder].reverse().find((item) => 累计贡献 >= item.required)
-        || 文案.rankLadder[0];
+    const 存档职位步骤 = 文案.rankLadder.find((item) => item.rank === 显示职位(sectData.玩家职位));
+    const 贡献职位步骤 = [...文案.rankLadder].reverse().find((item) => 累计贡献 >= item.required);
+    const 当前职位步骤 = [存档职位步骤, 贡献职位步骤, 文案.rankLadder[0]]
+        .filter(Boolean)
+        .sort((left, right) => (right?.lvl || 0) - (left?.lvl || 0))[0] || 文案.rankLadder[0];
+    const 当前职位名称 = 当前职位步骤?.rank || 显示职位(sectData.玩家职位);
     const 当前折扣 = 当前职位步骤?.discount || 0;
     const 计算折后贡献 = (price: number) => Math.max(1, Math.ceil(price * (1 - 当前折扣)));
     const 取职位等级 = (rank?: string) => {
         const normalizedRank = 显示职位(rank);
         return 文案.rankLadder.find((item) => item.rank === normalizedRank)?.lvl ?? 职位等级排序[rank || ''] ?? 0;
     };
-    const 职位可达 = (requiredRank?: string) => 取职位等级(sectData.玩家职位) >= 取职位等级(requiredRank || 文案.rankLadder[0]?.rank);
+    const 职位可达 = (requiredRank?: string) => (当前职位步骤?.lvl || 0) >= 取职位等级(requiredRank || 文案.rankLadder[0]?.rank);
     const 战力分布 = sectData.战力分布 && typeof sectData.战力分布 === 'object' ? sectData.战力分布 : {};
 
     return (
@@ -126,7 +128,7 @@ const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook
                         </div>
                         <div>
                             <div className="text-wuxia-gold font-serif font-bold text-base">{sectData.名称}</div>
-                            <div className="text-[9px] text-gray-500 font-mono">{显示职位(sectData.玩家职位)}</div>
+                            <div className="text-[9px] text-gray-500 font-mono">{当前职位名称}</div>
                         </div>
                     </div>
                     <button

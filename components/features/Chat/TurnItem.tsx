@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { GameResponse, NPC结构, 视觉设置结构 } from '../../../types';
-import { NarratorRenderer, CharacterRenderer, JudgmentRenderer } from './MessageRenderers';
+import { NarratorRenderer, CharacterRenderer, JudgmentRenderer, RewardRenderer } from './MessageRenderers';
 import GameButton from '../../ui/GameButton';
 import { 构建区域文字样式 } from '../../../utils/visualSettings';
 import { 规范化可渲染对白日志 } from '../../../utils/dialogueLogNormalizer';
@@ -160,6 +160,10 @@ const TurnItem: React.FC<Props> = ({
             ];
         })
         .filter(log => log.text.trim().length > 0));
+    const 是否奖励日志 = (sender: string, text: string): boolean => (
+        sender.trim() === '奖励'
+        || /【\s*(?:任务完成|奖励到账)\s*】/.test(text)
+    );
     const judgeBlocks = Array.isArray(response.judge_blocks)
         ? response.judge_blocks.filter(block => ((block?.text || block?.raw || '').trim().length > 0))
         : [];
@@ -538,6 +542,7 @@ const TurnItem: React.FC<Props> = ({
                     const textJudgmentPrefix = 提取判定日志前缀(rawText);
                     const senderJudgmentPrefix = 提取判定日志前缀(rawSender);
                     const textStartsWithJudgment = Boolean(textJudgmentPrefix);
+                    if (是否奖励日志(rawSender, rawText)) return <RewardRenderer key={idx} text={rawText} visualConfig={visualConfig} />;
                     if (rawSender === '旁白' && !textStartsWithJudgment) return <NarratorRenderer key={idx} text={rawText} visualConfig={visualConfig} />;
                     if (senderJudgmentPrefix || textStartsWithJudgment) {
                         const prefix = senderJudgmentPrefix || textJudgmentPrefix || rawSender;

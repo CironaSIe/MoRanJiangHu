@@ -28,6 +28,10 @@ export interface 任务结构 {
     
     // 奖励 (描述性，用于显示)
     奖励描述: string[];     // 奖励描述列表
+    奖励已发放?: boolean;   // 防止完成任务后重复结算
+    奖励发放时间?: string;
+    奖励发放人?: string;
+    奖励到账记录?: string[];
     
     // AI 辅助字段 (暗线)
     剧情暗线?: string;      // 给AI看的暗线说明

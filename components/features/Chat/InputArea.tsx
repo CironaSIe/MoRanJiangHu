@@ -166,9 +166,11 @@ interface Props {
     options?: unknown[]; // Quick actions from the last turn
     externalDraft?: { text: string; token: number } | null;
     mainStoryModelInfo?: { channelName?: string; modelName?: string };
+    openingPolishProgress?: PolishProgress | null;
     openingWorldEvolutionProgress?: WorldEvolutionProgress | null;
     openingPlanningProgress?: PlanningProgress | null;
     openingVariableGenerationProgress?: VariableGenerationProgress | null;
+    openingMapUpdateProgress?: MapUpdateProgress | null;
 }
 
 const InputArea: React.FC<Props> = ({
@@ -189,9 +191,11 @@ const InputArea: React.FC<Props> = ({
     options = [],
     externalDraft = null,
     mainStoryModelInfo = undefined,
+    openingPolishProgress = null,
     openingWorldEvolutionProgress = null,
     openingPlanningProgress = null,
-    openingVariableGenerationProgress = null
+    openingVariableGenerationProgress = null,
+    openingMapUpdateProgress = null
 }) => {
     const [content, setContent] = useState('');
     const [isStreaming, setIsStreaming] = useState(true);
@@ -597,13 +601,22 @@ const InputArea: React.FC<Props> = ({
 
     const busy = loading || isPreparing || variableGenerationRunning || postStoryQueueRunning;
     const recallRunning = isPreparing && !loading;
+    const effectivePolishProgress = polishProgress || openingPolishProgress;
+    const effectiveVariableGenerationProgress = variableGenerationProgress || openingVariableGenerationProgress;
     const effectiveWorldEvolutionProgress = worldEvolutionProgress || openingWorldEvolutionProgress;
     const effectivePlanningProgress = planningProgress || openingPlanningProgress;
-    const effectiveVariableGenerationProgress = variableGenerationProgress || openingVariableGenerationProgress;
-    const isOpeningQueue = Boolean(openingVariableGenerationProgress || openingWorldEvolutionProgress || openingPlanningProgress);
-    const openingQueueHasError = [openingVariableGenerationProgress, openingWorldEvolutionProgress, openingPlanningProgress]
+    const effectiveMapUpdateProgress = mapUpdateProgress || openingMapUpdateProgress;
+    const openingProgressItems = [
+        openingPolishProgress,
+        openingVariableGenerationProgress,
+        openingWorldEvolutionProgress,
+        openingPlanningProgress,
+        openingMapUpdateProgress
+    ];
+    const isOpeningQueue = openingProgressItems.some(Boolean);
+    const openingQueueHasError = openingProgressItems
         .some((item) => item?.phase === 'error');
-    const openingQueueRunning = [openingVariableGenerationProgress, openingWorldEvolutionProgress, openingPlanningProgress]
+    const openingQueueRunning = openingProgressItems
         .some((item) => item?.phase === 'start');
     const openingFinalProgress = openingQueueHasError
         ? null
@@ -617,18 +630,6 @@ const InputArea: React.FC<Props> = ({
         channelName: mainStoryModelInfo?.channelName || '未配置渠道',
         modelName: mainStoryModelInfo?.modelName || '未选择模型'
     };
-    const openingPolishProgress = {
-        phase: 'skipped',
-        text: '开局主剧情生成后不再调用文章优化；文章优化会从正式回合开始参与。',
-        channelName: '开局阶段不调用',
-        modelName: '不调用 AI'
-    };
-    const openingMapProgress = {
-        phase: 'skipped',
-        text: '开局地图由初始化状态兜底建立；正文后的自动地图更新会从正式回合开始参与。',
-        channelName: '开局阶段不调用',
-        modelName: '不调用 AI'
-    };
     const pipelineStages = (isOpeningQueue ? [
         { id: 'opening-input', label: '玩家建档输入', progress: openingLocalProgress },
         { id: 'opening-story', label: '开局主剧情', progress: openingStoryProgress },
@@ -636,14 +637,14 @@ const InputArea: React.FC<Props> = ({
         { id: 'variable', label: '开局变量生成', progress: openingVariableGenerationProgress },
         { id: 'world', label: '开局动态世界', progress: openingWorldEvolutionProgress },
         { id: 'planning', label: '开局规划分析', progress: openingPlanningProgress },
-        { id: 'opening-map', label: '开局地图更新', progress: openingMapProgress },
+        { id: 'opening-map', label: '开局地图更新', progress: openingMapUpdateProgress },
         { id: 'opening-save', label: '最终落盘', progress: openingFinalProgress }
     ] : [
-        { id: 'polish', label: '文章优化', progress: polishProgress },
+        { id: 'polish', label: '文章优化', progress: effectivePolishProgress },
         { id: 'variable', label: '变量生成', progress: effectiveVariableGenerationProgress },
         { id: 'world', label: '动态世界', progress: effectiveWorldEvolutionProgress },
         { id: 'planning', label: '规划分析', progress: effectivePlanningProgress },
-        { id: 'map', label: '地图更新', progress: mapUpdateProgress }
+        { id: 'map', label: '地图更新', progress: effectiveMapUpdateProgress }
     ]);
     const queueVisible = pipelineStages.some((stage) => Boolean(stage.progress));
     const historyStages = pipelineStages.filter((stage) => {
@@ -683,17 +684,19 @@ const InputArea: React.FC<Props> = ({
     useEffect(() => {
         const hasQueueProgress = [
             polishProgress,
+            openingPolishProgress,
             effectiveVariableGenerationProgress,
             effectiveWorldEvolutionProgress,
             effectivePlanningProgress,
-            mapUpdateProgress
+            effectiveMapUpdateProgress
         ].some((item) => item?.phase === 'start' || item?.phase === 'done' || item?.phase === 'error' || item?.phase === 'skipped' || item?.phase === 'cancelled');
         const hasRunningQueueStage = [
             polishProgress,
+            openingPolishProgress,
             effectiveVariableGenerationProgress,
             effectiveWorldEvolutionProgress,
             effectivePlanningProgress,
-            mapUpdateProgress
+            effectiveMapUpdateProgress
         ].some((item) => item?.phase === 'start');
         if (hasQueueProgress && (hasRunningQueueStage || postStoryQueueRunning)) {
             // 不再自动展开面板，保持收缩状态让用户手动点开
@@ -701,19 +704,21 @@ const InputArea: React.FC<Props> = ({
     }, [
         postStoryQueueRunning,
         polishProgress?.phase,
+        openingPolishProgress?.phase,
         effectiveVariableGenerationProgress?.phase,
         effectiveWorldEvolutionProgress?.phase,
         effectivePlanningProgress?.phase,
-        mapUpdateProgress?.phase
+        effectiveMapUpdateProgress?.phase
     ]);
 
     useEffect(() => {
         const hasMainQueueError = [
             polishProgress,
+            openingPolishProgress,
             effectiveVariableGenerationProgress,
             effectiveWorldEvolutionProgress,
             effectivePlanningProgress,
-            mapUpdateProgress
+            effectiveMapUpdateProgress
         ]
             .some((item) => item?.phase === 'error');
         if (hasMainQueueError) {
@@ -721,10 +726,11 @@ const InputArea: React.FC<Props> = ({
         }
     }, [
         polishProgress?.phase,
+        openingPolishProgress?.phase,
         effectiveVariableGenerationProgress?.phase,
         effectiveWorldEvolutionProgress?.phase,
         effectivePlanningProgress?.phase,
-        mapUpdateProgress?.phase
+        effectiveMapUpdateProgress?.phase
     ]);
 
     useEffect(() => {
@@ -741,10 +747,11 @@ const InputArea: React.FC<Props> = ({
         queueVisible,
         queueRunning,
         polishProgress?.phase,
+        openingPolishProgress?.phase,
         effectiveVariableGenerationProgress?.phase,
         effectiveWorldEvolutionProgress?.phase,
         effectivePlanningProgress?.phase,
-        mapUpdateProgress?.phase
+        effectiveMapUpdateProgress?.phase
     ]);
 
     return (

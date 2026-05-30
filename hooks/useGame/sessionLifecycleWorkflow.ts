@@ -106,9 +106,11 @@ type 会话生命周期依赖 = {
     设置同人剧情规划: (value: any) => void;
     设置同人女主剧情规划: (value: any) => void;
     设置开局配置: (value: OpeningConfig | undefined) => void;
+    设置开局文章优化进度: (value: any) => void;
     设置开局变量生成进度: (value: any) => void;
     设置开局世界演变进度: (value: any) => void;
     设置开局规划进度: (value: any) => void;
+    设置开局地图更新进度: (value: any) => void;
     setWorldEvents: (value: any[]) => void;
     应用并同步记忆系统: (memory: any, options?: { 静默总结提示?: boolean }) => void;
     清空变量生成上下文缓存: () => void;
@@ -153,6 +155,8 @@ type 会话生命周期依赖 = {
     估算消息Token: (messages: Array<{ role?: string; content?: string; name?: string }>, model?: string) => number;
     估算AI输出Token: (rawText: string, model?: string) => number;
     计算回复耗时秒: (startedAt: number, endedAt?: number) => number;
+    文章优化功能已开启: () => boolean;
+    执行正文润色: (...args: any[]) => Promise<any>;
     触发新增NPC自动生图: (newNpcList: any[]) => void;
     触发主角自动生图: (player: 角色数据结构) => void;
     触发场景自动生图: (params: any) => Promise<void> | void;
@@ -193,9 +197,11 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         deps.设置同人剧情规划(undefined);
         deps.设置同人女主剧情规划(undefined);
         deps.设置开局配置(undefined);
+        deps.设置开局文章优化进度(null);
         deps.设置开局变量生成进度(null);
         deps.设置开局世界演变进度(null);
         deps.设置开局规划进度(null);
+        deps.设置开局地图更新进度(null);
         deps.应用并同步记忆系统({ 回忆档案: [], 即时记忆: [], 短期记忆: [], 中期记忆: [], 长期记忆: [] }, { 静默总结提示: true });
         deps.设置历史记录([]);
         deps.清空变量生成上下文缓存();
@@ -214,9 +220,11 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
             开局配置?: OpeningConfig;
         }
     ) => {
+        deps.设置开局文章优化进度(null);
         deps.设置开局变量生成进度(null);
         deps.设置开局世界演变进度(null);
         deps.设置开局规划进度(null);
+        deps.设置开局地图更新进度(null);
         const effectivePromptSnapshot = (Array.isArray(promptSnapshot) && promptSnapshot.length > 0)
             ? promptSnapshot
             : await deps.ensurePromptsLoaded();
@@ -285,9 +293,11 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 设置玩家门派: deps.设置玩家门派,
                 设置任务列表: deps.设置任务列表,
                 设置约定列表: deps.设置约定列表,
+                设置开局文章优化进度: deps.设置开局文章优化进度,
                 设置开局变量生成进度: deps.设置开局变量生成进度,
                 设置开局世界演变进度: deps.设置开局世界演变进度,
                 设置开局规划进度: deps.设置开局规划进度,
+                设置开局地图更新进度: deps.设置开局地图更新进度,
                 设置游戏初始时间: deps.设置游戏初始时间,
                 记录变量生成上下文: deps.记录变量生成上下文,
                 setWorldEvents: deps.setWorldEvents,
@@ -315,6 +325,8 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 估算消息Token: deps.估算消息Token,
                 估算AI输出Token: deps.估算AI输出Token,
                 计算回复耗时秒: deps.计算回复耗时秒,
+                文章优化功能已开启: deps.文章优化功能已开启,
+                执行正文润色: deps.执行正文润色,
                 触发新增NPC自动生图: deps.触发新增NPC自动生图,
                 触发主角自动生图: deps.触发主角自动生图,
                 触发场景自动生图: deps.触发场景自动生图,
@@ -333,9 +345,11 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         options?: 世界生成选项
     ) => {
         const promptPool = (Array.isArray(deps.prompts) && deps.prompts.length > 0) ? deps.prompts : await deps.ensurePromptsLoaded();
+        deps.设置开局文章优化进度(null);
         deps.设置开局变量生成进度(null);
         deps.设置开局世界演变进度(null);
         deps.设置开局规划进度(null);
+        deps.设置开局地图更新进度(null);
         return 执行世界生成工作流(
             worldConfig,
             charData,

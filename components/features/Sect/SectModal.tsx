@@ -137,10 +137,12 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
     }, [activeTab, 未加入门派]);
 
     const 累计贡献 = Math.max(sectData.玩家贡献 || 0, sectData.累计贡献 || 0);
-    const 当前职位名称 = 显示职位(sectData.玩家职位);
-    const 当前职位步骤 = 文案.rankLadder.find((item) => item.rank === 当前职位名称)
-        || [...文案.rankLadder].reverse().find((item) => 累计贡献 >= item.required)
-        || 文案.rankLadder[0];
+    const 存档职位步骤 = 文案.rankLadder.find((item) => item.rank === 显示职位(sectData.玩家职位));
+    const 贡献职位步骤 = [...文案.rankLadder].reverse().find((item) => 累计贡献 >= item.required);
+    const 当前职位步骤 = [存档职位步骤, 贡献职位步骤, 文案.rankLadder[0]]
+        .filter(Boolean)
+        .sort((left, right) => (right?.lvl || 0) - (left?.lvl || 0))[0] || 文案.rankLadder[0];
+    const 当前职位名称 = 当前职位步骤?.rank || 显示职位(sectData.玩家职位);
     const 当前折扣 = 当前职位步骤?.discount || 0;
     const 当前折扣文本 = 当前折扣 > 0 ? `${Math.round((1 - 当前折扣) * 100)}折` : '无折扣';
     const 计算折后贡献 = (price: number) => Math.max(1, Math.ceil(price * (1 - 当前折扣)));
@@ -148,7 +150,7 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
         const normalizedRank = 显示职位(rank);
         return 文案.rankLadder.find((item) => item.rank === normalizedRank)?.lvl ?? 职位等级排序[rank || ''] ?? 0;
     };
-    const 职位可达 = (requiredRank?: string) => 取职位等级(sectData.玩家职位) >= 取职位等级(requiredRank || 文案.rankLadder[0]?.rank);
+    const 职位可达 = (requiredRank?: string) => (当前职位步骤?.lvl || 0) >= 取职位等级(requiredRank || 文案.rankLadder[0]?.rank);
     const 战力分布 = sectData.战力分布 && typeof sectData.战力分布 === 'object' ? sectData.战力分布 : {};
     const 月俸规则 = sectData.月俸规则;
 
@@ -175,7 +177,7 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                     <div className="flex items-center gap-6">
                         <div className="text-right">
                             <div className="text-xs text-gray-500 uppercase tracking-widest">身份</div>
-                            <div className="text-wuxia-cyan font-bold font-serif text-lg">{显示职位(sectData.玩家职位)}</div>
+                            <div className="text-wuxia-cyan font-bold font-serif text-lg">{当前职位名称}</div>
                         </div>
                         <div className="text-right border-l border-gray-700 pl-6">
                             <div className="text-xs text-gray-500 uppercase tracking-widest">{文案.contribution}</div>
@@ -298,7 +300,7 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                           <p className="mt-4 text-sm leading-6 text-gray-200">{文案.spendHint}</p>
                                           <div className="mt-4 rounded border border-wuxia-gold/20 bg-black/25 p-3">
                                              <div className="text-xs tracking-widest text-wuxia-gold/70">当前身份特权</div>
-                                             <div className="mt-2 text-sm text-gray-100">{显示职位(sectData.玩家职位)} · {文案.exchange}{当前折扣文本}</div>
+                                             <div className="mt-2 text-sm text-gray-100">{当前职位名称} · {文案.exchange}{当前折扣文本}</div>
                                              <div className="mt-2 flex flex-wrap gap-2">
                                                  {(当前职位步骤?.perks || ['基础事务']).map(item => (
                                                      <span key={item} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-gray-200">{文案.rankMap[item] || item}</span>

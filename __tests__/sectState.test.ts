@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import SectModal from '../components/features/Sect/SectModal';
+import MobileSect from '../components/features/Sect/MobileSect';
 import { 创建空门派状态, 创建开场基础状态, 创建开场命令基态, 规范化门派状态, 是否无门派标识, 保护开局生成门派状态 } from '../hooks/useGame/storyState';
 import { 开局变量生成附加提示词, 构建开局变量生成审计重点 } from '../prompts/runtime/openingVariableGenerationInit';
 
@@ -126,6 +130,7 @@ describe('门派状态规范化', () => {
         expect(openingBase.玩家门派.弟子总数).toBeGreaterThan(0);
         expect(openingBase.玩家门派.重要成员.length).toBeGreaterThanOrEqual(6);
         expect(openingBase.玩家门派.任务列表).toEqual([]);
+        expect(openingBase.任务列表.some((task: any) => task.类型 === '主线')).toBe(true);
         expect(openingBase.任务列表.some((task: any) => task.类型 === '门派')).toBe(true);
         expect(JSON.stringify(openingBase.玩家门派)).not.toMatch(/待AI|请由AI|开局模板/);
         expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/待AI|请由AI|开局模板/);
@@ -160,7 +165,10 @@ describe('门派状态规范化', () => {
         expect(openingBase.玩家门派.兑换列表.map((item: any) => item.物品名称)).toContain('净水包');
         expect(JSON.stringify(openingBase.玩家门派.兑换列表)).not.toMatch(/辟谷丹|回气丹|凝元丹|破境丹/);
         expect(openingBase.玩家门派.重要成员.some((member: any) => /营地|物资|巡逻|医护|维修|哨兵|搜救|同行者/.test(member.身份))).toBe(true);
-        expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/门派任务|同门|弟子|藏经阁|山门/);
+        expect(openingBase.任务列表.some((task: any) => task.类型 === '主线')).toBe(true);
+        expect(openingBase.任务列表[0].标题).toBe('守住第一夜');
+        expect(JSON.stringify(openingBase.任务列表)).toMatch(/组织信用|净水包|急救熟练度|可分配属性点/);
+        expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/门派任务|同门|弟子|藏经阁|山门|辟谷丹|回气丹|凝元丹|破境丹/);
     });
 
     it('现代都市开局生成的是现实组织和成员而不是门派模板', () => {
@@ -206,6 +214,44 @@ describe('门派状态规范化', () => {
         expect(JSON.stringify(normalized.藏经阁列表)).not.toMatch(/剑法|藏经阁|杂役弟子/);
         expect(normalized.兑换列表.map((item: any) => item.物品名称)).toContain('净水包');
         expect(JSON.stringify(normalized.兑换列表)).not.toMatch(/辟谷丹|丹药/);
+    });
+
+    it('营地面板按累计贡献显示职位，1500 累计贡献不再停留在营地成员', () => {
+        const sectData: any = {
+            ID: 'camp_001',
+            名称: '铁栅安全点',
+            组织语义: '营地',
+            简介: '末日营地。',
+            门规: ['外出结伴'],
+            门派资金: 1200,
+            门派物资: 600,
+            建设度: 200,
+            门派等级: '稳定营地',
+            门派规模: '小型营地',
+            弟子总数: 60,
+            战力分布: { 后勤: 20, 巡逻: 15, 医疗维修: 8 },
+            财富评级: '库存稳定',
+            月俸规则: { 基础俸禄: 1, 贡献系数: 0, 规模系数: 0, 发放说明: '' },
+            玩家职位: '营地成员',
+            玩家贡献: 0,
+            累计贡献: 1500,
+            任务列表: [],
+            兑换列表: [],
+            藏经阁列表: [],
+            重要成员: []
+        };
+
+        const desktopHtml = renderToStaticMarkup(React.createElement(SectModal, {
+            sectData,
+            onClose: () => undefined
+        }));
+        const mobileHtml = renderToStaticMarkup(React.createElement(MobileSect, {
+            sectData,
+            onClose: () => undefined
+        }));
+
+        expect(desktopHtml).toMatch(/身份[\s\S]{0,300}营地管理人员/);
+        expect(mobileHtml).toMatch(/铁栅安全点[\s\S]{0,300}营地管理人员/);
     });
 
     it('开局门派会按当前门派生成入门功法，不再固定为青云剑法', () => {
