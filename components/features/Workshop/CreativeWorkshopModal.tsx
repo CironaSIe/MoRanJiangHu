@@ -30,6 +30,11 @@ type 贡献草稿 = {
     mode: 题材模式类型;
     tags: string;
     body: string;
+    topicBody: string;
+    worldRulesBody: string;
+    abilityBody: string;
+    usagePrompt: string;
+    safetyNotes: string;
     style: string;
     scope: 'main' | 'scene' | 'nsfw' | 'all';
 };
@@ -63,10 +68,13 @@ const 构建模块摘要 = (entry: 创意工坊模块条目): string => [
     `《${entry.title}》`,
     entry.description,
     `标签：${entry.tags.join('、')}`,
+    entry.usagePrompt ? `使用提示：${entry.usagePrompt}` : '',
     '',
-    '注入预览：',
-    ...(entry.injectionPreview?.length ? entry.injectionPreview : [`模块数据：${JSON.stringify(entry.payload, null, 2)}`])
-].join('\n');
+    entry.contentBlocks?.length ? '内容分段：' : '注入预览：',
+    ...(entry.contentBlocks?.length
+        ? entry.contentBlocks.map((block) => `【${block.title}】${block.purpose}\n${block.content}`)
+        : (entry.injectionPreview?.length ? entry.injectionPreview : [`模块数据：${JSON.stringify(entry.payload, null, 2)}`]))
+].filter(Boolean).join('\n');
 
 const 空贡献草稿 = (): 贡献草稿 => ({
     title: '',
@@ -76,6 +84,11 @@ const 空贡献草稿 = (): 贡献草稿 => ({
     mode: '武侠',
     tags: '',
     body: '',
+    topicBody: '',
+    worldRulesBody: '',
+    abilityBody: '',
+    usagePrompt: '',
+    safetyNotes: '',
     style: '',
     scope: 'main'
 });
@@ -91,34 +104,155 @@ const 构建贡献模块 = (draft: 贡献草稿, contributor: string): 创意工
     ].filter((tag, index, list) => list.indexOf(tag) === index).slice(0, 12);
     const style = draft.style.trim();
     const scopeLabel = draft.scope === 'nsfw' ? 'NSFW 生图' : draft.scope === 'scene' ? '场景生图' : draft.scope === 'all' ? '通用生图' : '普通生图';
+    const injectionTarget = draft.type === 'ability' ? 'manualRealmPrompt' : draft.type === 'comfy_workflow' ? 'imageWorkflow' : 'manualWorldPrompt';
+    const contentBlocks: NonNullable<创意工坊模块条目['contentBlocks']> = [
+        {
+            id: `${draft.type}-main`,
+            title: draft.type === 'ability' ? '能力与境界规则' : draft.type === 'comfy_workflow' ? 'ComfyUI 工作流' : '世界与题材规则',
+            purpose: draft.type === 'comfy_workflow' ? '提供可导入的生图工作流或工作流说明。' : '作为模型注入的主要规则内容。',
+            injectionTarget,
+            content: draft.body.trim()
+        }
+    ];
+    const safetyNotes = 分割文本行(draft.safetyNotes);
+    const usagePrompt = draft.usagePrompt.trim() || (draft.type === 'comfy_workflow'
+        ? '在文生图设置中选择该工作流；发布前请确认 JSON 可用。'
+        : draft.type === 'ability'
+            ? '作为手动能力/境界提示词注入，用于约束成长体系和战力边界。'
+            : '作为手动世界观提示词注入，用于约束开局世界、势力、货币、地图和叙事边界。');
     const injectionPreview = draft.type === 'comfy_workflow'
         ? [
+            '标准格式：v2 / comfy_workflow',
             `适用范围：${draft.scope}`,
             `风格：${style || '未填写'}`,
             ...bodyLines.slice(0, 8),
             '注入方式：玩家在文生图设置里选择该工作流后，写入对应 ComfyUI Workflow JSON。'
         ].filter(Boolean)
         : [
+            `标准格式：v2 / ${draft.type}`,
             `适用题材：${draft.mode}`,
             `模块类型：${可展示工坊分区.find((section) => section.id === draft.type)?.title || draft.type}`,
-            ...bodyLines.slice(0, 10)
+            ...bodyLines.slice(0, 8),
+            `使用提示：${usagePrompt}`
         ];
     return {
         id: `local-${draft.type}-${Date.now()}`,
         type: draft.type,
+        formatVersion: 2,
+        workshopKind: 'standard_module',
         title,
         subtitle: draft.subtitle.trim() || (draft.type === 'comfy_workflow' ? `${style || '自定义风格'} · ${scopeLabel}` : `${draft.mode} · 玩家贡献`),
         description: draft.description.trim() || `${draft.mode}可用的玩家贡献模块。`,
         tags,
         payload: draft.type === 'comfy_workflow'
-            ? { scope: draft.scope, style, workflowJson: draft.body.trim() }
-            : { mode: draft.mode, content: draft.body.trim() },
+            ? { schema: 'moranjianghu-creative-workshop-standard-module', version: 2, scope: draft.scope, style, workflowJson: draft.body.trim(), content: draft.body.trim(), contentBlocks, usagePrompt, safetyNotes }
+            : { schema: 'moranjianghu-creative-workshop-standard-module', version: 2, mode: draft.mode, content: draft.body.trim(), contentBlocks, usagePrompt, safetyNotes },
+        contentBlocks,
+        usagePrompt,
+        safetyNotes,
         injectionPreview: injectionPreview.length ? injectionPreview : ['暂未填写注入内容。'],
         source: 'local',
         contributor: contributor.trim(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
+};
+
+const 构建模式套装模块 = (draft: 贡献草稿, contributor: string): 创意工坊模块条目[] => {
+    const stamp = Date.now();
+    const suiteTitle = draft.title.trim();
+    const suiteId = `suite-${draft.mode}-${stamp}`;
+    const tags = [
+        draft.mode,
+        '模式包',
+        ...draft.tags.split(/[，,、\s]+/).map((tag) => tag.trim()).filter(Boolean)
+    ].filter((tag, index, list) => list.indexOf(tag) === index).slice(0, 12);
+    const safetyNotes = 分割文本行(draft.safetyNotes);
+    const base = {
+        formatVersion: 2 as const,
+        workshopKind: 'standard_module' as const,
+        source: 'local' as const,
+        contributor: contributor.trim(),
+        createdAt: new Date(stamp).toISOString(),
+        updatedAt: new Date(stamp).toISOString()
+    };
+    const makeModule = (
+        type: 'topic' | 'world_rules' | 'ability',
+        suffix: string,
+        titleSuffix: string,
+        content: string,
+        injectionTarget: 'manualWorldPrompt' | 'manualRealmPrompt',
+        usagePrompt: string,
+        extraPayload: Record<string, unknown>
+    ): 创意工坊模块条目 => {
+        const blockTitle = type === 'ability' ? '能力与境界规则' : type === 'world_rules' ? '世界规则' : '题材模板';
+        const contentBlocks: NonNullable<创意工坊模块条目['contentBlocks']> = [{
+            id: `${suffix}-main`,
+            title: blockTitle,
+            purpose: `${suiteTitle}模式包中的${titleSuffix}部分。`,
+            injectionTarget,
+            content: content.trim()
+        }];
+        return {
+            ...base,
+            id: `local-${suiteId}-${suffix}`,
+            type,
+            title: `${suiteTitle} · ${titleSuffix}`,
+            subtitle: draft.subtitle.trim() || `${draft.mode} · 完整模式包`,
+            description: draft.description.trim() || `${draft.mode}完整模式包的${titleSuffix}模块。`,
+            tags,
+            payload: {
+                schema: 'moranjianghu-creative-workshop-mode-suite',
+                version: 2,
+                suiteId,
+                suiteTitle,
+                mode: draft.mode,
+                content: content.trim(),
+                contentBlocks,
+                usagePrompt,
+                safetyNotes,
+                ...extraPayload
+            },
+            contentBlocks,
+            usagePrompt,
+            safetyNotes,
+            injectionPreview: [
+                `完整模式包：${suiteTitle}`,
+                `适用题材：${draft.mode}`,
+                `模块类型：${titleSuffix}`,
+                `${injectionTarget}：${content.trim().slice(0, 160)}`
+            ]
+        };
+    };
+    return [
+        makeModule(
+            'topic',
+            'topic',
+            '题材模板',
+            draft.topicBody,
+            'manualWorldPrompt',
+            draft.usagePrompt.trim() || '作为完整模式包的题材母板注入手动世界观提示词，定义基本口径、时代、货币、叙事边界和题材禁忌。',
+            { manualWorldPrompt: draft.topicBody.trim() }
+        ),
+        makeModule(
+            'world_rules',
+            'world-rules',
+            '世界规则',
+            draft.worldRulesBody,
+            'manualWorldPrompt',
+            '作为完整模式包的世界规则追加到世界观细化要求，约束势力、市场、地图、资源和社会规则。',
+            { worldExtraRequirement: draft.worldRulesBody.trim() }
+        ),
+        makeModule(
+            'ability',
+            'ability',
+            '能力体系',
+            draft.abilityBody,
+            'manualRealmPrompt',
+            '作为完整模式包的能力/境界提示词注入，约束成长体系、战力边界和技能命名。',
+            { manualRealmPrompt: draft.abilityBody.trim() }
+        )
+    ];
 };
 
 const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecomposition }) => {
@@ -137,7 +271,16 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
     const [contributionDraft, setContributionDraft] = useState<贡献草稿>(() => 空贡献草稿());
     const [showContributionForm, setShowContributionForm] = useState(true);
     const contributionModule = useMemo(() => 构建贡献模块(contributionDraft, contributor), [contributionDraft, contributor]);
-    const contributionReady = contributionDraft.title.trim().length > 0 && contributionDraft.body.trim().length > 0;
+    const contributionModules = useMemo(() => (
+        contributionDraft.type === 'comfy_workflow'
+            ? [contributionModule]
+            : 构建模式套装模块(contributionDraft, contributor)
+    ), [contributionDraft, contributionModule, contributor]);
+    const contributionReady = contributionDraft.title.trim().length > 0 && (
+        contributionDraft.type === 'comfy_workflow'
+            ? contributionDraft.body.trim().length > 0
+            : contributionDraft.topicBody.trim().length > 0 && contributionDraft.worldRulesBody.trim().length > 0 && contributionDraft.abilityBody.trim().length > 0
+    );
 
     const activeEntries = useMemo(
         () => entries.filter((entry) => 可展示工坊类型集合.has(entry.type) && entry.type === activeType && (sourceFilter === 'all' || entry.source === sourceFilter)),
@@ -169,10 +312,41 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
     if (!open) return null;
 
     const 发布模块 = async (entry: 创意工坊模块条目) => {
+        if (!cloudUsername) {
+            setStatus('请先登录联机账号再发布社区投稿。匿名发布只隐藏显示署名，仍会绑定账号用于编辑和删除。');
+            return;
+        }
         setBusyId(entry.id);
         try {
             const published = await 发布创意工坊模块({ module: entry, contributor, anonymous: anonymousContribution });
             setStatus(`已发布到社区工坊：${published.title}。`);
+            await refreshEntries();
+        } catch (error: any) {
+            setStatus(`发布失败：${error?.message || '未知错误'}`);
+        } finally {
+            setBusyId('');
+        }
+    };
+
+    const 发布贡献套装 = async () => {
+        if (!contributionReady) {
+            setStatus(contributionDraft.type === 'comfy_workflow' ? '请先填写模块名称和工作流内容。' : '请完整填写题材模板、世界规则和能力体系三段内容。');
+            return;
+        }
+        if (!cloudUsername) {
+            setStatus('请先登录联机账号再发布社区投稿。匿名发布只隐藏显示署名，仍会绑定账号用于编辑和删除。');
+            return;
+        }
+        setBusyId('contribution-suite');
+        try {
+            const published: 创意工坊模块条目[] = [];
+            for (const module of contributionModules) {
+                published.push(await 发布创意工坊模块({ module, contributor, anonymous: anonymousContribution }));
+            }
+            setStatus(contributionDraft.type === 'comfy_workflow'
+                ? `已发布到社区工坊：${published[0]?.title || contributionDraft.title}。`
+                : `已发布完整模式包「${contributionDraft.title.trim()}」：题材模板、世界规则、能力体系共 ${published.length} 个模块。`);
+            setContributionDraft(空贡献草稿());
             await refreshEntries();
         } catch (error: any) {
             setStatus(`发布失败：${error?.message || '未知错误'}`);
@@ -237,11 +411,14 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
             return;
         }
         try {
-            const module = 导入本地创意工坊模块(contributionModule);
-            setStatus(`已保存本地贡献「${module.title}」，可以在本地导入分区预览或发布。`);
-            setActiveType(module.type);
+            const modules = contributionModules.map((module) => 导入本地创意工坊模块(module));
+            const first = modules[0];
+            setStatus(contributionDraft.type === 'comfy_workflow'
+                ? `已保存本地贡献「${first.title}」，可以在本地导入分区预览或发布。`
+                : `已保存完整模式包「${contributionDraft.title.trim()}」：题材模板、世界规则、能力体系共 ${modules.length} 个模块。`);
+            setActiveType(first.type);
             setSourceFilter('local');
-            setExpandedId(module.id);
+            setExpandedId(first.id);
             setContributionDraft(空贡献草稿());
             await refreshEntries();
         } catch (error: any) {
@@ -302,7 +479,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                 <input type="checkbox" checked={anonymousContribution} onChange={(event) => setAnonymousContribution(event.target.checked)} className="h-3.5 w-3.5 accent-wuxia-gold" />
                                 匿名发布
                             </label>
-                            <span className="text-[11px] text-gray-500">{cloudUsername ? `联机账号：${cloudUsername}` : '登录联机账号后可编辑/删除自己的投稿'}</span>
+                            <span className="text-[11px] text-gray-500">{cloudUsername ? `联机账号：${cloudUsername}` : '发布社区投稿需要先登录联机账号'}</span>
                             <button type="button" onClick={() => setShowContributionForm((value) => !value)} className="rounded-lg border border-wuxia-gold/25 px-3 py-2 text-xs text-wuxia-gold hover:border-wuxia-gold/45">{showContributionForm ? '收起贡献表单' : '贡献新预设'}</button>
                             <button type="button" onClick={() => void refreshEntries()} disabled={loading} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-200 hover:border-white/25 disabled:opacity-50">{loading ? '刷新中' : '刷新社区'}</button>
                         </div>
@@ -323,9 +500,10 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                 </div>
                                 <div className="grid gap-3 sm:grid-cols-3">
                                     <label className="block text-xs text-gray-300">
-                                        模块类型
+                                        贡献类型
                                         <select value={contributionDraft.type} onChange={(event) => setContributionDraft((prev) => ({ ...prev, type: event.target.value as 创意工坊模块类型 }))} className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none focus:border-wuxia-gold/45">
-                                            {可展示工坊分区.map((section) => <option key={section.id} value={section.id}>{section.title}</option>)}
+                                            <option value="topic">完整模式包（题材模板 + 世界规则 + 能力体系）</option>
+                                            <option value="comfy_workflow">ComfyUI 工作流</option>
                                         </select>
                                     </label>
                                     <label className="block text-xs text-gray-300">
@@ -360,28 +538,56 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                     简介
                                     <input value={contributionDraft.description} onChange={(event) => setContributionDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder="一句话说明这个预设会改变什么体验" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
                                 </label>
-                                <label className="block text-xs text-gray-300">
-                                    注入内容
-                                    <textarea value={contributionDraft.body} onChange={(event) => setContributionDraft((prev) => ({ ...prev, body: event.target.value }))} placeholder={contributionDraft.type === 'comfy_workflow' ? '粘贴 ComfyUI API Workflow JSON，或写清工作流下载/使用说明。' : '逐条写世界观规则、题材模板或能力体系。每行会进入注入预览。'} className="mt-1 min-h-36 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
-                                </label>
+                                {contributionDraft.type === 'comfy_workflow' ? (
+                                    <label className="block text-xs text-gray-300">
+                                        工作流内容
+                                        <textarea value={contributionDraft.body} onChange={(event) => setContributionDraft((prev) => ({ ...prev, body: event.target.value }))} placeholder="粘贴 ComfyUI API Workflow JSON，或写清工作流下载/使用说明。" className="mt-1 min-h-36 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                    </label>
+                                ) : (
+                                    <div className="grid gap-3">
+                                        <label className="block text-xs text-gray-300">
+                                            题材模板
+                                            <textarea value={contributionDraft.topicBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, topicBody: event.target.value }))} placeholder="写清题材口径：时代、地理、货币、社会常识、叙事禁忌、原著融合比例等。这部分会注入 manualWorldPrompt。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                        </label>
+                                        <label className="block text-xs text-gray-300">
+                                            世界规则
+                                            <textarea value={contributionDraft.worldRulesBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, worldRulesBody: event.target.value }))} placeholder="写清世界运行规则：势力、资源、市场、科技/感染/地图/交易/阵营边界等。这部分会进入 worldExtraRequirement。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                        </label>
+                                        <label className="block text-xs text-gray-300">
+                                            能力体系
+                                            <textarea value={contributionDraft.abilityBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, abilityBody: event.target.value }))} placeholder="写清境界/能力/战力等级、差距口径、成长资源、技能命名和判定边界。这部分会注入 manualRealmPrompt。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                        </label>
+                                    </div>
+                                )}
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <label className="block text-xs text-gray-300">
+                                        使用提示
+                                        <textarea value={contributionDraft.usagePrompt} onChange={(event) => setContributionDraft((prev) => ({ ...prev, usagePrompt: event.target.value }))} placeholder="例如：适合开启同人融合后注入到手动世界观提示词。" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                    </label>
+                                    <label className="block text-xs text-gray-300">
+                                        安全/限制说明
+                                        <textarea value={contributionDraft.safetyNotes} onChange={(event) => setContributionDraft((prev) => ({ ...prev, safetyNotes: event.target.value }))} placeholder="每行一条，例如：不要包含本机路径、账号密钥或未授权素材。" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                    </label>
+                                </div>
                                 <div className="flex flex-wrap gap-2">
                                     <button type="button" onClick={() => void 保存贡献模块到本地()} disabled={!contributionReady} className="rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-4 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-45">保存到本地</button>
-                                    <button type="button" onClick={() => void 发布模块(contributionModule)} disabled={!contributionReady || Boolean(busyId)} className="rounded-lg border border-sky-500/35 bg-sky-500/15 px-4 py-2 text-xs font-bold text-sky-100 hover:bg-sky-500/25 disabled:opacity-45">发布到社区</button>
+                                    <button type="button" onClick={() => void 发布贡献套装()} disabled={!contributionReady || Boolean(busyId) || !cloudUsername} title={cloudUsername ? '发布到社区工坊' : '请先登录联机账号'} className="rounded-lg border border-sky-500/35 bg-sky-500/15 px-4 py-2 text-xs font-bold text-sky-100 hover:bg-sky-500/25 disabled:opacity-45">发布到社区</button>
                                     <button type="button" onClick={() => setContributionDraft(空贡献草稿())} className="rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-200 hover:border-white/25">清空</button>
                                 </div>
                             </div>
                             <div className="rounded-lg border border-white/10 bg-black/25 p-3">
                                 <div className="text-xs font-bold tracking-[0.14em] text-wuxia-gold">实时预览</div>
-                                <div className="mt-3 text-base font-serif font-bold text-gray-100">{contributionModule.title || '未命名预设'}</div>
-                                <div className="mt-1 text-xs text-wuxia-gold/80">{contributionModule.subtitle}</div>
-                                <p className="mt-2 text-sm leading-6 text-gray-300">{contributionModule.description}</p>
+                                <div className="mt-3 text-base font-serif font-bold text-gray-100">{contributionDraft.title.trim() || '未命名预设'}</div>
+                                <div className="mt-1 text-xs text-wuxia-gold/80">{contributionDraft.type === 'comfy_workflow' ? contributionModule.subtitle : `${contributionDraft.mode} · 完整模式包`}</div>
+                                <p className="mt-2 text-sm leading-6 text-gray-300">{contributionDraft.description.trim() || (contributionDraft.type === 'comfy_workflow' ? contributionModule.description : '一次贡献题材模板、世界规则和能力体系三件套。')}</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                    {contributionModule.tags.map((tag) => <span key={tag} className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-gray-300">{tag}</span>)}
+                                    {contributionModules[0]?.tags.map((tag) => <span key={tag} className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-gray-300">{tag}</span>)}
                                 </div>
                                 <div className="mt-3 rounded-lg border border-wuxia-gold/15 bg-black/30 p-3">
-                                    <div className="text-xs font-bold tracking-[0.14em] text-wuxia-gold">注入预览</div>
+                                    <div className="text-xs font-bold tracking-[0.14em] text-wuxia-gold">标准格式预览</div>
+                                    <div className="mt-2 text-xs leading-5 text-gray-300">使用提示：{contributionDraft.type === 'comfy_workflow' ? contributionModule.usagePrompt : '完整模式包会生成题材模板、世界规则、能力体系三个关联模块。'}</div>
                                     <ul className="mt-2 space-y-1 text-xs leading-5 text-gray-300">
-                                        {contributionModule.injectionPreview.map((line, index) => <li key={index}>{line}</li>)}
+                                        {contributionModules.flatMap((module) => module.injectionPreview.slice(0, 4)).map((line, index) => <li key={index}>{line}</li>)}
                                     </ul>
                                 </div>
                             </div>
@@ -393,7 +599,9 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                     <div className="grid gap-3 lg:grid-cols-2">
                         {activeEntries.map((entry) => {
                             const expanded = expandedId === entry.id;
-                            const canPublishEntry = entry.source !== 'builtin' && entry.source !== 'cloud';
+                            const canPublishEntry = entry.source !== 'builtin' && entry.source !== 'cloud' && (
+                                entry.type === 'comfy_workflow' || typeof (entry.payload as any)?.suiteId === 'string'
+                            );
                             const canManageEntry = entry.source === 'cloud' && Boolean(cloudUsername) && entry.ownerUsername === cloudUsername;
                             const editing = editingEntryId === entry.id;
                             return (
@@ -412,10 +620,28 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                     </div>
                                     {expanded && (
                                         <div className="mt-3 rounded-lg border border-wuxia-gold/15 bg-black/30 p-3">
-                                            <div className="text-xs font-bold tracking-[0.14em] text-wuxia-gold">注入预览</div>
+                                            <div className="text-xs font-bold tracking-[0.14em] text-wuxia-gold">标准模块内容</div>
+                                            {entry.usagePrompt && <div className="mt-2 text-xs leading-5 text-gray-300">使用提示：{entry.usagePrompt}</div>}
+                                            {entry.safetyNotes?.length ? (
+                                                <ul className="mt-2 space-y-1 text-xs leading-5 text-amber-100/80">
+                                                    {entry.safetyNotes.map((note, index) => <li key={index}>限制：{note}</li>)}
+                                                </ul>
+                                            ) : null}
+                                            {entry.contentBlocks?.length ? (
+                                                <div className="mt-3 space-y-2">
+                                                    {entry.contentBlocks.map((block) => (
+                                                        <div key={block.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
+                                                            <div className="text-xs font-bold text-gray-100">{block.title} <span className="font-normal text-gray-500">· {block.injectionTarget || 'referenceOnly'}</span></div>
+                                                            <div className="mt-1 text-xs leading-5 text-gray-400">{block.purpose}</div>
+                                                            <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-xs leading-5 text-gray-300">{block.content}</pre>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
                                             <ul className="mt-2 space-y-1 text-xs leading-5 text-gray-300">
                                                 {(entry.injectionPreview?.length ? entry.injectionPreview : [`payload：${JSON.stringify(entry.payload, null, 2)}`]).map((line, index) => <li key={index}>{line}</li>)}
                                             </ul>
+                                            )}
                                         </div>
                                     )}
                                     {editing && (
@@ -440,7 +666,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                         <button type="button" onClick={() => 下载JSON(entry)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">下载 JSON</button>
                                         <button type="button" onClick={() => void 复制文本(构建模块摘要(entry)).then((ok) => setStatus(ok ? `已复制「${entry.title}」注入摘要。` : '复制失败，请改用下载 JSON。'))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">复制摘要</button>
                                         {canPublishEntry ? (
-                                            <button type="button" onClick={() => void 发布模块(entry)} disabled={Boolean(busyId)} className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15 disabled:opacity-50">贡献社区</button>
+                                            <button type="button" onClick={() => void 发布模块(entry)} disabled={Boolean(busyId) || !cloudUsername} title={cloudUsername ? '贡献社区' : '请先登录联机账号'} className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15 disabled:opacity-50">贡献社区</button>
                                         ) : (
                                             <button type="button" disabled className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-500">无需贡献</button>
                                         )}

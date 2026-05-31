@@ -343,7 +343,7 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
         }
 
         const zipBytes = decodeBase64(body?.zipBase64);
-        const owner = body?.auth ? await authenticateWorkshopUser(env, body.auth) : undefined;
+        const owner = await authenticateWorkshopUser(env, body?.auth);
         const id = buildId();
         const createdAt = new Date().toISOString();
         const title = normalizeWorkTitle(body?.title) || normalizeWorkTitle(body?.workName) || '未命名小说分解模块';

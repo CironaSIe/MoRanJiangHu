@@ -35,4 +35,12 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
 
         expect(logs[0].text).toContain('\n\n');
     });
+
+    it('keeps quoted dialogue from narration renderable as character bubbles', () => {
+        const logs = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: '杨培强停下手里的动作。一个清冷的女声从侧后方传来。俞月荷正站在门边，低声说道：“你动作能不能轻一点？如果里面装的是玻璃安瓿瓶，你刚才那一下，至少报废了我们半个月的口粮。”'
+        }] as any);
+        expect(logs.some((item: any) => item.sender === '俞月荷' && item.text.includes('动作能不能轻一点'))).toBe(true);
+    });
 });

@@ -233,10 +233,14 @@ const MobileSocial: React.FC<Props> = ({
     const 读取扶她设定 = (npc: NPC结构): string => {
         return 取首个非空文本((npc as any).扶她设定);
     };
-    const 读取性癖 = (npc: NPC结构): string => 取首个非空文本(
+    const 清理私密占位 = (value: string): string => {
+        const text = 取首个非空文本(value);
+        return /^(未知|不详|待定|待开发|暂无记录|无)$/u.test(text) ? '' : text;
+    };
+    const 读取性癖 = (npc: NPC结构): string => 清理私密占位(取首个非空文本(
         (npc as any).性癖
-    );
-    const 读取敏感点 = (npc: NPC结构): string => 取首个非空文本((npc as any).敏感点);
+    ));
+    const 读取敏感点 = (npc: NPC结构): string => 清理私密占位(取首个非空文本((npc as any).敏感点));
     const 读取名器档案 = (npc: NPC结构): Array<{ 部位: string; 名称: string; 品质: string; 稳定描述: string; 标签: string[] }> => {
         const source = Array.isArray((npc as any)?.名器档案) ? (npc as any).名器档案 : [];
         return source
@@ -453,13 +457,6 @@ const MobileSocial: React.FC<Props> = ({
                     <span className="text-[10px] font-bold text-fuchsia-100">{archive.名称 || '无名器'}</span>
                     <span className={`rounded border px-1 py-0.5 text-[8px] leading-none ${archive.品质 === '无' ? 'border-gray-700 text-gray-500' : 'border-wuxia-gold/40 text-wuxia-gold'}`}>{archive.品质 || '未定'}</span>
                 </div>
-                {archive.标签.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                        {archive.标签.map((tag) => (
-                            <span key={tag} className="rounded bg-fuchsia-500/10 px-1 py-0.5 text-[8px] leading-none text-fuchsia-200/80">{tag}</span>
-                        ))}
-                    </div>
-                )}
             </div>
         );
     };

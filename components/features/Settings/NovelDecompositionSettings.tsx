@@ -1571,6 +1571,10 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
             setMessage('请先选择一个数据集。');
             return;
         }
+        if (!workshopUsername) {
+            推送错误提示('请先登录联机账号再发布创意工坊投稿。匿名发布只隐藏显示署名，仍会绑定账号用于编辑和删除。');
+            return;
+        }
         const ok = requestConfirm
             ? await requestConfirm({
                 title: '发布小说分解模块',
@@ -2116,7 +2120,8 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                 </button>
                                 <button
                                     onClick={() => void handlePublishSelectedDatasetToWorkshop()}
-                                    disabled={workshopPublishing}
+                                    disabled={workshopPublishing || !workshopUsername}
+                                    title={workshopUsername ? '发布为小说分解模块' : '请先登录联机账号'}
                                     className="px-5 py-2.5 rounded-lg text-xs font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-all disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {workshopPublishing ? '发布中...' : '发布为小说分解模块'}
@@ -2125,7 +2130,7 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                     <input type="checkbox" checked={workshopAnonymous} onChange={(event) => setWorkshopAnonymous(event.target.checked)} className="h-3.5 w-3.5 accent-wuxia-gold" />
                                     匿名发布
                                 </label>
-                                <span className="text-[11px] text-gray-500">{workshopUsername ? `联机账号：${workshopUsername}` : '登录联机账号后可编辑/删除自己的投稿'}</span>
+                                <span className="text-[11px] text-gray-500">{workshopUsername ? `联机账号：${workshopUsername}` : '发布社区投稿需要先登录联机账号'}</span>
                                 <div className="flex-1"></div>
                                 <button
                                     onClick={() => void handleDeleteCurrentDataset()}
@@ -2162,7 +2167,8 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                             <button
                                 type="button"
                                 onClick={() => void handlePublishSelectedDatasetToWorkshop()}
-                                disabled={!selectedDataset || workshopPublishing}
+                                disabled={!selectedDataset || workshopPublishing || !workshopUsername}
+                                title={workshopUsername ? '发布当前小说分解' : '请先登录联机账号'}
                                 className="px-4 py-2 rounded-lg text-xs font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-all disabled:opacity-50"
                             >
                                 {workshopPublishing ? '发布中...' : '发布当前小说分解'}
@@ -2173,7 +2179,7 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                             </label>
                         </div>
                     </div>
-                    <div className="text-[11px] text-gray-500">{workshopUsername ? `联机账号：${workshopUsername}` : '登录联机账号后可编辑/删除自己的投稿'}</div>
+                    <div className="text-[11px] text-gray-500">{workshopUsername ? `联机账号：${workshopUsername}` : '发布社区投稿需要先登录联机账号'}</div>
 
                     {workshopLoading && workshopEntries.length <= 0 ? (
                         <div className="rounded-xl border border-white/5 bg-black/25 p-8 text-center text-sm text-gray-400">正在读取创意工坊模块...</div>

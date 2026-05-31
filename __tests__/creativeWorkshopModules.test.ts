@@ -27,9 +27,17 @@ describe('creativeWorkshopModules', () => {
 
     it('每个新建存档工坊分区恰好对应六个官方题材模式模块', () => {
         for (const type of ['topic', 'world_rules', 'ability'] as const) {
-            const entries = 创意工坊模块列表.filter((entry) => entry.source === 'builtin' && entry.type === type);
+            const entries = 创意工坊模块列表.filter((entry) => entry.source === 'builtin' && entry.contributor === '官方' && entry.type === type);
             expect(entries.length, type).toBe(题材模式顺序.length);
             expect(new Set(entries.map((entry) => entry.preset?.openingConfig?.题材模式))).toEqual(new Set(题材模式顺序));
+        }
+    });
+
+    it('迁入的玩家题材按完整模式包提供三件套', () => {
+        for (const suiteId of ['community-trails-suite', 'community-crossover-wuxia-suite', 'community-rideress-suite', 'community-pokemon-suite']) {
+            const entries = 创意工坊模块列表.filter((entry) => entry.payload?.suiteId === suiteId);
+            expect(new Set(entries.map((entry) => entry.type)), suiteId).toEqual(new Set(['topic', 'world_rules', 'ability']));
+            expect(entries.every((entry) => entry.formatVersion === 2 && entry.workshopKind === 'standard_module'), suiteId).toBe(true);
         }
     });
 

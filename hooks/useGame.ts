@@ -387,6 +387,7 @@ export const useGame = () => {
     const [可重Roll计数, set可重Roll计数] = useState(0);
     const [最近开局配置, 设置最近开局配置] = useState<最近开局配置结构 | null>(null);
     const apiConfigRef = useRef(apiConfig);
+    const 社交Ref = useRef<any[]>(Array.isArray(社交) ? 社交 : []);
     const visualConfigRef = useRef(visualConfig);
     const imageManagerConfigRef = useRef<图片管理设置结构>(imageManagerConfig || 默认图片管理设置);
     const [世界演变更新中, set世界演变更新中] = useState(false);
@@ -481,6 +482,10 @@ export const useGame = () => {
     useEffect(() => {
         apiConfigRef.current = apiConfig;
     }, [apiConfig]);
+
+    useEffect(() => {
+        社交Ref.current = Array.isArray(社交) ? 社交 : [];
+    }, [社交]);
 
     useEffect(() => {
         visualConfigRef.current = visualConfig;
@@ -1540,7 +1545,7 @@ export const useGame = () => {
         执行社交自动存档: (socialSnapshot) => {
             void performAutoSave({ social: socialSnapshot, history: 历史记录, force: true });
         },
-        获取社交列表: () => 社交,
+        获取社交列表: () => 社交Ref.current,
         获取NPC唯一标识,
         设置NPC生图任务队列: setNPC生图任务队列,
         加载图片AI服务
@@ -1555,8 +1560,13 @@ export const useGame = () => {
         const 场景尺寸 = typeof feature?.自动场景生图分辨率 === 'string' && feature.自动场景生图分辨率.trim()
             ? feature.自动场景生图分辨率.trim()
             : (场景横竖屏 === '竖屏' ? '576x1024' : '1024x576');
+        const 自动任务已开启 = Boolean(
+            feature?.NPC生图启用
+            || feature?.物品自动生图启用
+            || feature?.自动场景生图启用
+        );
         return {
-            总开关: Boolean(feature?.文生图功能启用),
+            总开关: Boolean(feature?.文生图功能启用 || 自动任务已开启),
             NPC开关: Boolean(feature?.NPC生图启用),
             使用词组转化器: 当前后端 === 'novelai' || 当前后端 === 'comfyui'
                 ? true
@@ -1713,7 +1723,7 @@ export const useGame = () => {
     } = 创建场景生图触发工作流({
         获取环境: () => 环境,
         获取角色: () => 角色,
-        获取社交列表: () => 社交,
+        获取社交列表: () => 社交Ref.current,
         获取历史记录: () => 历史记录,
         获取接口配置: () => apiConfig,
         规范化环境信息,
@@ -1868,7 +1878,13 @@ export const useGame = () => {
         if (!npcId || 按NPC读取角色锚点(npcId) || 角色锚点补全进行中Ref.current.has(npcId)) return;
         角色锚点补全进行中Ref.current.add(npcId);
         try {
-            await 提取角色锚点(npcId, { 名称: typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '' });
+            const 锚点等待上限 = 20_000;
+            await Promise.race([
+                提取角色锚点(npcId, { 名称: typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '' }),
+                new Promise((_, reject) => {
+                    window.setTimeout(() => reject(new Error('角色锚点提取超时，已跳过前置锚点继续生图。')), 锚点等待上限);
+                })
+            ]);
         } catch (error) {
             console.warn('生图前置角色锚点提取失败，继续使用基础资料生图', npcId, error);
         } finally {
@@ -1886,6 +1902,7 @@ export const useGame = () => {
         }, {
             apiConfig,
             获取NPC唯一标识,
+            获取社交列表: () => 社交Ref.current,
             获取文生图接口配置,
             获取生图词组转化器接口配置,
             获取生图画师串预设,
@@ -1984,6 +2001,19 @@ export const useGame = () => {
         return false;
     };
 
+    const NPC自动生图调试已启用 = (): boolean => {
+        try {
+            return typeof window !== 'undefined' && window.localStorage?.getItem('DEBUG_NPC_AUTO_IMAGE') === '1';
+        } catch {
+            return false;
+        }
+    };
+
+    const 输出NPC自动生图调试 = (message: string, payload?: any) => {
+        if (!NPC自动生图调试已启用()) return;
+        console.info(`[NPC_AUTO_IMAGE] ${message}`, payload ?? '');
+    };
+
     const 读取NPC文本字段 = (npc: any, key: string): string => (
         typeof npc?.[key] === 'string' ? npc[key].trim() : ''
     );
@@ -2040,22 +2070,43 @@ export const useGame = () => {
         options?: { force?: boolean }
     ): Promise<boolean> => {
         const npcKey = 获取NPC唯一标识(npc);
-        if (!npcKey || NPC生图进行中Ref.current.has(npcKey)) return false;
-        if (!options?.force && !NPC符合自动生图条件(npc)) return false;
-        if (NPC是否已有成功构图(npc, [构图])) return false;
+        const npcName = 读取NPC文本字段(npc, '姓名') || 读取NPC文本字段(npc, '名称') || npcKey;
+        if (!npcKey) {
+            输出NPC自动生图调试('跳过：缺少 NPC 标识', { npcName, 构图 });
+            return false;
+        }
+        if (NPC生图进行中Ref.current.has(npcKey)) {
+            输出NPC自动生图调试('跳过：NPC 生图进行中', { npcKey, npcName, 构图 });
+            return false;
+        }
+        if (!options?.force && !NPC符合自动生图条件(npc)) {
+            输出NPC自动生图调试('跳过：不符合自动生图条件', { npcKey, npcName, 构图 });
+            return false;
+        }
+        if (NPC是否已有成功构图(npc, [构图])) {
+            输出NPC自动生图调试('跳过：已有成功构图', { npcKey, npcName, 构图 });
+            return false;
+        }
 
         const signatures = 标记NPC自动构图签名(npc, 构图);
-        if (!signatures) return false;
+        if (!signatures && !options?.force) {
+            输出NPC自动生图调试('跳过：自动构图签名已存在', { npcKey, npcName, 构图 });
+            return false;
+        }
         try {
+            输出NPC自动生图调试('开始执行自动构图任务', { npcKey, npcName, 构图, force: options?.force === true });
             await 执行单个NPC生图(npc, {
                 force: options?.force,
                 source: 'auto',
                 构图
             });
+            输出NPC自动生图调试('自动构图任务结束', { npcKey, npcName, 构图 });
             return true;
         } catch (error) {
-            清除NPC自动构图签名(signatures);
+            输出NPC自动生图调试('自动构图任务异常', { npcKey, npcName, 构图, error });
             throw error;
+        } finally {
+            清除NPC自动构图签名(signatures);
         }
     };
 
@@ -2148,9 +2199,13 @@ export const useGame = () => {
     const 触发新增NPC自动生图 = (newNpcList: any[]) => {
         const npcList = Array.isArray(newNpcList) ? newNpcList : [];
         if (npcList.length === 0) return;
-        npcList.forEach((npc) => {
-            void 执行NPC自动构图任务(npc, '头像').catch(() => undefined);
-        });
+        window.setTimeout(() => {
+            npcList.forEach((npc) => {
+                void 执行NPC自动构图任务(npc, '头像', { force: true }).catch((error) => {
+                    console.warn('新增 NPC 头像自动生图失败', 读取NPC文本字段(npc, 'id') || 读取NPC文本字段(npc, '姓名'), error);
+                });
+            });
+        }, 500);
     };
 
     const 触发对白NPC头像补全 = (npcListRaw: any[]) => {
@@ -2170,12 +2225,7 @@ export const useGame = () => {
         return (Array.isArray(npcListRaw) ? npcListRaw : [])
             .filter((npc: any) => NPC符合自动生图条件(npc))
             .filter((npc: any) => !NPC是否已有成功构图(npc, ['头像']))
-            .map((npc: any) => {
-                const id = 读取NPC文本字段(npc, 'id');
-                const name = 读取NPC文本字段(npc, '姓名');
-                const gender = 读取NPC文本字段(npc, '性别');
-                return id ? `id:${id}` : (name ? `name:${gender}:${name}` : '');
-            })
+            .map((npc: any, index: number) => 获取NPC唯一标识(npc, index))
             .filter(Boolean)
             .join('|');
     };
@@ -2183,18 +2233,38 @@ export const useGame = () => {
     const 自动补全全部NPC头像 = async (targetNpcList?: any[]) => {
         const config = 读取文生图功能配置();
         if (!config.总开关 || !config.NPC开关 || config.重要性筛选 !== '全部') return;
-        const npcList = (Array.isArray(targetNpcList) ? targetNpcList : 社交)
+        const 单个NPC自动补全等待上限 = 90_000;
+        const 当前社交列表 = Array.isArray(社交Ref.current) ? 社交Ref.current : [];
+        const 原始列表 = 当前社交列表.length > 0
+            ? 当前社交列表
+            : (Array.isArray(targetNpcList) ? targetNpcList : []);
+        const npcList = 原始列表
             .filter((npc: any) => NPC符合自动生图条件(npc))
-            .filter((npc: any) => !NPC是否已有成功构图(npc, ['头像']));
+            .filter((npc: any) => !NPC是否已有成功构图(npc, ['头像']))
+            .map((npc: any, index: number) => ({ npc, npcId: 获取NPC唯一标识(npc, index) }))
+            .filter(({ npcId }) => Boolean(npcId));
+        输出NPC自动生图调试('全部 NPC 头像补全候选', {
+            total: 原始列表.length,
+            candidates: npcList.map(({ npc, npcId }) => ({
+                npcId,
+                姓名: 读取NPC文本字段(npc, '姓名'),
+                性别: 读取NPC文本字段(npc, '性别'),
+                已成功: NPC是否已有成功构图(npc, ['头像']),
+                符合条件: NPC符合自动生图条件(npc)
+            }))
+        });
 
-        for (const npc of npcList) {
-            const npcId = 读取NPC文本字段(npc, 'id') || 读取NPC文本字段(npc, '姓名');
+        for (const { npc, npcId } of npcList) {
             try {
-                await 执行NPC自动构图任务(npc, '头像', { force: true });
+                await Promise.race([
+                    执行NPC自动构图任务(npc, '头像', { force: true }),
+                    new Promise<boolean>((resolve) => {
+                        window.setTimeout(() => resolve(false), 单个NPC自动补全等待上限);
+                    })
+                ]);
             } catch (error) {
                 console.warn('全部NPC头像自动补全失败', npcId, error);
             }
-            await new Promise(resolve => window.setTimeout(resolve, 300));
         }
     };
 
@@ -2255,6 +2325,10 @@ export const useGame = () => {
 
             await 自动补齐NPC香闺秘档部位(npc);
         }
+
+        if (自动补图已启用 && config.重要性筛选 === '全部') {
+            await 自动补全全部NPC头像(targetNpcList);
+        }
     };
 
     useEffect(() => {
@@ -2282,9 +2356,6 @@ export const useGame = () => {
     }, [社交, gameConfig?.启用NSFW模式, gameConfig?.启用男娘NSFW内容, apiConfig]);
 
     useEffect(() => {
-        const missingSignature = 构建全部NPC头像缺口签名(社交);
-        if (!missingSignature) return;
-
         const feature = apiConfig?.功能模型占位 as any;
         const resourceSignature = [
             feature?.文生图功能启用 === true ? 'image:on' : 'image:off',
@@ -2294,13 +2365,24 @@ export const useGame = () => {
             feature?.文生图后端类型 || feature?.图片后端类型 || '',
             feature?.文生图模型使用模型 || '',
             feature?.文生图模型API地址 || '',
-            missingSignature
+            构建全部NPC头像缺口签名(社交)
         ].join('__');
-        if (全部NPC头像补全签名Ref.current === resourceSignature) return;
-        全部NPC头像补全签名Ref.current = resourceSignature;
+        if (!resourceSignature.endsWith('__')) {
+            if (全部NPC头像补全签名Ref.current === resourceSignature) return;
+            全部NPC头像补全签名Ref.current = resourceSignature;
+        }
 
         const timerId = window.setTimeout(() => {
-            void 自动补全全部NPC头像(社交);
+            void 自动补全全部NPC头像().finally(() => {
+                全部NPC头像补全签名Ref.current = '';
+                window.setTimeout(() => {
+                    const 当前社交列表 = Array.isArray(社交Ref.current) ? 社交Ref.current : [];
+                    if (!构建全部NPC头像缺口签名(当前社交列表)) return;
+                    void 自动补全全部NPC头像().finally(() => {
+                        全部NPC头像补全签名Ref.current = '';
+                    });
+                }, 5000);
+            });
         }, 500);
         return () => window.clearTimeout(timerId);
     }, [社交, apiConfig]);
@@ -2429,7 +2511,7 @@ export const useGame = () => {
     const 执行正文润色 = async (
         baseResponse: GameResponse,
         rawText: string,
-        options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal; allowExpansionForLength?: boolean; minLength?: number }
+        options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal; allowExpansionForLength?: boolean; minLength?: number; onDelta?: (delta: string, accumulated: string) => void }
     ): Promise<{ response: GameResponse; applied: boolean; error?: string; rawText?: string }> => 执行正文润色工作流(
         baseResponse,
         rawText,
@@ -2443,7 +2525,8 @@ export const useGame = () => {
             战斗,
             角色,
             文章优化已开启: 文章优化功能已开启(),
-            深拷贝
+            深拷贝,
+            onDelta: options?.onDelta
         },
         options
     );
@@ -2481,8 +2564,7 @@ export const useGame = () => {
             ? member.简介.trim()
             : `${玩家门派?.名称 || '门派'}名录中的同门。`,
         记忆: Array.isArray(member?.记忆) ? member.记忆 : [],
-        来源: '玩家门派.重要成员',
-        自动生图禁用: true
+        来源: '玩家门派.重要成员'
     });
 
     useEffect(() => {
@@ -2501,6 +2583,7 @@ export const useGame = () => {
         const normalized = 规范化社交列表安全([...currentSocial, ...missing], { 合并同名: false });
         设置社交(normalized);
         void performAutoSave({ social: normalized, history: 历史记录, force: true });
+        触发新增NPC自动生图(missing);
     }, [玩家门派, 社交, 历史记录]);
 
     const 应用开场基态 = (openingBase: ReturnType<typeof 创建开场基础状态>) => {
@@ -2632,12 +2715,20 @@ export const useGame = () => {
             设置同人剧情规划,
             设置同人女主剧情规划,
             命令后校准: (nextState) => {
+                const 清理题材物品 = (state: typeof nextState): typeof nextState => ({
+                    ...state,
+                    角色: 规范化角色物品容器映射(state.角色 || 角色, {
+                        启用饱腹口渴系统: gameConfig?.启用饱腹口渴系统,
+                        题材模式: 开局配置?.题材模式
+                    })
+                });
                 const 修复开局伙伴 = (state: typeof nextState): typeof nextState => ({
                     ...state,
                     社交: 修复开局伙伴社交列表(state.社交, 开局配置, state.角色 || 角色)
                 });
+                const finalizeState = (state: typeof nextState): typeof nextState => 修复开局伙伴(清理题材物品(state));
                 if (!变量生成功能已启用(apiConfig)) {
-                    return 修复开局伙伴(nextState);
+                    return finalizeState(nextState);
                 }
                 const calibrated = 执行变量自动校准(nextState, {
                     规范化环境信息,
@@ -2658,7 +2749,7 @@ export const useGame = () => {
                 });
                 return {
                     ...calibrated,
-                    state: 修复开局伙伴(calibrated.state)
+                    state: finalizeState(calibrated.state)
                 };
             }
         },
@@ -3120,7 +3211,7 @@ export const useGame = () => {
         加载图片AI服务,
         推送右下角提示,
         保存图片资源: dbService.保存图片资源,
-        获取社交列表: () => 社交,
+        获取社交列表: () => 社交Ref.current,
         获取角色: () => 角色,
         isCultivationSystemEnabled: 读取修炼体系开关
     });
@@ -3512,7 +3603,7 @@ export const useGame = () => {
         generateNpcSecretPartImage,
         retryNpcImageGeneration
     } = 创建手动图片动作工作流({
-        获取社交列表: () => 社交,
+        获取社交列表: () => 社交Ref.current,
         NSFW模式已启用: () => gameConfig?.启用NSFW模式 === true,
         男娘NSFW内容已启用,
         记录后台手动生图监控: (payload) => {
