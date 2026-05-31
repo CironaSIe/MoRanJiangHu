@@ -234,6 +234,30 @@ const 构建图床失败诊断后缀 = (response: Response | null, uploadBytes: 
     return parts.join('，');
 };
 
+const 读取上传错误详情 = (payload: any, text: string, response: Response | null): string => {
+    const rawMessage = 读取文本(payload?.error?.message)
+        || 读取文本(payload?.error)
+        || 读取文本(payload?.detail)
+        || text.slice(0, 160)
+        || `HTTP ${response?.status || 0}`;
+    const upstreamStatus = Number(payload?.upstreamStatus || response?.headers.get('X-Moran-Image-Upstream-Status') || 0);
+    const upstreamStatusText = 读取文本(payload?.upstreamStatusText);
+    const requestId = 读取文本(payload?.requestId) || response?.headers.get('X-Moran-Image-Proxy-Request-Id') || '';
+    const isTelegramTemporaryFailure = upstreamStatus >= 500
+        || response?.status === 503
+        || /error code:\s*1102/i.test(rawMessage)
+        || /Service Unavailable/i.test(`${rawMessage} ${upstreamStatusText}`);
+    if (isTelegramTemporaryFailure) {
+        return [
+            `TG图床上游暂时不可用：HTTP ${upstreamStatus || response?.status || 0}`,
+            rawMessage && !/^HTTP\s+\d+$/i.test(rawMessage) ? rawMessage : '',
+            requestId ? `请求ID ${requestId}` : '',
+            '系统已重试，稍后会继续尝试；急用时可切换对象存储同步。'
+        ].filter(Boolean).join('，');
+    }
+    return rawMessage;
+};
+
 export const 上传DataUrl到图床 = async (dataUrl: string, options?: 图床上传选项): Promise<图床上传结果> => {
     const normalized = 读取文本(dataUrl);
     if (!normalized || !是否DataUrl(normalized)) {
@@ -308,7 +332,7 @@ export const 上传DataUrl到图床 = async (dataUrl: string, options?: 图床�
                 lastMessage = '';
                 break;
             }
-            lastMessage = 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response.status}`;
+            lastMessage = 读取上传错误详情(payload, text, response);
             if (attempt >= maxAttempts || !是否可重试上传失败(response.status, lastMessage)) break;
         } catch (error: any) {
             response = null;
@@ -332,7 +356,7 @@ export const 上传DataUrl到图床 = async (dataUrl: string, options?: 图床�
         elapsedMs = Date.now() - uploadStartedAt;
     }
     if (!response?.ok || payload?.success === false) {
-        const message = lastMessage || 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response?.status || 0}`;
+        const message = lastMessage || 读取上传错误详情(payload, text, response);
         recordDiagnosticLog('error', '图床上传失败', {
             status: response?.status || 0,
             statusText: response?.statusText || '',
@@ -343,8 +367,10 @@ export const 上传DataUrl到图床 = async (dataUrl: string, options?: 图床�
             optimized: uploadPlan.optimized,
             mobileMode: uploadPlan.mobileMode,
             attempts: maxAttempts,
-            proxyRequestId: response?.headers.get('X-Moran-Image-Proxy-Request-Id') || '',
-            upstreamStatus: response?.headers.get('X-Moran-Image-Upstream-Status') || '',
+            proxyRequestId: 读取文本(payload?.requestId) || response?.headers.get('X-Moran-Image-Proxy-Request-Id') || '',
+            upstreamStatus: 读取文本(payload?.upstreamStatus) || response?.headers.get('X-Moran-Image-Upstream-Status') || '',
+            upstreamStatusText: 读取文本(payload?.upstreamStatusText),
+            upstreamContentLength: 读取文本(payload?.contentLength),
             responseSnippet: 截断诊断文本(text)
         });
         options?.onProgress?.({
@@ -452,7 +478,7 @@ export const 上传Blob到图床 = async (blob: Blob, options?: 图床上传选�
                 lastMessage = '';
                 break;
             }
-            lastMessage = 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response.status}`;
+            lastMessage = 读取上传错误详情(payload, text, response);
             if (attempt >= maxAttempts || !是否可重试上传失败(response.status, lastMessage)) break;
         } catch (error: any) {
             response = null;
@@ -476,7 +502,7 @@ export const 上传Blob到图床 = async (blob: Blob, options?: 图床上传选�
         elapsedMs = Date.now() - uploadStartedAt;
     }
     if (!response?.ok || payload?.success === false) {
-        const message = lastMessage || 读取文本(payload?.error?.message) || 读取文本(payload?.error) || text.slice(0, 160) || `HTTP ${response?.status || 0}`;
+        const message = lastMessage || 读取上传错误详情(payload, text, response);
         recordDiagnosticLog('error', '图床上传文件失败', {
             status: response?.status || 0,
             statusText: response?.statusText || '',
@@ -484,8 +510,10 @@ export const 上传Blob到图床 = async (blob: Blob, options?: 图床上传选�
             fileName,
             uploadBytes: blob.size,
             attempts: maxAttempts,
-            proxyRequestId: response?.headers.get('X-Moran-Image-Proxy-Request-Id') || '',
-            upstreamStatus: response?.headers.get('X-Moran-Image-Upstream-Status') || '',
+            proxyRequestId: 读取文本(payload?.requestId) || response?.headers.get('X-Moran-Image-Proxy-Request-Id') || '',
+            upstreamStatus: 读取文本(payload?.upstreamStatus) || response?.headers.get('X-Moran-Image-Upstream-Status') || '',
+            upstreamStatusText: 读取文本(payload?.upstreamStatusText),
+            upstreamContentLength: 读取文本(payload?.contentLength),
             responseSnippet: 截断诊断文本(text)
         });
         options?.onProgress?.({

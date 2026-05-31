@@ -569,6 +569,21 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
             <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
                 <div className="flex items-center justify-between gap-4">
                     <div>
+                        <div className="text-sm text-wuxia-cyan font-bold">亲密边界与场合机制</div>
+                        <div className="text-xs text-gray-400 mt-1">开启后，亲密推进会检查自愿、场合、好感、角色性格和部位边界；公开或不合适场景默认克制，越界请求会被拒绝并可能降低好感。</div>
+                    </div>
+                    <ToggleSwitch
+                        checked={form.启用亲密边界机制 !== false}
+                        onChange={(next) => 实时应用更新({ 启用亲密边界机制: next })}
+                        disabled={form.启用NSFW模式 !== true}
+                        ariaLabel="切换亲密边界与场合机制"
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div>
                         <div className="text-sm text-wuxia-cyan font-bold">饱腹与水分系统</div>
                         <div className="text-xs text-gray-400 mt-1">关闭后，将停止注入饱腹/口渴相关提示词，并隐藏前端对应状态条；旧存档字段会保留但不再重点管理。</div>
                     </div>

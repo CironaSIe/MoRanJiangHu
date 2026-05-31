@@ -833,6 +833,7 @@ export interface 游戏设置结构 {
     启用繁体模式: boolean; // Require AI-generated in-game text to use Traditional Chinese
     启用NSFW模式: boolean; // Gate NSFW prompt and heroine privacy UI
     启用男娘NSFW内容: boolean; // Gate femboy/male NSFW archive prompts, UI, and auto secret image generation
+    启用亲密边界机制: boolean; // Require consent, privacy, relationship thresholds, and character agency for intimacy
     启用饱腹口渴系统: boolean; // Toggle hunger/thirst prompt injection and UI visibility
     启用修炼体系: boolean; // Toggle cultivation/realm/kungfu prompt injection and related UI visibility
     剧情风格: 剧情风格类型; // Story style injected as assistant context before COT

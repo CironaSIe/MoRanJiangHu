@@ -1513,6 +1513,20 @@ const 取更优文本 = (left?: string, right?: string): string | undefined => {
     return l || r;
 };
 
+const 合并补充文本 = (left?: string, right?: string): string | undefined => {
+    const l = left?.trim();
+    const r = right?.trim();
+    if (!l) return r;
+    if (!r) return l;
+    const lKey = 归一化键(l);
+    const rKey = 归一化键(r);
+    if (!lKey) return r;
+    if (!rKey) return l;
+    if (lKey.includes(rKey)) return l;
+    if (rKey.includes(lKey)) return r;
+    return `${l} ${r}`;
+};
+
 const 归一化键 = (raw: unknown): string => {
     if (typeof raw !== 'string') return '';
     return raw.trim().replace(/\s+/g, '').toLowerCase();
@@ -2895,7 +2909,9 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
 const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): any => {
     const left = 标准化单个NPC(leftRaw, fallbackIndex);
     const right = 标准化单个NPC(rightRaw, fallbackIndex);
-    const shouldPreserveLeftId = NPC占位身份疑似同一人(left, right);
+    const leftNameKey = 归一化键(left?.姓名);
+    const rightNameKey = 归一化键(right?.姓名);
+    const shouldPreserveLeftId = NPC占位身份疑似同一人(left, right) || (!!leftNameKey && leftNameKey === rightNameKey);
     const mergedMemory = 标准化NPC记忆([...(left.记忆 || []), ...(right.记忆 || [])]);
     const mergedSummaryMemory = 标准化NPC总结记忆([...(left.总结记忆 || []), ...(right.总结记忆 || [])]);
 
@@ -2989,7 +3005,7 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
         return '';
     })();
     const mergedIdentity = 取更优文本(取字段文本(left, '身份'), 取字段文本(right, '身份')) || '未知身份';
-    const mergedIntroBase = 取更优文本(取字段文本(left, '简介'), 取字段文本(right, '简介')) || '暂无简介';
+    const mergedIntroBase = 合并补充文本(取字段文本(left, '简介'), 取字段文本(right, '简介')) || '暂无简介';
     const mergedIntro = legacyPlaceholderName
         && ![mergedIdentity, mergedIntroBase].some((text) => 归一化键(text).includes(归一化键(legacyPlaceholderName)))
         ? `${mergedIntroBase}（曾以“${legacyPlaceholderName}”指称。）`
@@ -3183,7 +3199,7 @@ const 规范化社交列表 = (list: any[], options?: { 合并同名?: boolean; 
     const filtered = list.filter((npc) => !是否应丢弃NPC条目(npc));
     const normalized = filtered.map((npc, index) => 标准化单个NPC(npc, index));
     const merged = options?.合并同名 === false
-        ? 合并占位NPC列表(normalized, { 合并精确同名: false })
+        ? 合并占位NPC列表(normalized, { 合并精确同名: true })
         : 合并占位NPC列表(合并同名NPC列表(normalized));
     输出社交规范化调试('规范化社交列表', {
         inputCount: list.length,

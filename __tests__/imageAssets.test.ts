@@ -34,12 +34,12 @@ describe('imageAssets', () => {
         expect(获取图片资源文本地址(remoteUrl)).toBe(dataUrl);
     });
 
-    it('uses a registered remote fallback when a local asset ref has not been cached on this device', () => {
+    it('does not switch a local asset ref to a remote fallback while the local cache is still loading', () => {
         const remoteUrl = 'https://image.bacon159.pp.ua/api/v1/file/player-avatar-cloud.png';
         const fallbackRef = 创建图片资源引用('player-avatar-cloud-local');
         清空图片资源缓存();
         注册远程图片兜底引用(remoteUrl, fallbackRef);
 
-        expect(获取图片资源文本地址(fallbackRef)).toBe(remoteUrl);
+        expect(获取图片资源文本地址(fallbackRef)).toBe('');
     });
 });

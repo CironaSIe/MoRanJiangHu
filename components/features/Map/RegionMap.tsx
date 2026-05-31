@@ -24,6 +24,8 @@ interface Props {
     env?: { 大地点?: string; 中地点?: string; 小地点?: string; 具体地点?: string };
     viewLocationName?: string;
     viewPathNames?: string[];
+    viewDescription?: string;
+    viewNodeNpcs?: any[];
 }
 
 const 约束数值 = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -118,7 +120,7 @@ const 取地图尺寸 = (level: 地点层级类型) => {
     return { w: 52, h: 40, pad: 4 };
 };
 
-const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName, onSelect, onLocateCurrent, level, socialList = [], env, viewLocationName = '', viewPathNames = [] }) => {
+const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName, onSelect, onLocateCurrent, level, socialList = [], env, viewLocationName = '', viewPathNames = [], viewDescription = '', viewNodeNpcs = [] }) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const { w: MAP_W, h: MAP_H, pad: MAP_PAD } = 取地图尺寸(level);
 
@@ -374,7 +376,7 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
         const source = layouts.length > 0
             ? layouts.map(l => ({ node: l.node, isCurrent: l.isCurrent }))
             : defaults.map((name, i) => ({
-                node: { ID: `room-default-${i}`, 名称: name, 层级: '子地点' as const, 父级ID: '', 描述: '', 子节点: [] },
+                node: { ID: `room-default-${i}`, 名称: name, 层级: '子地点' as const, 父级ID: '', 描述: viewDescription, 子节点: [] },
                 isCurrent: false,
             }));
         const cols = Math.min(source.length, 3);
@@ -395,7 +397,7 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
                 isCurrent: item.node.ID === currentNodeId,
             };
         });
-    }, [isRoom, layouts, MAP_W, MAP_H, currentNodeId]);
+    }, [isRoom, layouts, MAP_W, MAP_H, currentNodeId, viewDescription]);
 
     // NPC匹配：城镇层按子建筑分配；房间/建筑层按当前具体地点兜底。
     const npcAtLocation = useMemo(() => {
@@ -449,6 +451,7 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
             <div className="w-full h-full min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-3 custom-scrollbar">
                 {roomCards.map((card, index) => {
                     const cardNpcList = npcByNode.get(card.node.ID)
+                        || (card.node.ID.startsWith('room-default-') && index === 0 ? viewNodeNpcs : [])
                         || (!isRoom && index === 0 ? (npcByNode.get('_unplaced') || []) : []);
                     return (
                     <div key={card.node.ID}

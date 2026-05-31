@@ -37,8 +37,9 @@ describe('image host proxy', () => {
         expect(response.headers.get('X-Moran-Image-Upstream-Status')).toBe('200');
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock.mock.calls[0][0]).toBe('https://image1.bacon159.pp.ua/api/v1/upload?storage=telegram');
-        expect(fetchMock.mock.calls[0][1]?.body).toBeInstanceOf(ArrayBuffer);
-        expect(new Uint8Array(fetchMock.mock.calls[0][1]?.body as ArrayBuffer)).toEqual(new Uint8Array([1, 2, 3]));
+        expect(fetchMock.mock.calls[0][1]?.body).toBeInstanceOf(ReadableStream);
+        const forwardedBytes = await new Response(fetchMock.mock.calls[0][1]?.body as ReadableStream).arrayBuffer();
+        expect(new Uint8Array(forwardedBytes)).toEqual(new Uint8Array([1, 2, 3]));
     });
 
     it('returns diagnostic details when upstream upload fails', async () => {
@@ -68,6 +69,8 @@ describe('image host proxy', () => {
         const payload = await response.json() as any;
 
         expect(response.status).toBe(500);
+        expect(response.headers.get('X-Moran-Image-Proxy-Request-Id')).toMatch(/^imgup_/);
+        expect(response.headers.get('X-Moran-Image-Upstream-Status')).toBe('500');
         expect(payload.error).toContain('1102');
         expect(payload.requestId).toMatch(/^imgup_/);
         expect(payload.upstreamStatus).toBe(500);

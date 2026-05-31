@@ -74,7 +74,7 @@ describe('imageHostService', () => {
             }
         })));
 
-        await expect(上传DataUrl到图床('data:image/png;base64,aGVsbG8=', { maxAttempts: 1 })).rejects.toThrow(/HTTP 500/);
+        await expect(上传DataUrl到图床('data:image/png;base64,aGVsbG8=', { maxAttempts: 1 })).rejects.toThrow(/TG图床上游暂时不可用：HTTP 500.*请求ID imgup_test/);
     });
 
     it('retries transient image host upload failures', async () => {

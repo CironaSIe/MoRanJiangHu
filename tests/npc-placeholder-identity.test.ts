@@ -44,7 +44,7 @@ describe('NPC 占位姓名归一化', () => {
         expect(result[1].姓名).toBe('沈折枝');
     });
 
-    it('重复模板女性名也不自动改名，避免改动老存档事实', () => {
+    it('重复模板女性名会合并到单一稳定档案，避免同名 NPC 分裂', () => {
         const result = 规范化社交列表([
             {
                 id: 'npc_template_first',
@@ -64,11 +64,13 @@ describe('NPC 占位姓名归一化', () => {
             }
         ], { 合并同名: false });
 
-        expect(result).toHaveLength(2);
-        expect(result.map((item) => item.姓名)).toEqual(['苏婉儿', '苏婉儿']);
+        expect(result).toHaveLength(1);
+        expect(result[0].姓名).toBe('苏婉儿');
+        expect(result[0].id).toBe('npc_template_first');
+        expect(result[0].简介).toContain('另一个老存档模板名角色');
     });
 
-    it('重复稳定姓名也不自动改名，避免二次污染既有档案', () => {
+    it('重复稳定姓名会绑定到同一个人物档案，保留原 id', () => {
         const result = 规范化社交列表([
             {
                 id: 'npc_first',
@@ -88,10 +90,10 @@ describe('NPC 占位姓名归一化', () => {
             }
         ], { 合并同名: false });
 
-        expect(result).toHaveLength(2);
+        expect(result).toHaveLength(1);
         expect(result[0].姓名).toBe('顾明棠');
-        expect(result[1].姓名).toBe('顾明棠');
-        expect(result[1].曾用名 || []).not.toContain('顾明棠');
+        expect(result[0].id).toBe('npc_first');
+        expect(result[0].简介).toContain('另一个同名角色');
     });
 
     it('把黑衣女人后续真名吸收到原档案', () => {

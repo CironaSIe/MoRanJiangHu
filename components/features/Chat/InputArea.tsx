@@ -755,7 +755,11 @@ const InputArea: React.FC<Props> = ({
     ]);
 
     return (
-        <div className="shrink-0 relative z-20 bg-gradient-to-t from-ink-black/90 via-ink-black/75 to-transparent pb-2 px-2 sm:px-4 flex flex-col gap-1 backdrop-blur-[2px]">
+        <div className={`shrink-0 relative z-20 pb-2 px-2 sm:px-4 flex flex-col gap-1 ${
+            queueVisible && !queueCollapsed
+                ? 'bg-transparent'
+                : 'bg-gradient-to-t from-ink-black/90 via-ink-black/75 to-transparent backdrop-blur-[2px]'
+        }`}>
             {queueVisible && (
                 <div className="w-full px-2 md:px-4">
                     <div className="mx-auto w-full max-w-5xl space-y-1">
@@ -791,7 +795,7 @@ const InputArea: React.FC<Props> = ({
                                 </button>
                             </div>
                         ) : (
-                            <div className="rounded-lg border border-wuxia-gold/25 bg-black p-3 space-y-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] max-h-[32svh] sm:max-h-[40vh] md:max-h-[58vh] overflow-y-auto no-scrollbar">
+                            <div className="rounded-lg border border-wuxia-gold/25 bg-ink-black/88 p-3 space-y-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-[2px] max-h-[32svh] sm:max-h-[40vh] md:max-h-[58vh] overflow-y-auto no-scrollbar">
                                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                                     <div className="text-wuxia-gold">{isOpeningQueue ? '开局初始化队列' : '独立更新阶段队列'}</div>
                                     <div className="text-gray-400">

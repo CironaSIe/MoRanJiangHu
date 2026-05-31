@@ -6,7 +6,7 @@ type NormalizeOptions = {
     knownSpeakers?: string[];
 };
 
-const 引号对白正则 = /[“"「『]([^”"」』\n]{1,500})[”"」』]/g;
+const 引号对白正则 = /[“"「『]([\s\S]{1,1200}?)[”"」』]/g;
 const 开头引号正则 = /^[“"「『]/;
 const 结尾引号正则 = /[”"」』]$/;
 const 说话尾迹正则 = /(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/;
@@ -39,6 +39,7 @@ const 清理说话人 = (value: string): string => {
     text = text
         .replace(/^(?:那|这)(?=[\u4e00-\u9fff]{2,})/, '')
         .replace(/正$/, '')
+        .replace(/[的盯看望瞥注]$/, '')
         .trim();
     if (!text || text.length > 12) return '';
     if (/[：:，,。！？!?；;\n]/.test(text)) return '';
@@ -101,10 +102,14 @@ const 推断说话人 = (prefix: string, knownSpeakers: string[]): string => {
     const withoutTailCue = recent.replace(/[^，,。！？!?；;\n]{0,12}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/, '');
     const possibleActionSegments = withoutTailCue.split(/[，,、\s]/).map(item => item.trim()).filter(Boolean).reverse();
     for (const segment of possibleActionSegments) {
-        const actionNameMatch = segment.match(/^([\u4e00-\u9fff]{2,4})(?=正(?:在)?|已|也|还|仍|负手|收剑|抬|回|点|看|站|坐|走|停|俯|侧|拱|抱|伸|皱|沉|笑|低|上前|退|转|放|握|按|举|落|扬|垂|敛|挑|拔|收|推|扶|拂|掠|倚|跪|躬|作|朝|向|对|把|将)/);
+        const actionNameMatch = segment.match(/^([\u4e00-\u9fff]{2,4})(?=正(?:在)?|已|也|还|仍|负手|收剑|抬|回|点|看|盯|望|站|坐|走|停|俯|侧|拱|抱|伸|皱|沉|笑|低|上前|退|转|放|握|按|举|落|扬|垂|敛|挑|拔|收|推|扶|拂|掠|倚|跪|躬|作|朝|向|对|把|将|眼神|声音|语气)/);
         const actionName = 清理说话人(actionNameMatch?.[1] || '');
         if (actionName) return actionName;
     }
+
+    const voiceCueMatch = recent.match(/(?:^|[，,、\s])([\u4e00-\u9fff]{2,4})(?:的)?(?:声音|语气|嗓音|声线|眼神|目光|视线)[^。！？!?；;\n]{0,50}$/);
+    const voiceCueSpeaker = 清理说话人(voiceCueMatch?.[1] || '');
+    if (voiceCueSpeaker) return voiceCueSpeaker;
 
     const explicitMatch = recent.match(/([A-Za-z0-9_\u4e00-\u9fff·]{1,14})[^，,。！？!?；;\n]{0,10}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/);
     const cleaned = 清理说话人(explicitMatch?.[1] || '');
@@ -118,11 +123,28 @@ const 推断说话人 = (prefix: string, knownSpeakers: string[]): string => {
     return 清理说话人(genericMatch?.[1] || '');
 };
 
+const 推断后置信息说话人 = (suffix: string, knownSpeakers: string[]): string => {
+    const source = (suffix || '').slice(0, 120);
+    const normalizedKnown = knownSpeakers
+        .map(item => (item || '').trim())
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+    for (const speaker of normalizedKnown) {
+        const escaped = 转义正则文本(speaker);
+        if (new RegExp(`^\\s*${escaped}[\\s\\S]{0,60}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道|盯着|看着|望着|瞥向|注视|眼神|目光|视线|声音|语气)`).test(source)) {
+            return speaker;
+        }
+    }
+    const match = source.match(/^\s*([\u4e00-\u9fff]{2,4})[^。！？!?；;\n]{0,60}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道|盯着|看着|望着|瞥向|注视|眼神|目光|视线|声音|语气)/);
+    return 清理说话人(match?.[1] || '');
+};
+
 const 是否像说话引导 = (prefix: string, speaker: string): boolean => {
     const recent = 取最近句段(prefix);
     if (说话尾迹正则.test(recent)) return true;
     if (!speaker) return false;
     const escaped = 转义正则文本(speaker);
+    if (new RegExp(`${escaped}[\\s\\S]{0,60}(?:声音|语气|嗓音|声线|眼神|目光|视线|盯着|看着|望着|瞥向|注视|冷厉|压低|沉下|放缓)`).test(recent)) return true;
     return new RegExp(`${escaped}[\\s\\S]{0,18}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\\s*[：:]?\\s*$`).test(recent);
 };
 
@@ -209,9 +231,17 @@ const 是否Judge残留文本 = (text: string): boolean => {
     return Judge标签残留正则.test(source) || Judge数值残留正则.test(source);
 };
 
+const 是否像引号对白内容 = (text: string): boolean => {
+    const source = (text || '').trim();
+    if (!source || source.length < 2 || source.length > 1200) return false;
+    if (是否Judge残留文本(source) || 拟声词正则.test(source)) return false;
+    if (/^[\u4e00-\u9fffA-Za-z0-9·\s_-]{1,16}$/.test(source) && !/[我你咱？！!?]/.test(source)) return false;
+    return /[我你咱]|[？?！!]|(?:吧|吗|呢|啊|呀|嘛|呗|啦|喂|哼|嗯|唔|哦|行|好|滚|停|走|快|慢着|且慢|别|不要|可以|应该|必须|如果|这是|这个|那个|第一|第二|第三)/.test(source);
+};
+
 const 人物动作动词正则 = /^(?:将|把|给|向|对|朝|走|站|坐|停|回|转|看|望|抬|低|点|摇|皱|叹|笑|冷笑|苦笑|轻笑|沉|伸|握|按|收|拔|举|放|推|扶|拂|敛|挑|倒|取|递|开口|提醒|解释|说道|说|道|问|答)/;
 const 无标签言语引导正则 = /^(.{1,32}?)(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:，,]\s*(.{2,500})$/;
-const 口语起始正则 = /^(?:我|我们|咱|咱们|你|你们|这事|那就|既然|今天|明天|现在|眼下|先|别|不要|必须|可以|应该|不是|恐怕|看来|听我|放心|等等|走|快|慢着|且慢|好|嗯|不行|没错|自然|当然|只要)/;
+const 口语起始正则 = /^(?:我|我们|咱|咱们|你|你们|这事|那就|既然|今天|明天|昨天|前天|刚才|之前|现在|眼下|先|别|不要|必须|可以|应该|不是|恐怕|看来|听我|放心|等等|走|快|慢着|且慢|好|嗯|不行|没错|自然|当然|只要)/;
 const 叙事动作特征正则 = /(?:走到|来到|回到|站在|坐在|望向|看向|拿起|放下|推开|打开|穿过|掠过|落在|映在|吹过|响起|传来|升起|落下|归鞘|倒了|喝了|吃了|伸手|抬手|皱眉|点头|摇头|叹息|沉默|停下|转身)/;
 const 口语证据正则 = /[我你咱]|[？?！!]|(?:吧|吗|呢|啊|呀|嘛|呗|啦|喂|哼|嗯|唔|哦|行|好|滚|停|走|快|慢着|且慢)[。！？!?…~～]*$/;
 
@@ -321,6 +351,7 @@ const 拆分旁白夹杂对白 = (log: GameLog, knownSpeakers: string[]): GameLo
 
     const parts: GameLog[] = [];
     let cursor = 0;
+    let lastSpeaker = '';
     let match: RegExpExecArray | null = null;
     引号对白正则.lastIndex = 0;
 
@@ -329,13 +360,25 @@ const 拆分旁白夹杂对白 = (log: GameLog, knownSpeakers: string[]): GameLo
         const quoteEnd = 引号对白正则.lastIndex;
         const speech = (match[1] || '').trim();
         const prefix = source.slice(0, quoteStart);
-        const speaker = 推断说话人(prefix, knownSpeakers);
+        let speaker = 推断说话人(prefix, knownSpeakers);
+        let inferredFromSuffix = false;
+        if (!speaker) {
+            speaker = 推断后置信息说话人(source.slice(quoteEnd), knownSpeakers);
+            inferredFromSuffix = Boolean(speaker);
+        }
+        if (!speaker && lastSpeaker && 是否像引号对白内容(speech)) {
+            speaker = lastSpeaker;
+        }
 
-        if (!speech || !speaker || !是否像说话引导(prefix, speaker)) continue;
+        const hasLeadingCue = 是否像说话引导(prefix, speaker);
+        const hasReliableSpeakerCue = hasLeadingCue || inferredFromSuffix || (!!lastSpeaker && speaker === lastSpeaker);
+        if (!speech || !speaker || (!hasReliableSpeakerCue && !是否像引号对白内容(speech))) continue;
+        if (!inferredFromSuffix && speaker !== lastSpeaker && !hasLeadingCue) continue;
 
         const before = 移除尾部说话引导(source.slice(cursor, quoteStart), speaker);
         if (before.trim()) parts.push({ sender: '旁白', text: before.trim() });
         parts.push({ sender: speaker, text: speech });
+        lastSpeaker = speaker;
         cursor = quoteEnd;
     }
 

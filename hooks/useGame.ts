@@ -2556,28 +2556,38 @@ export const useGame = () => {
         });
     }
 
-    const 构建门派同门社交档案 = (member: any, index: number) => ({
-        id: typeof member?.id === 'string' && member.id.trim()
-            ? member.id.trim()
-            : `sect_member_${玩家门派?.ID || 'unknown'}_${index}`,
-        姓名: typeof member?.姓名 === 'string' && member.姓名.trim() ? member.姓名.trim() : `同门${index + 1}`,
-        性别: typeof member?.性别 === 'string' ? member.性别 : '未知',
-        年龄: Number.isFinite(Number(member?.年龄)) ? Number(member.年龄) : undefined,
-        境界: typeof member?.境界 === 'string' && member.境界.trim() ? member.境界.trim() : '未知境界',
-        身份: typeof member?.身份 === 'string' && member.身份.trim()
-            ? `${玩家门派?.名称 || '门派'} · ${member.身份.trim()}`
-            : `${玩家门派?.名称 || '门派'}同门`,
-        是否在场: typeof member?.是否在场 === 'boolean' ? member.是否在场 : false,
-        是否队友: false,
-        是否主要角色: false,
-        好感度: Number.isFinite(Number(member?.好感度)) ? Number(member.好感度) : 0,
-        关系状态: typeof member?.关系状态 === 'string' && member.关系状态.trim() ? member.关系状态.trim() : '同门',
-        简介: typeof member?.简介 === 'string' && member.简介.trim()
-            ? member.简介.trim()
-            : `${玩家门派?.名称 || '门派'}名录中的同门。`,
-        记忆: Array.isArray(member?.记忆) ? member.记忆 : [],
-        来源: '玩家门派.重要成员'
-    });
+    const 构建门派同门社交档案 = (member: any, index: number) => {
+        const sectText = JSON.stringify(玩家门派 || {});
+        const isApocalypseSect = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(sectText);
+        const memberLabel = isApocalypseSect ? '同伴' : '同门';
+        const orgLabel = isApocalypseSect ? '营地' : '门派';
+        const formatRelation = (value?: string) => {
+            const text = String(value || '').trim() || memberLabel;
+            return isApocalypseSect ? text.replace(/同门/g, '同伴').replace(/门派成员/g, '营地成员') : text;
+        };
+        return {
+            id: typeof member?.id === 'string' && member.id.trim()
+                ? member.id.trim()
+                : `sect_member_${玩家门派?.ID || 'unknown'}_${index}`,
+            姓名: typeof member?.姓名 === 'string' && member.姓名.trim() ? member.姓名.trim() : `${memberLabel}${index + 1}`,
+            性别: typeof member?.性别 === 'string' ? member.性别 : '未知',
+            年龄: Number.isFinite(Number(member?.年龄)) ? Number(member.年龄) : undefined,
+            境界: typeof member?.境界 === 'string' && member.境界.trim() ? member.境界.trim() : '未知境界',
+            身份: typeof member?.身份 === 'string' && member.身份.trim()
+                ? `${玩家门派?.名称 || orgLabel} · ${formatRelation(member.身份.trim())}`
+                : `${玩家门派?.名称 || orgLabel}${memberLabel}`,
+            是否在场: typeof member?.是否在场 === 'boolean' ? member.是否在场 : false,
+            是否队友: false,
+            是否主要角色: false,
+            好感度: Number.isFinite(Number(member?.好感度)) ? Number(member.好感度) : 0,
+            关系状态: formatRelation(member?.关系状态),
+            简介: typeof member?.简介 === 'string' && member.简介.trim()
+                ? formatRelation(member.简介.trim())
+                : `${玩家门派?.名称 || orgLabel}名录中的${memberLabel}。`,
+            记忆: Array.isArray(member?.记忆) ? member.记忆 : [],
+            来源: '玩家门派.重要成员'
+        };
+    };
 
     useEffect(() => {
         const members = Array.isArray(玩家门派?.重要成员) ? 玩家门派.重要成员 : [];
