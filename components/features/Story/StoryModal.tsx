@@ -84,8 +84,8 @@ const StoryModal: React.FC<Props> = ({ story, storyPlan, isFandomMode = false, o
                         <div className="text-3xl font-serif font-bold text-wuxia-gold">{当前章节.标题}</div>
                         <div className="mt-3 grid grid-cols-2 gap-4 text-sm text-gray-400">
                             <div>当前分解组：第 {当前章节.当前分解组} 组</div>
-                            <div>原著章节标题：{当前章节.原著章节标题 || '未记录'}</div>
-                            <div>原著推进状态：{当前章节.原著推进状态 || '未记录'}</div>
+                            <div>章节标题：{当前章节.原著章节标题 || '未记录'}</div>
+                            <div>推进状态：{当前章节.原著推进状态 || '未记录'}</div>
                             <div>切章后沉淀要点：{取数组(当前章节.切章后沉淀要点).join('；') || '暂无'}</div>
                         </div>
                     </section>

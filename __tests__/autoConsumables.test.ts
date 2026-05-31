@@ -198,6 +198,22 @@ describe('stateTransforms 只补一次系统丹药预设', () => {
             expect(names).not.toContain(name);
         });
     });
+
+    it('末日题材会清理 AI 或旧链路返回的非系统 ID 古风丹药', () => {
+        const role: any = {
+            姓名: '测试',
+            物品列表: [
+                { ID: 'ai_pojing_001', 名称: '破境丹', 类型: '丹药', 描述: '突破境界的灵丹。' },
+                { ID: 'random_huiqi', 名称: '回气丹', 类型: '消耗品', 视觉描述: 'qi recovery pill in porcelain vial' },
+                { ID: 'normal_water', 名称: '净水片', 类型: '消耗品', 描述: '可净化少量水源。' }
+            ],
+            已补齐系统丹药预设: true
+        };
+        const normalized = 规范化角色物品容器映射(role, { 题材模式: '末日丧尸' });
+        const names = normalized.物品列表.map((item: any) => item.名称);
+        expect(names).toContain('净水片');
+        expect(names).not.toEqual(expect.arrayContaining(['破境丹', '回气丹', '凝元丹', '辟谷丹']));
+    });
 });
 
 describe('储物容器效果归一', () => {

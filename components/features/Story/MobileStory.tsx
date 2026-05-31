@@ -58,8 +58,8 @@ const MobileStory: React.FC<Props> = ({ story, storyPlan, isFandomMode = false, 
                                 <div className="text-xl text-wuxia-gold font-serif font-bold mb-2">{当前章节.标题}</div>
                                 <div className="space-y-2 text-[11px] text-gray-400">
                                     <div>当前分解组：第 {当前章节.当前分解组} 组</div>
-                                    <div>原著章节标题：{当前章节.原著章节标题 || '未记录'}</div>
-                                    <div>原著推进状态：{当前章节.原著推进状态 || '未记录'}</div>
+                                    <div>章节标题：{当前章节.原著章节标题 || '未记录'}</div>
+                                    <div>推进状态：{当前章节.原著推进状态 || '未记录'}</div>
                                 </div>
                             </div>
 

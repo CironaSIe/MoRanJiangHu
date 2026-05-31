@@ -2006,7 +2006,12 @@ export const 获取文生图接口配置 = (
     if (!current) return null;
 
     const feature = (settings as any)?.功能模型占位;
-    const enabled = Boolean(feature?.文生图功能启用) || Boolean(options?.忽略文生图总开关);
+    const 自动生图任务已开启 = Boolean(
+        feature?.NPC生图启用
+        || feature?.物品自动生图启用
+        || feature?.自动场景生图启用
+    );
+    const enabled = Boolean(feature?.文生图功能启用 || 自动生图任务已开启) || Boolean(options?.忽略文生图总开关);
     const 图片后端类型 = feature?.文生图后端类型 === 'novelai' || feature?.文生图后端类型 === 'sd_webui' || feature?.文生图后端类型 === 'comfyui'
         ? feature.文生图后端类型
         : 'openai';

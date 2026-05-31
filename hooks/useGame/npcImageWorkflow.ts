@@ -33,6 +33,7 @@ type 角色锚点摘要 = Pick<角色锚点结构, '名称' | '正面提示词' 
 type NPC生图工作流依赖 = {
     apiConfig: 接口设置结构;
     获取NPC唯一标识: (npc: any, index?: number) => string;
+    获取社交列表?: () => any[];
     获取文生图接口配置: (config: 接口设置结构) => 当前可用接口结构 | null;
     获取生图词组转化器接口配置: (config: 接口设置结构) => 当前可用接口结构 | null;
     获取生图画师串预设: (config: 接口设置结构, scope: 'npc' | 'scene', preferredId?: string) => 画师串预设摘要;
@@ -59,6 +60,24 @@ type NPC生图工作流依赖 = {
     追加NPC生图任务: (task: NPC生图任务记录) => void;
     更新NPC生图任务: (taskId: string, updater: (task: NPC生图任务记录) => NPC生图任务记录) => void;
     更新NPC最近生图结果: (npcKey: string, updater: (npc: any) => any) => void;
+};
+
+const 图片记录有地址 = (record: any): boolean => (
+    typeof record?.图片URL === 'string' && record.图片URL.trim().length > 0
+) || (
+    typeof record?.本地路径 === 'string' && record.本地路径.trim().length > 0
+);
+
+const NPC已有成功构图 = (npc: any, 构图: '头像' | '半身' | '立绘'): boolean => {
+    const records = [
+        npc?.图片档案?.最近生图结果,
+        npc?.最近生图结果,
+        ...(Array.isArray(npc?.图片档案?.生图历史) ? npc.图片档案.生图历史 : [])
+    ].filter((record: any) => record && typeof record === 'object');
+    if (records.some((record: any) => record?.状态 === 'success' && record?.构图 === 构图 && 图片记录有地址(record))) {
+        return true;
+    }
+    return 构图 === '头像' && typeof npc?.头像图片URL === 'string' && npc.头像图片URL.trim().length > 0;
 };
 
 const 获取画风附加要求 = (style?: 当前可用接口结构['画风']): string => {
@@ -251,11 +270,19 @@ export const 执行NPC生图工作流 = async (
     const imageApi = deps.获取文生图接口配置(deps.apiConfig);
     const imageFeature = deps.读取文生图功能配置();
     const taskSource: 生图任务来源类型 = options?.source || 'auto';
-    const 可绕过自动开关 = options?.force === true && taskSource !== 'auto';
+    const 可绕过自动开关 = options?.force === true;
     const backendType = imageApi?.图片后端类型;
-    const shouldUsePromptTransformer = backendType === 'novelai' || imageFeature.使用词组转化器 !== false;
-    const promptApi = shouldUsePromptTransformer ? deps.获取生图词组转化器接口配置(deps.apiConfig) : null;
-    if (!imageFeature.总开关) return;
+    const wantsPromptTransformer = backendType === 'novelai' || imageFeature.使用词组转化器 !== false;
+    const promptApi = wantsPromptTransformer ? deps.获取生图词组转化器接口配置(deps.apiConfig) : null;
+    const promptApiAvailable = Boolean(promptApi && deps.接口配置是否可用(promptApi));
+    const shouldUsePromptTransformer = backendType === 'novelai'
+        ? true
+        : Boolean(wantsPromptTransformer && promptApiAvailable);
+    if (!imageFeature.总开关) {
+        const message = '文生图功能总开关未开启，无法执行 NPC 生图。';
+        if (options?.force) throw new Error(message);
+        return;
+    }
     if (!可绕过自动开关 && !imageFeature.NPC开关) return;
     if (!可绕过自动开关 && !deps.NPC符合自动生图条件(npc)) return;
     if (!imageApi || !deps.接口配置是否可用(imageApi)) {
@@ -266,23 +293,28 @@ export const 执行NPC生图工作流 = async (
         console.warn(`NPC 生图已跳过：${message}`);
         return;
     }
-    if (shouldUsePromptTransformer && (!promptApi || !deps.接口配置是否可用(promptApi))) {
-        const message = backendType === 'novelai'
-            ? 'NovelAI 模式必须绑定可用的词组转化器接口，请先完成配置。'
-            : '词组转化器配置不可用，已跳过 NPC 生图。';
-        if (options?.force || backendType === 'novelai') {
-            throw new Error(message);
+    if (wantsPromptTransformer && !promptApiAvailable) {
+        if (backendType === 'novelai') {
+            const message = 'NovelAI 模式必须绑定可用的词组转化器接口，请先完成配置。';
+            if (options?.force) {
+                throw new Error(message);
+            }
+            console.warn(`NPC 生图已跳过：${message}`);
+            return;
         }
-        console.warn(`NPC 生图已跳过：${message}`);
-        return;
+        console.warn('NPC 生图词组转化器配置不可用，已改用角色资料直出提示词继续生成。');
     }
     if (deps.NPC生图进行中集合.has(npcKey)) return;
 
-    deps.NPC生图进行中集合.add(npcKey);
     const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '未命名NPC';
     const npcImageBaseData = deps.提取NPC生图基础数据(npc);
     const modelName = 获取图片后端显示名(imageApi);
     const 构图: '头像' | '半身' | '立绘' = options?.构图 || '头像';
+    const latestNpc = (typeof deps.获取社交列表 === 'function' ? deps.获取社交列表() : [])
+        .find((candidate: any, index: number) => deps.获取NPC唯一标识(candidate, index) === npcKey);
+    if (latestNpc && NPC已有成功构图(latestNpc, 构图)) return;
+
+    deps.NPC生图进行中集合.add(npcKey);
     const 画风 = options?.画风 || imageFeature.NPC画风;
     const 画师串预设 = deps.获取生图画师串预设(deps.apiConfig, 'npc', options?.画师串预设ID);
     const PNG画风预设 = deps.获取当前PNG画风预设(options?.PNG画风预设ID);

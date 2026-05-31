@@ -203,7 +203,7 @@ type 开场剧情生成依赖 = {
     执行正文润色: (
         response: GameResponse,
         rawSource: string,
-        options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal; allowExpansionForLength?: boolean; minLength?: number }
+        options?: { manual?: boolean; playerInput?: string; signal?: AbortSignal; allowExpansionForLength?: boolean; minLength?: number; onDelta?: (delta: string, accumulated: string) => void }
     ) => Promise<{ applied: boolean; response: GameResponse; error?: string; rawText?: string }>;
     触发新增NPC自动生图: (npcs: any[]) => void;
     触发主角自动生图?: (player: 角色数据结构) => void;
@@ -1161,7 +1161,14 @@ export const 执行开场剧情生成工作流 = async (
                         playerInput: '',
                         signal: controller.signal,
                         allowExpansionForLength: true,
-                        minLength: openingGameConfig.字数要求
+                        minLength: openingGameConfig.字数要求,
+                        onDelta: (_delta: string, accumulated: string) => {
+                            设置开局文章优化进度({
+                                phase: 'start',
+                                text: '正在流式优化开局正文...',
+                                rawText: accumulated
+                            });
+                        }
                     }
                 ),
                 onError: (errorText) => {
@@ -1927,8 +1934,11 @@ export const 执行开场剧情生成工作流 = async (
             response: displayAiData
         });
 
-        if (openingNewNpcList.length > 0) {
-            deps.触发新增NPC自动生图(openingNewNpcList);
+        const openingNpcImageTargets = Array.isArray(openingStateAfterCommands.社交)
+            ? openingStateAfterCommands.社交
+            : openingNewNpcList;
+        if (openingNpcImageTargets.length > 0) {
+            deps.触发新增NPC自动生图(openingNpcImageTargets);
         }
 
         if (openingBodyText.trim()) {

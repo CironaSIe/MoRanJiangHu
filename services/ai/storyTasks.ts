@@ -303,7 +303,8 @@ export const generatePolishedBody = async (
     apiConfig: 当前可用接口结构,
     signal?: AbortSignal,
     extraPrompt?: string,
-    cotPseudoHistoryPrompt?: string
+    cotPseudoHistoryPrompt?: string,
+    streamOptions?: WorldStreamOptions
 ): Promise<PolishedBodyResult> => {
     if (!apiConfig.apiKey) throw new Error('Missing API Key');
     const normalizedBody = (bodyText || '').trim();
@@ -346,6 +347,7 @@ export const generatePolishedBody = async (
     const raw = await 请求模型文本(apiConfig, messages, {
         temperature: 0.6,
         signal,
+        streamOptions,
         errorDetailLimit: Number.POSITIVE_INFINITY
     });
 

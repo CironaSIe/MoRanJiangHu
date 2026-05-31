@@ -137,6 +137,94 @@ const handlePucodingImageProxyRequest = async (
   }
 };
 
+const isAllowedComfyProxyTarget = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return /^https?:$/i.test(url.protocol)
+      && (
+        /(^|\.)cnb\.run$/i.test(url.hostname)
+        || /(^|\.)cnb\.space$/i.test(url.hostname)
+        || process.env.CNB_SYNC_ALLOW_ANY_URL === 'true'
+      );
+  } catch {
+    return false;
+  }
+};
+
+const handleComfyUiProxyRequest = async (
+  req: any,
+  res: any,
+  next: () => void,
+  logger: { error: (message: string) => void }
+) => {
+  if (!req.url) {
+    next();
+    return;
+  }
+
+  if (String(req.method || '').toUpperCase() === 'OPTIONS') {
+    res.statusCode = 204;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.end();
+    return;
+  }
+
+  try {
+    const requestUrl = new URL(req.url, 'http://local-comfy-proxy');
+    const targetBase = String(requestUrl.searchParams.get('url') || '').trim().replace(/\/+$/, '');
+    if (!targetBase || !isAllowedComfyProxyTarget(targetBase)) {
+      res.statusCode = 400;
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({ error: 'ComfyUI proxy target URL is invalid or not allowed.' }));
+      return;
+    }
+
+    const proxyPrefix = '/api/image-backend/comfyui-proxy';
+    const pathPart = requestUrl.pathname.startsWith(proxyPrefix)
+      ? requestUrl.pathname.slice(proxyPrefix.length) || '/'
+      : requestUrl.pathname || '/';
+    const target = new URL(targetBase);
+    target.pathname = `${target.pathname.replace(/\/+$/, '')}/${pathPart.replace(/^\/+/, '')}`;
+    target.search = '';
+    requestUrl.searchParams.forEach((value, key) => {
+      if (key !== 'url') target.searchParams.append(key, value);
+    });
+
+    const method = String(req.method || 'GET').toUpperCase();
+    const body = method === 'GET' ? Buffer.alloc(0) : await 读取请求体(req);
+    const headers: Record<string, string> = {};
+    const contentType = req.headers['content-type'];
+    const authorization = req.headers.authorization;
+    const accept = req.headers.accept;
+    if (typeof contentType === 'string' && contentType.trim()) headers['content-type'] = contentType;
+    if (typeof authorization === 'string' && authorization.trim()) headers.authorization = authorization;
+    if (typeof accept === 'string' && accept.trim()) headers.accept = accept;
+
+    const result = await 执行NovelAI代理请求(target.toString(), method, headers, body);
+    res.statusCode = result.status;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    Object.entries(result.headers).forEach(([key, value]) => {
+      if (key.toLowerCase() === 'content-length') return;
+      res.setHeader(key, value);
+    });
+    res.end(result.body);
+  } catch (error: any) {
+    logger.error(`[comfyui-dev-proxy] ${error?.message || error}`);
+    res.statusCode = 502;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({
+      error: 'ComfyUI dev proxy failed',
+      detail: error?.message || String(error)
+    }));
+  }
+};
+
 const imageDevProxyPlugin = (): Plugin => ({
   name: 'image-dev-proxy',
   configurePreviewServer(server) {
@@ -146,6 +234,9 @@ const imageDevProxyPlugin = (): Plugin => ({
     server.middlewares.use('/api/pucoding-image', async (req, res, next) => {
       await handlePucodingImageProxyRequest(req, res, next, server.config.logger);
     });
+    server.middlewares.use('/api/image-backend/comfyui-proxy', async (req, res, next) => {
+      await handleComfyUiProxyRequest(req, res, next, server.config.logger);
+    });
   },
   configureServer(server) {
     server.middlewares.use('/api/novelai', async (req, res, next) => {
@@ -153,6 +244,9 @@ const imageDevProxyPlugin = (): Plugin => ({
     });
     server.middlewares.use('/api/pucoding-image', async (req, res, next) => {
       await handlePucodingImageProxyRequest(req, res, next, server.config.logger);
+    });
+    server.middlewares.use('/api/image-backend/comfyui-proxy', async (req, res, next) => {
+      await handleComfyUiProxyRequest(req, res, next, server.config.logger);
     });
   }
 });

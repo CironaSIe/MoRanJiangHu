@@ -224,6 +224,17 @@ const 物品是否绷带敷料 = (item: any): boolean => {
     return /绷带|纱布|布条|包扎布|止血布|敷料|药棉|棉布卷|白布卷/.test(text);
 };
 
+const 物品是否香烟 = (item: any): boolean => {
+    const text = [
+        item?.名称,
+        item?.类型,
+        item?.描述,
+        item?.视觉描述,
+        Array.isArray(item?.视觉标签) ? item.视觉标签.join(' ') : ''
+    ].map((value) => 读取文本(value)).join(' ');
+    return /香烟|烟盒|半包烟|受潮.*烟|烟草|cigarette|tobacco/i.test(text);
+};
+
 const 物品是否坐骑生物 = (item: any): boolean => {
     const text = [
         item?.名称,
@@ -324,6 +335,9 @@ const 物品名称转英文描述 = (name: string): string => {
         '战术背心': 'wearable tactical vest, MOLLE webbing, shoulder straps, front buckles, pouch panels, torso garment shape, no shield',
         '防弹背心': 'wearable bulletproof vest, soft ballistic torso vest with shoulder straps and front panels, no shield',
         '负重背心': 'wearable load-bearing tactical vest, fabric torso gear with pouches and straps, no shield',
+        '半包受潮的香烟': 'opened damp cigarette pack, crumpled stained cardboard cigarette box, half-empty paper pack with visible bent cigarettes and water damage, realistic survival prop, not a pouch, not a bag',
+        '受潮的香烟': 'damp cigarette pack, stained cardboard cigarette box with soggy paper edges and visible cigarettes, not leather, not cloth pouch',
+        '香烟': 'paper cigarette pack with visible cigarettes, cardboard box, crumpled soft pack or opened hard pack, tobacco product prop, no pouch',
         '旧军装': 'worn modern military uniform, faded cloth jacket and trousers, fabric patches, frayed seams, soft garment only, no armor plates',
         '军装': 'modern military uniform, cloth jacket and trousers, soft textile garment, no armor plates',
         '作训服': 'modern combat training uniform, cloth shirt and trousers, fabric folds, no armor plates',
@@ -447,6 +461,7 @@ const 物品名称转英文描述 = (name: string): string => {
     if (/壶|瓶|罐/.test(name)) return 'ceramic or metal container vessel';
     if (/匣|盒|箱/.test(name)) return 'wooden box or case';
     if (/书|卷|册|经/.test(name)) return 'ancient book or scroll';
+    if (/香烟|烟盒|半包烟|受潮.*烟|烟草/.test(name)) return 'opened damp paper cigarette pack, crumpled stained cardboard cigarette box, visible bent cigarettes, tobacco paper and water damage, not a pouch or bag';
     if (/袋|囊|包/.test(name)) return 'cloth pouch or bag';
     if (/丹|药|散|丸|膏/.test(name)) return 'ancient medicinal item, herbal powder or pills stored in a folded paper packet, cloth sachet, or small ceramic medicine vial';
     if (/冰莲|雪莲|莲|花|草|参|芝|根|藤|果|叶/.test(name)) return 'botanical medicinal herb specimen, natural plant or flower form, organic petals leaves roots or stems';
@@ -462,6 +477,7 @@ const 构建物品视觉主体描述 = (item: any): string => {
     const isModernFirearm = 物品是否现代枪械(item);
     const isCrossbow = 物品是否弩(item);
     const isTacticalVest = 物品是否战术背心(item);
+    const isCigarette = 物品是否香烟(item);
     const isWeapon = !isFan && 物品是否武器(item);
     const isClothShoe = 物品是否布鞋(item);
     const isBandageDressing = 物品是否绷带敷料(item);
@@ -469,7 +485,7 @@ const 构建物品视觉主体描述 = (item: any): string => {
     const isPaleMoonWhiteGarment = 物品是否浅色月白服装(item);
     const isSectDiscipleUniform = 物品是否门派弟子服(item);
     const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
-    const isAncientMedicine = 物品是否古代药物(item);
+    const isAncientMedicine = !isCigarette && 物品是否古代药物(item);
     const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
     const typeEn = isLivingMount ? 'living mount animal' : isFan ? 'folded Chinese hand fan' : isModernFirearm ? 'modern firearm' : isCrossbow ? 'crossbow' : isWeapon ? 'traditional wuxia weapon' : isSoftGarment ? 'cloth garment' : isTacticalVest ? 'wearable tactical vest' : isWearableArmor ? 'wearable torso armor vest' : isAncientMedicine ? 'ancient medicinal powder or pills' : isBotanicalHerb ? 'botanical medicinal herb' : 物品类型转英文(读取文本(item?.类型, '物品'));
     const qualityEn = 物品品质转英文(读取文本(item?.品质, '普通'));
@@ -487,6 +503,7 @@ const 构建物品视觉主体描述 = (item: any): string => {
         isModernFirearm ? 'strict modern firearm prop: rifle or gun receiver, barrel, stock, magazine, grip and trigger guard clearly visible; the silhouette must be a firearm, not a spear or polearm' : '',
         isCrossbow ? 'strict crossbow prop: horizontal bow limbs, short stock, trigger, taut string, bolt rail and compact ranged-weapon silhouette; not a spear, not a polearm, not a staff' : '',
         isWeapon && !isModernFirearm ? 'strict traditional weapon prop: blade, edge, hilt, handle, grip, shaft or scabbard clearly visible; if the name mentions gathering herbs, render the cutting tool itself, not herbs or plants' : '',
+        isCigarette ? 'strict cigarette prop: opened damp cardboard cigarette pack, half-empty paper pack, visible bent cigarettes, water-stained paper and soggy edges; absolutely not a pouch, not a leather bag, not a drawstring bag' : '',
         isClothShoe ? 'strict footwear prop: a pair of empty shoes or sandals placed side by side, visible soles and woven fabric or straw texture, unworn product still life' : '',
         isBandageDressing ? 'strict first-aid dressing prop: standalone rolled bandage or folded gauze cloth, white fabric strip spool, clean product still life' : '',
         isSoftGarment ? 'soft textile clothing item, fabric seams, cloth folds, woven texture, flexible silhouette' : '',
@@ -506,6 +523,7 @@ export const 构建物品负面提示词 = (item: any): string => {
     const isModernFirearm = 物品是否现代枪械(item);
     const isCrossbow = 物品是否弩(item);
     const isTacticalVest = 物品是否战术背心(item);
+    const isCigarette = 物品是否香烟(item);
     const isWeapon = !isFan && 物品是否武器(item);
     const isSoftGarment = 物品是否柔性服装(item);
     const isPaleMoonWhiteGarment = 物品是否浅色月白服装(item);
@@ -513,7 +531,7 @@ export const 构建物品负面提示词 = (item: any): string => {
     const isClothShoe = 物品是否布鞋(item);
     const isBandageDressing = 物品是否绷带敷料(item);
     const isLivingMount = 物品是否坐骑生物(item);
-    const isAncientMedicine = 物品是否古代药物(item);
+    const isAncientMedicine = !isCigarette && 物品是否古代药物(item);
     const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
     return [
         isLivingMount ? 'rider, saddle covering the body, harness covering the body, cart, carriage, vehicle, boat' : 'person, human, face, hand, foot, feet, body part, skin, portrait, headshot, framed portrait, photo frame, picture frame',
@@ -527,6 +545,7 @@ export const 构建物品负面提示词 = (item: any): string => {
         isTacticalVest ? 'shield only, medieval shield, riot shield, round shield, kite shield, helmet only, spear, polearm, sword, breastplate-only medieval armor, full armor suit, hard cuirass without fabric straps' : '',
         isWearableArmor ? 'sword, saber, knife, dagger, blade, spear, staff, scabbard, sheath, hilt, handle, pommel, long narrow weapon, umbrella, baton, column, tower, statue, helmet only, shield only' : '',
         isWeapon ? 'flower, plant, potted plant, bonsai, grass, herb specimen, petals, leaves as main subject, vase, flowerpot, medicine bottle, pill packet' : '',
+        isCigarette ? 'leather pouch, drawstring bag, cloth bag, medicine pouch, coin pouch, sack, bottle, jar, canister, food can, metal tin, ancient medicine packet, pill, herbal powder' : '',
         'item card, game card, trading card, UI overlay, interface, badge, quality badge, rarity badge, speech bubble, dialogue box, border frame, decorative frame',
         'white background, cluttered background, ink wash, guofeng illustration, Chinese painting, brush strokes, anime, cartoon, flat illustration',
         isSoftGarment ? 'armor, cuirass, breastplate, metal armor, metal plates, gauntlet, shield, helmet, hard shell, leather jacket, shiny leather garment, black armor, dark armor, lamellar armor, scale armor' : '',
@@ -549,6 +568,7 @@ export const 构建物品图提示词 = (
     const isModernFirearm = 物品是否现代枪械(item);
     const isCrossbow = 物品是否弩(item);
     const isTacticalVest = 物品是否战术背心(item);
+    const isCigarette = 物品是否香烟(item);
     const isWeapon = !isFan && 物品是否武器(item);
     const isClothShoe = 物品是否布鞋(item);
     const isBandageDressing = 物品是否绷带敷料(item);
@@ -556,7 +576,7 @@ export const 构建物品图提示词 = (
     const isPaleMoonWhiteGarment = 物品是否浅色月白服装(item);
     const isSectDiscipleUniform = 物品是否门派弟子服(item);
     const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
-    const isAncientMedicine = 物品是否古代药物(item);
+    const isAncientMedicine = !isCigarette && 物品是否古代药物(item);
     const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
     const softGarmentGuard = isSoftGarment
         ? 'for clothing items: soft fabric garment laid flat or neatly folded, visible cloth weave, seams, wrinkles, flexible drape'
@@ -587,6 +607,7 @@ export const 构建物品图提示词 = (
         isWeapon && !isModernFirearm ? 'strict traditional wuxia weapon prop only: blade, hilt, handle, grip, shaft or scabbard must be the main subject; herb-related words describe use or wear, not the object category' : '',
         isClothShoe ? 'strict empty footwear prop only: two unworn sandals or cloth shoes side by side, product still life' : '',
         isBandageDressing ? 'strict bandage dressing prop only: standalone rolled gauze bandage or folded cloth strips, first-aid supply still life' : '',
+        isCigarette ? 'strict cigarette pack prop only: opened damp cardboard cigarette pack, crumpled paper box, half-empty pack, visible bent cigarettes, stained soggy paper edges; not a pouch, not a leather bag, not a drawstring bag' : '',
         isPaleMoonWhiteGarment ? 'strict color requirement: moon-white pale ivory cloth, light warm white fabric, soft non-metal textile, bright clean garment surface' : '',
         isSectDiscipleUniform ? 'strict sect uniform garment: inner-disciple robe or training uniform, cloth collar, sash, woven trim, folded or laid flat as clothing' : '',
         isAncientMedicine ? 'strict ancient wuxia medicine prop only: folded paper medicine packet, small cloth sachet, ceramic medicine vial, herbal powder or pills; absolutely pre-modern, no modern technology' : '',

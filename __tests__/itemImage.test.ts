@@ -155,6 +155,22 @@ describe('item image preset fallback', () => {
 });
 
 describe('item image prompt classification', () => {
+    it('renders damp cigarettes as a cigarette pack, not a pouch', () => {
+        const item = {
+            名称: '半包受潮的香烟',
+            类型: '杂物',
+            品质: '凡品',
+            描述: '半包受潮后还能勉强点燃的旧香烟。'
+        };
+        const prompt = 构建物品图提示词(item);
+        const negativePrompt = 构建物品负面提示词(item);
+
+        expect(prompt).toContain('opened damp cardboard cigarette pack');
+        expect(prompt).toContain('visible bent cigarettes');
+        expect(negativePrompt).toContain('leather pouch');
+        expect(negativePrompt).toContain('drawstring bag');
+    });
+
     it('treats training clothes as soft fabric garments even when item type is armor', () => {
         const prompt = 构建物品图提示词({
             名称: '灰黑练功服',

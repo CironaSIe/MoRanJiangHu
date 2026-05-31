@@ -33,6 +33,7 @@ type 正文润色依赖 = {
     角色: 角色数据结构;
     文章优化已开启: boolean;
     深拷贝: <T,>(data: T) => T;
+    onDelta?: (delta: string, accumulated: string) => void;
 };
 
 export const 统计润色正文字符数 = (logs: 正文日志结构): number => (
@@ -377,7 +378,8 @@ export const 执行正文润色 = async (
         polishApi,
         options?.signal,
         polishExtraPrompt,
-        polishCotPseudoPrompt
+        polishCotPseudoPrompt,
+        deps.onDelta ? { stream: true, onDelta: deps.onDelta } : undefined
     );
     let polishedLogs = 规范化对白日志(限制润色结果判定数量(
         sourceLogs,
@@ -410,7 +412,8 @@ export const 执行正文润色 = async (
             polishApi,
             options?.signal,
             polishExtraPrompt,
-            polishCotPseudoPrompt
+            polishCotPseudoPrompt,
+            deps.onDelta ? { stream: true, onDelta: deps.onDelta } : undefined
         );
         const retryLogs = 规范化对白日志(限制润色结果判定数量(
             sourceLogs,

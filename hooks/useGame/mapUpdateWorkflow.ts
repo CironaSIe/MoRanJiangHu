@@ -132,6 +132,7 @@ export const 构建地图更新用户提示词 = (params: {
     const env = params.环境 || {};
     const world = params.世界 || {};
     const layers = Array.isArray(world?.地图层级) ? world.地图层级 : [];
+    const isOpeningEmptyMap = params.mode === 'auto_incremental' && layers.length === 0;
     const currentLocation = [env?.大地点, env?.中地点, env?.小地点, env?.具体地点].map(取文本).filter(Boolean).join(' > ');
     const existingLayerInfo = layers.length > 0
         ? JSON.stringify(layers.map((layer: any) => ({
@@ -199,13 +200,18 @@ export const 构建地图更新用户提示词 = (params: {
         existingLayerInfo,
         '',
         '【自动更新规则】',
-        '1. 只在本回合正文明确确认了新的可长期抵达地点、建筑、地标、房间、秘境、区域或新世界时，才输出新增地图命令。',
+        isOpeningEmptyMap
+            ? '0. 当前地图层级为空：这是开局种子地图任务，必须根据当前地点与开局正文生成基础六层路径，至少包含 寰宇 -> 大地点 -> 中地点 -> 小地点 -> 区地点。'
+            : '',
+        isOpeningEmptyMap
+            ? '1. 开局种子地图不得输出“无”；若地点信息不足，也要用当前地点、正文里的仓库/营地/街区/房间线索补齐可用节点。'
+            : '1. 只在本回合正文明确确认了新的可长期抵达地点、建筑、地标、房间、秘境、区域或新世界时，才输出新增地图命令。',
         '2. 若已有地图层级中已经存在同名地点，不要重复 push。',
         '3. 地图层级只能是：寰宇、大地点、中地点、小地点、区地点、子地点。',
         '4. 区地点=建筑/地标；子地点=建筑内房间。环境.具体地点不是层级名。',
         '5. 父级ID优先填写已有节点 ID；若只能确定父级名称，也可以填写父级名称，系统会自动解析。',
         '6. 禁止输出旧地图坐标字段：世界.地图、世界.建筑、世界.地图建筑、世界.地图道路、世界.地图人物。',
-        '7. 若无新增或修复需求，<命令> 输出“无”。',
+        isOpeningEmptyMap ? '7. 开局空地图必须输出 push 命令，不得输出“无”。' : '7. 若无新增或修复需求，<命令> 输出“无”。',
         traditionalChinesePrompt,
         '',
         '【输出格式】',
@@ -269,6 +275,7 @@ export const 构建地图层级替换结果 = (
     normalizedNodes.forEach((node) => {
         if (!nameToId.has(node.名称)) nameToId.set(node.名称, nextId());
     });
+    const oldNameToId = new Map<string, string>();
 
     return normalizedNodes.map((node) => ({
         ID: nameToId.get(node.名称) || nextId(),

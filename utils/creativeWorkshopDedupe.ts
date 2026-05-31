@@ -25,22 +25,27 @@ const normalizeList = (value: unknown): string[] => Array.isArray(value)
     ? value.map(normalizeText).filter(Boolean)
     : [];
 
-export const buildCreativeWorkshopContentFingerprint = (entry: Pick<创意工坊模块条目, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset'>): string => {
+export const buildCreativeWorkshopContentFingerprint = (entry: Pick<创意工坊模块条目, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset' | 'formatVersion' | 'workshopKind' | 'contentBlocks' | 'usagePrompt' | 'safetyNotes'>): string => {
     return JSON.stringify(sortValue({
         type: entry.type,
+        formatVersion: entry.formatVersion || null,
+        workshopKind: entry.workshopKind || null,
         title: normalizeText(entry.title),
         subtitle: normalizeText(entry.subtitle),
         description: normalizeText(entry.description),
         tags: normalizeList(entry.tags),
         payload: entry.payload || {},
+        contentBlocks: entry.contentBlocks || [],
+        usagePrompt: normalizeText(entry.usagePrompt),
+        safetyNotes: normalizeList(entry.safetyNotes),
         injectionPreview: normalizeList(entry.injectionPreview),
         preset: entry.preset || null
     }));
 };
 
 export const isOfficialCreativeWorkshopDuplicate = (
-    entry: Pick<创意工坊模块条目, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset'>,
-    officialEntries: Array<Pick<创意工坊模块条目, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset'>>
+    entry: Pick<创意工坊模块条目, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset' | 'formatVersion' | 'workshopKind' | 'contentBlocks' | 'usagePrompt' | 'safetyNotes'>,
+    officialEntries: Array<Pick<创意工坊模块条目, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset' | 'formatVersion' | 'workshopKind' | 'contentBlocks' | 'usagePrompt' | 'safetyNotes'>>
 ): boolean => {
     const fingerprint = buildCreativeWorkshopContentFingerprint(entry);
     return officialEntries.some((official) => buildCreativeWorkshopContentFingerprint(official) === fingerprint);

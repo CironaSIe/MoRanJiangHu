@@ -13,11 +13,22 @@ const encoder = new TextEncoder();
 type WorkshopModuleEntry = {
     id: string;
     type: 'topic' | 'world_rules' | 'opening' | 'ability' | 'comfy_workflow';
+    formatVersion?: number;
+    workshopKind?: 'standard_module';
     title: string;
     subtitle: string;
     description: string;
     tags: string[];
     payload: Record<string, unknown>;
+    contentBlocks?: Array<{
+        id: string;
+        title: string;
+        purpose: string;
+        content: string;
+        injectionTarget?: 'manualWorldPrompt' | 'manualRealmPrompt' | 'openingExtraRequirement' | 'imageWorkflow' | 'referenceOnly';
+    }>;
+    usagePrompt?: string;
+    safetyNotes?: string[];
     injectionPreview: string[];
     preset?: unknown;
     contributor: string;
@@ -96,7 +107,7 @@ const normalizeFingerprintList = (value: unknown): string[] => (
     Array.isArray(value) ? value.map(normalizeFingerprintText).filter(Boolean) : []
 );
 
-const buildContentFingerprint = (entry: Pick<WorkshopModuleEntry, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset'>): string => (
+const buildContentFingerprint = (entry: Pick<WorkshopModuleEntry, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset' | 'contentBlocks' | 'usagePrompt' | 'safetyNotes'>): string => (
     JSON.stringify(sortValue({
         type: entry.type,
         title: normalizeFingerprintText(entry.title),
@@ -104,6 +115,9 @@ const buildContentFingerprint = (entry: Pick<WorkshopModuleEntry, 'type' | 'titl
         description: normalizeFingerprintText(entry.description),
         tags: normalizeFingerprintList(entry.tags),
         payload: entry.payload || {},
+        contentBlocks: entry.contentBlocks || [],
+        usagePrompt: normalizeFingerprintText(entry.usagePrompt),
+        safetyNotes: normalizeFingerprintList(entry.safetyNotes),
         injectionPreview: normalizeFingerprintList(entry.injectionPreview),
         preset: entry.preset || null
     }))
@@ -113,6 +127,23 @@ const sanitizeText = (value: unknown, maxLength: number): string => readString(v
 
 const sanitizeTags = (value: unknown): string[] => (
     Array.isArray(value) ? value.map((item) => sanitizeText(item, 20)).filter(Boolean).slice(0, 12) : []
+);
+
+const sanitizeContentBlocks = (value: unknown): WorkshopModuleEntry['contentBlocks'] => (
+    Array.isArray(value)
+        ? value.map((block: any) => {
+            const injectionTarget = block?.injectionTarget;
+            return {
+                id: sanitizeText(block?.id, 60),
+                title: sanitizeText(block?.title, 80),
+                purpose: sanitizeText(block?.purpose, 200),
+                content: readString(block?.content).slice(0, 20000),
+                injectionTarget: injectionTarget === 'manualWorldPrompt' || injectionTarget === 'manualRealmPrompt' || injectionTarget === 'openingExtraRequirement' || injectionTarget === 'imageWorkflow' || injectionTarget === 'referenceOnly'
+                    ? injectionTarget
+                    : undefined
+            };
+        }).filter((block) => block.id && block.title && block.content).slice(0, 24)
+        : undefined
 );
 
 const normalizeType = (value: unknown): WorkshopModuleEntry['type'] | '' => (
@@ -198,6 +229,9 @@ const normalizeModule = async (raw: any, contributorInput = '', owner?: CloudPla
     const createdAt = new Date().toISOString();
     const id = buildId(type);
     const payload = module?.payload && typeof module.payload === 'object' && !Array.isArray(module.payload) ? module.payload : {};
+    if (type !== 'comfy_workflow' && !readString((payload as any).suiteId)) {
+        throw new Error('题材模板、世界规则和能力体系必须作为同一个完整模式包贡献，请在创意工坊表单中一次填写三段内容。');
+    }
     const entry: Omit<WorkshopModuleEntry, 'sha256' | 'r2Key'> = {
         id,
         type,
@@ -206,6 +240,11 @@ const normalizeModule = async (raw: any, contributorInput = '', owner?: CloudPla
         description: sanitizeText(module?.description, 500),
         tags: sanitizeTags(module?.tags),
         payload,
+        formatVersion: Number(module?.formatVersion) === 2 ? 2 : undefined,
+        workshopKind: module?.workshopKind === 'standard_module' ? 'standard_module' : undefined,
+        contentBlocks: sanitizeContentBlocks(module?.contentBlocks),
+        usagePrompt: sanitizeText(module?.usagePrompt, 500),
+        safetyNotes: Array.isArray(module?.safetyNotes) ? module.safetyNotes.map((item: unknown) => sanitizeText(item, 200)).filter(Boolean).slice(0, 12) : [],
         injectionPreview: Array.isArray(module?.injectionPreview) ? module.injectionPreview.map((item: unknown) => sanitizeText(item, 400)).filter(Boolean).slice(0, 12) : [],
         preset: module?.preset && typeof module.preset === 'object' ? module.preset : undefined,
         contributor: anonymous ? '匿名玩家' : (sanitizeText(contributorInput || module?.contributor, 40) || owner?.username || '匿名玩家'),
@@ -282,7 +321,7 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
             return jsonResponse({ ok: true, entry: updated });
         }
 
-        const owner = body?.auth ? await authenticateWorkshopUser(env, body.auth) : undefined;
+        const owner = await authenticateWorkshopUser(env, body?.auth);
         const entry = await normalizeModule(body, body?.contributor, owner, body?.anonymous === true);
         const keys = buildKeys(env, entry.id);
         const finalEntry = { ...entry, r2Key: keys.moduleKey };

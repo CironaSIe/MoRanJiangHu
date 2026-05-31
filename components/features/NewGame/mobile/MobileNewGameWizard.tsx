@@ -743,16 +743,20 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
             const mode = 读取模块模式(module);
             if (mode) 更新题材模式(mode);
             const content = String((module.payload as any)?.content || '').trim();
-            if (module.type === 'topic' && module.preset) {
-                setWorldConfig((prev) => ({
-                    ...prev,
-                    ...module.preset!.worldConfig,
-                    manualWorldPrompt: prev.manualWorldPrompt,
-                    manualRealmPrompt: prev.manualRealmPrompt
-                }));
-                if (module.preset.openingConfig?.题材模式) {
-                    setOpeningConfig((prev) => ({ ...prev, 题材模式: module.preset!.openingConfig!.题材模式 }));
+            if (module.type === 'topic') {
+                if (module.preset) {
+                    setWorldConfig((prev) => ({
+                        ...prev,
+                        ...module.preset!.worldConfig,
+                        manualWorldPrompt: prev.manualWorldPrompt,
+                        manualRealmPrompt: prev.manualRealmPrompt
+                    }));
+                    if (module.preset.openingConfig?.题材模式) {
+                        setOpeningConfig((prev) => ({ ...prev, 题材模式: module.preset!.openingConfig!.题材模式 }));
+                    }
                 }
+                const topicPrompt = String((module.payload as any)?.manualWorldPrompt || (!module.preset ? content : '')).trim();
+                if (topicPrompt) setWorldConfig((prev) => ({ ...prev, manualWorldPrompt: 拼接额外要求(prev.manualWorldPrompt, topicPrompt) }));
             } else if (module.type === 'world_rules') {
                 const extra = String((module.payload as any)?.worldExtraRequirement || module.preset?.openingExtraRequirement || content).trim();
                 if (extra) setWorldConfig((prev) => ({ ...prev, worldExtraRequirement: 拼接额外要求(prev.worldExtraRequirement, extra) }));
