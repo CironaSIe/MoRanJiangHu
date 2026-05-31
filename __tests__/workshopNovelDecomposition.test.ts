@@ -106,6 +106,21 @@ describe('workshopNovelDecomposition', () => {
             });
         });
         vi.stubGlobal('fetch', fetchMock);
+        vi.stubGlobal('localStorage', {
+            getItem: (key: string) => key === 'moranjianghu.cloudPlay.session.v1'
+                ? JSON.stringify({
+                    expiresAt: Date.now() + 60000,
+                    session: {
+                        userId: 'test-user',
+                        username: 'tester',
+                        password: 'secret',
+                        clientSalt: 'salt'
+                    }
+                })
+                : null,
+            setItem: vi.fn(),
+            removeItem: vi.fn()
+        });
 
         const result = await 发布小说分解创意工坊模块({
             zipBlob: new Blob(['zip']),

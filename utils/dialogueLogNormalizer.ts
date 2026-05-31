@@ -97,14 +97,6 @@ const 推断说话人 = (prefix: string, knownSpeakers: string[]): string => {
     }
     if (matchedName) return matchedName;
 
-    const explicitMatch = recent.match(/([A-Za-z0-9_\u4e00-\u9fff·]{1,14})[^，,。！？!?；;\n]{0,10}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/);
-    const cleaned = 清理说话人(explicitMatch?.[1] || '');
-    if (cleaned) return cleaned;
-
-    const namedCueMatch = recent.match(/([\u4e00-\u9fff]{2,4})[^。！？!?；;\n]{0,40}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/);
-    const namedCueSpeaker = 清理说话人(namedCueMatch?.[1] || '');
-    if (namedCueSpeaker) return namedCueSpeaker;
-
     const withoutTailCue = recent.replace(/[^，,。！？!?；;\n]{0,12}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/, '');
     const possibleActionSegments = withoutTailCue.split(/[，,、\s]/).map(item => item.trim()).filter(Boolean).reverse();
     for (const segment of possibleActionSegments) {
@@ -112,6 +104,14 @@ const 推断说话人 = (prefix: string, knownSpeakers: string[]): string => {
         const actionName = 清理说话人(actionNameMatch?.[1] || '');
         if (actionName) return actionName;
     }
+
+    const explicitMatch = recent.match(/([A-Za-z0-9_\u4e00-\u9fff·]{1,14})[^，,。！？!?；;\n]{0,10}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/);
+    const cleaned = 清理说话人(explicitMatch?.[1] || '');
+    if (cleaned) return cleaned;
+
+    const namedCueMatch = recent.match(/([\u4e00-\u9fff]{2,4})[^。！？!?；;\n]{0,40}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/);
+    const namedCueSpeaker = 清理说话人(namedCueMatch?.[1] || '');
+    if (namedCueSpeaker) return namedCueSpeaker;
 
     const genericMatch = recent.match(/(?:^|[，,、\s])((?:他|她|你|我|有人|众人|对方|男子|女子|少年|少女|老人|老者|汉子|侍女|侍从|弟子|门人|店小二))[^，,。！？!?；;\n]{0,10}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/);
     return 清理说话人(genericMatch?.[1] || '');
