@@ -443,6 +443,8 @@ const 生成自动存档节点ID = (save: Omit<存档结构, 'id'>): string => {
     return `turn:${turn}|time:${timeText}|loc:${locationText}`;
 };
 
+let 自动存档串行队列: Promise<void> = Promise.resolve();
+
 const 构建读档后重Roll快照 = (
     save: 存档结构,
     loaded: {
@@ -616,7 +618,7 @@ export const 执行手动存档 = async (
     deps.setHasSave(true);
 };
 
-export const 执行自动存档 = async (
+const 执行自动存档内核 = async (
     currentState: 存档协调当前状态,
     deps: 存档协调依赖,
     snapshot?: 自动存档快照结构
@@ -659,6 +661,17 @@ export const 执行自动存档 = async (
         if (forceSave) throw error;
         return null;
     }
+};
+
+export const 执行自动存档 = async (
+    currentState: 存档协调当前状态,
+    deps: 存档协调依赖,
+    snapshot?: 自动存档快照结构
+): Promise<存档结构 | null> => {
+    const run = () => 执行自动存档内核(currentState, deps, snapshot);
+    const task = 自动存档串行队列.then(run, run);
+    自动存档串行队列 = task.then(() => undefined, () => undefined);
+    return task;
 };
 
 export const 执行读取存档 = async (

@@ -196,7 +196,7 @@ const parseJudgmentText = (text: string): ParsedJudgment => {
         const part = parts[i];
         if (isResultToken(part)) continue;
 
-        const targetMatch = part.match(/^(?:触发对象\s+|对象[:：]\s*)(.+)$/);
+        const targetMatch = part.match(/^(?:触发对象\s+|触发对象[:：]\s*|判定角色\s+|判定角色[:：]\s*|对象[:：]\s*)(.+)$/);
         if (targetMatch) {
             parsed.target = targetMatch[1].trim() || parsed.target;
             continue;
@@ -276,11 +276,25 @@ const 提取判定前缀名称 = (prefix?: string): string => {
     return match?.[1]?.trim() || normalized;
 };
 
+const 格式化旁白断行 = (value: string): string => {
+    const source = String(value || '').replace(/\r\n/g, '\n').trim();
+    if (!source) return '';
+    return source
+        .split(/\n+/)
+        .flatMap((paragraph) => {
+            const text = paragraph.trim();
+            if (!text) return [];
+            return text.match(/[^。！？!?；;\n]+[。！？!?；;]?/g)?.map(line => line.trim()).filter(Boolean) || [text];
+        })
+        .join('\n');
+};
+
 export const NarratorRenderer: React.FC<{ text: string; visualConfig?: 视觉设置结构 }> = ({ text, visualConfig }) => {
     const style = 构建区域文字样式(visualConfig, '旁白');
+    const displayText = useMemo(() => 格式化旁白断行(text), [text]);
     return (
         <div className="narrator-renderer w-full my-1 px-8 py-2 bg-white/5 backdrop-blur-sm border-x-4 border-wuxia-gold/55 leading-relaxed relative overflow-hidden rounded-md shadow-lg transition-all duration-300" style={style}>
-            <p className="relative z-10 whitespace-pre-wrap break-words tracking-wide" style={{ fontSize: 'inherit', lineHeight: 'inherit' }}>{text}</p>
+            <p className="relative z-10 whitespace-pre-wrap break-words tracking-wide" style={{ fontSize: 'inherit', lineHeight: 'inherit' }}>{displayText}</p>
         </div>
     );
 };
@@ -542,8 +556,8 @@ export const CharacterRenderer: React.FC<{
 
 export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentThoughtBlock; isNsfw?: boolean; visualConfig?: 视觉设置结构; prefix?: string }> = ({ text, thoughtBlock, isNsfw, visualConfig, prefix }) => {
     const parsed = parseJudgmentText(text);
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [showThought, setShowThought] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
+    const [showThought, setShowThought] = useState(true);
     const thoughtLines = useMemo(() => (thoughtBlock?.text || thoughtBlock?.raw || '')
         .replace(/^【\s*(?:NSFW)?判定\s*】.*$/gmi, '')
         .split('\n')

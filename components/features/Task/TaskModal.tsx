@@ -7,16 +7,33 @@ interface Props {
     tasks: 任务结构[];
     onDeleteTask?: (taskIndex: number) => void;
     onClose: () => void;
+    playerSect?: any;
 }
 
-const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
+const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }) => {
     const [filter, setFilter] = useState<任务类型 | '全部'>('全部');
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const safeTasks = 规范化任务列表自动结算(Array.isArray(tasks) ? tasks : []) as 任务结构[];
+    const isApocalypseSect = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(JSON.stringify(playerSect || {}));
+    const sectName = String(playerSect?.名称 || '').trim();
+    const displayType = (type: string) => isApocalypseSect && type === '门派' ? '营地' : type;
+    const getTaskLabels = (task: any): string[] => {
+        const labels = [
+            task?.类型,
+            ...(Array.isArray(task?.标签) ? task.标签 : []),
+            ...(Array.isArray(task?.任务标签) ? task.任务标签 : [])
+        ].map((item) => String(item || '').trim()).filter(Boolean);
+        const text = [task?.标题, task?.描述, task?.发布人, task?.发布地点, task?.剧情暗线].filter(Boolean).join(' ');
+        if (isApocalypseSect && (task?.类型 === '门派' || text.includes(sectName) || /营地|据点|避难所|安全点|车队/u.test(text))) {
+            labels.push('营地');
+        }
+        return Array.from(new Set(labels.map(displayType)));
+    };
+    const filterMatches = (task: any) => filter === '全部' || getTaskLabels(task).includes(displayType(filter));
 
     const filteredTaskEntries = safeTasks
         .map((task, index) => ({ task, originalIndex: index }))
-        .filter(({ task }) => filter === '全部' || task.类型 === filter);
+        .filter(({ task }) => filterMatches(task));
 
     const currentTaskEntry = filteredTaskEntries[selectedIdx];
     const currentTask = currentTaskEntry?.task;
@@ -94,7 +111,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
                                             : 'text-gray-500 hover:text-gray-300 border border-transparent hover:border-white/10'
                                         }`}
                                     >
-                                        {t}
+                                        {t === '全部' ? t : displayType(t)}
                                     </button>
                                 ))}
                             </div>
@@ -105,7 +122,8 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
                             {filteredTaskEntries.map(({ task }, idx) => {
                                 const isSelected = idx === selectedIdx;
                                 const statusTheme = getStatusTheme(task.当前状态);
-                                const typeTheme = getTypeTheme(task.类型);
+                                const taskLabels = getTaskLabels(task);
+                                const typeTheme = getTypeTheme(taskLabels[0] || task.类型);
 
                                 return (
                                     <button
@@ -131,9 +149,16 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
                                         </div>
 
                                         <div className="flex items-center gap-2 w-full relative z-10 mt-1">
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded border font-serif tracking-widest ${typeTheme.text} ${typeTheme.bg} ${typeTheme.border} ${typeTheme.shadow}`}>
-                                                {task.类型}
-                                            </span>
+                                            <div className="flex shrink-0 flex-wrap gap-1">
+                                                {taskLabels.slice(0, 3).map((label) => {
+                                                    const labelTheme = getTypeTheme(label === '营地' ? '门派' : label);
+                                                    return (
+                                                        <span key={label} className={`text-[10px] px-1.5 py-0.5 rounded border font-serif tracking-widest ${labelTheme.text} ${labelTheme.bg} ${labelTheme.border} ${labelTheme.shadow}`}>
+                                                            {label}
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
                                             <div className="text-xs text-gray-500 truncate font-serif">
                                                 <span className="text-gray-400">{task.发布人}</span> <span className="opacity-50 mx-1">·</span> {task.发布地点}
                                             </div>
@@ -182,7 +207,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
                                     
                                     <div className="flex flex-wrap gap-4 text-sm font-serif mt-6">
                                         <div className="flex bg-black/40 border border-gray-800 rounded shadow-inner overflow-hidden">
-                                            <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">飞鸽传书</div>
+                                            <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">{isApocalypseSect ? '营地委托' : '飞鸽传书'}</div>
                                             <div className="px-3 py-1.5 text-gray-200">{currentTask.发布人}</div>
                                         </div>
                                         <div className="flex bg-black/40 border border-gray-800 rounded shadow-inner overflow-hidden">

@@ -24,6 +24,7 @@ interface Props {
     onLearnSkill?: (npc: NPC结构, skill: any) => void;
     onRecruitToSect?: (npc: NPC结构) => void;
     onStealFromNpc?: (npc: NPC结构, target?: string) => void;
+    playerSect?: any;
 }
 
 const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)?.性别 || '').trim() === '女';
@@ -62,7 +63,8 @@ const SocialModal: React.FC<Props> = ({
     onDeleteNpc,
     onLearnSkill,
     onRecruitToSect,
-    onStealFromNpc
+    onStealFromNpc,
+    playerSect
 }) => {
     const sortedSocialList = React.useMemo(() => (
         [...socialList].sort((a, b) => {
@@ -84,6 +86,32 @@ const SocialModal: React.FC<Props> = ({
     const [imageViewer, setImageViewer] = useState<{ src: string; alt: string } | null>(null);
     const [imageViewerZoom, setImageViewerZoom] = useState(1);
     const [stealTargets, setStealTargets] = useState<Record<string, string>>({});
+    const 组织名称 = String(playerSect?.名称 || '').trim();
+    const 当前组织为末世营地 = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(JSON.stringify(playerSect || {}));
+    const 格式化关系状态 = React.useCallback((value?: string) => {
+        const text = String(value || '').trim() || '萍水相逢';
+        return 当前组织为末世营地 ? text.replace(/同门/g, '同伴').replace(/门派成员/g, '营地成员') : text;
+    }, [当前组织为末世营地]);
+    const NPC已属当前组织 = React.useCallback((npc: any): boolean => {
+        if (!npc || !组织名称 || ['none', '无', '无门无派', '未加入', '散人'].includes(组织名称)) return false;
+        const text = [
+            npc?.身份,
+            npc?.关系,
+            npc?.关系状态,
+            npc?.简介,
+            npc?.记忆,
+            npc?.当前任务,
+            npc?.位置路径,
+            npc?.所属组织,
+            npc?.所属门派,
+            npc?.所属营地
+        ].filter(Boolean).join(' ');
+        if (npc?.是否队友 === true) return true;
+        if (text.includes(组织名称)) return true;
+        return 当前组织为末世营地
+            ? /同营|营地成员|营地队友|队伍成员|同队|同伴|同事/u.test(text)
+            : /同门|门派成员|宗门成员|同宗|同派/u.test(text);
+    }, [组织名称, 当前组织为末世营地]);
 
     useEffect(() => {
         if (sortedSocialList.length === 0) {
@@ -615,7 +643,7 @@ const SocialModal: React.FC<Props> = ({
                                         </span>
                                     </div>
                                     <div className="social-roster-card__relation text-[10px] text-pink-400/80 mt-1 min-w-0 truncate">
-                                        {npc.关系状态 || '萍水相逢'}
+                                        {格式化关系状态(npc.关系状态)}
                                     </div>
                                 </div>
                                 <div className="w-10 text-right shrink-0 flex flex-col items-end justify-center overflow-hidden">
@@ -791,20 +819,25 @@ const SocialModal: React.FC<Props> = ({
                                                     </svg>
                                                      {currentNPC.是否主要角色 ? '已设重要' : '设为重要'}
                                                  </button>
-                                                 {onRecruitToSect && (
+                                                 {onRecruitToSect && (() => {
+                                                     const 已属当前组织 = NPC已属当前组织(currentNPC);
+                                                     const inviteLabel = 当前组织为末世营地 ? '邀入营地' : '邀入门派';
+                                                     return (
                                                      <button
                                                          type="button"
                                                          onClick={() => onRecruitToSect(currentNPC)}
-                                                         disabled={当前角色已死亡}
+                                                         disabled={当前角色已死亡 || 已属当前组织}
+                                                         title={已属当前组织 ? (当前组织为末世营地 ? '已是同营地' : '已是同门') : inviteLabel}
                                                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded border transition-all text-xs ${
-                                                             当前角色已死亡
+                                                             当前角色已死亡 || 已属当前组织
                                                                  ? 'cursor-not-allowed border-gray-800 bg-black/45 text-gray-600'
                                                                  : 'border-cyan-500/30 bg-cyan-950/20 text-cyan-100 hover:border-cyan-300/60 hover:bg-cyan-900/35'
                                                          }`}
                                                      >
-                                                         邀入门派
+                                                         {已属当前组织 ? (当前组织为末世营地 ? '已在营地' : '已入门派') : inviteLabel}
                                                      </button>
-                                                 )}
+                                                     );
+                                                 })()}
                                                  {onStealFromNpc && (
                                                      <div className="inline-flex items-center rounded border border-amber-500/30 bg-amber-950/15 text-xs text-amber-100 overflow-hidden">
                                                          <select
@@ -841,7 +874,7 @@ const SocialModal: React.FC<Props> = ({
                                             <IconHeart size={20} className="mr-1" />{currentNPC.好感度}
                                         </div>
                                         <div className="text-xs text-wuxia-gold/80 tracking-widest uppercase mt-2 bg-black/40 px-3 py-1 rounded border border-wuxia-gold/20 shadow-inner max-w-[220px] truncate">
-                                            {currentNPC.关系状态 || '萍水相逢'}
+                                            {格式化关系状态(currentNPC.关系状态)}
                                         </div>
                                         <button
                                             type="button"

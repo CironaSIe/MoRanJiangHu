@@ -22,6 +22,7 @@ interface Props {
     onLearnSkill?: (npc: NPC结构, skill: any) => void;
     onRecruitToSect?: (npc: NPC结构) => void;
     onStealFromNpc?: (npc: NPC结构, target?: string) => void;
+    playerSect?: any;
 }
 
 const 是女性角色 = (npc?: NPC结构 | null): boolean => String((npc as any)?.性别 || '').trim() === '女';
@@ -70,7 +71,8 @@ const MobileSocial: React.FC<Props> = ({
     onDeleteNpc,
     onLearnSkill,
     onRecruitToSect,
-    onStealFromNpc
+    onStealFromNpc,
+    playerSect
 }) => {
     const sortedSocialList = React.useMemo(() => (
         [...socialList].sort((a, b) => {
@@ -88,6 +90,32 @@ const MobileSocial: React.FC<Props> = ({
     const 显示境界 = cultivationSystemEnabled !== false;
     const [香闺展示模式, set香闺展示模式] = useState<Record<string, 'text' | 'image'>>({});
     const [showFullBackground, setShowFullBackground] = useState<boolean>(false);
+    const 组织名称 = String(playerSect?.名称 || '').trim();
+    const 当前组织为末世营地 = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(JSON.stringify(playerSect || {}));
+    const 格式化关系状态 = React.useCallback((value?: string) => {
+        const text = String(value || '').trim() || '萍水相逢';
+        return 当前组织为末世营地 ? text.replace(/同门/g, '同伴').replace(/门派成员/g, '营地成员') : text;
+    }, [当前组织为末世营地]);
+    const NPC已属当前组织 = React.useCallback((npc: any): boolean => {
+        if (!npc || !组织名称 || ['none', '无', '无门无派', '未加入', '散人'].includes(组织名称)) return false;
+        const text = [
+            npc?.身份,
+            npc?.关系,
+            npc?.关系状态,
+            npc?.简介,
+            npc?.记忆,
+            npc?.当前任务,
+            npc?.位置路径,
+            npc?.所属组织,
+            npc?.所属门派,
+            npc?.所属营地
+        ].filter(Boolean).join(' ');
+        if (npc?.是否队友 === true) return true;
+        if (text.includes(组织名称)) return true;
+        return 当前组织为末世营地
+            ? /同营|营地成员|营地队友|队伍成员|同队|同伴|同事/u.test(text)
+            : /同门|门派成员|宗门成员|同宗|同派/u.test(text);
+    }, [组织名称, 当前组织为末世营地]);
     const [imageViewer, setImageViewer] = useState<{ src: string; alt: string } | null>(null);
     const [imageViewerZoom, setImageViewerZoom] = useState(1);
     const [stealTargets, setStealTargets] = useState<Record<string, string>>({});
@@ -771,7 +799,7 @@ const MobileSocial: React.FC<Props> = ({
                                                     text-[8px] 控这一行整体字号 */}
                                                 <div className="flex min-w-0 items-center gap-1 text-[8px] leading-none">
                                                     <div className="shrink-0 text-pink-300/85">
-                                                        {npc.关系状态 || '萍水相逢'}
+                                                        {格式化关系状态(npc.关系状态)}
                                                     </div>
                                                     <div className="min-w-0 shrink text-gray-400 truncate">
                                                         {npc.身份 || '江湖散人'}
@@ -961,20 +989,25 @@ const MobileSocial: React.FC<Props> = ({
                                                     </svg>
                                                     {currentNPC.是否主要角色 ? '已设重要' : '设为重要'}
                                                 </button>
-                                                {onRecruitToSect && (
+                                                {onRecruitToSect && (() => {
+                                                    const 已属当前组织 = NPC已属当前组织(currentNPC);
+                                                    const inviteLabel = 当前组织为末世营地 ? '邀入营地' : '邀入门派';
+                                                    return (
                                                     <button
                                                         type="button"
                                                         onClick={() => onRecruitToSect(currentNPC)}
-                                                        disabled={当前角色已死亡}
+                                                        disabled={当前角色已死亡 || 已属当前组织}
+                                                        title={已属当前组织 ? (当前组织为末世营地 ? '已是同营地' : '已是同门') : inviteLabel}
                                                         className={`flex h-[2.7rem] w-full items-center justify-center rounded-[1.35rem] border px-4 text-sm font-serif tracking-[0.04em] transition-colors ${
-                                                            当前角色已死亡
+                                                            当前角色已死亡 || 已属当前组织
                                                                 ? 'cursor-not-allowed border-gray-800 bg-black/45 text-gray-600'
                                                                 : 'border-cyan-500/35 bg-cyan-950/20 text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:bg-cyan-800/30'
                                                         }`}
                                                     >
-                                                        邀入门派
+                                                        {已属当前组织 ? (当前组织为末世营地 ? '已在营地' : '已入门派') : inviteLabel}
                                                     </button>
-                                                )}
+                                                    );
+                                                })()}
                                                 {onStealFromNpc && (
                                                     <div className="flex w-full overflow-hidden rounded-[1.35rem] border border-amber-500/35 bg-amber-950/15 text-amber-100">
                                                         <select
@@ -1058,7 +1091,7 @@ const MobileSocial: React.FC<Props> = ({
                                                         px-2.5 py-1 控框大小
                                                         text-[10px] 控字号 */}
                                                     <div className="inline-flex w-fit whitespace-nowrap items-center rounded-lg border border-wuxia-gold/20 bg-black/35 px-1 py-0.5 text-[8px] font-bold leading-none text-wuxia-gold/90">
-                                                        {currentNPC.关系状态 || '萍水相逢'}
+                                                        {格式化关系状态(currentNPC.关系状态)}
                                                     </div>
                                                     {/* 好感度大框：
                                                         px-2 py-1.5 控框大小

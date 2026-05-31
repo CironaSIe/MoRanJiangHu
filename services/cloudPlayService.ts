@@ -907,6 +907,12 @@ export const 上传单个存档到云端 = async (
 };
 
 let 后台同步队列: Promise<unknown> = Promise.resolve();
+let tg图床后台同步冷却到 = 0;
+
+const 是否TG图床临时不可用 = (error: unknown): boolean => {
+    const message = error instanceof Error ? error.message : String(error || '');
+    return /TG图床上游暂时不可用|HTTP\s+5\d\d|error code:\s*1102|Service Unavailable/i.test(message);
+};
 
 export const 后台同步存档到云端 = (save: 存档结构): void => {
     const mode = 读取云端游玩存储模式();
@@ -926,13 +932,18 @@ export const 后台同步存档到云端 = (save: 存档结构): void => {
     if (mode !== 'tg') return;
     const session = 读取云端游玩会话();
     if (!session) return;
+    if (Date.now() < tg图床后台同步冷却到) return;
     后台同步队列 = 后台同步队列
         .catch(() => undefined)
         .then(async () => {
+            if (Date.now() < tg图床后台同步冷却到) return;
             const result = await 上传单个存档到云端(session, save);
             if (result.session) 保存会话(result.session);
         })
         .catch((error) => {
+            if (是否TG图床临时不可用(error)) {
+                tg图床后台同步冷却到 = Date.now() + 2 * 60 * 1000;
+            }
             console.warn('云端游玩自动同步失败:', error);
         });
 };

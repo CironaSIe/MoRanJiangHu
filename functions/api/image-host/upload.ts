@@ -23,11 +23,12 @@ const normalizeImageHostBase = (value: unknown): string => {
     }
 };
 
-const buildJsonResponse = (payload: unknown, status = 200): Response => (
+const buildJsonResponse = (payload: unknown, status = 200, extraHeaders?: Record<string, string>): Response => (
     new Response(JSON.stringify(payload), {
         status,
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
+            ...(extraHeaders || {}),
             ...CORS_HEADERS
         }
     })
@@ -96,15 +97,20 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
                 contentLength,
                 snippet
             });
+            const elapsedMs = Date.now() - startedAt;
             return buildJsonResponse({
                 success: false,
                 error: snippet || `上游图床返回 HTTP ${upstreamResponse.status}`,
                 requestId,
                 upstreamStatus: upstreamResponse.status,
                 upstreamStatusText: upstreamResponse.statusText,
-                elapsedMs: Date.now() - startedAt,
+                elapsedMs,
                 contentLength
-            }, upstreamResponse.status);
+            }, upstreamResponse.status, {
+                'X-Moran-Image-Proxy-Request-Id': requestId,
+                'X-Moran-Image-Upstream-Status': String(upstreamResponse.status),
+                'X-Moran-Image-Proxy-Elapsed-Ms': String(elapsedMs)
+            });
         }
 
         console.info('[image-host-upload] proxy done', {
@@ -124,12 +130,16 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
             elapsedMs: Date.now() - startedAt,
             error: error?.message || String(error)
         });
+        const elapsedMs = Date.now() - startedAt;
         return buildJsonResponse({
             success: false,
             error: 'Image host upload proxy failed',
             detail: error?.message || String(error),
             requestId,
-            elapsedMs: Date.now() - startedAt
-        }, 502);
+            elapsedMs
+        }, 502, {
+            'X-Moran-Image-Proxy-Request-Id': requestId,
+            'X-Moran-Image-Proxy-Elapsed-Ms': String(elapsedMs)
+        });
     }
 }

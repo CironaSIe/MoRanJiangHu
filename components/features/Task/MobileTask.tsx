@@ -6,16 +6,33 @@ interface Props {
     tasks: 任务结构[];
     onDeleteTask?: (taskIndex: number) => void;
     onClose: () => void;
+    playerSect?: any;
 }
 
-const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
+const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }) => {
     const [filter, setFilter] = useState<任务类型 | '全部'>('全部');
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const safeTasks = 规范化任务列表自动结算(Array.isArray(tasks) ? tasks : []) as 任务结构[];
+    const isApocalypseSect = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(JSON.stringify(playerSect || {}));
+    const sectName = String(playerSect?.名称 || '').trim();
+    const displayType = (type: string) => isApocalypseSect && type === '门派' ? '营地' : type;
+    const getTaskLabels = (task: any): string[] => {
+        const labels = [
+            task?.类型,
+            ...(Array.isArray(task?.标签) ? task.标签 : []),
+            ...(Array.isArray(task?.任务标签) ? task.任务标签 : [])
+        ].map((item) => String(item || '').trim()).filter(Boolean);
+        const text = [task?.标题, task?.描述, task?.发布人, task?.发布地点, task?.剧情暗线].filter(Boolean).join(' ');
+        if (isApocalypseSect && (task?.类型 === '门派' || text.includes(sectName) || /营地|据点|避难所|安全点|车队/u.test(text))) {
+            labels.push('营地');
+        }
+        return Array.from(new Set(labels.map(displayType)));
+    };
+    const filterMatches = (task: any) => filter === '全部' || getTaskLabels(task).includes(displayType(filter));
 
     const filteredTaskEntries = safeTasks
         .map((task, index) => ({ task, originalIndex: index }))
-        .filter(({ task }) => filter === '全部' || task.类型 === filter);
+        .filter(({ task }) => filterMatches(task));
 
     const currentTaskEntry = filteredTaskEntries[selectedIdx];
     const currentTask = currentTaskEntry?.task;
@@ -71,7 +88,7 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
                                         : 'text-gray-500 border-gray-800'
                                 }`}
                             >
-                                {t}
+                                {t === '全部' ? t : displayType(t)}
                             </button>
                         ))}
                     </div>
@@ -109,7 +126,9 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
                             </div>
                             <p className="text-sm text-gray-300 font-serif leading-relaxed">“{currentTask.描述}”</p>
                             <div className="flex gap-2 flex-wrap">
-                                <span className={`text-[9px] px-2 py-0.5 rounded border ${getTypeLabelColor(currentTask.类型)}`}>{currentTask.类型}</span>
+                                {getTaskLabels(currentTask).slice(0, 4).map((label) => (
+                                    <span key={label} className={`text-[9px] px-2 py-0.5 rounded border ${getTypeLabelColor(label === '营地' ? '门派' : label)}`}>{label}</span>
+                                ))}
                             </div>
                         </div>
                     ) : (
@@ -163,9 +182,11 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose }) => {
                                         <span className={`text-[10px] ${getStatusColor(task.当前状态)}`}>{task.当前状态}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className={`text-[9px] px-1.5 rounded border ${getTypeLabelColor(task.类型)}`}>
-                                            {task.类型}
-                                        </span>
+                                        {getTaskLabels(task).slice(0, 2).map((label) => (
+                                            <span key={label} className={`text-[9px] px-1.5 rounded border ${getTypeLabelColor(label === '营地' ? '门派' : label)}`}>
+                                                {label}
+                                            </span>
+                                        ))}
                                         <span className="text-[10px] text-gray-500 truncate">
                                             {task.发布人} · {task.发布地点}
                                         </span>

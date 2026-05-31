@@ -17,7 +17,8 @@ import {
     构建运行时额外提示词,
     构建文生图运行时额外提示词,
     默认NSFW模式提示词,
-    默认文生图NSFW模式提示词
+    默认文生图NSFW模式提示词,
+    默认亲密边界机制提示词
 } from '../prompts/runtime/nsfw';
 
 const 构建测试接口设置 = (overrides?: Partial<{
@@ -379,7 +380,7 @@ describe('获取NSFW文生图接口配置', () => {
         expect(result?.自动切换提示).toContain('已自动切换到在线 ComfyUI 后端');
     });
 
-    it('prefers selected discovered ComfyUI URL over stale saved main URL', async () => {
+    it('keeps manual ComfyUI URL over stale selected discovered main URL', async () => {
         await 模拟已发现ComfyUI后端([
             { id: 'backend-old', url: 'https://old-8188.cnb.run', lastHeartbeatAt: '2026-05-13T16:00:00.000Z' },
             { id: 'backend-new', url: 'https://new-8188.cnb.run/', lastHeartbeatAt: '2026-05-13T17:00:00.000Z' }
@@ -392,10 +393,10 @@ describe('获取NSFW文生图接口配置', () => {
 
         const result = 获取文生图接口配置(settings);
 
-        expect(result?.baseUrl).toBe('https://new-8188.cnb.run');
+        expect(result?.baseUrl).toBe('https://old-8188.cnb.run');
     });
 
-    it('prefers selected discovered ComfyUI URL for independent scene image config', async () => {
+    it('keeps manual ComfyUI URL for independent scene image config', async () => {
         await 模拟已发现ComfyUI后端([
             { id: 'scene-new', url: 'https://scene-new-8188.cnb.run/', lastHeartbeatAt: '2026-05-13T17:00:00.000Z' }
         ]);
@@ -410,10 +411,10 @@ describe('获取NSFW文生图接口配置', () => {
 
         const result = 获取场景文生图接口配置(settings);
 
-        expect(result?.baseUrl).toBe('https://scene-new-8188.cnb.run');
+        expect(result?.baseUrl).toBe('https://scene-old-8188.cnb.run');
     });
 
-    it('prefers selected discovered ComfyUI URL for independent NSFW image config', async () => {
+    it('keeps manual ComfyUI URL for independent NSFW image config', async () => {
         await 模拟已发现ComfyUI后端([
             { id: 'nsfw-new', url: 'https://nsfw-new-8188.cnb.run/', lastHeartbeatAt: '2026-05-13T17:00:00.000Z' }
         ]);
@@ -428,7 +429,7 @@ describe('获取NSFW文生图接口配置', () => {
 
         const result = 获取NSFW文生图接口配置(settings);
 
-        expect(result?.baseUrl).toBe('https://nsfw-new-8188.cnb.run');
+        expect(result?.baseUrl).toBe('https://nsfw-old-8188.cnb.run');
     });
 
     it('uses scene config as fallback for NSFW when scene backend supports it', () => {
@@ -519,6 +520,8 @@ describe('NSFW prompt generation', () => {
         expect(result).toContain('action + senses + body reaction + psychological change + relationship tension');
         expect(result).toContain('invitation/approach');
         expect(result).toContain('afterglow');
+        expect(result).toContain('ASD反轻浮机制');
+        expect(result).toContain('ASD部位阈值');
     });
 
     it('构建运行时额外提示词 returns empty when NSFW disabled', () => {
@@ -575,7 +578,14 @@ describe('NSFW prompt generation', () => {
 
     it('构建运行时额外提示词 handles empty custom prompt', () => {
         const result = 构建运行时额外提示词('', { 启用NSFW模式: true });
+        expect(result).toContain(默认NSFW模式提示词);
+        expect(result).toContain(默认亲密边界机制提示词);
+    });
+
+    it('构建运行时额外提示词 allows disabling intimacy boundary rules', () => {
+        const result = 构建运行时额外提示词('', { 启用NSFW模式: true, 启用亲密边界机制: false });
         expect(result).toBe(默认NSFW模式提示词);
+        expect(result).not.toContain('ASD反轻浮机制');
     });
 
     it('构建文生图运行时额外提示词 handles empty custom prompt', () => {

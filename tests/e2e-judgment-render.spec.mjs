@@ -42,7 +42,9 @@ const run = async () => {
                 judgmentText: judgmentCards.map((node) => node.textContent || '').join('\n'),
                 narratorText: narratorBlocks.map((node) => node.textContent || '').join('\n'),
                 leakedBodyInsideJudgment: judgmentCards.some((node) => (node.textContent || '').includes(leakedBody)),
-                leakedBodyInsideNarrator: narratorBlocks.some((node) => (node.textContent || '').includes(leakedBody))
+                leakedBodyInsideNarrator: narratorBlocks.some((node) => (node.textContent || '').includes(leakedBody)),
+                thoughtVisible: judgmentCards.some((node) => (node.textContent || '').includes('观察与逻辑分析')),
+                parsedTargetVisible: judgmentCards.some((node) => (node.textContent || '').includes('玩家:杨培强'))
             };
         });
 
@@ -51,6 +53,8 @@ const run = async () => {
             || result.narratorBlockCount < 2
             || result.leakedBodyInsideJudgment
             || !result.leakedBodyInsideNarrator
+            || !result.thoughtVisible
+            || !result.parsedTargetVisible
             || !result.judgmentText.includes('成功')
             || !result.judgmentText.includes('洞察')
         ) {

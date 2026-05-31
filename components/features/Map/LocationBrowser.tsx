@@ -212,6 +212,8 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                         env={env}
                         viewLocationName={currentViewNode?.名称 || ''}
                         viewPathNames={breadcrumb.map((node) => node.名称)}
+                        viewDescription={currentViewNode?.描述 || ''}
+                        viewNodeNpcs={selectedNodeNpcs}
                     />
                 </div>
             </div>

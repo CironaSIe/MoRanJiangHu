@@ -67,4 +67,18 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
 
         expect(oral.some((item: any) => item.sender === '俞月荷' && item.text.includes('三百点'))).toBe(true);
     });
+
+    it('promotes quoted oral speech after voice and gaze cues without explicit said tags', () => {
+        const logs = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: [
+                '秦映雪的声音里透着一股被废土现实反复踩踏后的沙哑与无奈，“制式消音器？那玩意儿早在两年前的防线溃败里就打光了。现在整个废土行省，能拿出成套消音装备的，除了核心区的猎鹰连，就只有那些垄断了黑市的大商队。”',
+                '“这是维修工秦砚舟上个月捣鼓出来的土法子。用绝缘胶布死死缠在枪管上，里面塞满破布和钢丝球。能压住前两发的枪口焰和部分噪音，但第三发开始，里面的破布就会被高温点燃，甚至可能导致炸膛。”秦映雪盯着你，眼神冷厉，“如果你觉得这玩意儿比你的短刀更靠谱，你可以拿走。但我个人的建议是，不到万不得已，不要开枪。”',
+                '你的刀，才是最安静的消音器。'
+            ].join('\n\n')
+        }] as any);
+
+        expect(logs.some((item: any) => item.sender === '秦映雪' && item.text.includes('制式消音器'))).toBe(true);
+        expect(logs.some((item: any) => item.sender === '秦映雪' && item.text.includes('如果你觉得这玩意儿'))).toBe(true);
+    });
 });

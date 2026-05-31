@@ -990,7 +990,13 @@ const App: React.FC = () => {
                     : 1800 + (index - priorityCount) * 320;
                 window.setTimeout(() => {
                     if (cancelled) return;
-                    void target.preload?.();
+                    void target.preload?.().catch((error) => {
+                        if (isDynamicImportFetchError(error)) {
+                            console.warn('Lazy module warmup skipped after version update:', target.importKey, error);
+                            return;
+                        }
+                        console.warn('Lazy module warmup failed:', target.importKey, error);
+                    });
                 }, delay);
             });
         };
@@ -1839,6 +1845,34 @@ const App: React.FC = () => {
         void actions.performAutoSave?.({ role: nextCharacter, force: true });
         actions.pushNotification({ title: '藏经阁学习成功', message: `已习得「${learnedSkill.名称}」，可在功法页查看。`, tone: 'success' });
     }, [actions, setters, state.玩家门派?.名称, state.角色]);
+    const handleClaimMonthlyStipend = React.useCallback(() => {
+        const sect = state.玩家门派;
+        const rule = sect?.月俸规则;
+        if (!sect || !rule) return;
+        const match = String(state.环境?.时间 || '').match(/^(\d{1,6})[:/-](\d{1,2})/);
+        const year = match ? Number(match[1]) : 1;
+        const month = match ? Number(match[2]) : 1;
+        const monthKey = `${year}:${String(month).padStart(2, '0')}`;
+        if (String((sect as any).上次俸禄月份 || '').trim() === monthKey) {
+            actions.pushNotification({ title: '本月已领取', message: '月俸已经领取过了，下月再来。', tone: 'info' });
+            return;
+        }
+        const amount = Math.max(0,
+            Number(rule.基础俸禄 || 0)
+            + Math.floor(Number(sect.累计贡献 || sect.玩家贡献 || 0) * Number(rule.贡献系数 || 0))
+            + Math.floor(Number(sect.弟子总数 || 0) * Number(rule.规模系数 || 0))
+        );
+        const nextSect = { ...sect, 上次俸禄月份: monthKey };
+        const nextCharacter = { ...state.角色, 金钱: Math.max(0, Number(state.角色?.金钱 || 0)) + amount };
+        setters.setPlayerSect(nextSect);
+        setters.setCharacter(nextCharacter);
+        void actions.performAutoSave?.({ role: nextCharacter, sect: nextSect, force: true });
+        actions.pushNotification({
+            title: '月俸已领取',
+            message: amount > 0 ? `已到账 ${amount}。` : '本月领取记录已更新。',
+            tone: 'success'
+        });
+    }, [actions, setters, state.玩家门派, state.环境?.时间, state.角色]);
     const handleLearnNpcSkill = React.useCallback((npc: any, skill: any) => {
         const npcName = String(npc?.姓名 || npc?.名称 || '该人物').trim();
         const skillName = String(skill?.名称 || '技艺').trim();
@@ -1862,10 +1896,13 @@ const App: React.FC = () => {
     }, [actions, state.角色?.技艺]);
     const handleRecruitNpcToSect = React.useCallback((npc: any) => {
         const npcName = String(npc?.姓名 || npc?.名称 || '此人').trim();
-        const sectName = String(state.玩家门派?.名称 || state.角色?.所属门派ID || '我的门派').trim();
-        insertChatDraft(`[门派招揽] 我尝试邀请「${npcName}」加入「${sectName}」。请结合对方身份、关系、利益诉求、当前剧情、门派等级/规模/名声、我的交涉表现与相关技艺，判定是否成功，并在成功时更新社交、玩家门派重要成员、弟子总数、战力分布和门派等级。`);
+        const sectName = String(state.玩家门派?.名称 || state.角色?.所属门派ID || '我的组织').trim();
+        const isApocalypseSect = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(JSON.stringify(state.玩家门派 || {}));
+        const actionLabel = isApocalypseSect ? '营地邀入' : '门派招揽';
+        const orgLabel = isApocalypseSect ? '营地' : '门派';
+        insertChatDraft(`[${actionLabel}] 我尝试邀请「${npcName}」加入「${sectName}」。请结合对方身份、关系、利益诉求、当前剧情、${orgLabel}等级/规模/名声、我的交涉表现与相关技艺，判定是否成功，并在成功时更新社交、玩家门派重要成员、弟子总数、战力分布和${orgLabel}等级；如果对方本来就是同${isApocalypseSect ? '营地' : '门派'}成员，正文应明确说明无需重复邀入，只同步其关系状态。`);
         setters.setShowSocial(false);
-    }, [insertChatDraft, setters, state.玩家门派?.名称, state.角色?.所属门派ID]);
+    }, [insertChatDraft, setters, state.玩家门派, state.角色?.所属门派ID]);
     const handleStealFromNpc = React.useCallback((npc: any, target?: string) => {
         const npcName = String(npc?.姓名 || npc?.名称 || '目标').trim();
         const targetText = String(target || '随机随身物品').trim() || '随机随身物品';
@@ -3809,7 +3846,8 @@ const App: React.FC = () => {
                                      onDeleteNpc={actions.removeNpc}
                                      onLearnSkill={handleLearnNpcSkill}
                                      onRecruitToSect={handleRecruitNpcToSect}
-                                     onStealFromNpc={handleStealFromNpc}
+                                    onStealFromNpc={handleStealFromNpc}
+                                    playerSect={state.玩家门派}
                                  />
                             ) : (
                                 <SocialModal
@@ -3827,6 +3865,7 @@ const App: React.FC = () => {
                                      onLearnSkill={handleLearnNpcSkill}
                                      onRecruitToSect={handleRecruitNpcToSect}
                                      onStealFromNpc={handleStealFromNpc}
+                                     playerSect={state.玩家门派}
                                  />
                             )}
                         </懒加载边界>
@@ -3940,6 +3979,7 @@ const App: React.FC = () => {
                                     env={state.环境}
                                     onOpenNpc={openNpcDetailFromRecord}
                                     onLearnBook={handleLearnSectBook}
+                                    onClaimMonthlyStipend={handleClaimMonthlyStipend}
                                     learnedBookIds={learnedSectBookIds}
                                     onClose={() => setters.setShowSect(false)}
                                 />
@@ -3949,6 +3989,7 @@ const App: React.FC = () => {
                                     env={state.环境}
                                     onOpenNpc={openNpcDetailFromRecord}
                                     onLearnBook={handleLearnSectBook}
+                                    onClaimMonthlyStipend={handleClaimMonthlyStipend}
                                     learnedBookIds={learnedSectBookIds}
                                     onClose={() => setters.setShowSect(false)}
                                 />
@@ -3962,12 +4003,14 @@ const App: React.FC = () => {
                                 <MobileTask
                                     tasks={state.任务列表}
                                     onDeleteTask={actions.removeTask}
+                                    playerSect={state.玩家门派}
                                     onClose={() => setters.setShowTask(false)}
                                 />
                             ) : (
                                 <TaskModal
                                     tasks={state.任务列表}
                                     onDeleteTask={actions.removeTask}
+                                    playerSect={state.玩家门派}
                                     onClose={() => setters.setShowTask(false)}
                                 />
                             )}
