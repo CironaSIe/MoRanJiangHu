@@ -1026,7 +1026,7 @@ export const 导出小说拆分分享数据 = async (options?: {
 
 export const 导入小说拆分分享数据 = async (
     file: Blob,
-    options?: { includeRawText?: boolean }
+    options?: { includeRawText?: boolean; titleOverride?: string; workNameOverride?: string }
 ): Promise<{
     importedDatasetIds: string[];
     datasetCount: number;
@@ -1113,6 +1113,8 @@ export const 导入小说拆分分享数据 = async (
             规范化小说拆分数据集(rawDataset),
             rawMap.get(读取文本(rawDataset?.id).trim())
         );
+        const titleOverride = sourceDatasets.length === 1 ? 读取文本(options?.titleOverride).trim() : '';
+        const workNameOverride = sourceDatasets.length === 1 ? 读取文本(options?.workNameOverride || options?.titleOverride).trim() : '';
         const nextDatasetId = 生成ID('novel_dataset');
         const chapterIdMap = new Map<string, string>();
         const segmentIdMap = new Map<string, string>();
@@ -1125,8 +1127,8 @@ export const 导入小说拆分分享数据 = async (
             id: nextDatasetId,
             来源类型: 'shared_json',
             schemaVersion: Math.max(小说拆分数据集版本, normalizedDataset.schemaVersion || 1),
-            标题: normalizedDataset.标题 || normalizedDataset.作品名 || `导入数据集 ${datasetIndex + 1}`,
-            作品名: normalizedDataset.作品名 || normalizedDataset.标题 || `导入作品 ${datasetIndex + 1}`,
+            标题: titleOverride || normalizedDataset.标题 || normalizedDataset.作品名 || `导入数据集 ${datasetIndex + 1}`,
+            作品名: workNameOverride || normalizedDataset.作品名 || normalizedDataset.标题 || `导入作品 ${datasetIndex + 1}`,
             激活注入: false,
             章节列表: nextChapters,
             总章节数: nextChapters.length,

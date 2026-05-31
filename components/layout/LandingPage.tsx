@@ -4,9 +4,12 @@ import { GitHubSyncButton } from '../features/Auth/GitHubSyncButton';
 import { RELEASE_INFO } from '../../data/releaseInfo';
 import { checkForAppUpdate, downloadLatestApkPackage, openExternalUrl } from '../../services/appUpdate';
 import { fetchOnlinePresencePublicStats, type OnlinePresencePublicStats } from '../../services/onlinePresence';
+import { 读取云端游玩会话 } from '../../services/cloudPlayService';
 import { isNativeCapacitorEnvironment, setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
 import { ThemePreset } from '../../types';
 import CreativeWorkshopModal from '../features/Workshop/CreativeWorkshopModal';
+
+const WORKSHOP_PENDING_LOGIN_KEY = 'creative_workshop_pending_login';
 
 const hasFullscreenElement = () => {
     const doc = document as Document & {
@@ -67,6 +70,7 @@ interface Props {
     onImageManager: () => void;
     onWorldbookManager: () => void;
     onNovelDecomposition: () => void;
+    onRequireWorkshopLogin?: () => void;
     onSettings: () => void;
     onOpenReleaseNotes: () => void;
     currentTheme: ThemePreset;
@@ -391,6 +395,7 @@ const LandingPage: React.FC<Props> = ({
     onImageManager,
     onWorldbookManager,
     onNovelDecomposition,
+    onRequireWorkshopLogin,
     onSettings,
     onOpenReleaseNotes,
     currentTheme,
@@ -412,6 +417,22 @@ const LandingPage: React.FC<Props> = ({
         }, 16000);
         return () => window.clearInterval(timer);
     }, []);
+
+    React.useEffect(() => {
+        const timer = window.setInterval(() => {
+            if (localStorage.getItem(WORKSHOP_PENDING_LOGIN_KEY) !== 'true') return;
+            if (!读取云端游玩会话()) return;
+            localStorage.removeItem(WORKSHOP_PENDING_LOGIN_KEY);
+            setWorkshopOpen(true);
+        }, 800);
+        return () => window.clearInterval(timer);
+    }, []);
+
+    const handleRequireWorkshopLogin = React.useCallback(() => {
+        localStorage.setItem(WORKSHOP_PENDING_LOGIN_KEY, 'true');
+        setWorkshopOpen(false);
+        onRequireWorkshopLogin?.();
+    }, [onRequireWorkshopLogin]);
 
     React.useEffect(() => {
         const syncSystemBars = () => {
@@ -777,6 +798,7 @@ const LandingPage: React.FC<Props> = ({
                 open={workshopOpen}
                 onClose={() => setWorkshopOpen(false)}
                 onNovelDecomposition={onNovelDecomposition}
+                onRequireLogin={handleRequireWorkshopLogin}
             />
         </div>
     );

@@ -11,8 +11,9 @@ const sortValue = (value: unknown): JsonLike => {
     }
     if (value && typeof value === 'object') {
         return Object.keys(value as Record<string, unknown>).sort().reduce<Record<string, JsonLike>>((acc, key) => {
-            const sorted = sortValue((value as Record<string, unknown>)[key]);
-            if (sorted !== undefined) acc[key] = sorted;
+            const raw = (value as Record<string, unknown>)[key];
+            const sorted = sortValue(raw);
+            if (sorted !== undefined && raw !== undefined && raw !== null) acc[key] = sorted;
             return acc;
         }, {});
     }

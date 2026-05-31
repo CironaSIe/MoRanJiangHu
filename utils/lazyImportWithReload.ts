@@ -11,7 +11,8 @@ export const isDynamicImportFetchError = (error: unknown): boolean => {
         ? `${error.name} ${error.message}`
         : String(error || '');
 
-    return DYNAMIC_IMPORT_FAILURE_PATTERNS.some((pattern) => message.includes(pattern));
+    return message.includes('DynamicImportDeferredReloadError')
+        || DYNAMIC_IMPORT_FAILURE_PATTERNS.some((pattern) => message.includes(pattern));
 };
 
 export const lazyImportWithReload = async <T>(
