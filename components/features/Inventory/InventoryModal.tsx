@@ -243,7 +243,7 @@ const InventoryModal: React.FC<Props> = ({ character, openingConfig, onClose, on
     const selectedEquipSlots = selectedItem ? 获取物品可装备槽位(selectedItem) : [];
     const selectedCanEquip = selectedItem ? 是否可装备物品(selectedItem) : false;
     const selectedCanUse = getSafeText(selectedItem?.类型) === '消耗品';
-    const selectedDetailGroups = selectedItem ? 获取物品明细分组(selectedItem) : [];
+    const selectedDetailGroups = selectedItem ? 获取物品明细分组(selectedItem, { 价值单位: valueUnit }) : [];
 
     const applyCharacterChange = (nextCharacter: any, selectedItemRef?: string) => {
         onCharacterChange?.(nextCharacter);

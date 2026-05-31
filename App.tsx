@@ -1274,7 +1274,8 @@ const App: React.FC = () => {
         const candidates: Array<{
             key: string;
             item: 游戏物品;
-            sourceLocation: '背包';
+            sourceLocation: '背包' | '拍卖行';
+            auctionId?: string;
         }> = [];
 
         bagItems.forEach((item: 游戏物品) => {
@@ -1284,6 +1285,18 @@ const App: React.FC = () => {
                 key: 获取物品自动生图Key('bag', item),
                 item,
                 sourceLocation: '背包'
+            });
+        });
+        const auctionItems = Array.isArray(auctionHouseState?.拍卖品列表) ? auctionHouseState.拍卖品列表 : [];
+        auctionItems.forEach((entry: any) => {
+            const item = entry?.物品 as 游戏物品 | undefined;
+            if (!item || entry?.状态 !== '上架中') return;
+            if (物品已有可用图标(item)) return;
+            candidates.push({
+                key: 获取物品自动生图Key('auction', item, entry?.ID),
+                item,
+                sourceLocation: '拍卖行',
+                auctionId: entry?.ID
             });
         });
 
@@ -1308,6 +1321,18 @@ const App: React.FC = () => {
                         void actions.performAutoSave?.({ role: nextCharacter, force: true });
                     }
                 }
+                return;
+            }
+            if (candidate.sourceLocation === '拍卖行' && candidate.auctionId) {
+                setAuctionHouseState((prev) => {
+                    const list = Array.isArray(prev?.拍卖品列表) ? prev.拍卖品列表 : [];
+                    const nextList = list.map((entry: any) => entry?.ID === candidate.auctionId ? { ...entry, 物品: nextItem } : entry);
+                    const changed = nextList.some((entry: any, index: number) => entry !== list[index]);
+                    if (!changed) return prev;
+                    const nextState = { ...prev, 拍卖品列表: nextList };
+                    if (shouldSave) 保存拍卖行状态(nextState, auctionHouseScope);
+                    return nextState;
+                });
             }
         };
 
@@ -1437,7 +1462,7 @@ const App: React.FC = () => {
             autoItemImageScheduledRef.current.delete(candidate.key);
             window.clearTimeout(idleTimer);
         };
-    }, [state.view, state.apiConfig, state.角色, setters, actions, meta.imageGenerationQueue, meta.sceneImageQueue]);
+    }, [state.view, state.apiConfig, state.角色, setters, actions, meta.imageGenerationQueue, meta.sceneImageQueue, auctionHouseState, auctionHouseScope]);
 
     const 当前题材配置 = React.useMemo(() => 获取题材模式配置(state.开局配置?.题材模式), [state.开局配置?.题材模式]);
     const 当前题材市场名称 = 当前题材配置.auctionName;
@@ -3912,6 +3937,7 @@ const App: React.FC = () => {
                             {isMobile ? (
                                 <MobileSect
                                     sectData={state.玩家门派}
+                                    env={state.环境}
                                     onOpenNpc={openNpcDetailFromRecord}
                                     onLearnBook={handleLearnSectBook}
                                     learnedBookIds={learnedSectBookIds}
@@ -3920,6 +3946,7 @@ const App: React.FC = () => {
                             ) : (
                                 <SectModal
                                     sectData={state.玩家门派}
+                                    env={state.环境}
                                     onOpenNpc={openNpcDetailFromRecord}
                                     onLearnBook={handleLearnSectBook}
                                     learnedBookIds={learnedSectBookIds}

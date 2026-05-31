@@ -430,6 +430,7 @@ export const useGame = () => {
     const 角色锚点补全进行中Ref = useRef<Set<string>>(new Set());
     const 主要角色资源补全签名Ref = useRef('');
     const 全部NPC头像补全签名Ref = useRef('');
+    const 全部NPC头像补全进行中Ref = useRef(false);
     const 生图存档作用域Ref = useRef(`image_scope_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const 生图存档AbortControllerRef = useRef<AbortController>(new AbortController());
     const [NPC生图任务队列, setNPC生图任务队列] = useState<NPC生图任务记录[]>([]);
@@ -456,6 +457,7 @@ export const useGame = () => {
         NPC自动香闺秘档生图签名Ref.current.clear();
         角色锚点补全进行中Ref.current.clear();
         全部NPC头像补全签名Ref.current = '';
+        全部NPC头像补全进行中Ref.current = false;
         setNPC生图任务队列([]);
         set场景生图任务队列([]);
         后台手动生图监控Ref.current = [];
@@ -1568,7 +1570,7 @@ export const useGame = () => {
         return {
             总开关: Boolean(feature?.文生图功能启用 || 自动任务已开启),
             NPC开关: Boolean(feature?.NPC生图启用),
-            使用词组转化器: 当前后端 === 'novelai' || 当前后端 === 'comfyui'
+            使用词组转化器: 当前后端 === 'novelai'
                 ? true
                 : feature?.NPC生图使用词组转化器 !== false,
             性别筛选: feature?.NPC生图性别筛选 === '男' || feature?.NPC生图性别筛选 === '女' || feature?.NPC生图性别筛选 === '全部'
@@ -2233,6 +2235,10 @@ export const useGame = () => {
     const 自动补全全部NPC头像 = async (targetNpcList?: any[]) => {
         const config = 读取文生图功能配置();
         if (!config.总开关 || !config.NPC开关 || config.重要性筛选 !== '全部') return;
+        if (全部NPC头像补全进行中Ref.current) {
+            输出NPC自动生图调试('跳过：全部 NPC 头像补全仍在进行中');
+            return;
+        }
         const 单个NPC自动补全等待上限 = 90_000;
         const 当前社交列表 = Array.isArray(社交Ref.current) ? 社交Ref.current : [];
         const 原始列表 = 当前社交列表.length > 0
@@ -2243,6 +2249,7 @@ export const useGame = () => {
             .filter((npc: any) => !NPC是否已有成功构图(npc, ['头像']))
             .map((npc: any, index: number) => ({ npc, npcId: 获取NPC唯一标识(npc, index) }))
             .filter(({ npcId }) => Boolean(npcId));
+        if (npcList.length === 0) return;
         输出NPC自动生图调试('全部 NPC 头像补全候选', {
             total: 原始列表.length,
             candidates: npcList.map(({ npc, npcId }) => ({
@@ -2254,17 +2261,34 @@ export const useGame = () => {
             }))
         });
 
-        for (const { npc, npcId } of npcList) {
+        const workerCount = Math.min(3, Math.max(1, npcList.length));
+        let cursor = 0;
+        const runOne = async ({ npc, npcId }: { npc: any; npcId: string }) => {
             try {
-                await Promise.race([
+                const finished = await Promise.race([
                     执行NPC自动构图任务(npc, '头像', { force: true }),
                     new Promise<boolean>((resolve) => {
                         window.setTimeout(() => resolve(false), 单个NPC自动补全等待上限);
                     })
                 ]);
+                if (finished === false) {
+                    console.warn('全部NPC头像自动补全超时，已继续处理后续 NPC', npcId);
+                }
             } catch (error) {
                 console.warn('全部NPC头像自动补全失败', npcId, error);
             }
+        };
+        全部NPC头像补全进行中Ref.current = true;
+        try {
+            await Promise.all(Array.from({ length: workerCount }, async () => {
+                while (cursor < npcList.length) {
+                    const current = npcList[cursor];
+                    cursor += 1;
+                    if (current) await runOne(current);
+                }
+            }));
+        } finally {
+            全部NPC头像补全进行中Ref.current = false;
         }
     };
 
@@ -2326,9 +2350,6 @@ export const useGame = () => {
             await 自动补齐NPC香闺秘档部位(npc);
         }
 
-        if (自动补图已启用 && config.重要性筛选 === '全部') {
-            await 自动补全全部NPC头像(targetNpcList);
-        }
     };
 
     useEffect(() => {
@@ -2357,6 +2378,8 @@ export const useGame = () => {
 
     useEffect(() => {
         const feature = apiConfig?.功能模型占位 as any;
+        const missingSignature = 构建全部NPC头像缺口签名(社交);
+        if (!missingSignature) return;
         const resourceSignature = [
             feature?.文生图功能启用 === true ? 'image:on' : 'image:off',
             feature?.NPC生图启用 === true ? 'npc:on' : 'npc:off',
@@ -2365,24 +2388,13 @@ export const useGame = () => {
             feature?.文生图后端类型 || feature?.图片后端类型 || '',
             feature?.文生图模型使用模型 || '',
             feature?.文生图模型API地址 || '',
-            构建全部NPC头像缺口签名(社交)
+            missingSignature
         ].join('__');
-        if (!resourceSignature.endsWith('__')) {
-            if (全部NPC头像补全签名Ref.current === resourceSignature) return;
-            全部NPC头像补全签名Ref.current = resourceSignature;
-        }
+        if (全部NPC头像补全签名Ref.current === resourceSignature) return;
+        全部NPC头像补全签名Ref.current = resourceSignature;
 
         const timerId = window.setTimeout(() => {
-            void 自动补全全部NPC头像().finally(() => {
-                全部NPC头像补全签名Ref.current = '';
-                window.setTimeout(() => {
-                    const 当前社交列表 = Array.isArray(社交Ref.current) ? 社交Ref.current : [];
-                    if (!构建全部NPC头像缺口签名(当前社交列表)) return;
-                    void 自动补全全部NPC头像().finally(() => {
-                        全部NPC头像补全签名Ref.current = '';
-                    });
-                }, 5000);
-            });
+            void 自动补全全部NPC头像();
         }, 500);
         return () => window.clearTimeout(timerId);
     }, [社交, apiConfig]);

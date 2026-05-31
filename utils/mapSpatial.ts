@@ -1195,6 +1195,9 @@ const 从旧版字段派生地图空间 = (
             if (existing) {
                 if (!existing.描述 && params.描述) existing.描述 = params.描述;
                 if (!existing.叙事核心 && (params as any).叙事核心) existing.叙事核心 = (params as any).叙事核心;
+                if (!(existing as any).控制势力 && (params as any).控制势力) (existing as any).控制势力 = 取文本((params as any).控制势力);
+                if (!(existing as any).势力影响 && (params as any).势力影响) (existing as any).势力影响 = 取文本((params as any).势力影响);
+                if (!Array.isArray((existing as any).势力标签) && Array.isArray((params as any).势力标签)) (existing as any).势力标签 = (params as any).势力标签.map(取文本).filter(Boolean);
                 if (!existing.父级ID && params.父级ID) existing.父级ID = params.父级ID;
                 if ((existing.锚点坐标.x === 0 && existing.锚点坐标.y === 0) && params.锚点坐标) {
                     existing.锚点坐标 = params.锚点坐标;
@@ -1210,6 +1213,9 @@ const 从旧版字段派生地图空间 = (
             层级: params.层级,
             描述: 取文本(params.描述, 生成层级说明(params.层级, name)),
             叙事核心: 取文本((params as any).叙事核心),
+            控制势力: 取文本((params as any).控制势力),
+            势力影响: 取文本((params as any).势力影响),
+            势力标签: Array.isArray((params as any).势力标签) ? (params as any).势力标签.map(取文本).filter(Boolean) : [],
             归属: { ...params.归属 },
             父级ID: 取文本(params.父级ID),
             锚点坐标: params.锚点坐标 || { x: layers.length * 12, y: layers.length * 9 },

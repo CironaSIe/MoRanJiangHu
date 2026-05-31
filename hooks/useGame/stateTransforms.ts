@@ -513,15 +513,29 @@ const 规范化单个物品 = (rawItem: any, idx: number): any | null => {
 const 合并同名可堆叠物品 = (items: any[]): any[] => {
     const merged: any[] = [];
     const stackableIndex = new Map<string, number>();
+    const isSoftStackableSupply = (item: any): boolean => {
+        const text = [
+            item?.名称,
+            item?.类型,
+            item?.品质,
+            item?.描述,
+            item?.视觉描述
+        ].map((value) => 规范化文本(value)).join(' ');
+        return /净水片|净水|水片|饮水|水袋|水壶|瓶装水|绷带|纱布|敷料|止血|粗糙绷带|子弹|弹药|毫米|口径|弹匣|药片|药剂|抗生素|止痛|罐头|压缩饼干|电池|燃油|火柴|打火机|滤芯/.test(text);
+    };
     const buildKey = (item: any): string => [
         规范化文本(item?.名称).replace(/\s+/g, '').toLowerCase(),
         规范化文本(item?.类型),
-        规范化文本(item?.品质),
-        规范化非负数(item?.重量, 0)
+        规范化文本(item?.品质)
     ].join('|');
     items.forEach((item) => {
         if (!item) return;
-        const canStack = item.是否可堆叠 === true
+        const shouldTreatAsStackable = item.是否可堆叠 === true || isSoftStackableSupply(item);
+        if (shouldTreatAsStackable) {
+            item.是否可堆叠 = true;
+            item.最大堆叠 = Math.max(规范化整数(item?.最大堆叠, 0), 规范化整数(item?.堆叠数量, 1), 99);
+        }
+        const canStack = shouldTreatAsStackable
             && !是否唯一剧情道具(item)
             && !['武器', '防具', '饰品', '秘籍'].includes(规范化文本(item?.类型));
         if (!canStack) {

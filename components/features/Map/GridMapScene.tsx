@@ -38,6 +38,21 @@ const 点位文本 = (point: { x: number; y: number }) => `[${point.x.toFixed(1)
 
 const 是否层级索引可见 = (layer?: any | null): boolean => layer?.层级 !== '子地点';
 
+const 获取层级势力标签 = (layer?: any | null): string[] => {
+    if (!layer) return [];
+    const tags = [
+        取文本(layer?.控制势力),
+        ...(Array.isArray(layer?.势力标签) ? layer.势力标签.map(取文本) : [])
+    ].filter(Boolean);
+    return Array.from(new Set(tags)).slice(0, 4);
+};
+
+const 获取层级势力说明 = (layer?: any | null): string => (
+    [取文本(layer?.控制势力) ? `控制势力：${取文本(layer?.控制势力)}` : '', 取文本(layer?.势力影响)]
+        .filter(Boolean)
+        .join('\n')
+);
+
 const 路径文本 = (points: Array<{ x: number; y: number }>) => (
     points.map((point) => 点位文本(point)).join(' -> ')
 );
@@ -630,7 +645,7 @@ const GridMapScene: React.FC<Props> = ({
             ? `${selectedFeature.data?.描述 || '暂无描述。'}\n路径：${路径文本(selectedFeature.data?.路径点 || [])}`
             : selectedFeature?.kind === 'person'
                 ? `${selectedFeature.data?.描述 || '暂无描述。'}\n坐标：${点位文本(selectedFeature.data?.坐标 || { x: 0, y: 0 })}`
-                : `${selectedLayer?.描述 || '暂无描述。'}\n锚点：${selectedLayer ? 点位文本(selectedLayer.锚点坐标) : '无'}\n网格：${selectedLayer ? `${selectedLayer.网格宽度} x ${selectedLayer.网格高度}` : '无'}`;
+                : `${selectedLayer?.描述 || '暂无描述。'}${获取层级势力说明(selectedLayer) ? `\n${获取层级势力说明(selectedLayer)}` : ''}\n锚点：${selectedLayer ? 点位文本(selectedLayer.锚点坐标) : '无'}\n网格：${selectedLayer ? `${selectedLayer.网格宽度} x ${selectedLayer.网格高度}` : '无'}`;
 
     const layerSummaryText = selectedLayer
         ? `${取地图层级显示名(selectedLayer.层级)} / 锚点 ${点位文本(selectedLayer.锚点坐标)} / ${selectedLayer.网格宽度}x${selectedLayer.网格高度}`
@@ -643,6 +658,13 @@ const GridMapScene: React.FC<Props> = ({
                     <div className="min-w-0">
                         <div className="truncate font-serif text-2xl font-bold text-[#7a3f12]">{selectedLayer?.名称 || '未命中层级'}</div>
                         <div className="mt-1 truncate text-sm tracking-widest text-[#5f3a1e]">{env?.大地点 || '未知'} / {env?.中地点 || '未知'} / {env?.小地点 || '未知'} / {env?.具体地点 || '未知'}</div>
+                        {获取层级势力标签(selectedLayer).length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                {获取层级势力标签(selectedLayer).map((tag) => (
+                                    <span key={tag} className="rounded-full border border-[#b45309]/35 bg-[#fff1d6] px-2 py-0.5 text-[11px] text-[#7a3f12]">势力：{tag}</span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="rounded-full border border-[#c7a56a]/55 bg-[#fff1d6] px-3 py-1 text-xs text-[#7a3f12]">
@@ -994,6 +1016,13 @@ const GridMapScene: React.FC<Props> = ({
                                     <div className="mt-1 text-xs text-[#6f4a26]">
                                         建筑 {layer.建筑物ID列表.length} / 道路 {layer.道路ID列表.length} / 人物 {layer.人物ID列表.length}
                                     </div>
+                                    {获取层级势力标签(layer).length > 0 && (
+                                        <div className="mt-1 flex flex-wrap gap-1">
+                                            {获取层级势力标签(layer).map((tag) => (
+                                                <span key={tag} className="rounded border border-[#d8c4a2] bg-[#fffaf0] px-1.5 py-0.5 text-[10px] text-[#7a3f12]">{tag}</span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </button>
                             );
                         })}

@@ -13,6 +13,7 @@ import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 import { 获取物品明细分组 } from '../../../utils/rulebook';
 import { 是否杂物类物品 } from '../../../utils/inventoryActions';
 import { 获取题材模式配置 } from '../../../utils/topicModeProfiles';
+import { 获取货币显示模式, 获取货币完整单位标签 } from '../../../utils/currencyDisplay';
 
 interface Props {
     character: any;
@@ -142,7 +143,9 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
     }, [items, selectedItem]);
     const selectedEquipSlots = selectedItem ? 获取物品可装备槽位(selectedItem) : [];
     const selectedCanEquip = selectedItem ? 是否可装备物品(selectedItem) : false;
-    const selectedDetailGroups = selectedItem ? 获取物品明细分组(selectedItem) : [];
+    const currencyMode = 获取货币显示模式(openingConfig, character);
+    const valueUnit = 获取货币完整单位标签('铜钱', currencyMode);
+    const selectedDetailGroups = selectedItem ? 获取物品明细分组(selectedItem, { 价值单位: valueUnit }) : [];
 
     const applyCharacterChange = (nextCharacter: any, selectedItemRef?: string) => {
         onCharacterChange?.(nextCharacter);

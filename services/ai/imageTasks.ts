@@ -112,6 +112,8 @@ class ComfyUI后端不可用错误 extends Error {
 
 const 自动去水印负面提示词 = 'text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, watermark, signature, username, logo, artist name, web address, url, copyright, subtitle, subtitles, title, poster text, comic text, manga text, dialogue text, speech bubble, dialogue box, word balloon, UI overlay, interface text, date stamp, QR code, barcode, poster layout, magazine cover, comic page, comic panel, manga panel, callout, text box, white oval bubble, black outline bubble, overlay, title card, credits, framed text, floating label, name tag';
 const 全局无文字正向提示词 = 'plain single image, clean composition, uncluttered visual presentation, natural subject focus, clear silhouette';
+const 默认中国人物正向提示词 = 'Chinese person, East Asian facial features, Chinese facial structure, black or dark brown hair, dark brown eyes';
+const 默认中国人物负向提示词 = 'Caucasian face, European face, Western face, blonde hair, blue eyes, foreigner, white person, Nordic features';
 const 部位特写单图正向提示词 = 'single image, one frame, one subject only, extreme close-up macro crop, target fills the frame, plain blurred background, cohesive macro composition';
 const ZImageTurbo叙事构图增强提示词 = 'Z-Image-Turbo narrative prompt, translate the story beat into one clear visual moment, preserve fixed character features across images, use absolute screen positions such as left side, right side, foreground, middle ground and background, describe concrete action, expression, material, lighting, color palette and atmosphere, one complete image only';
 const NSFW部位特写画质增强提示词 = 'adult character only, target anatomy only, macro anatomical close-up, ultra tight crop, wet skin texture, glistening moisture, natural skin folds, soft rim light, specular highlights, subsurface scattering, single private anatomy focus, no minors';
@@ -178,6 +180,7 @@ const 获取NovelAI代理基础地址 = (baseUrlRaw: string): string => {
 
     return websiteUrl;
 };
+
 
 const 构建图片端点 = (baseUrlRaw: string, customPathRaw?: string): string => {
     const normalizedBaseRaw = 规范化OpenAI图片基础地址(规范化NovelAI基础地址(baseUrlRaw || ''));
@@ -1683,11 +1686,20 @@ export const __测试__从Zip本地文件头提取首张图片 = 从Zip本地文
 export const __测试__从Zip提取首张图片 = 从Zip提取首张图片;
 
 const 构图附加负面提示词映射: Partial<Record<'头像' | '半身' | '立绘' | '场景' | '部位特写', string>> = {
-    头像: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate face, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views',
-    半身: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate body, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views',
-    立绘: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate body, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views',
+    头像: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate face, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views, comic panel, manga panel, story panels, panel layout, poster layout, speech bubble, dialogue box, word balloon, UI overlay, text box',
+    半身: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate body, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views, comic panel, manga panel, story panels, panel layout, poster layout, speech bubble, dialogue box, word balloon, UI overlay, text box',
+    立绘: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate body, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views, comic panel, manga panel, story panels, panel layout, poster layout, speech bubble, dialogue box, word balloon, UI overlay, text box',
     部位特写: 部位特写反拼贴负面提示词
 };
+
+const 是否角色构图 = (composition?: string): boolean => (
+    composition === '头像' || composition === '半身' || composition === '立绘'
+);
+
+const 提示词明确外国人 = (text: string): boolean => (
+    /\b(?:foreigner|foreign|Caucasian|European|Western|white person|blonde|blond|blue eyes|Nordic|Slavic|Russian|British|French|German|American|Japanese|Korean|Indian|Arab|African|Latina|Hispanic)\b/i.test(text || '')
+    || /外国|欧美|白人|金发|碧眼|蓝眼|俄罗斯|英伦|法国|德国|美国|日本人|韩国人|印度人|阿拉伯|非洲|拉丁/.test(text || '')
+);
 
 export const 构建最终图片提示词 = (
     prompt: string,
@@ -1722,10 +1734,16 @@ export const 构建最终图片提示词 = (
     }
     const width = Number.isFinite(parsedWidth) && parsedWidth > 0 ? parsedWidth : 1024;
     const height = Number.isFinite(parsedHeight) && parsedHeight > 0 ? parsedHeight : 1024;
-    const 前置正向提示词 = (options?.附加正向提示词 || '').trim();
+    const 原始前置正向提示词 = (options?.附加正向提示词 || '').trim();
     const 主体正向提示词 = 清洗最终主体提示词(prompt || '', {
         isNovelAI: apiConfig.图片后端类型 === 'novelai' || apiConfig.词组转化输出策略 === 'nai_character_segments'
     });
+    const 需要默认中国人物 = 是否角色构图(composition)
+        && !提示词明确外国人(`${原始前置正向提示词}, ${主体正向提示词}`);
+    const 前置正向提示词 = 合并正向提示词片段(
+        原始前置正向提示词,
+        需要默认中国人物 ? 默认中国人物正向提示词 : ''
+    );
     const 后置正向提示词 = 构建后置正向提示词({
         构图: options?.构图,
         场景类型: options?.场景类型,
@@ -1746,11 +1764,10 @@ export const 构建最终图片提示词 = (
             const mergedBase = 合并正向提示词片段(前置正向提示词, baseSegment, 后置正向提示词);
             return [mergedBase, ...roleSegments].filter(Boolean).join(' | ');
         })()
-        : [前置正向提示词, 主体正向提示词, 后置正向提示词]
-            .filter(Boolean)
-            .join(', '));
+        : 合并正向提示词片段(前置正向提示词, 主体正向提示词, 后置正向提示词));
     const 最终负向提示词 = 合并负面提示词片段(
         options?.附加负面提示词,
+        需要默认中国人物 ? 默认中国人物负向提示词 : '',
         构图附加负面提示词映射[composition],
         自动去水印负面提示词
     );

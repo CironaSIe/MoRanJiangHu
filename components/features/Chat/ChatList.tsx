@@ -151,6 +151,45 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
         set显示快速置底(false);
     }, [scrollRef, 清理隐藏按钮计时器]);
 
+    const 快速到最顶部 = React.useCallback(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        el.scrollTop = 0;
+        set接近底部(false);
+        清理隐藏按钮计时器();
+        set显示快速置底(false);
+    }, [scrollRef, 清理隐藏按钮计时器]);
+
+    const 快速到本回合最顶部 = React.useCallback(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        let assistantIndex = -1;
+        for (let index = history.length - 1; index >= 0; index -= 1) {
+            if (history[index]?.role === 'assistant' && history[index]?.structuredResponse) {
+                assistantIndex = index;
+                break;
+            }
+        }
+        if (assistantIndex < 0) {
+            el.scrollTop = 0;
+            return;
+        }
+        let targetIndex = assistantIndex;
+        for (let index = assistantIndex - 1; index >= 0; index -= 1) {
+            if (history[index]?.role === 'user') {
+                targetIndex = index;
+                break;
+            }
+            if (history[index]?.role === 'assistant' && history[index]?.structuredResponse) break;
+        }
+        const targetEl = 消息容器Refs.current[targetIndex] || 回合容器Refs.current[assistantIndex] || 消息容器Refs.current[assistantIndex];
+        if (!targetEl) return;
+        el.scrollTop = Math.max(0, targetEl.offsetTop - 12);
+        set接近底部(false);
+        清理隐藏按钮计时器();
+        set显示快速置底(false);
+    }, [scrollRef, history, 清理隐藏按钮计时器]);
+
     React.useEffect(() => {
         const el = scrollRef.current;
         if (!el) return;
@@ -519,6 +558,31 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
                         <BookLoader text="乾坤推演中..." />
                     </div>
                 )}
+            </div>
+
+            <div className="absolute right-4 md:right-8 bottom-16 md:bottom-20 z-20 flex flex-col gap-2">
+                <button
+                    type="button"
+                    onClick={快速到最顶部}
+                    className="w-10 h-10 flex items-center justify-center rounded-full border border-wuxia-gold/60 bg-black/75 text-wuxia-gold shadow-[0_6px_20px_rgba(0,0,0,0.55)] transition-all hover:border-wuxia-cyan hover:text-wuxia-cyan hover:bg-black/90 day-mode-chat-jump-button"
+                    title="快速到最顶部"
+                    aria-label="快速到最顶部"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+                    </svg>
+                </button>
+                <button
+                    type="button"
+                    onClick={快速到本回合最顶部}
+                    className="w-10 h-10 flex items-center justify-center rounded-full border border-wuxia-cyan/60 bg-black/75 text-wuxia-cyan shadow-[0_6px_20px_rgba(0,0,0,0.55)] transition-all hover:border-wuxia-gold hover:text-wuxia-gold hover:bg-black/90 day-mode-chat-jump-button"
+                    title="快速到本回合最顶部"
+                    aria-label="快速到本回合最顶部"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 15 12 10.5 16.5 15M5 6h14" />
+                    </svg>
+                </button>
             </div>
 
             {!接近底部 && 显示快速置底 && (

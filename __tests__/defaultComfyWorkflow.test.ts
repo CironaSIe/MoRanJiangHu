@@ -158,6 +158,34 @@ describe('默认 ComfyUI 生图配置', () => {
         expect(nsfwCloseup.最终正向提示词).toContain('target fills the frame');
     });
 
+    it('deduplicates character prompt fragments and defaults non-foreign characters to Chinese features', () => {
+        const comfyConfig = {
+            图片后端类型: 'comfyui',
+            词组转化输出策略: 'plain'
+        } as any;
+
+        const prompt = 构建最终图片提示词(
+            '1man, male, adult man, 1man, male, adult man, short black hair, tactical vest',
+            comfyConfig,
+            { 构图: '头像' }
+        );
+        const foreignPrompt = 构建最终图片提示词(
+            '1man, Caucasian rescue worker, blonde hair, blue eyes',
+            comfyConfig,
+            { 构图: '头像' }
+        );
+
+        expect(prompt.最终正向提示词).toContain('Chinese person');
+        expect(prompt.最终正向提示词).toContain('East Asian facial features');
+        expect(prompt.最终负向提示词).toContain('Caucasian face');
+        expect(prompt.最终负向提示词).toContain('Western face');
+        expect((prompt.最终正向提示词.match(/\b1man\b/g) || [])).toHaveLength(1);
+        expect(prompt.最终负向提示词).toContain('comic panel');
+        expect(prompt.最终负向提示词).toContain('speech bubble');
+        expect(foreignPrompt.最终正向提示词).not.toContain('Chinese person');
+        expect(foreignPrompt.最终负向提示词).not.toContain('Caucasian face');
+    });
+
     it('fills the default workflow when old settings have no ComfyUI workflow', () => {
         const settings = 构建ComfyUI测试设置({
             文生图模型使用模型: '',

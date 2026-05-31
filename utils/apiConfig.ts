@@ -2030,6 +2030,16 @@ const 获取已选发现ComfyUI后端URL = (backendId: unknown): string => {
     return 规范化已发现ComfyUI后端URL(backend?.url);
 };
 
+const 解析ComfyUI后端基础地址 = (manualUrl: unknown, discoveredUrl: string, fallbackUrl = ''): string => {
+    const normalizedManual = 规范化已发现ComfyUI后端URL(manualUrl);
+    const normalizedDiscovered = 规范化已发现ComfyUI后端URL(discoveredUrl);
+    const normalizedFallback = 规范化已发现ComfyUI后端URL(fallbackUrl);
+    // 用户已经在配置里写了明确地址时，以手动地址为准。自动发现 ID 可能来自旧设置同步或过期注册表，
+    // 如果继续抢占手动地址，会把生图请求打到已经失效的 CNB 8188 地址。
+    if (normalizedManual) return normalizedManual;
+    return normalizedDiscovered || normalizedFallback;
+};
+
 export const 获取文生图接口配置 = (
     settings: 接口设置结构,
     options?: { 忽略文生图总开关?: boolean }
@@ -2059,7 +2069,7 @@ export const 获取文生图接口配置 = (
         ? 获取已选发现ComfyUI后端URL(feature?.当前图片后端发现ID)
         : '';
     let resolvedImageBaseUrl = 图片后端类型 === 'comfyui'
-        ? (discoveredImageBaseUrl || 规范化已发现ComfyUI后端URL(imageBaseUrl))
+        ? 解析ComfyUI后端基础地址(imageBaseUrl, discoveredImageBaseUrl)
         : (imageBaseUrl || (图片后端可复用主接口地址 ? current.baseUrl : ''));
     if (!resolvedImageBaseUrl && 图片后端类型 === 'comfyui') {
         const candidates = 获取已发现ComfyUI后端内部();
@@ -2158,7 +2168,7 @@ export const 获取场景文生图接口配置 = (settings: 接口设置结构):
         ? 获取已选发现ComfyUI后端URL(feature?.当前场景图片后端发现ID)
         : '';
     const resolvedBaseUrl = sceneBackend === 'comfyui'
-        ? (discoveredSceneBaseUrl || 规范化已发现ComfyUI后端URL(sceneBaseUrl) || (canReuseSharedConnection ? sharedConfig.baseUrl : ''))
+        ? 解析ComfyUI后端基础地址(sceneBaseUrl, discoveredSceneBaseUrl, canReuseSharedConnection ? sharedConfig.baseUrl : '')
         : (sceneBaseUrl || (canReuseSharedConnection ? sharedConfig.baseUrl : ''));
     const 场景后端需要鉴权 = sceneBackend === 'openai' || sceneBackend === 'novelai';
     const resolvedApiKey = 场景后端需要鉴权
@@ -2380,7 +2390,7 @@ export const 获取NSFW文生图接口配置 = (settings: 接口设置结构, di
         ? 获取已选发现ComfyUI后端URL(feature?.当前NSFW图片后端发现ID)
         : '';
     const resolvedBaseUrl = nsfwBackend === 'comfyui'
-        ? (discoveredNsfwBaseUrl || 规范化已发现ComfyUI后端URL(nsfwBaseUrl) || (canReuseSharedConnection ? (sharedConfig?.baseUrl || '') : ''))
+        ? 解析ComfyUI后端基础地址(nsfwBaseUrl, discoveredNsfwBaseUrl, canReuseSharedConnection ? (sharedConfig?.baseUrl || '') : '')
         : (nsfwBaseUrl || (canReuseSharedConnection ? (sharedConfig?.baseUrl || '') : ''));
     const nsfwBackendNeedsAuth = nsfwBackend === 'openai' || nsfwBackend === 'novelai';
     const resolvedApiKey = nsfwBackendNeedsAuth

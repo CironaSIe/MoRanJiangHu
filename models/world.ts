@@ -40,6 +40,9 @@ export interface 地图层级结构 {
     层级: 地图层级类型;
     描述: string;
     叙事核心?: string;
+    控制势力?: string;
+    势力影响?: string;
+    势力标签?: string[];
     归属: 地点归属结构;
     父级ID?: string;
     锚点坐标: 地图坐标点结构;

@@ -203,6 +203,18 @@ const 限制润色结果判定数量 = (
     });
 };
 
+const 是否角色正文发送者 = (senderRaw: string): boolean => {
+    const sender = (senderRaw || '').replace(/[【】]/g, '').trim();
+    if (!sender || sender === '旁白' || sender === '奖励') return false;
+    return !是否判定正文发送者(sender);
+};
+
+const 统计角色对白条数 = (logs: 正文日志结构): number => (
+    (Array.isArray(logs) ? logs : [])
+        .filter((item) => 是否角色正文发送者(item?.sender || '') && typeof item?.text === 'string' && item.text.trim().length > 0)
+        .length
+);
+
 export const 执行正文润色 = async (
     baseResponse: GameResponse,
     rawText: string,
@@ -255,7 +267,10 @@ export const 执行正文润色 = async (
         '1) 你必须输出 <thinking>...</thinking> 与 <正文>...</正文> 两个顶层标签块，顺序固定为 thinking 在前、正文在后。',
         '2) <正文> 内部允许按主剧情正文协议保留判定子结构；命中判定时，只能把 <judge>...</judge> 作为 <正文> 内部标签插入，不得升成顶层标签。',
         '3) 除上述两个顶层标签外，禁止输出其他顶层内容（解释、命令、免责声明、代码块等）。',
-        '4) 系统只会提取 <正文> 内容用于最终渲染。'
+        '4) 系统只会提取 <正文> 内容用于最终渲染。',
+        '5) 角色对白必须是口语台词，使用【角色名】独占一行；旁白、动作、心理、第三人称叙述、设定说明绝不能写进【角色名】行。',
+        '6) “随着她/随着他/如果/此时/这时/然后/接着”等叙事短语不是人物名，禁止作为【角色名】标签。',
+        '7) 原文已有的【角色名】对白条数不得减少；缺标签对白要补正确角色名，不得把角色对白合并成【旁白】。'
     ].join('\n');
     const polishSceneContext = (() => {
         const currentEnv = 规范化环境信息(deps.环境);
@@ -367,6 +382,7 @@ export const 执行正文润色 = async (
     const sourceLogs = Array.isArray(baseResponse.body_original_logs) && baseResponse.body_original_logs.length > 0
         ? baseResponse.body_original_logs
         : (baseResponse.logs || []);
+    const sourceDialogueCount = 统计角色对白条数(sourceLogs);
     const sourceBody = 提取正文标签内容(rawText) || 构建正文文本(sourceLogs);
     if (!sourceBody.trim()) {
         return { response: baseResponse, applied: false, error: '正文为空，无法优化。' };
@@ -387,6 +403,9 @@ export const 执行正文润色 = async (
     ));
     if (polishedLogs.length === 0) {
         return { response: baseResponse, applied: false, error: '优化后正文为空，已保留原文。', rawText: polishedResult.rawText };
+    }
+    if (sourceDialogueCount > 0 && 统计角色对白条数(polishedLogs) < sourceDialogueCount) {
+        return { response: baseResponse, applied: false, error: '文章优化丢失了角色对白标签，已保留原文。', rawText: polishedResult.rawText };
     }
     const sourceLength = 统计润色正文字符数(sourceLogs);
     let polishedLength = 统计润色正文字符数(polishedLogs);
@@ -431,6 +450,9 @@ export const 执行正文润色 = async (
             polishedLogs = retryLogs;
             polishedLength = retryLength;
             lengthCheck = retryCheck;
+            if (sourceDialogueCount > 0 && 统计角色对白条数(polishedLogs) < sourceDialogueCount) {
+                return { response: baseResponse, applied: false, error: '文章优化二次扩写丢失了角色对白标签，已保留原文。', rawText: polishedResult.rawText };
+            }
         } else if (!retryCheck.ok) {
             lengthCheck = {
                 ok: false,

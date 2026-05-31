@@ -1128,64 +1128,64 @@ export const 执行开场剧情生成工作流 = async (
         let openingWorldInitUpdates: string[] = [];
 
         const openingPolishApi = 获取文章优化接口配置(deps.apiConfig);
+        const openingVariableApi = 获取变量计算接口配置(deps.apiConfig);
         const openingPolishInfo = 构建开局阶段模型信息('文章优化', openingPolishApi, apiForOpening);
         const 设置开局文章优化进度 = (progress: any) => {
             deps.设置开局文章优化进度(附加开局阶段模型信息(progress, openingPolishInfo));
         };
-        if (!deps.文章优化功能已开启()) {
-            设置开局文章优化进度({
-                phase: 'skipped',
-                text: '文章优化功能未开启，已跳过。'
-            });
-        } else if (接口配置是否可用(openingPolishApi)) {
-            const polishStage = await 执行可重试开局阶段({
-                stageLabel: '开局文章优化',
-                beforeAttempt: (attempt) => {
-                    设置开局文章优化进度({
-                        phase: 'start',
-                        text: attempt > 1
-                            ? `正在重新优化开局正文...（第 ${attempt} 次手动重试）`
-                            : '正在优化开局正文...'
-                    });
-                },
-                onAutoRetry: (attempt, maxAttempts, reason) => {
-                    设置开局文章优化进度({
-                        phase: 'start',
-                        text: `开局文章优化请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ''}`
-                    });
-                },
-                run: () => deps.执行正文润色(
-                    responseForExecution,
-                    aiResult.rawText,
-                    {
-                        playerInput: '',
-                        signal: controller.signal,
-                        allowExpansionForLength: true,
-                        minLength: openingGameConfig.字数要求,
-                        onDelta: (_delta: string, accumulated: string) => {
-                            设置开局文章优化进度({
-                                phase: 'start',
-                                text: '正在流式优化开局正文...',
-                                rawText: accumulated
-                            });
-                        }
+        const 开局文章优化变量可并行 = deps.文章优化功能已开启()
+            && 接口配置是否可用(openingPolishApi)
+            && 接口配置是否可用(openingVariableApi)
+            && 获取开局阶段渠道键(openingPolishApi, apiForOpening) !== 获取开局阶段渠道键(openingVariableApi, apiForOpening);
+        const 执行开局文章优化阶段 = () => 执行可重试开局阶段({
+            stageLabel: '开局文章优化',
+            beforeAttempt: (attempt) => {
+                设置开局文章优化进度({
+                    phase: 'start',
+                    text: attempt > 1
+                        ? `正在重新优化开局正文...（第 ${attempt} 次手动重试）`
+                        : (开局文章优化变量可并行 ? '正在并行优化开局正文...' : '正在优化开局正文...')
+                });
+            },
+            onAutoRetry: (attempt, maxAttempts, reason) => {
+                设置开局文章优化进度({
+                    phase: 'start',
+                    text: `开局文章优化请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ''}`
+                });
+            },
+            run: () => deps.执行正文润色(
+                responseForExecution,
+                aiResult.rawText,
+                {
+                    playerInput: '',
+                    signal: controller.signal,
+                    allowExpansionForLength: true,
+                    minLength: openingGameConfig.字数要求,
+                    onDelta: (_delta: string, accumulated: string) => {
+                        设置开局文章优化进度({
+                            phase: 'start',
+                            text: '正在流式优化开局正文...',
+                            rawText: accumulated
+                        });
                     }
-                ),
-                onError: (errorText) => {
-                    设置开局文章优化进度({
-                        phase: 'error',
-                        text: `${errorText || '开局文章优化失败'}\n等待选择：重试当前阶段，或跳过继续。`
-                    });
-                },
-                onSkip: (errorText) => {
-                    设置开局文章优化进度({
-                        phase: 'skipped',
-                        text: `开局文章优化失败，已按用户选择跳过。${errorText ? `\n${errorText}` : ''}`
-                    });
-                },
-                getErrorText: (error: any) => error?.message || '开局文章优化失败'
-            });
-            const polished = polishStage.result;
+                }
+            ),
+            onError: (errorText) => {
+                设置开局文章优化进度({
+                    phase: 'error',
+                    text: `${errorText || '开局文章优化失败'}\n等待选择：重试当前阶段，或跳过继续。`
+                });
+            },
+            onSkip: (errorText) => {
+                设置开局文章优化进度({
+                    phase: 'skipped',
+                    text: `开局文章优化失败，已按用户选择跳过。${errorText ? `\n${errorText}` : ''}`
+                });
+            },
+            getErrorText: (error: any) => error?.message || '开局文章优化失败'
+        });
+        const 应用开局文章优化结果 = (polishStage: any) => {
+            const polished = polishStage?.result;
             if (polishStage?.completed && polished) {
                 if (polished.applied) {
                     responseForExecution = {
@@ -1213,6 +1213,19 @@ export const 执行开场剧情生成工作流 = async (
                     });
                 }
             }
+        };
+        let pendingOpeningPolishStage: Promise<any> | null = null;
+        if (!deps.文章优化功能已开启()) {
+            设置开局文章优化进度({
+                phase: 'skipped',
+                text: '文章优化功能未开启，已跳过。'
+            });
+        } else if (接口配置是否可用(openingPolishApi)) {
+            if (开局文章优化变量可并行) {
+                pendingOpeningPolishStage = 执行开局文章优化阶段();
+            } else {
+                应用开局文章优化结果(await 执行开局文章优化阶段());
+            }
         } else {
             设置开局文章优化进度({
                 phase: 'skipped',
@@ -1220,7 +1233,6 @@ export const 执行开场剧情生成工作流 = async (
             });
         }
 
-        const openingVariableApi = 获取变量计算接口配置(deps.apiConfig);
         const openingVariableInfo = 构建开局阶段模型信息('变量生成', openingVariableApi, apiForOpening);
         const 设置开局变量生成进度 = (progress: any) => {
             deps.设置开局变量生成进度(附加开局阶段模型信息(progress, openingVariableInfo));
@@ -1233,7 +1245,7 @@ export const 执行开场剧情生成工作流 = async (
                         phase: 'start',
                         text: attempt > 1
                             ? `正在重新生成开局变量...（第 ${attempt} 次手动重试）`
-                            : '正在生成开局变量...'
+                            : (开局文章优化变量可并行 ? '正在并行生成开局变量...' : '正在生成开局变量...')
                     });
                 },
                 onAutoRetry: (attempt, maxAttempts, reason) => {
@@ -1350,6 +1362,9 @@ export const 执行开场剧情生成工作流 = async (
                 text: '变量生成独立链路未启用，已跳过。'
             });
             尽早触发主角开局生图();
+        }
+        if (pendingOpeningPolishStage) {
+            应用开局文章优化结果(await pendingOpeningPolishStage);
         }
         尽早触发主角开局生图();
 

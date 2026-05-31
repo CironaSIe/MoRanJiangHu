@@ -1,6 +1,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { 详细门派结构, 职位等级排序 } from '../../../models/sect';
+import type { 环境信息结构 } from '../../../models/environment';
 
 interface Props {
     sectData: 详细门派结构;
@@ -8,6 +9,7 @@ interface Props {
     onOpenNpc?: (npc: any) => void;
     onLearnBook?: (book: any) => void;
     learnedBookIds?: string[];
+    env?: 环境信息结构;
 }
 
 type Tab = 'hall' | 'exchange' | 'library' | 'members';
@@ -111,7 +113,25 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
     };
 };
 
-const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook, learnedBookIds = [] }) => {
+const 计算下次月俸领取时间 = (sectData: 详细门派结构, env?: 环境信息结构): string => {
+    const currentMatch = String(env?.时间 || '').match(/^(\d{1,6})[:/-](\d{1,2})/);
+    const currentYear = currentMatch ? Number(currentMatch[1]) : 1;
+    const currentMonth = currentMatch ? Number(currentMatch[2]) : 1;
+    const last = String((sectData as any)?.上次俸禄月份 || '').trim();
+    if (!last) return `本月可领取（当前 ${currentYear}年${currentMonth}月）`;
+    const lastMatch = last.match(/^(\d{1,6})[:/-](\d{1,2})/);
+    if (!lastMatch) return '待系统重新校准';
+    let year = Number(lastMatch[1]);
+    let month = Number(lastMatch[2]) + 1;
+    if (month > 12) {
+        year += 1;
+        month = 1;
+    }
+    if (currentYear > year || (currentYear === year && currentMonth >= month)) return `本月可领取（上次领取 ${last.replace(':', '年')}月）`;
+    return `${year}年${month}月初`;
+};
+
+const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook, learnedBookIds = [], env }) => {
     const [activeTab, setActiveTab] = useState<Tab>('hall');
     const 文案 = useMemo(() => 获取组织显示文案(sectData), [sectData]);
     const 显示职位 = (rank?: string) => 文案.rankMap[String(rank || '').trim()] || rank || '无';
@@ -334,10 +354,11 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                               ))}
                                           </div>
                                           {月俸规则 && (
-                                              <div className="mt-4 rounded border border-emerald-400/20 bg-emerald-950/15 p-3 text-sm text-emerald-100">
-                                                  月俸：基础 {月俸规则.基础俸禄}，贡献系数 {月俸规则.贡献系数}，规模系数 {月俸规则.规模系数}。{月俸规则.发放说明}
-                                              </div>
-                                          )}
+                                               <div className="mt-4 rounded border border-emerald-400/20 bg-emerald-950/15 p-3 text-sm text-emerald-100">
+                                                   月俸：基础 {月俸规则.基础俸禄}，贡献系数 {月俸规则.贡献系数}，规模系数 {月俸规则.规模系数}。{月俸规则.发放说明}
+                                                   <div className="mt-1 text-emerald-200">下次月俸领取时间：{计算下次月俸领取时间(sectData, env)}</div>
+                                               </div>
+                                           )}
                                       </div>
                                  </div>
                                 </>

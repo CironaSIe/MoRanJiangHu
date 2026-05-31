@@ -151,7 +151,7 @@ const 从世界命令生成可见大事 = (commands: 世界演变命令[]): stri
         if (key.startsWith('世界.拍卖行待投放物品')) {
             const names = 取物品名称列表(value).slice(0, 3);
             if (names.length > 0) {
-                results.push(`黑市与拍卖行传出风声：${names.join('、')}开始流入市面，引动多方打探。`);
+                results.push(`市场传出风声：${names.join('、')}开始流入市面，引动多方打探。`);
             }
             return;
         }

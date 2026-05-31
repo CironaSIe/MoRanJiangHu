@@ -105,6 +105,31 @@ describe('storyResponseParser', () => {
         ]);
     });
 
+    it('does not flag narrative phrase prefixes as unlabeled dialogue speakers', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '随着她低头清点物资，墙角的灯光一点点暗下去。',
+            '他是个正常的男人，如果是在旧时代，也许会有更轻松的选择。',
+            '</正文>',
+            '<短期记忆>清点物资时气氛沉默。</短期记忆>'
+        ].join('\n'), { validateDialogueFormat: true });
+
+        expect(parsed.logs).toEqual([{
+            sender: '旁白',
+            text: '随着她低头清点物资，墙角的灯光一点点暗下去。\n他是个正常的男人，如果是在旧时代，也许会有更轻松的选择。'
+        }]);
+    });
+
+    it('still rejects likely unlabeled oral dialogue during strict parsing', () => {
+        expect(() => parseStoryRawText([
+            '<正文>',
+            '俞月荷冷笑一声，将表格拍在桌上。',
+            '三百点？你真觉得这点贡献够换一整箱药？',
+            '</正文>',
+            '<短期记忆>俞月荷质疑贡献兑换。</短期记忆>'
+        ].join('\n'), { validateDialogueFormat: true })).toThrow(/疑似角色「俞月荷」/);
+    });
+
     it('keeps only fully quoted single-speaker text as character bubbles for rendering', () => {
         const rendered = 规范化可渲染对白日志([
             { sender: '杨培强', text: '“弟子，领命。”\n\n风，渐渐停了。\n\n铅灰色的云层开始散去。' },

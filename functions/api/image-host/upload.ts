@@ -68,16 +68,14 @@ export async function onRequestPost({ request, env }: any): Promise<Response> {
             upstreamUrl
         });
 
-        const bodyBuffer = await request.arrayBuffer();
         const upstreamResponse = await fetch(upstreamUrl, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
                 Accept: request.headers.get('Accept') || 'application/json',
-                'Content-Type': contentType,
-                'Content-Length': String(bodyBuffer.byteLength)
+                'Content-Type': contentType
             },
-            body: bodyBuffer
+            body: request.body
         });
 
         const responseHeaders = new Headers(upstreamResponse.headers);

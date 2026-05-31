@@ -43,4 +43,28 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         }] as any);
         expect(logs.some((item: any) => item.sender === '俞月荷' && item.text.includes('动作能不能轻一点'))).toBe(true);
     });
+
+    it('does not treat narrative phrase prefixes as speaker names', () => {
+        const logs = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: [
+                '随着她低头清点物资，墙角的灯光一点点暗下去。',
+                '他是个正常的男人，如果是在旧时代，也许会有更轻松的选择。'
+            ].join('\n')
+        }] as any);
+
+        expect(logs).toEqual([{
+            sender: '旁白',
+            text: '随着她低头清点物资，墙角的灯光一点点暗下去。\n他是个正常的男人，如果是在旧时代，也许会有更轻松的选择。'
+        }]);
+    });
+
+    it('only promotes unlabeled follow-up lines when they look like oral speech', () => {
+        const oral = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: '俞月荷冷笑一声，将表格拍在桌上。\n三百点？你真觉得这点贡献够换一整箱药？'
+        }] as any);
+
+        expect(oral.some((item: any) => item.sender === '俞月荷' && item.text.includes('三百点'))).toBe(true);
+    });
 });

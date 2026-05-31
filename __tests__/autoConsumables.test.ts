@@ -368,4 +368,30 @@ describe('背包堆叠与负重兜底', () => {
         expect(fragments[0].堆叠数量).toBe(24);
         expect(normalized.当前负重).toBe(9.6);
     });
+
+    it('会合并末世常见同名物资，即使 AI 未标记是否可堆叠', () => {
+        const role: any = {
+            姓名: '测试',
+            当前负重: 0,
+            最大负重: 250,
+            物品列表: [
+                { ID: 'water_1', 名称: '净水片', 类型: '消耗品', 描述: '可净化少量水源。', 重量: 0.01, 堆叠数量: 2, 价值: 1 },
+                { ID: 'water_2', 名称: '净水片', 类型: '消耗品', 描述: '可净化少量水源。', 重量: 0.02, 堆叠数量: 1, 价值: 1 },
+                { ID: 'ammo_1', 名称: '5.56毫米子弹', 类型: '弹药', 描述: '步枪通用弹药。', 重量: 0.01, 堆叠数量: 10, 价值: 2 },
+                { ID: 'ammo_2', 名称: '5.56毫米子弹', 类型: '弹药', 描述: '步枪通用弹药。', 重量: 0.02, 堆叠数量: 1, 价值: 2 },
+                { ID: 'bandage_1', 名称: '粗糙绷带', 类型: '医疗用品', 描述: '临时止血用。', 重量: 0.05, 堆叠数量: 1, 价值: 3 },
+                { ID: 'bandage_2', 名称: '粗糙绷带', 类型: '医疗用品', 描述: '临时止血用。', 重量: 0.06, 堆叠数量: 1, 价值: 3 }
+            ],
+            已补齐系统丹药预设: true
+        };
+
+        const normalized = 规范化角色物品容器映射(role, { 题材模式: '末日丧尸' });
+
+        expect(normalized.物品列表.filter((item: any) => item.名称 === '净水片')).toHaveLength(1);
+        expect(normalized.物品列表.find((item: any) => item.名称 === '净水片')?.堆叠数量).toBe(3);
+        expect(normalized.物品列表.filter((item: any) => item.名称 === '5.56毫米子弹')).toHaveLength(1);
+        expect(normalized.物品列表.find((item: any) => item.名称 === '5.56毫米子弹')?.堆叠数量).toBe(11);
+        expect(normalized.物品列表.filter((item: any) => item.名称 === '粗糙绷带')).toHaveLength(1);
+        expect(normalized.物品列表.find((item: any) => item.名称 === '粗糙绷带')?.堆叠数量).toBe(2);
+    });
 });
