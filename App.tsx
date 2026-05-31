@@ -2190,6 +2190,9 @@ const App: React.FC = () => {
         closeAllPanels();
         setShowCloudPlay(true);
     }, [closeAllPanels]);
+    const openCloudPlayForWorkshopLogin = React.useCallback(() => {
+        setShowCloudPlay(true);
+    }, []);
     const closeSettings = React.useCallback(() => setters.setShowSettings(false), [setters]);
     const closeNovelDecompositionWorkbench = React.useCallback(() => setShowNovelDecompositionWorkbench(false), []);
     const closeNovelExport = React.useCallback(() => setShowNovelExport(false), []);
@@ -2650,6 +2653,7 @@ const App: React.FC = () => {
                     onImageManager={openImageManagerWithCheck}
                     onWorldbookManager={openWorldbookManager}
                     onNovelDecomposition={() => { void openNovelDecompositionWorkbench(); }}
+                    onRequireWorkshopLogin={openCloudPlayForWorkshopLogin}
                     onSettings={openSettings}
                     onOpenReleaseNotes={openReleaseNotes}
                     currentTheme={state.currentTheme}
@@ -3291,6 +3295,7 @@ const App: React.FC = () => {
 
             {showNovelDecompositionWorkbench && (
                 <div className={desktopRightDetailClass}>
+                <ModalErrorBoundary title="小说分解工作台打开失败" onClose={closeNovelDecompositionWorkbench}>
                 <懒加载边界>
                     <NovelDecompositionWorkbenchModal
                         open={showNovelDecompositionWorkbench}
@@ -3301,6 +3306,7 @@ const App: React.FC = () => {
                         onNotify={actions.pushNotification}
                     />
                 </懒加载边界>
+                </ModalErrorBoundary>
                 </div>
             )}
 

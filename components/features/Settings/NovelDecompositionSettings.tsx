@@ -1624,7 +1624,11 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
         setWorkshopBusyId(entry.id);
         try {
             const blob = await 下载小说分解创意工坊模块(entry.id);
-            const result = await 导入小说拆分分享数据(blob, { includeRawText: true });
+            const result = await 导入小说拆分分享数据(blob, {
+                includeRawText: true,
+                titleOverride: entry.title,
+                workNameOverride: entry.workName || entry.title
+            });
             await refreshBoard();
             if (result.importedDatasetIds.length > 0) {
                 setSelectedDatasetId(result.importedDatasetIds[0]);
@@ -2152,7 +2156,7 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                         <div>
                             <h4 className="text-lg font-serif font-semibold text-wuxia-gold tracking-wide">创意工坊 · 小说分解模块</h4>
                             <div className="mt-1.5 text-xs text-gray-400/80 leading-relaxed max-w-2xl">
-                                创意工坊是玩家内容总入口；当前分区只收录小说分解分享 ZIP。题材模板、世界规则、开局配置、职业身份、能力体系等贡献会作为后续独立分区接入，下载后可分别注入到新建角色和世界生成流程。
+                                创意工坊是玩家内容总入口；当前分区收录小说分解分享 ZIP。题材模板、世界规则和能力体系已整合为“模式包”，下载后会作为一组内容注入新建角色和世界生成流程。
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2">

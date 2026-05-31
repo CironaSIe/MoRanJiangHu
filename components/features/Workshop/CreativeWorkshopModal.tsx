@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { 创意工坊模块分区, type 创意工坊模块条目, type 创意工坊模块类型 } from '../../../data/creativeWorkshopModules';
+import { 从模式世界书提取提示词, 创意工坊模块分区, type 创意工坊模块条目, type 创意工坊模块类型 } from '../../../data/creativeWorkshopModules';
+import type { 世界书结构 } from '../../../types';
 import type { 题材模式类型 } from '../../../models/system';
-import { 题材模式顺序 } from '../../../utils/topicModeProfiles';
+import { 题材模式配置表, 题材模式顺序 } from '../../../utils/topicModeProfiles';
 import {
     编辑创意工坊模块,
     删除创意工坊模块,
@@ -15,10 +16,11 @@ interface Props {
     open: boolean;
     onClose: () => void;
     onNovelDecomposition: () => void;
+    onRequireLogin?: () => void;
 }
 
 type 来源筛选 = 'all' | 'builtin' | 'cloud' | 'local';
-const 可展示工坊类型: 创意工坊模块类型[] = ['topic', 'world_rules', 'ability', 'comfy_workflow'];
+const 可展示工坊类型: 创意工坊模块类型[] = ['topic', 'comfy_workflow'];
 const 可展示工坊类型集合 = new Set<创意工坊模块类型>(可展示工坊类型);
 const 可展示工坊分区 = 创意工坊模块分区.filter((section) => 可展示工坊类型集合.has(section.id));
 
@@ -28,6 +30,14 @@ type 贡献草稿 = {
     description: string;
     type: 创意工坊模块类型;
     mode: 题材模式类型;
+    currencyDisplayMode: 'wuxia' | 'xianxia' | 'urban' | 'modern' | 'apocalypse';
+    auctionName: string;
+    marketVerb: string;
+    mapPrompt: string;
+    skillNames: string;
+    presetItemKeywords: string;
+    backgroundSuggestions: string;
+    talentSuggestions: string;
     tags: string;
     body: string;
     topicBody: string;
@@ -37,6 +47,20 @@ type 贡献草稿 = {
     safetyNotes: string;
     style: string;
     scope: 'main' | 'scene' | 'nsfw' | 'all';
+};
+
+const 创建默认模式元数据草稿 = (mode: 题材模式类型): Pick<贡献草稿, 'currencyDisplayMode' | 'auctionName' | 'marketVerb' | 'mapPrompt' | 'skillNames' | 'presetItemKeywords' | 'backgroundSuggestions' | 'talentSuggestions'> => {
+    const profile = 题材模式配置表[mode];
+    return {
+        currencyDisplayMode: profile?.currencyDisplayMode || 'wuxia',
+        auctionName: profile?.auctionName || '',
+        marketVerb: profile?.marketVerb || '',
+        mapPrompt: profile?.mapPrompt || '',
+        skillNames: profile?.skillNames?.join('、') || '',
+        presetItemKeywords: profile?.presetItemKeywords?.join('、') || '',
+        backgroundSuggestions: profile?.backgroundSuggestions?.join('、') || '',
+        talentSuggestions: profile?.talentSuggestions?.join('、') || ''
+    };
 };
 
 const 下载JSON = (entry: 创意工坊模块条目) => {
@@ -80,8 +104,9 @@ const 空贡献草稿 = (): 贡献草稿 => ({
     title: '',
     subtitle: '',
     description: '',
-    type: 'world_rules',
+    type: 'topic',
     mode: '武侠',
+    ...创建默认模式元数据草稿('武侠'),
     tags: '',
     body: '',
     topicBody: '',
@@ -94,6 +119,103 @@ const 空贡献草稿 = (): 贡献草稿 => ({
 });
 
 const 分割文本行 = (value: string): string[] => value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+const 分割短语 = (value: string): string[] => value.split(/[，,、\n]+/).map((line) => line.trim()).filter(Boolean);
+
+const 构建模式元数据 = (draft: 贡献草稿) => ({
+    mode: draft.mode,
+    currencyDisplayMode: draft.currencyDisplayMode,
+    auctionName: draft.auctionName.trim(),
+    marketVerb: draft.marketVerb.trim(),
+    mapPrompt: draft.mapPrompt.trim(),
+    skillNames: 分割短语(draft.skillNames),
+    presetItemKeywords: 分割短语(draft.presetItemKeywords),
+    backgroundSuggestions: 分割短语(draft.backgroundSuggestions),
+    talentSuggestions: 分割短语(draft.talentSuggestions)
+});
+
+const 渲染模式元数据世界书内容 = (draft: 贡献草稿): string => {
+    const metadata = 构建模式元数据(draft);
+    return [
+        `题材模式：${metadata.mode}`,
+        `货币显示：${metadata.currencyDisplayMode}`,
+        `市场名称：${metadata.auctionName}`,
+        `市场行为口径：${metadata.marketVerb}`,
+        `地图口径：${metadata.mapPrompt}`,
+        `技能建议：${metadata.skillNames.join('、')}`,
+        `预设物品关键词：${metadata.presetItemKeywords.join('、')}`,
+        `背景建议：${metadata.backgroundSuggestions.join('、')}`,
+        `天赋建议：${metadata.talentSuggestions.join('、')}`
+    ].filter((line) => !line.endsWith('：')).join('\n');
+};
+
+const 构建贡献模式世界书 = (draft: 贡献草稿, suiteId: string, suiteTitle: string): 世界书结构[] => [{
+    id: `${suiteId}-worldbook`,
+    标题: `${suiteTitle}世界书`,
+    描述: '贡献者可按主世界书逻辑维护的模式专属世界书；切换该模式包时统一注入题材口径、世界规则和能力体系。',
+    常驻大纲: draft.description.trim() || `${draft.mode}模式专属规则。`,
+    启用: true,
+    内置: false,
+    创建时间: Date.now(),
+    更新时间: Date.now(),
+    条目: [
+        {
+            id: `${suiteId}-metadata`,
+            标题: '模式元数据',
+            内容: 渲染模式元数据世界书内容(draft),
+            条目形态: 'normal',
+            类型: 'system_rule',
+            作用域: ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'],
+            注入模式: 'always',
+            关键词: [],
+            优先级: 105,
+            启用: true,
+            创建时间: Date.now(),
+            更新时间: Date.now()
+        },
+        {
+            id: `${suiteId}-topic`,
+            标题: '题材口径',
+            内容: draft.topicBody.trim(),
+            条目形态: 'normal',
+            类型: 'world_lore',
+            作用域: ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'],
+            注入模式: 'always',
+            关键词: [],
+            优先级: 100,
+            启用: true,
+            创建时间: Date.now(),
+            更新时间: Date.now()
+        },
+        {
+            id: `${suiteId}-world-rules`,
+            标题: '世界规则',
+            内容: draft.worldRulesBody.trim(),
+            条目形态: 'normal',
+            类型: 'system_rule',
+            作用域: ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'],
+            注入模式: 'always',
+            关键词: [],
+            优先级: 95,
+            启用: true,
+            创建时间: Date.now(),
+            更新时间: Date.now()
+        },
+        {
+            id: `${suiteId}-ability`,
+            标题: '能力体系',
+            内容: draft.abilityBody.trim(),
+            条目形态: 'normal',
+            类型: 'system_rule',
+            作用域: ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'],
+            注入模式: 'always',
+            关键词: [],
+            优先级: 90,
+            启用: true,
+            创建时间: Date.now(),
+            更新时间: Date.now()
+        }
+    ].filter((entry) => entry.内容)
+}];
 
 const 构建贡献模块 = (draft: 贡献草稿, contributor: string): 创意工坊模块条目 => {
     const title = draft.title.trim();
@@ -158,7 +280,7 @@ const 构建贡献模块 = (draft: 贡献草稿, contributor: string): 创意工
     };
 };
 
-const 构建模式套装模块 = (draft: 贡献草稿, contributor: string): 创意工坊模块条目[] => {
+const 构建模式包模块 = (draft: 贡献草稿, contributor: string): 创意工坊模块条目 => {
     const stamp = Date.now();
     const suiteTitle = draft.title.trim();
     const suiteId = `suite-${draft.mode}-${stamp}`;
@@ -168,94 +290,82 @@ const 构建模式套装模块 = (draft: 贡献草稿, contributor: string): 创
         ...draft.tags.split(/[，,、\s]+/).map((tag) => tag.trim()).filter(Boolean)
     ].filter((tag, index, list) => list.indexOf(tag) === index).slice(0, 12);
     const safetyNotes = 分割文本行(draft.safetyNotes);
-    const base = {
-        formatVersion: 2 as const,
-        workshopKind: 'standard_module' as const,
-        source: 'local' as const,
+    const usagePrompt = draft.usagePrompt.trim() || '作为完整模式包注入新建存档：模式专属世界书会统一接管题材口径、世界规则和能力体系。';
+    const modeMetadata = 构建模式元数据(draft);
+    const modeWorldbooks = 构建贡献模式世界书(draft, suiteId, suiteTitle);
+    const extractedPrompts = 从模式世界书提取提示词(modeWorldbooks);
+    const contentBlocks: NonNullable<创意工坊模块条目['contentBlocks']> = [
+        {
+            id: 'topic-main',
+            title: '题材模板',
+            purpose: '注入手动世界观提示词，定义基本口径、时代、货币、叙事边界和题材禁忌。',
+            injectionTarget: 'manualWorldPrompt',
+            content: draft.topicBody.trim()
+        },
+        {
+            id: 'world-rules-main',
+            title: '世界规则',
+            purpose: '追加到世界观细化要求，约束势力、市场、地图、资源和社会规则。',
+            injectionTarget: 'worldExtraRequirement',
+            content: draft.worldRulesBody.trim()
+        },
+        {
+            id: 'ability-main',
+            title: '能力体系',
+            purpose: '注入手动能力/境界提示词，约束成长体系、战力边界和技能命名。',
+            injectionTarget: 'manualRealmPrompt',
+            content: draft.abilityBody.trim()
+        }
+    ];
+    const content = contentBlocks.map((block) => [`【${block.title}】`, block.content].join('\n')).join('\n\n');
+    return {
+        id: `local-${suiteId}-mode-package`,
+        type: 'topic',
+        formatVersion: 2,
+        workshopKind: 'standard_module',
+        title: suiteTitle,
+        subtitle: draft.subtitle.trim() || `${draft.mode} · 完整模式包`,
+        description: draft.description.trim() || `${draft.mode}完整模式包。`,
+        tags,
+        payload: {
+            schema: 'moranjianghu-creative-workshop-mode-package',
+            version: 3,
+            suiteId,
+            suiteTitle,
+            packagePart: 'mode_package',
+            mode: draft.mode,
+            modeMetadata,
+            modeWorldbooks,
+            manualWorldPrompt: extractedPrompts.manualWorldPrompt,
+            worldExtraRequirement: extractedPrompts.worldExtraRequirement,
+            manualRealmPrompt: extractedPrompts.manualRealmPrompt,
+            content,
+            contentBlocks,
+            usagePrompt,
+            safetyNotes
+        },
+        modeWorldbooks,
+        contentBlocks,
+        usagePrompt,
+        safetyNotes,
+        injectionPreview: [
+            `完整模式包：${suiteTitle}`,
+            `模式世界书：${modeWorldbooks[0]?.条目.length || 0} 条`,
+            `适用题材：${draft.mode}`,
+            `市场名称：${modeMetadata.auctionName || '未填写'}`,
+            `地图口径：${modeMetadata.mapPrompt.slice(0, 120) || '未填写'}`,
+            `题材口径：${draft.topicBody.trim().slice(0, 160)}`,
+            `世界规则：${draft.worldRulesBody.trim().slice(0, 160)}`,
+            `能力体系：${draft.abilityBody.trim().slice(0, 160)}`
+        ],
+        source: 'local',
         contributor: contributor.trim(),
         createdAt: new Date(stamp).toISOString(),
         updatedAt: new Date(stamp).toISOString()
     };
-    const makeModule = (
-        type: 'topic' | 'world_rules' | 'ability',
-        suffix: string,
-        titleSuffix: string,
-        content: string,
-        injectionTarget: 'manualWorldPrompt' | 'manualRealmPrompt',
-        usagePrompt: string,
-        extraPayload: Record<string, unknown>
-    ): 创意工坊模块条目 => {
-        const blockTitle = type === 'ability' ? '能力与境界规则' : type === 'world_rules' ? '世界规则' : '题材模板';
-        const contentBlocks: NonNullable<创意工坊模块条目['contentBlocks']> = [{
-            id: `${suffix}-main`,
-            title: blockTitle,
-            purpose: `${suiteTitle}模式包中的${titleSuffix}部分。`,
-            injectionTarget,
-            content: content.trim()
-        }];
-        return {
-            ...base,
-            id: `local-${suiteId}-${suffix}`,
-            type,
-            title: `${suiteTitle} · ${titleSuffix}`,
-            subtitle: draft.subtitle.trim() || `${draft.mode} · 完整模式包`,
-            description: draft.description.trim() || `${draft.mode}完整模式包的${titleSuffix}模块。`,
-            tags,
-            payload: {
-                schema: 'moranjianghu-creative-workshop-mode-suite',
-                version: 2,
-                suiteId,
-                suiteTitle,
-                mode: draft.mode,
-                content: content.trim(),
-                contentBlocks,
-                usagePrompt,
-                safetyNotes,
-                ...extraPayload
-            },
-            contentBlocks,
-            usagePrompt,
-            safetyNotes,
-            injectionPreview: [
-                `完整模式包：${suiteTitle}`,
-                `适用题材：${draft.mode}`,
-                `模块类型：${titleSuffix}`,
-                `${injectionTarget}：${content.trim().slice(0, 160)}`
-            ]
-        };
-    };
-    return [
-        makeModule(
-            'topic',
-            'topic',
-            '题材模板',
-            draft.topicBody,
-            'manualWorldPrompt',
-            draft.usagePrompt.trim() || '作为完整模式包的题材母板注入手动世界观提示词，定义基本口径、时代、货币、叙事边界和题材禁忌。',
-            { manualWorldPrompt: draft.topicBody.trim() }
-        ),
-        makeModule(
-            'world_rules',
-            'world-rules',
-            '世界规则',
-            draft.worldRulesBody,
-            'manualWorldPrompt',
-            '作为完整模式包的世界规则追加到世界观细化要求，约束势力、市场、地图、资源和社会规则。',
-            { worldExtraRequirement: draft.worldRulesBody.trim() }
-        ),
-        makeModule(
-            'ability',
-            'ability',
-            '能力体系',
-            draft.abilityBody,
-            'manualRealmPrompt',
-            '作为完整模式包的能力/境界提示词注入，约束成长体系、战力边界和技能命名。',
-            { manualRealmPrompt: draft.abilityBody.trim() }
-        )
-    ];
 };
 
-const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecomposition }) => {
+const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecomposition, onRequireLogin }) => {
     const [activeType, setActiveType] = useState<创意工坊模块类型>('topic');
     const [sourceFilter, setSourceFilter] = useState<来源筛选>('all');
     const [entries, setEntries] = useState<创意工坊模块条目[]>([]);
@@ -274,12 +384,21 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
     const contributionModules = useMemo(() => (
         contributionDraft.type === 'comfy_workflow'
             ? [contributionModule]
-            : 构建模式套装模块(contributionDraft, contributor)
+            : [构建模式包模块(contributionDraft, contributor)]
     ), [contributionDraft, contributionModule, contributor]);
     const contributionReady = contributionDraft.title.trim().length > 0 && (
         contributionDraft.type === 'comfy_workflow'
             ? contributionDraft.body.trim().length > 0
-            : contributionDraft.topicBody.trim().length > 0 && contributionDraft.worldRulesBody.trim().length > 0 && contributionDraft.abilityBody.trim().length > 0
+            : contributionDraft.topicBody.trim().length > 0
+                && contributionDraft.worldRulesBody.trim().length > 0
+                && contributionDraft.abilityBody.trim().length > 0
+                && contributionDraft.auctionName.trim().length > 0
+                && contributionDraft.marketVerb.trim().length > 0
+                && contributionDraft.mapPrompt.trim().length > 0
+                && 分割短语(contributionDraft.skillNames).length > 0
+                && 分割短语(contributionDraft.presetItemKeywords).length > 0
+                && 分割短语(contributionDraft.backgroundSuggestions).length > 0
+                && 分割短语(contributionDraft.talentSuggestions).length > 0
     );
 
     const activeEntries = useMemo(
@@ -313,7 +432,8 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
 
     const 发布模块 = async (entry: 创意工坊模块条目) => {
         if (!cloudUsername) {
-            setStatus('请先登录联机账号再发布社区投稿。匿名发布只隐藏显示署名，仍会绑定账号用于编辑和删除。');
+            setStatus('正在前往联机登录。登录后回到创意工坊即可继续发布。');
+            onRequireLogin?.();
             return;
         }
         setBusyId(entry.id);
@@ -330,11 +450,12 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
 
     const 发布贡献套装 = async () => {
         if (!contributionReady) {
-            setStatus(contributionDraft.type === 'comfy_workflow' ? '请先填写模块名称和工作流内容。' : '请完整填写题材模板、世界规则和能力体系三段内容。');
+            setStatus(contributionDraft.type === 'comfy_workflow' ? '请先填写模块名称和工作流内容。' : '请完整填写模式元数据，以及模式专属世界书的题材口径、世界规则和能力体系三段内容。');
             return;
         }
         if (!cloudUsername) {
-            setStatus('请先登录联机账号再发布社区投稿。匿名发布只隐藏显示署名，仍会绑定账号用于编辑和删除。');
+            setStatus('正在前往联机登录。登录后回到创意工坊即可继续发布。');
+            onRequireLogin?.();
             return;
         }
         setBusyId('contribution-suite');
@@ -345,7 +466,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
             }
             setStatus(contributionDraft.type === 'comfy_workflow'
                 ? `已发布到社区工坊：${published[0]?.title || contributionDraft.title}。`
-                : `已发布完整模式包「${contributionDraft.title.trim()}」：题材模板、世界规则、能力体系共 ${published.length} 个模块。`);
+                : `已发布完整模式包「${contributionDraft.title.trim()}」。`);
             setContributionDraft(空贡献草稿());
             await refreshEntries();
         } catch (error: any) {
@@ -415,7 +536,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
             const first = modules[0];
             setStatus(contributionDraft.type === 'comfy_workflow'
                 ? `已保存本地贡献「${first.title}」，可以在本地导入分区预览或发布。`
-                : `已保存完整模式包「${contributionDraft.title.trim()}」：题材模板、世界规则、能力体系共 ${modules.length} 个模块。`);
+                : `已保存完整模式包「${contributionDraft.title.trim()}」。`);
             setActiveType(first.type);
             setSourceFilter('local');
             setExpandedId(first.id);
@@ -502,13 +623,20 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                     <label className="block text-xs text-gray-300">
                                         贡献类型
                                         <select value={contributionDraft.type} onChange={(event) => setContributionDraft((prev) => ({ ...prev, type: event.target.value as 创意工坊模块类型 }))} className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none focus:border-wuxia-gold/45">
-                                            <option value="topic">完整模式包（题材模板 + 世界规则 + 能力体系）</option>
+                                            <option value="topic">完整模式包（模式专属世界书）</option>
                                             <option value="comfy_workflow">ComfyUI 工作流</option>
                                         </select>
                                     </label>
                                     <label className="block text-xs text-gray-300">
                                         适用模式
-                                        <select value={contributionDraft.mode} onChange={(event) => setContributionDraft((prev) => ({ ...prev, mode: event.target.value as 题材模式类型 }))} className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none focus:border-wuxia-gold/45">
+                                        <select
+                                            value={contributionDraft.mode}
+                                            onChange={(event) => {
+                                                const mode = event.target.value as 题材模式类型;
+                                                setContributionDraft((prev) => ({ ...prev, mode, ...创建默认模式元数据草稿(mode) }));
+                                            }}
+                                            className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none focus:border-wuxia-gold/45"
+                                        >
                                             {题材模式顺序.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
                                         </select>
                                     </label>
@@ -545,24 +673,79 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                     </label>
                                 ) : (
                                     <div className="grid gap-3">
+                                        <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <div>
+                                                    <div className="text-xs font-bold tracking-[0.14em] text-wuxia-gold">模式元数据</div>
+                                                    <div className="mt-1 text-[11px] leading-5 text-gray-500">用于开局界面、货币显示、市场入口、地图生成、技能/物品/背景/天赋建议。</div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setContributionDraft((prev) => ({ ...prev, ...创建默认模式元数据草稿(prev.mode) }))}
+                                                    className="rounded-lg border border-white/10 px-3 py-1.5 text-[11px] text-gray-200 hover:border-white/25"
+                                                >
+                                                    套用当前题材默认
+                                                </button>
+                                            </div>
+                                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                                <label className="block text-xs text-gray-300">
+                                                    货币显示
+                                                    <select value={contributionDraft.currencyDisplayMode} onChange={(event) => setContributionDraft((prev) => ({ ...prev, currencyDisplayMode: event.target.value as 贡献草稿['currencyDisplayMode'] }))} className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none focus:border-wuxia-gold/45">
+                                                        <option value="wuxia">武侠货币</option>
+                                                        <option value="xianxia">仙侠货币</option>
+                                                        <option value="urban">都市/灵气复苏</option>
+                                                        <option value="modern">现代现实</option>
+                                                        <option value="apocalypse">末世物资</option>
+                                                    </select>
+                                                </label>
+                                                <label className="block text-xs text-gray-300">
+                                                    市场名称
+                                                    <input value={contributionDraft.auctionName} onChange={(event) => setContributionDraft((prev) => ({ ...prev, auctionName: event.target.value }))} placeholder="例如：市场、联盟商店、营地交易所" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                                </label>
+                                                <label className="block text-xs text-gray-300 sm:col-span-2">
+                                                    市场行为口径
+                                                    <input value={contributionDraft.marketVerb} onChange={(event) => setContributionDraft((prev) => ({ ...prev, marketVerb: event.target.value }))} placeholder="例如：流入市场、进入联盟商店、在营地交易所寄售" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                                </label>
+                                                <label className="block text-xs text-gray-300 sm:col-span-2">
+                                                    地图口径
+                                                    <textarea value={contributionDraft.mapPrompt} onChange={(event) => setContributionDraft((prev) => ({ ...prev, mapPrompt: event.target.value }))} placeholder="写清地图应按哪些地点、势力、设施、道路和资源点组织。" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                                </label>
+                                                <label className="block text-xs text-gray-300">
+                                                    技能建议
+                                                    <textarea value={contributionDraft.skillNames} onChange={(event) => setContributionDraft((prev) => ({ ...prev, skillNames: event.target.value }))} placeholder="用顿号/逗号/换行分隔，例如：调查、谈判、急救" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                                </label>
+                                                <label className="block text-xs text-gray-300">
+                                                    预设物品关键词
+                                                    <textarea value={contributionDraft.presetItemKeywords} onChange={(event) => setContributionDraft((prev) => ({ ...prev, presetItemKeywords: event.target.value }))} placeholder="用顿号/逗号/换行分隔，例如：净水、药品、电池" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                                </label>
+                                                <label className="block text-xs text-gray-300">
+                                                    背景建议
+                                                    <textarea value={contributionDraft.backgroundSuggestions} onChange={(event) => setContributionDraft((prev) => ({ ...prev, backgroundSuggestions: event.target.value }))} placeholder="用顿号/逗号/换行分隔，例如：维修工、医护、独行者" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                                </label>
+                                                <label className="block text-xs text-gray-300">
+                                                    天赋建议
+                                                    <textarea value={contributionDraft.talentSuggestions} onChange={(event) => setContributionDraft((prev) => ({ ...prev, talentSuggestions: event.target.value }))} placeholder="用顿号/逗号/换行分隔，例如：冷静判断、资源嗅觉" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                                </label>
+                                            </div>
+                                        </div>
                                         <label className="block text-xs text-gray-300">
-                                            题材模板
-                                            <textarea value={contributionDraft.topicBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, topicBody: event.target.value }))} placeholder="写清题材口径：时代、地理、货币、社会常识、叙事禁忌、原著融合比例等。这部分会注入 manualWorldPrompt。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                            世界书条目：题材口径
+                                            <textarea value={contributionDraft.topicBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, topicBody: event.target.value }))} placeholder="写清题材口径：时代、地理、货币、社会常识、叙事禁忌、原著融合比例等。这会成为模式专属世界书的 world_lore 条目。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
                                         </label>
                                         <label className="block text-xs text-gray-300">
-                                            世界规则
-                                            <textarea value={contributionDraft.worldRulesBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, worldRulesBody: event.target.value }))} placeholder="写清世界运行规则：势力、资源、市场、科技/感染/地图/交易/阵营边界等。这部分会进入 worldExtraRequirement。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                            世界书条目：世界规则
+                                            <textarea value={contributionDraft.worldRulesBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, worldRulesBody: event.target.value }))} placeholder="写清世界运行规则：势力、资源、市场、科技/感染/地图/交易/阵营边界等。这会成为模式专属世界书的 system_rule 条目。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
                                         </label>
                                         <label className="block text-xs text-gray-300">
-                                            能力体系
-                                            <textarea value={contributionDraft.abilityBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, abilityBody: event.target.value }))} placeholder="写清境界/能力/战力等级、差距口径、成长资源、技能命名和判定边界。这部分会注入 manualRealmPrompt。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                            世界书条目：能力体系
+                                            <textarea value={contributionDraft.abilityBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, abilityBody: event.target.value }))} placeholder="写清境界/能力/战力等级、差距口径、成长资源、技能命名和判定边界。这会成为模式专属世界书的 system_rule 条目。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
                                         </label>
                                     </div>
                                 )}
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <label className="block text-xs text-gray-300">
                                         使用提示
-                                        <textarea value={contributionDraft.usagePrompt} onChange={(event) => setContributionDraft((prev) => ({ ...prev, usagePrompt: event.target.value }))} placeholder="例如：适合开启同人融合后注入到手动世界观提示词。" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                        <textarea value={contributionDraft.usagePrompt} onChange={(event) => setContributionDraft((prev) => ({ ...prev, usagePrompt: event.target.value }))} placeholder="例如：适合开启同人融合后作为模式专属世界书使用。" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
                                     </label>
                                     <label className="block text-xs text-gray-300">
                                         安全/限制说明
@@ -571,7 +754,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     <button type="button" onClick={() => void 保存贡献模块到本地()} disabled={!contributionReady} className="rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-4 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-45">保存到本地</button>
-                                    <button type="button" onClick={() => void 发布贡献套装()} disabled={!contributionReady || Boolean(busyId) || !cloudUsername} title={cloudUsername ? '发布到社区工坊' : '请先登录联机账号'} className="rounded-lg border border-sky-500/35 bg-sky-500/15 px-4 py-2 text-xs font-bold text-sky-100 hover:bg-sky-500/25 disabled:opacity-45">发布到社区</button>
+                                    <button type="button" onClick={() => void 发布贡献套装()} disabled={!contributionReady || Boolean(busyId)} title={cloudUsername ? '发布到社区工坊' : '点击后先登录联机账号'} className="rounded-lg border border-sky-500/35 bg-sky-500/15 px-4 py-2 text-xs font-bold text-sky-100 hover:bg-sky-500/25 disabled:opacity-45">发布到社区</button>
                                     <button type="button" onClick={() => setContributionDraft(空贡献草稿())} className="rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-200 hover:border-white/25">清空</button>
                                 </div>
                             </div>
@@ -579,13 +762,13 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                 <div className="text-xs font-bold tracking-[0.14em] text-wuxia-gold">实时预览</div>
                                 <div className="mt-3 text-base font-serif font-bold text-gray-100">{contributionDraft.title.trim() || '未命名预设'}</div>
                                 <div className="mt-1 text-xs text-wuxia-gold/80">{contributionDraft.type === 'comfy_workflow' ? contributionModule.subtitle : `${contributionDraft.mode} · 完整模式包`}</div>
-                                <p className="mt-2 text-sm leading-6 text-gray-300">{contributionDraft.description.trim() || (contributionDraft.type === 'comfy_workflow' ? contributionModule.description : '一次贡献题材模板、世界规则和能力体系三件套。')}</p>
+                                <p className="mt-2 text-sm leading-6 text-gray-300">{contributionDraft.description.trim() || (contributionDraft.type === 'comfy_workflow' ? contributionModule.description : '一次贡献一个模式专属世界书，包含题材口径、世界规则和能力体系。')}</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                     {contributionModules[0]?.tags.map((tag) => <span key={tag} className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-gray-300">{tag}</span>)}
                                 </div>
                                 <div className="mt-3 rounded-lg border border-wuxia-gold/15 bg-black/30 p-3">
                                     <div className="text-xs font-bold tracking-[0.14em] text-wuxia-gold">标准格式预览</div>
-                                    <div className="mt-2 text-xs leading-5 text-gray-300">使用提示：{contributionDraft.type === 'comfy_workflow' ? contributionModule.usagePrompt : '完整模式包会生成题材模板、世界规则、能力体系三个关联模块。'}</div>
+                                    <div className="mt-2 text-xs leading-5 text-gray-300">使用提示：{contributionDraft.type === 'comfy_workflow' ? contributionModule.usagePrompt : '完整模式包会以模式专属世界书的形式统一生效。'}</div>
                                     <ul className="mt-2 space-y-1 text-xs leading-5 text-gray-300">
                                         {contributionModules.flatMap((module) => module.injectionPreview.slice(0, 4)).map((line, index) => <li key={index}>{line}</li>)}
                                     </ul>
@@ -666,7 +849,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                         <button type="button" onClick={() => 下载JSON(entry)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">下载 JSON</button>
                                         <button type="button" onClick={() => void 复制文本(构建模块摘要(entry)).then((ok) => setStatus(ok ? `已复制「${entry.title}」注入摘要。` : '复制失败，请改用下载 JSON。'))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">复制摘要</button>
                                         {canPublishEntry ? (
-                                            <button type="button" onClick={() => void 发布模块(entry)} disabled={Boolean(busyId) || !cloudUsername} title={cloudUsername ? '贡献社区' : '请先登录联机账号'} className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15 disabled:opacity-50">贡献社区</button>
+                                            <button type="button" onClick={() => void 发布模块(entry)} disabled={Boolean(busyId)} title={cloudUsername ? '贡献社区' : '点击后先登录联机账号'} className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15 disabled:opacity-50">贡献社区</button>
                                         ) : (
                                             <button type="button" disabled className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-500">无需贡献</button>
                                         )}

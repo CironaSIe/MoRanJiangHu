@@ -3,7 +3,7 @@ import GameButton from '../../ui/GameButton';
 import { 接口设置结构, OpeningConfig, WorldGenConfig, 小说拆分数据集结构, 角色数据结构, 天赋结构, 背景结构, 游戏难度 } from '../../../types';
 import { 预设天赋, 预设背景, 获取题材预设天赋, 获取题材预设背景 } from '../../../data/presets';
 import type { 开局预设方案结构 } from '../../../data/newGamePresets';
-import type { 创意工坊模块条目, 创意工坊模块类型 } from '../../../data/creativeWorkshopModules';
+import { 从模式世界书提取提示词, type 创意工坊模块条目, type 创意工坊模块类型 } from '../../../data/creativeWorkshopModules';
 import type { 题材模式类型 } from '../../../models/system';
 import { OrnateBorder } from '../../ui/decorations/OrnateBorder';
 import InlineSelect from '../../ui/InlineSelect';
@@ -86,7 +86,7 @@ const 世界版图下拉选项: Array<{ value: WorldGenConfig['worldSize']; labe
     { value: '无尽位面', label: '无尽位面 (多重世界)' }
 ];
 const 创意工坊类型标签: Record<创意工坊模块类型, string> = {
-    topic: '题材模板',
+    topic: '模式包',
     world_rules: '世界规则',
     opening: '开局配置',
     ability: '能力体系',
@@ -842,8 +842,14 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                         setOpeningConfig((prev) => ({ ...prev, 题材模式: module.preset!.openingConfig!.题材模式 }));
                     }
                 }
-                const topicPrompt = String((module.payload as any)?.manualWorldPrompt || (!module.preset ? content : '')).trim();
+                const modeWorldbooks = Array.isArray(module.modeWorldbooks) ? module.modeWorldbooks : Array.isArray((module.payload as any)?.modeWorldbooks) ? (module.payload as any).modeWorldbooks : undefined;
+                const extractedPrompts = 从模式世界书提取提示词(modeWorldbooks);
+                const topicPrompt = String(extractedPrompts.manualWorldPrompt || (module.payload as any)?.manualWorldPrompt || (!module.preset ? content : '')).trim();
                 if (topicPrompt) setWorldConfig((prev) => ({ ...prev, manualWorldPrompt: 拼接额外要求(prev.manualWorldPrompt, topicPrompt) }));
+                const worldExtra = String(extractedPrompts.worldExtraRequirement || (module.payload as any)?.worldExtraRequirement || module.preset?.openingExtraRequirement || '').trim();
+                if (worldExtra) setWorldConfig((prev) => ({ ...prev, worldExtraRequirement: 拼接额外要求(prev.worldExtraRequirement, worldExtra) }));
+                const realmPrompt = String(extractedPrompts.manualRealmPrompt || (module.payload as any)?.manualRealmPrompt || module.preset?.worldConfig?.manualRealmPrompt || '').trim();
+                if (realmPrompt) setWorldConfig((prev) => ({ ...prev, manualRealmPrompt: realmPrompt }));
             } else if (module.type === 'world_rules') {
                 const extra = String((module.payload as any)?.worldExtraRequirement || module.preset?.openingExtraRequirement || content).trim();
                 if (extra) setWorldConfig((prev) => ({ ...prev, worldExtraRequirement: 拼接额外要求(prev.worldExtraRequirement, extra) }));
@@ -851,7 +857,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 const realmPrompt = String((module.payload as any)?.manualRealmPrompt || module.preset?.worldConfig?.manualRealmPrompt || content).trim();
                 if (realmPrompt) setWorldConfig((prev) => ({ ...prev, manualRealmPrompt: realmPrompt }));
             }
-            设置创意工坊注入状态(`已注入「${module.title}」。可在下方继续微调世界观和手动提示词；开局配置仍在后续步骤单独调整。`);
+            设置创意工坊注入状态(`已注入「${module.title}」的模式专属世界书。可在下方继续微调世界观、世界规则和能力边界；开局配置仍在后续步骤单独调整。`);
         } catch (error: any) {
             设置创意工坊注入状态(`工坊预设注入失败：${error?.message || '未知错误'}`);
         } finally {
@@ -872,14 +878,12 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         }
         更新题材模式(mode);
         const next: Partial<Record<创意工坊模块类型, string>> = {};
-        (['topic', 'world_rules', 'ability'] as 创意工坊模块类型[]).forEach((type) => {
-            const entry = 按模式查找官方工坊模块(mode, type);
-            if (entry) {
-                const key = 创意工坊模块键(entry);
-                next[type] = key;
-                void 应用创意工坊模块到开局(key);
-            }
-        });
+        const entry = 按模式查找官方工坊模块(mode, 'topic');
+        if (entry) {
+            const key = 创意工坊模块键(entry);
+            next.topic = key;
+            void 应用创意工坊模块到开局(key);
+        }
         设置已选创意工坊子项(next);
     };
 
@@ -1081,7 +1085,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                     设置自定义开局预设列表(合并去重开局预设方案(savedStartPresets.map(item => 标准化开局预设方案(item)).filter(Boolean) as 开局预设方案结构[]));
                 }
                 if (Array.isArray(workshopModules)) {
-                    设置创意工坊模块列表(workshopModules.filter((item) => item.type === 'topic' || item.type === 'world_rules' || item.type === 'ability'));
+                    设置创意工坊模块列表(workshopModules.filter((item) => item.type === 'topic'));
                 }
                 设置小说拆分数据集列表(savedNovelDatasets);
             } catch (error) {
@@ -1606,7 +1610,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             <div>
                                                 <div className="text-sm text-emerald-300 font-bold">创意工坊模式</div>
                                                 <div className="mt-1 text-[11px] leading-6 text-gray-400">
-                                                    模式由“题材模板 + 世界规则 + 能力体系”组成，其中题材模板和世界规则共同构成世界观，能力体系作用于天赋背景。开局配置仍保留在新建存档流程里，不作为工坊子项。
+                                                    模式包现在以“模式专属世界书”为核心，一次选择就会写入题材口径、世界规则与能力体系。开局配置仍保留在新建存档流程里单独调整。
                                                 </div>
                                             </div>
                                             <span className="text-[10px] text-emerald-200 font-mono tracking-[0.18em]">WORKSHOP</span>
@@ -1621,17 +1625,18 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             disabled={创意工坊注入中 || 创意工坊模块列表.length <= 0}
                                         />
                                         <div className="grid gap-3 md:grid-cols-2">
-                                            {(['topic', 'world_rules', 'ability'] as 创意工坊模块类型[]).map((type) => {
+                                            {(() => {
+                                                const type: 创意工坊模块类型 = 'topic';
                                                 const selectedKey = 已选创意工坊子项[type] || '';
                                                 const selectedEntry = selectedKey ? 按键查找创意工坊模块(selectedKey) : null;
                                                 const options = 创意工坊模块列表.filter((entry) => entry.type === type);
                                                 return (
-                                                    <div key={type} className="rounded-xl border border-white/10 bg-black/25 p-3 space-y-2">
+                                                    <div className="rounded-xl border border-white/10 bg-black/25 p-3 space-y-2 md:col-span-2">
                                                         <div className="text-[11px] font-bold text-emerald-200">{创意工坊类型标签[type]}</div>
                                                         <InlineSelect
                                                             value={selectedKey}
                                                             options={[
-                                                                { value: '', label: `不替换${创意工坊类型标签[type]}` },
+                                                                { value: '', label: '不使用模式包' },
                                                                 ...options.map((entry) => ({
                                                                     value: 创意工坊模块键(entry),
                                                                     label: `${读取模块模式(entry) || '通用'} · ${entry.title}`
@@ -1642,12 +1647,12 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                                         />
                                                         {selectedEntry && (
                                                             <div className="text-[11px] leading-5 text-gray-400">
-                                                                {selectedEntry.injectionPreview.slice(0, 2).map((line, index) => <div key={`${selectedKey}-${index}`}>- {line}</div>)}
+                                                                {selectedEntry.injectionPreview.slice(0, 4).map((line, index) => <div key={`${selectedKey}-${index}`}>- {line}</div>)}
                                                             </div>
                                                         )}
                                                     </div>
                                                 );
-                                            })}
+                                            })()}
                                         </div>
                                         {创意工坊注入状态 && (
                                             <div className={`text-[11px] ${创意工坊注入状态.includes('失败') ? 'text-red-300' : 'text-emerald-200'}`}>{创意工坊注入状态}</div>

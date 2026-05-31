@@ -1,4 +1,5 @@
 import type { 开局预设方案结构 } from './newGamePresets';
+import type { 世界书结构, 世界书条目结构, 世界书类型, 世界书作用域 } from '../types';
 import { 题材模式配置表, 题材模式顺序 } from '../utils/topicModeProfiles';
 import { 默认ComfyUI工作流JSON, 默认NSFWComfyUI工作流JSON } from './defaultComfyWorkflow';
 
@@ -15,12 +16,13 @@ export interface 创意工坊模块条目 {
     description: string;
     tags: string[];
     payload: Record<string, unknown>;
+    modeWorldbooks?: 世界书结构[];
     contentBlocks?: Array<{
         id: string;
         title: string;
         purpose: string;
         content: string;
-        injectionTarget?: 'manualWorldPrompt' | 'manualRealmPrompt' | 'openingExtraRequirement' | 'imageWorkflow' | 'referenceOnly';
+            injectionTarget?: 'manualWorldPrompt' | 'worldExtraRequirement' | 'manualRealmPrompt' | 'openingExtraRequirement' | 'imageWorkflow' | 'referenceOnly';
     }>;
     usagePrompt?: string;
     safetyNotes?: string[];
@@ -36,6 +38,76 @@ export interface 创意工坊模块条目 {
     ownerUsername?: string;
     anonymous?: boolean;
 }
+
+const 全流程模式世界书作用域: 世界书作用域[] = ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'];
+
+const 构建模式世界书条目 = (
+    id: string,
+    标题: string,
+    内容: string,
+    类型: 世界书类型,
+    作用域: 世界书作用域[] = 全流程模式世界书作用域,
+    优先级 = 80
+): 世界书条目结构 => ({
+    id,
+    标题,
+    内容: 内容.trim(),
+    条目形态: 'normal',
+    类型,
+    作用域,
+    注入模式: 'always',
+    关键词: [],
+    优先级,
+    启用: true,
+    创建时间: 0,
+    更新时间: 0
+});
+
+const 构建模式专属世界书 = (params: {
+    id: string;
+    title: string;
+    description: string;
+    topicPrompt?: string;
+    worldRulesPrompt?: string;
+    abilityPrompt?: string;
+    extraEntries?: 世界书条目结构[];
+}): 世界书结构[] => {
+    const entries: 世界书条目结构[] = [
+        params.topicPrompt ? 构建模式世界书条目(`${params.id}-topic`, '题材口径', params.topicPrompt, 'world_lore', 全流程模式世界书作用域, 100) : null,
+        params.worldRulesPrompt ? 构建模式世界书条目(`${params.id}-world-rules`, '世界规则', params.worldRulesPrompt, 'system_rule', 全流程模式世界书作用域, 95) : null,
+        params.abilityPrompt ? 构建模式世界书条目(`${params.id}-ability`, '能力体系', params.abilityPrompt, 'system_rule', 全流程模式世界书作用域, 90) : null,
+        ...(params.extraEntries || [])
+    ].filter((entry): entry is 世界书条目结构 => Boolean(entry && entry.内容.trim()));
+    return [{
+        id: `${params.id}-worldbook`,
+        标题: params.title,
+        描述: params.description,
+        常驻大纲: params.description,
+        启用: true,
+        内置: false,
+        条目: entries,
+        创建时间: 0,
+        更新时间: 0
+    }];
+};
+
+export const 从模式世界书提取提示词 = (books: 世界书结构[] | undefined): {
+    manualWorldPrompt: string;
+    worldExtraRequirement: string;
+    manualRealmPrompt: string;
+} => {
+    const entries = (Array.isArray(books) ? books : [])
+        .flatMap((book) => Array.isArray(book?.条目) ? book.条目 : [])
+        .filter((entry) => entry && entry.启用 !== false && typeof entry.内容 === 'string' && entry.内容.trim());
+    const worldLore = entries.filter((entry) => entry.类型 === 'world_lore').map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
+    const ability = entries.filter((entry) => /能力|境界|成长|战力/.test(entry.标题)).map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
+    const rules = entries.filter((entry) => !ability.includes(`【${entry.标题}】\n${entry.内容.trim()}`) && entry.类型 !== 'world_lore').map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
+    return {
+        manualWorldPrompt: worldLore.join('\n\n'),
+        worldExtraRequirement: rules.join('\n\n'),
+        manualRealmPrompt: ability.join('\n\n')
+    };
+};
 
 const 通用属性 = {
     力量: 5,
@@ -124,9 +196,7 @@ const 构建题材预设 = (
 };
 
 export const 创意工坊模块分区: Array<{ id: 创意工坊模块类型; title: string; description: string }> = [
-    { id: 'topic', title: '题材模板', description: '套用题材口径、货币、地图空间和基础提示词。' },
-    { id: 'world_rules', title: '世界规则', description: '注入感染、文明密度、资源、市场和基础设施规则。' },
-    { id: 'ability', title: '能力体系', description: '注入境界、觉醒、堕化或非超凡成长边界。' },
+    { id: 'topic', title: '模式包', description: '一次注入题材模板、世界规则和能力体系。' },
     { id: 'comfy_workflow', title: 'ComfyUI 工作流', description: '分享可用于普通、场景或 NSFW 生图的 API workflow JSON。' }
 ];
 
@@ -840,7 +910,164 @@ const 宝可梦能力模块 = 构建标准内容模块({
     ]
 });
 
-export const 创意工坊模块列表: 创意工坊模块条目[] = [
+const 取模块文本 = (entry: 创意工坊模块条目, preferredTarget?: NonNullable<创意工坊模块条目['contentBlocks']>[number]['injectionTarget']): string => {
+    const payload = entry.payload || {};
+    const direct = entry.type === 'world_rules'
+        ? payload.worldExtraRequirement
+        : entry.type === 'ability'
+            ? payload.manualRealmPrompt
+            : payload.manualWorldPrompt;
+    const directText = typeof direct === 'string' ? direct.trim() : '';
+    if (directText) return directText;
+    const matchedBlock = (entry.contentBlocks || []).find((block) => !preferredTarget || block.injectionTarget === preferredTarget);
+    if (matchedBlock?.content?.trim()) return matchedBlock.content.trim();
+    const content = typeof payload.content === 'string' ? payload.content.trim() : '';
+    if (content) return content;
+    if (entry.type === 'world_rules' && entry.preset?.openingExtraRequirement?.trim()) return entry.preset.openingExtraRequirement.trim();
+    if (entry.type === 'ability' && entry.preset?.worldConfig?.manualRealmPrompt?.trim()) return entry.preset.worldConfig.manualRealmPrompt.trim();
+    return entry.injectionPreview.join('\n').trim();
+};
+
+const 重标注内容块 = (
+    entry: 创意工坊模块条目,
+    fallbackTitle: string,
+    injectionTarget: NonNullable<创意工坊模块条目['contentBlocks']>[number]['injectionTarget']
+): NonNullable<创意工坊模块条目['contentBlocks']> => {
+    const blocks = entry.contentBlocks?.length
+        ? entry.contentBlocks
+        : [{
+            id: `${entry.id}-content`,
+            title: fallbackTitle,
+            purpose: entry.description,
+            content: 取模块文本(entry, injectionTarget),
+            injectionTarget
+        }];
+    return blocks.map((block, index) => ({
+        ...block,
+        id: `${entry.id}-${block.id || index}`,
+        title: block.title || fallbackTitle,
+        injectionTarget
+    }));
+};
+
+const 构建整合模式包 = (topic: 创意工坊模块条目, worldRules?: 创意工坊模块条目, ability?: 创意工坊模块条目): 创意工坊模块条目 => {
+    const mode = topic.preset?.openingConfig?.题材模式 || (topic.payload as any)?.mode || (topic.payload as any)?.value;
+    const profile = 题材模式配置表[mode as keyof typeof 题材模式配置表];
+    const suiteId = typeof topic.payload?.suiteId === 'string' ? topic.payload.suiteId : '';
+    const suiteTitle = typeof topic.payload?.suiteTitle === 'string' ? topic.payload.suiteTitle : '';
+    const title = suiteTitle
+        || (profile ? `${profile.shortLabel}模式包` : topic.title.replace(/题材模板|模板|世界规则包|能力体系/g, '').replace(/包包/g, '包').trim() || `${topic.title}模式包`);
+    const manualWorldPrompt = 取模块文本(topic, 'manualWorldPrompt');
+    const worldExtraRequirement = worldRules ? 取模块文本(worldRules, 'worldExtraRequirement') : '';
+    const manualRealmPrompt = ability ? 取模块文本(ability, 'manualRealmPrompt') : '';
+    const contentBlocks: NonNullable<创意工坊模块条目['contentBlocks']> = [
+        ...重标注内容块(topic, '题材模板', 'manualWorldPrompt'),
+        ...(worldRules ? 重标注内容块(worldRules, '世界规则', 'worldExtraRequirement') : []),
+        ...(ability ? 重标注内容块(ability, '能力体系', 'manualRealmPrompt') : [])
+    ];
+    const modeWorldbooks = 构建模式专属世界书({
+        id: suiteId || `mode-${profile?.value || topic.id}`,
+        title: `${title}世界书`,
+        description: `${title}的模式专属世界书。切换/启用该模式包时，这组世界书决定题材口径、世界规则和能力体系。`,
+        topicPrompt: manualWorldPrompt,
+        worldRulesPrompt: worldExtraRequirement,
+        abilityPrompt: manualRealmPrompt
+    });
+    const preset = topic.preset ? {
+        ...topic.preset,
+        worldConfig: {
+            ...topic.preset.worldConfig,
+            manualWorldPrompt: topic.preset.worldConfig.manualWorldPrompt || manualWorldPrompt,
+            worldExtraRequirement: worldExtraRequirement || topic.preset.worldConfig.worldExtraRequirement,
+            manualRealmPrompt: manualRealmPrompt || topic.preset.worldConfig.manualRealmPrompt
+        },
+        openingExtraRequirement: worldExtraRequirement || topic.preset.openingExtraRequirement || ''
+    } : undefined;
+    return {
+        ...topic,
+        id: suiteId ? `${suiteId}-mode-package` : `mode-package-${profile?.value || topic.id}`,
+        type: 'topic',
+        title,
+        subtitle: `${topic.subtitle}${worldRules ? ` · ${worldRules.subtitle}` : ''}${ability ? ` · ${ability.subtitle}` : ''}`,
+        description: topic.description.replace('题材模板', '模式包'),
+        tags: Array.from(new Set([...topic.tags, ...(worldRules?.tags || []), ...(ability?.tags || []), '模式包'])).slice(0, 12),
+        payload: {
+            ...topic.payload,
+            schema: 'moranjianghu-creative-workshop-mode-package',
+            version: 3,
+            suiteId: suiteId || undefined,
+            suiteTitle: suiteTitle || title,
+            packagePart: 'mode_package',
+            mode,
+            modeMetadata: profile ? {
+                value: profile.value,
+                label: profile.label,
+                shortLabel: profile.shortLabel,
+                group: profile.group,
+                auctionName: profile.auctionName,
+                marketVerb: profile.marketVerb,
+                currencyDisplayMode: profile.currencyDisplayMode,
+                skillNames: profile.skillNames,
+                presetItemKeywords: profile.presetItemKeywords
+            } : undefined,
+            modeWorldbooks,
+            manualWorldPrompt,
+            worldExtraRequirement,
+            manualRealmPrompt,
+            content: contentBlocks.map((block) => [`【${block.title}】`, block.content.trim()].filter(Boolean).join('\n')).join('\n\n'),
+            contentBlocks,
+            usagePrompt: '作为完整模式包注入新建存档：模式专属世界书会统一接管题材口径、世界规则和能力体系；旧版手动提示词字段仅作兼容。',
+            safetyNotes: topic.safetyNotes || []
+        },
+        modeWorldbooks,
+        contentBlocks,
+        usagePrompt: '作为完整模式包注入新建存档：模式专属世界书会统一接管题材口径、世界规则和能力体系。',
+        injectionPreview: [
+            '标准格式：v3 / mode_package / modeWorldbooks',
+            `模式世界书：${modeWorldbooks[0]?.标题 || title}`,
+            `世界书条目：${modeWorldbooks[0]?.条目.length || 0} 条`,
+            `题材口径：${manualWorldPrompt.slice(0, 120)}`,
+            ...(worldExtraRequirement ? [`世界规则：${worldExtraRequirement.slice(0, 120)}`] : []),
+            ...(manualRealmPrompt ? [`能力体系：${manualRealmPrompt.slice(0, 120)}`] : [])
+        ],
+        preset
+    };
+};
+
+export const 整合创意工坊模式包 = (entries: 创意工坊模块条目[]): 创意工坊模块条目[] => {
+    const passthrough = entries.filter((entry) => (
+        entry.type === 'comfy_workflow'
+        || entry.type === 'opening'
+        || (entry.type === 'topic' && entry.payload?.packagePart === 'mode_package')
+    ));
+    const standardEntries = entries.filter((entry) => (
+        (entry.type === 'topic' || entry.type === 'world_rules' || entry.type === 'ability')
+        && !(entry.type === 'topic' && entry.payload?.packagePart === 'mode_package')
+    ));
+    const keyOf = (entry: 创意工坊模块条目): string => {
+        const suiteId = typeof entry.payload?.suiteId === 'string' ? entry.payload.suiteId : '';
+        if (suiteId) return `suite:${suiteId}`;
+        const mode = entry.preset?.openingConfig?.题材模式 || (entry.payload as any)?.mode || (entry.payload as any)?.value || '';
+        return `${entry.source || 'builtin'}:${entry.contributor || ''}:${mode || entry.id}`;
+    };
+    const groups = new Map<string, Partial<Record<'topic' | 'world_rules' | 'ability', 创意工坊模块条目>>>();
+    standardEntries.forEach((entry) => {
+        const key = keyOf(entry);
+        const group = groups.get(key) || {};
+        if (entry.type === 'topic' || entry.type === 'world_rules' || entry.type === 'ability') {
+            group[entry.type] = entry;
+        }
+        groups.set(key, group);
+    });
+    const packages = Array.from(groups.values()).map((group) => {
+        const topic = group.topic || group.world_rules || group.ability;
+        if (!topic) return null;
+        return 构建整合模式包(topic, group.world_rules, group.ability);
+    }).filter(Boolean) as 创意工坊模块条目[];
+    return [...packages, ...passthrough];
+};
+
+const 原始创意工坊模块列表: 创意工坊模块条目[] = [
     ...题材模式顺序.map(构建题材模块),
     ...题材模式顺序.map(构建世界规则模块),
     ...题材模式顺序.map(构建能力模块),
@@ -860,3 +1087,5 @@ export const 创意工坊模块列表: 创意工坊模块条目[] = [
     构建ComfyUI工作流模块('comfy-workflow-default-scene', '默认场景 ComfyUI 工作流', '场景氛围', 'scene', 默认ComfyUI工作流JSON, '官方默认场景生图 workflow，适合环境、地点和横竖屏场景图。'),
     构建ComfyUI工作流模块('comfy-workflow-default-nsfw', '默认 NSFW ComfyUI 工作流', 'NSFW 成人向', 'nsfw', 默认NSFWComfyUI工作流JSON, '官方默认 NSFW 生图 workflow，适合私密部位与成人向独立接口。')
 ].map(统一为标准模块格式);
+
+export const 创意工坊模块列表: 创意工坊模块条目[] = 整合创意工坊模式包(原始创意工坊模块列表);
