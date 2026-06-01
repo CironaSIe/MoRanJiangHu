@@ -1353,7 +1353,7 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         使用默认场景ComfyUI工作流,
         场景ComfyUI工作流JSON: 使用默认场景ComfyUI工作流 ? '' : 规范化场景ComfyUI工作流JSON(raw?.场景ComfyUI工作流JSON),
         NSFW生图独立接口启用: Boolean(raw?.NSFW生图独立接口启用),
-        NSFW生图后端类型: raw?.NSFW生图后端类型 === 'novelai' || raw?.NSFW生图后端类型 === 'sd_webui' || raw?.NSFW生图后端类型 === 'comfyui'
+        NSFW生图后端类型: raw?.NSFW生图后端类型 === 'openai' || raw?.NSFW生图后端类型 === 'novelai' || raw?.NSFW生图后端类型 === 'sd_webui' || raw?.NSFW生图后端类型 === 'comfyui'
             ? raw.NSFW生图后端类型
             : 'comfyui',
         NSFW生图模型使用模型: 读取字符串(raw?.NSFW生图模型使用模型),
@@ -2214,7 +2214,13 @@ const 不支持NSFW生图模型片段 = ['gpt', 'openai', 'gemini', 'banana', 'n
 export const 生图接口支持NSFW = (config: 当前可用接口结构 | null): config is 当前可用接口结构 => {
     if (!config) return false;
     const backend = config.图片后端类型 || 'openai';
-    if (backend === 'openai') return false;
+    if (backend === 'openai') {
+        const endpointText = [config.model, config.baseUrl, config.供应商]
+            .map((value) => 读取字符串(value).toLowerCase())
+            .join(' ');
+        return /grok|x\.ai|xai/u.test(endpointText)
+            && !/api\.openai\.com|dall-?e|gpt-image|gpt\b/u.test(endpointText);
+    }
     // 仅检查模型名和 URL，不检查供应商字段；openai_compatible 是协议描述（ComfyUI/SD WebUI 也用），
     // 不代表后端不支持 NSFW。
     // ComfyUI / SD WebUI 不依赖模型字段，旧存档可能残留 gpt-image 等主接口模型名，不能因此误判。
@@ -2371,10 +2377,10 @@ export const 获取NSFW文生图接口配置 = (settings: 接口设置结构, di
         ? (sharedNsfwConfig || 构建NSFW兜底配置(settings, sharedConfig) || 从已发现后端构建NSFW配置(discoveredComfyuiBackends))
         : 从已发现后端构建NSFW配置(discoveredComfyuiBackends);
 
-    const nsfwBackend: NonNullable<当前可用接口结构['图片后端类型']> = feature?.NSFW生图后端类型 === 'novelai' || feature?.NSFW生图后端类型 === 'sd_webui' || feature?.NSFW生图后端类型 === 'comfyui'
+    const nsfwBackend: NonNullable<当前可用接口结构['图片后端类型']> = feature?.NSFW生图后端类型 === 'openai' || feature?.NSFW生图后端类型 === 'novelai' || feature?.NSFW生图后端类型 === 'sd_webui' || feature?.NSFW生图后端类型 === 'comfyui'
         ? feature.NSFW生图后端类型
         : 'openai';
-    const sharedBackend: NonNullable<当前可用接口结构['图片后端类型']> = sharedConfig?.图片后端类型 === 'novelai' || sharedConfig?.图片后端类型 === 'sd_webui' || sharedConfig?.图片后端类型 === 'comfyui'
+    const sharedBackend: NonNullable<当前可用接口结构['图片后端类型']> = sharedConfig?.图片后端类型 === 'openai' || sharedConfig?.图片后端类型 === 'novelai' || sharedConfig?.图片后端类型 === 'sd_webui' || sharedConfig?.图片后端类型 === 'comfyui'
         ? sharedConfig.图片后端类型
         : 'openai';
     const nsfwModel = 读取字符串(feature?.NSFW生图模型使用模型).trim();

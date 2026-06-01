@@ -1,6 +1,7 @@
 
 import { 存档结构 } from '../types';
 import { 创建图片资源引用, 解析图片资源引用ID, 是否图片资源引用, 注册图片资源缓存, 批量注册图片资源缓存, 清空图片资源缓存, 注册远程图片兜底引用, 读取远程图片兜底映射, 读取远程图片兜底资源ID集合 } from '../utils/imageAssets';
+import { 当前为对象存储云端游玩模式 } from '../utils/cloudPlayStorageMode';
 import { 获取设置项定义, 设置分类定义表, 设置键, type 设置分类类型 } from '../utils/settingsSchema';
 import { 默认功能模型占位, 规范化接口设置 } from '../utils/apiConfig';
 import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
@@ -37,7 +38,9 @@ const 是图床图片地址 = (value: string): boolean => {
     try {
         const url = new URL(value);
         return /^https?:$/i.test(url.protocol)
-            && /(^|\.)(?:image1|image)\.bacon159\.pp\.ua$/i.test(url.hostname)
+            && (/(^|\.)(?:image1|image)\.bacon159\.pp\.ua$/i.test(url.hostname)
+                || /(^|\.)picui\.ogmua\.cn$/i.test(url.hostname)
+                || /^imgurloss\.xqd\.cn$/i.test(url.hostname))
             && (/^\/file\//i.test(url.pathname) || /^\/api\/v1\/file\//i.test(url.pathname) || /\.(png|jpe?g|webp|gif|bmp)$/i.test(url.pathname));
     } catch {
         return false;
@@ -360,6 +363,7 @@ const 上传图片资源到图床并登记 = async (
     signature?: string
 ): Promise<string> => {
     if (!是DataUrl图片(dataUrl)) return '';
+    if (当前为对象存储云端游玩模式()) return '';
     if (signature && 是否跳过图床上传(signature)) return '';
     try {
         const uploaded = await 上传DataUrl到图床(dataUrl, { fileName: `${id}.png` });

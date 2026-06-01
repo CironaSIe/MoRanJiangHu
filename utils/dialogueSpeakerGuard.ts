@@ -1,0 +1,97 @@
+import { 是否判定日志文本 } from './judgmentFormat';
+import { 姓名含已知中文姓氏 } from './chineseName';
+
+const 转义正则文本 = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const 泛称或非角色标签正则 = /^(?:旁白|奖励|系统|玩家|主角|我|你|他|她|它|我们|你们|他们|她们|有人|无人|众人|众弟子|众门人|众侍从|众士卒|所有人|全场|人群|群声|齐声|对方|那人|这人|此人|男子|女子|少年|少女|老人|老者|汉子|侍女|侍从|弟子|门人|店小二|声音|语气|目光|视线|眼神|空气|雨声|风声|脚步声|灯光|夜色|晨光)$/;
+const 明显叙事短语起始正则 = /^(?:随着|伴随|当他|当她|当你|当我|如果|若是|只是|这是|那是|这个|那个|这种|那种|此时|这时|随后|然后|接着|同时|终于|突然|忽然|仍然|已经|开始|继续|至于|关于|听起来|看起来|说起来|带来|带来的|传来|传来的|映入|落在|压在|来自|所有|全场|一切|空气|雨声|风声|灯光|夜色|晨光|脚步|声音|带来的)/;
+const 叙事动作词正则 = /(?:摇头|点头|皱眉|叹息|沉默|冷笑|苦笑|轻笑|发笑|开口|说道|说着|问道|答道|喝道|喊道|提醒|解释|望向|看向|盯着|看着|望着|瞥向|注视|抬头|低头|回头|转身|上前|退后|伸手|抬手|握住|按住|放下|拿起|推开|打开|走到|来到|回到|站在|坐在|停下|落在|映在|传来|带来|听起来|看起来)/;
+const 结构或句子符号正则 = /[，,。！？!?；;：:\n\r\t<>]|[“”"「」『』]/;
+const 明显正文片段正则 = /(?:的|了|着|地|得|将|把|被|让|向|对|朝|从|在|与|和|及|或|于|至于|已经|正在|仍然|没有|不是|可以|应该)/;
+const 额外常见姓氏 = new Set(['楚']);
+const 常见复姓列表 = [
+    '欧阳', '太史', '端木', '上官', '司马', '东方', '独孤', '南宫', '闻人',
+    '夏侯', '诸葛', '尉迟', '公孙', '慕容', '长孙', '宇文', '司徒', '司空',
+    '轩辕', '令狐'
+];
+const 四字非复姓名词正则 = /(?:灵气|剑光|刀光|晨雾|夜色|灯光|雨声|风声|脚步|眼力|感觉|气息|玄铁|精石|矿材|屋内|门外|窗外|林间|山间|水面|火光|人群|全场|众人)/;
+const 是否像中文姓名 = (value: string): boolean => (
+    /^[\u4e00-\u9fa5]{2,4}$/u.test(value)
+    && (value.length < 4 || 常见复姓列表.some(surname => value.startsWith(surname)) || 额外常见姓氏.has(value[0]))
+    && !四字非复姓名词正则.test(value)
+    && (姓名含已知中文姓氏(value) || 额外常见姓氏.has(value[0]))
+);
+
+export const 规范化正文发送者名 = (senderRaw: string): string => {
+    const sender = (senderRaw || '')
+        .replace(/[【】\[\]「」『』“”"']/g, '')
+        .replace(/\s+/g, '')
+        .trim();
+    if (!sender) return '旁白';
+    if (sender === '判定') return '【判定】';
+    if (sender === 'NSFW判定') return '【NSFW判定】';
+    return sender;
+};
+
+export const 是否特殊正文发送者 = (senderRaw: string): boolean => {
+    const sender = 规范化正文发送者名(senderRaw);
+    return sender === '旁白'
+        || sender === '奖励'
+        || sender === '【判定】'
+        || sender === '【NSFW判定】'
+        || 是否判定日志文本(senderRaw)
+        || 是否判定日志文本(sender);
+};
+
+export const 是否疑似叙事短语标签 = (senderRaw: string): boolean => {
+    const sender = 规范化正文发送者名(senderRaw);
+    if (!sender || sender === '旁白') return false;
+    if (结构或句子符号正则.test(sender)) return true;
+    if (sender.length > 4) return true;
+    if (泛称或非角色标签正则.test(sender)) return true;
+    if (明显叙事短语起始正则.test(sender)) return true;
+    if (叙事动作词正则.test(sender)) return true;
+    if (sender.length >= 3 && 明显正文片段正则.test(sender) && !是否像中文姓名(sender)) return true;
+    return false;
+};
+
+export const 是否可信角色发送者 = (
+    senderRaw: string,
+    options?: { knownSpeakers?: string[]; allowUnknownName?: boolean }
+): boolean => {
+    const sender = 规范化正文发送者名(senderRaw);
+    if (!sender || 是否特殊正文发送者(sender)) return false;
+    if (是否疑似叙事短语标签(sender)) return false;
+
+    const knownSpeakers = (options?.knownSpeakers || [])
+        .map(item => 规范化正文发送者名(item))
+        .filter(Boolean);
+    if (knownSpeakers.some(item => item === sender)) return true;
+
+    if (/^[\u4e00-\u9fa5]{2,4}$/u.test(sender)) {
+        return options?.allowUnknownName !== false && 是否像中文姓名(sender);
+    }
+
+    if (/^[A-Za-z][A-Za-z0-9_· -]{1,23}$/.test(sender)) {
+        return options?.allowUnknownName !== false;
+    }
+
+    return false;
+};
+
+export const 是否可信正文标签发送者 = (
+    senderRaw: string,
+    options?: { knownSpeakers?: string[]; allowUnknownName?: boolean }
+): boolean => {
+    const sender = 规范化正文发送者名(senderRaw);
+    return 是否特殊正文发送者(sender) || 是否可信角色发送者(sender, options);
+};
+
+export const 构建已知说话人正则 = (knownSpeakers: string[]): RegExp | null => {
+    const names = knownSpeakers
+        .map(item => 规范化正文发送者名(item))
+        .filter(item => item && 是否可信角色发送者(item, { allowUnknownName: true }))
+        .sort((a, b) => b.length - a.length)
+        .map(转义正则文本);
+    return names.length > 0 ? new RegExp(`^(?:${names.join('|')})$`) : null;
+};

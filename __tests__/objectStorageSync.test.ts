@@ -570,7 +570,7 @@ describe('对象存储同步', () => {
         expect(result.uploaded).toBe(1);
         expect(exportedBundles).toHaveLength(1);
         expect(exportedBundles[0].map((save) => save.元数据?.存档哈希)).toEqual(['parenthash0001', 'childhash0002']);
-        expect(exportedOptions.some((options) => options?.includeImages === false)).toBe(true);
+        expect(exportedOptions.every((options) => options?.includeImages === true)).toBe(true);
     });
 
     it('后台只同步当前存档时，也会补传本地可找到的祖先节点', async () => {

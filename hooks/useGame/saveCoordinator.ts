@@ -67,6 +67,8 @@ const 是否可缓存图床图片地址 = (value: string): boolean => {
         const url = new URL(value);
         return /^image1\.bacon159\.pp\.ua$/i.test(url.hostname)
             || /^image\.bacon159\.pp\.ua$/i.test(url.hostname)
+            || /(^|\.)picui\.ogmua\.cn$/i.test(url.hostname)
+            || /^imgurloss\.xqd\.cn$/i.test(url.hostname)
             || /\.(png|jpe?g|webp|gif|bmp)(?:$|[?#])/i.test(url.pathname);
     } catch {
         return false;

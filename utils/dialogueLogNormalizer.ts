@@ -1,5 +1,6 @@
 import type { GameLog } from '../types';
 
+import { 是否可信角色发送者, 规范化正文发送者名 } from './dialogueSpeakerGuard';
 import { 是否判定日志文本 } from './judgmentFormat';
 
 type NormalizeOptions = {
@@ -28,6 +29,8 @@ const 清理说话人 = (value: string): string => {
         .replace(/[（(][^）)]{1,16}[）)]/g, '')
         .replace(/[【】\[\]「」『』“”"']/g, '')
         .trim();
+    const special = 规范化正文发送者名(text);
+    if (special === '奖励') return special;
 
     text = text.split(/[，,、；;。！？!?\s]/).filter(Boolean).pop() || text;
     for (let i = 0; i < 3; i += 1) {
@@ -44,6 +47,7 @@ const 清理说话人 = (value: string): string => {
     if (!text || text.length > 12) return '';
     if (/[：:，,。！？!?；;\n]/.test(text)) return '';
     if (非单一说话人正则.test(text) || 泛称说话人正则.test(text) || 语气词说话人正则.test(text) || 非人名短语说话人正则.test(text)) return '';
+    if (!是否可信角色发送者(text, { allowUnknownName: true })) return '';
     return text;
 };
 
@@ -399,8 +403,11 @@ export const 规范化对白日志 = (
     const knownSpeakers = Array.from(new Set((options?.knownSpeakers || []).map(item => (item || '').trim()).filter(Boolean)));
     const normalized = (Array.isArray(logs) ? logs : [])
         .flatMap((item) => {
-            const sender = (item?.sender || '旁白').trim() || '旁白';
-            const text = 拆分过长旁白段落(sender, typeof item?.text === 'string' ? item.text : String(item?.text ?? ''));
+            const rawSender = (item?.sender || '旁白').trim() || '旁白';
+            const text = 拆分过长旁白段落(rawSender, typeof item?.text === 'string' ? item.text : String(item?.text ?? ''));
+            if (是否判定日志文本(rawSender) || 是否判定日志文本(text)) return [{ sender: rawSender, text }];
+            if (rawSender === '奖励') return [{ sender: rawSender, text }];
+            const sender = rawSender === '旁白' ? '旁白' : (清理说话人(rawSender) || '旁白');
             const log = { sender, text };
             if (sender !== '旁白') return [log];
             return 拆分旁白夹杂对白(log, knownSpeakers)

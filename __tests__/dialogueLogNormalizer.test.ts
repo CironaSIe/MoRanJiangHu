@@ -59,6 +59,30 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         }]);
     });
 
+    it('downgrades bogus speaker labels produced from narration snippets', () => {
+        const logs = 规范化可渲染对白日志([
+            { sender: '他摇了摇头', text: '至于玄铁精石，听起来确实不像普通矿材。' },
+            { sender: '带来的极致眼力', text: '楚有常的视线从灯火里掠过。' }
+        ] as any);
+
+        expect(logs).toEqual([{
+            sender: '旁白',
+            text: '至于玄铁精石，听起来确实不像普通矿材。\n楚有常的视线从灯火里掠过。'
+        }]);
+    });
+
+    it('keeps adjacent valid named turns as dialogue instead of narration', () => {
+        const logs = 规范化可渲染对白日志([
+            { sender: '楚有常', text: '玄铁精石不是凡火能炼的东西。' },
+            { sender: '杨培强', text: '那就先封存，等找到合适的炉火再说。' }
+        ] as any);
+
+        expect(logs).toEqual([
+            { sender: '楚有常', text: '玄铁精石不是凡火能炼的东西。' },
+            { sender: '杨培强', text: '那就先封存，等找到合适的炉火再说。' }
+        ]);
+    });
+
     it('only promotes unlabeled follow-up lines when they look like oral speech', () => {
         const oral = 规范化可渲染对白日志([{
             sender: '旁白',

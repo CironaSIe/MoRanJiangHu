@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { 从模式世界书提取提示词, 创意工坊模块分区, type 创意工坊模块条目, type 创意工坊模块类型 } from '../../../data/creativeWorkshopModules';
 import type { 接口设置结构, ModeRuntimeProfile, 世界书结构 } from '../../../types';
 import type { 题材模式类型 } from '../../../models/system';
@@ -629,6 +629,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
     const [editingDraft, setEditingDraft] = useState({ title: '', subtitle: '', description: '', tags: '', contributor: '', anonymous: false });
     const [contributionDraft, setContributionDraft] = useState<贡献草稿>(() => 空贡献草稿());
     const [showContributionForm, setShowContributionForm] = useState(true);
+    const jsonImportInputRef = useRef<HTMLInputElement | null>(null);
     const contributionModule = useMemo(() => 构建贡献模块(contributionDraft, contributor), [contributionDraft, contributor]);
     const contributionModules = useMemo(() => (
         contributionDraft.type === 'comfy_workflow'
@@ -827,6 +828,46 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
             await refreshEntries();
         } catch (error: any) {
             setStatus(`保存失败：${error?.message || '未知错误'}`);
+        }
+    };
+
+    const 从JSON载荷提取创意工坊模块 = (payload: any): 创意工坊模块条目[] => {
+        if (!payload) return [];
+        if (Array.isArray(payload)) return payload.flatMap((item) => 从JSON载荷提取创意工坊模块(item));
+        if (Array.isArray(payload.modules)) return payload.modules.flatMap((item: any) => 从JSON载荷提取创意工坊模块(item));
+        if (payload.module && typeof payload.module === 'object') return 从JSON载荷提取创意工坊模块(payload.module);
+        if (payload.type && payload.title) return [payload as 创意工坊模块条目];
+        return [];
+    };
+
+    const 导入JSON文件 = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(event.target.files || []);
+        event.target.value = '';
+        if (files.length === 0) return;
+        setBusyId('import-json');
+        try {
+            const imported: 创意工坊模块条目[] = [];
+            for (const file of files) {
+                const text = await file.text();
+                const payload = JSON.parse(text);
+                const modules = 从JSON载荷提取创意工坊模块(payload);
+                if (modules.length === 0) {
+                    throw new Error(`${file.name} 不是可识别的创意工坊 JSON`);
+                }
+                modules.forEach((module) => imported.push(导入本地创意工坊模块(module)));
+            }
+            const first = imported[0];
+            setStatus(`已导入 ${imported.length} 个本地 JSON 预设${first ? `：${first.title}` : ''}`);
+            if (first) {
+                setActiveType(first.type);
+                setPreviewEntry(first);
+            }
+            setSourceFilter('local');
+            await refreshEntries();
+        } catch (error: any) {
+            setStatus(`导入 JSON 失败：${error?.message || '未知错误'}`);
+        } finally {
+            setBusyId('');
         }
     };
 
@@ -1067,12 +1108,21 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                             ))}
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
+                            <input
+                                ref={jsonImportInputRef}
+                                type="file"
+                                accept="application/json,.json"
+                                multiple
+                                className="hidden"
+                                onChange={(event) => void 导入JSON文件(event)}
+                            />
                             <input value={contributor} onChange={(event) => setContributor(event.target.value)} placeholder="贡献者署名" className="h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/40" />
                             <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-black/25 px-3 text-xs text-gray-200">
                                 <input type="checkbox" checked={anonymousContribution} onChange={(event) => setAnonymousContribution(event.target.checked)} className="h-3.5 w-3.5 accent-wuxia-gold" />
                                 匿名发布
                             </label>
                             <span className="text-[11px] text-gray-500">{cloudUsername ? `联机账号：${cloudUsername}` : '发布社区投稿需要先登录联机账号'}</span>
+                            <button type="button" onClick={() => jsonImportInputRef.current?.click()} disabled={busyId === 'import-json'} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/15 disabled:opacity-50">{busyId === 'import-json' ? '导入中' : '导入 JSON'}</button>
                             <button type="button" onClick={() => setShowContributionForm((value) => !value)} className="rounded-lg border border-wuxia-gold/25 px-3 py-2 text-xs text-wuxia-gold hover:border-wuxia-gold/45">{showContributionForm ? '收起贡献表单' : '贡献新预设'}</button>
                             <button type="button" onClick={() => void refreshEntries()} disabled={loading} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-200 hover:border-white/25 disabled:opacity-50">{loading ? '刷新中' : '刷新社区'}</button>
                         </div>

@@ -1097,7 +1097,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         );
     };
 
-    const 主文生图后端可直接套用到NSFW = 当前后端 === 'novelai' || 当前后端 === 'sd_webui' || 当前后端 === 'comfyui';
+    const 主文生图后端可直接套用到NSFW = 当前后端 === 'openai' || 当前后端 === 'novelai' || 当前后端 === 'sd_webui' || 当前后端 === 'comfyui';
 
     const NSFW独立接口已有专用配置 = (feature: 功能模型占位配置结构): boolean => {
         return [
@@ -1113,7 +1113,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         feature: 功能模型占位配置结构,
         options?: { overwrite?: boolean }
     ): Partial<功能模型占位配置结构> => {
-        if (!(feature.文生图后端类型 === 'novelai' || feature.文生图后端类型 === 'sd_webui' || feature.文生图后端类型 === 'comfyui')) {
+        if (!(feature.文生图后端类型 === 'openai' || feature.文生图后端类型 === 'novelai' || feature.文生图后端类型 === 'sd_webui' || feature.文生图后端类型 === 'comfyui')) {
             return {};
         }
         const overwrite = options?.overwrite === true;

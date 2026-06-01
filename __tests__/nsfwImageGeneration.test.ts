@@ -324,6 +324,43 @@ describe('获取NSFW文生图接口配置', () => {
         expect(result?.baseUrl).toBe('http://localhost:8188');
     });
 
+    it('preserves OpenAI-compatible independent NSFW image backend during normalization', () => {
+        const settings = 规范化接口设置({
+            activeConfigId: 'default',
+            configs: [{
+                id: 'default',
+                名称: '默认配置',
+                供应商: 'openai_compatible',
+                协议覆盖: 'auto',
+                baseUrl: 'https://api.example.com',
+                apiKey: 'main-key',
+                model: 'gpt-4',
+                maxTokens: 4096,
+                temperature: 0.7,
+                createdAt: 1,
+                updatedAt: 1
+            }],
+            功能模型占位: {
+                文生图功能启用: true,
+                文生图后端类型: 'sd_webui',
+                文生图模型API地址: 'http://localhost:7860',
+                NSFW生图独立接口启用: true,
+                NSFW生图后端类型: 'openai',
+                NSFW生图模型使用模型: 'grok-2-image',
+                NSFW生图模型API地址: 'https://api.x.ai/v1',
+                NSFW生图模型API密钥: 'nsfw-key'
+            }
+        });
+
+        const result = 获取NSFW文生图接口配置(settings);
+
+        expect(settings.功能模型占位.NSFW生图后端类型).toBe('openai');
+        expect(result?.图片后端类型).toBe('openai');
+        expect(result?.model).toBe('grok-2-image');
+        expect(result?.baseUrl).toBe('https://api.x.ai/v1');
+        expect(result?.apiKey).toBe('nsfw-key');
+    });
+
     it('falls back to main config when independent NSFW has no model for openai backend', () => {
         const settings = 构建测试接口设置({
             文生图后端类型: 'sd_webui',

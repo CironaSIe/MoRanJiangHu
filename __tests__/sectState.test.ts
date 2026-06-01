@@ -200,6 +200,53 @@ describe('门派状态规范化', () => {
         expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/门派任务|同门|弟子|藏经阁|山门/);
     });
 
+    it('关闭开局配置时保留题材技艺但不自动生成默认武侠门派', () => {
+        const openingBase = 创建开场基础状态(
+            {
+                姓名: '林启',
+                出身背景: { 名称: '都市新人' },
+                所属门派ID: 'none',
+                门派职位: '无',
+                门派贡献: 0
+            } as any,
+            {} as any,
+            {
+                配置约束启用: false,
+                题材模式: '现代都市',
+                开局生成门派: true,
+                开局生成同门: true
+            } as any
+        );
+
+        expect(openingBase.玩家门派).toEqual(创建空门派状态());
+        expect(openingBase.角色.所属门派ID).toBe('none');
+        expect(JSON.stringify(openingBase.玩家门派)).not.toMatch(/归雁|山庄|剑派|武馆|聚宝阁/);
+    });
+
+    it('都市修仙开局组织不再落回武侠门派模板', () => {
+        const openingBase = 创建开场基础状态(
+            {
+                姓名: '许衡',
+                出身背景: { 名称: '灵潮见闻者' },
+                所属门派ID: 'none',
+                门派职位: '无',
+                门派贡献: 0
+            } as any,
+            {} as any,
+            {
+                题材模式: '都市修仙',
+                开局生成门派: true,
+                开局生成同门: true
+            } as any
+        );
+
+        expect(openingBase.玩家门派.组织语义).toBe('组织');
+        expect(openingBase.玩家门派.名称).toMatch(/公司|项目组|事务所|社区中心|门店|合作团队/);
+        expect(openingBase.玩家门派.玩家职位).toBe('成员');
+        expect(JSON.stringify(openingBase.玩家门派)).not.toMatch(/归雁|山庄|剑派|武馆|辟谷丹|凝元丹|破境丹/);
+        expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/门派任务|同门|弟子|山门/);
+    });
+
     it('末日组织会替换历史存档里的古风资料和丹药兑换', () => {
         const normalized = 规范化门派状态({
             ID: 'camp_001',

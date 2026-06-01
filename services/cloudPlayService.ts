@@ -17,11 +17,18 @@ import {
     读取远程图片兜底映射,
     读取图片资源远程兜底地址
 } from '../utils/imageAssets';
+import {
+    云端游玩会话存储键,
+    云端游玩对象存储模式键,
+    读取云端游玩原始存储模式,
+    写入云端游玩存储模式,
+    清除云端游玩存储模式 as 清除云端游玩存储模式标记
+} from '../utils/cloudPlayStorageMode';
 
 const CLOUD_PLAY_API_PATH = '/api/cloud-play';
 const IMAGE_HOST_DOWNLOAD_PROXY_PATH = '/api/image-host/download';
-const SESSION_KEY = 'moranjianghu.cloudPlay.session.v1';
-const OBJECT_STORAGE_MODE_KEY = 'moranjianghu.cloudPlay.objectStorageMode.v1';
+const SESSION_KEY = 云端游玩会话存储键;
+const OBJECT_STORAGE_MODE_KEY = 云端游玩对象存储模式键;
 const RISK_ACK_KEY = 'moranjianghu.cloudPlay.riskAcknowledged.v1';
 const MANIFEST_CACHE_PREFIX = 'moranjianghu.cloudPlay.manifestCache.v1.';
 const PBKDF2_ITERATIONS = 160000;
@@ -598,7 +605,7 @@ const 保存会话 = (session: 云端游玩账号): void => {
 };
 
 export const 设置云端游玩存储模式 = (mode: 云端游玩存储模式 | 'local'): void => {
-    localStorage.setItem(OBJECT_STORAGE_MODE_KEY, mode);
+    写入云端游玩存储模式(mode);
 };
 
 const 读取有效云端会话载荷 = (): 持久云端游玩会话 | null => {
@@ -633,16 +640,16 @@ export const 启用对象存储云端游玩模式 = (): void => {
 };
 
 export const 清除对象存储云端游玩模式 = (): void => {
-    localStorage.removeItem(OBJECT_STORAGE_MODE_KEY);
+    清除云端游玩存储模式标记();
 };
 
 export const 已启用对象存储云端游玩模式 = (): boolean => {
-    const stored = localStorage.getItem(OBJECT_STORAGE_MODE_KEY);
+    const stored = 读取云端游玩原始存储模式();
     return stored === 'object' || stored === 'true';
 };
 
 export const 读取云端游玩存储模式 = (): 云端游玩存储模式 | null => {
-    const stored = localStorage.getItem(OBJECT_STORAGE_MODE_KEY);
+    const stored = 读取云端游玩原始存储模式();
     if (stored === 'local') return null;
     if (stored === 'object' || stored === 'true') return 'object';
     if (stored === 'tg') return 读取云端游玩会话() ? 'tg' : null;

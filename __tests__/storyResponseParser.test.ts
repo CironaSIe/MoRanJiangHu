@@ -120,6 +120,37 @@ describe('storyResponseParser', () => {
         }]);
     });
 
+    it('keeps bracketed action and narrative phrase tags as narration instead of speakers', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '【他摇了摇头】至于玄铁精石，听起来确实不像普通矿材。',
+            '【带来的极致眼力】楚有常的视线从灯火里掠过，没有落在任何人脸上。',
+            '【林间细雨】落在青石阶上，声音压得很低。',
+            '</正文>',
+            '<短期记忆>楚有常谈到玄铁精石。</短期记忆>'
+        ].join('\n'));
+
+        expect(parsed.logs).toEqual([{
+            sender: '旁白',
+            text: '【他摇了摇头】至于玄铁精石，听起来确实不像普通矿材。\n【带来的极致眼力】楚有常的视线从灯火里掠过，没有落在任何人脸上。\n【林间细雨】落在青石阶上，声音压得很低。'
+        }]);
+    });
+
+    it('keeps consecutive valid speaker tags as dialogue turns', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '【楚有常】玄铁精石不是凡火能炼的东西。',
+            '【杨培强】那就先封存，等找到合适的炉火再说。',
+            '</正文>',
+            '<短期记忆>楚有常与杨培强讨论玄铁精石。</短期记忆>'
+        ].join('\n'));
+
+        expect(parsed.logs).toEqual([
+            { sender: '楚有常', text: '玄铁精石不是凡火能炼的东西。' },
+            { sender: '杨培强', text: '那就先封存，等找到合适的炉火再说。' }
+        ]);
+    });
+
     it('still rejects likely unlabeled oral dialogue during strict parsing', () => {
         expect(() => parseStoryRawText([
             '<正文>',

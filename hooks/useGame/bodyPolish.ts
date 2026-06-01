@@ -18,6 +18,7 @@ import { 构建COT伪装提示词 } from './promptRuntime';
 import { 环境时间转标准串 } from './timeUtils';
 import { 规范化环境信息, 构建完整地点文本 } from './stateTransforms';
 import { 规范化对白日志 } from '../../utils/dialogueLogNormalizer';
+import { 是否可信正文标签发送者, 规范化正文发送者名 } from '../../utils/dialogueSpeakerGuard';
 import { 拆分判定日志与后续正文, 提取判定日志前缀, 是否判定日志文本 } from '../../utils/judgmentFormat';
 
 type 正文日志结构 = Array<{ sender: string; text: string }>;
@@ -101,11 +102,7 @@ const 提取正文标签内容 = (rawText: string): string => {
 };
 
 const 规范化正文发送者 = (senderRaw: string): string => {
-    const sender = (senderRaw || '').trim();
-    if (!sender) return '旁白';
-    if (sender === '判定' || sender === '【判定】') return '【判定】';
-    if (sender === 'NSFW判定' || sender === '【NSFW判定】') return '【NSFW判定】';
-    return sender;
+    return 规范化正文发送者名(senderRaw);
 };
 
 const 解析判定正文行 = (line: string): { sender: string; text: string; trailingBody?: string } | null => {
@@ -126,6 +123,16 @@ const 解析正文日志文本 = (bodyText: string): 正文日志结构 => {
     const lines = source.replace(/\r\n/g, '\n').split('\n');
     const logs: 正文日志结构 = [];
     let current: { sender: string; text: string } | null = null;
+    const 写入旁白行 = (value: string) => {
+        const text = (value || '').trim();
+        if (!text) return;
+        if (current?.sender === '旁白') {
+            current.text = `${current.text}\n${text}`.trim();
+            return;
+        }
+        current = { sender: '旁白', text };
+        logs.push(current);
+    };
 
     for (const rawLine of lines) {
         const line = rawLine.trim();
@@ -144,21 +151,23 @@ const 解析正文日志文本 = (bodyText: string): 正文日志结构 => {
         if (match) {
             const sender = 规范化正文发送者(match[1]);
             const text = (match[2] || '').trim();
+            if (!是否可信正文标签发送者(sender)) {
+                写入旁白行(line);
+                continue;
+            }
             current = { sender, text };
             logs.push(current);
             continue;
         }
         if (current && (是否判定正文发送者(current.sender) || 是否判定日志文本(current.text))) {
-            current = { sender: '旁白', text: line };
-            logs.push(current);
+            写入旁白行(line);
             continue;
         }
         if (current) {
             current.text = `${current.text}\n${line}`.trim();
             continue;
         }
-        current = { sender: '旁白', text: line };
-        logs.push(current);
+        写入旁白行(line);
     }
 
     return 规范化对白日志(logs.filter(item => typeof item.text === 'string' && item.text.trim().length > 0));

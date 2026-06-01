@@ -1106,10 +1106,9 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
     };
 
     const 构建有效开局配置 = (): OpeningConfig | undefined => {
-        if (!openingConfigEnabled && !partnerEnabled) return undefined;
-        const base = openingConfigEnabled ? openingConfig : 默认开局配置();
+        if (!openingConfigEnabled && !partnerEnabled && !openingConfig.题材模式) return undefined;
         return 规范化开局配置({
-            ...base,
+            ...openingConfig,
             配置约束启用: openingConfigEnabled,
             初始伙伴: 构建伙伴开局配置()
         });
@@ -2769,7 +2768,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                     <p>开局伙伴: <span className="text-white">{partnerEnabled ? `${partnerName.trim() || '未填写姓名'} (${partnerGender.trim() || '未填写性别'}, ${partnerAge}岁)` : '关闭'}</span></p>
                                     {partnerEnabled && <p>伙伴关系: <span className="text-white">{partnerRelation.trim() || '未填写'}</span></p>}
                                     <p>开局配置: <span className="text-white">{openingConfigEnabled ? '已启用' : '未启用'}</span></p>
-                                    <p>题材模式: <span className="text-white">{openingConfigEnabled ? openingConfig.题材模式 : '未设置'}</span></p>
+                                    <p>题材模式: <span className="text-white">{openingConfig.题材模式}</span></p>
                                     <p>关系侧重: <span className="text-white">{openingConfigEnabled ? (openingConfig.关系侧重.join('、') || '无') : '未设置'}</span></p>
                                     <p>开局切入: <span className="text-white">{openingConfigEnabled ? openingConfig.开局切入偏好 : '未设置'}</span></p>
                                     <p>同人融合: <span className="text-white">{openingConfigEnabled ? (openingConfig.同人融合.enabled ? `${openingConfig.同人融合.作品名 || '未命名作品'} / ${openingConfig.同人融合.融合强度}` : '关闭') : '未设置'}</span></p>

@@ -7,6 +7,7 @@ const CORS_HEADERS = {
 const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 const MAX_FILE_BYTES = 128 * 1024 * 1024;
 const DEFAULT_IMAGE_HOST_BASE = 'https://image1.bacon159.pp.ua';
+const DIRECT_IMAGE_HOST_PATTERN = /(^|\.)picui\.ogmua\.cn$|^imgurloss\.xqd\.cn$/i;
 
 const normalizeImageHostBase = (value: unknown): string => {
     const raw = typeof value === 'string' && value.trim()
@@ -38,8 +39,19 @@ const isAllowedImageHostUrl = (value: string): boolean => {
     try {
         const url = new URL(value);
         return /^https?:$/i.test(url.protocol)
-            && (/^image1\.bacon159\.pp\.ua$/i.test(url.hostname) || /^image\.bacon159\.pp\.ua$/i.test(url.hostname))
+            && (/^image1\.bacon159\.pp\.ua$/i.test(url.hostname)
+                || /^image\.bacon159\.pp\.ua$/i.test(url.hostname)
+                || DIRECT_IMAGE_HOST_PATTERN.test(url.hostname))
             && (/^\/file\//i.test(url.pathname) || /^\/api\/v1\/file\//i.test(url.pathname) || /\.(png|jpe?g|webp|gif|bmp)$/i.test(url.pathname));
+    } catch {
+        return false;
+    }
+};
+
+const isDirectImageHostUrl = (value: string): boolean => {
+    try {
+        const url = new URL(value);
+        return DIRECT_IMAGE_HOST_PATTERN.test(url.hostname);
     } catch {
         return false;
     }
@@ -141,14 +153,18 @@ const sniffImageContentType = (bytes: Uint8Array): string => {
 };
 
 const fetchImageHostFile = async (targetUrl: string, env: any): Promise<Response> => {
+    const publicHeaders = {
+        Accept: 'image/*,application/octet-stream,*/*;q=0.8'
+    };
+    if (isDirectImageHostUrl(targetUrl)) {
+        return fetchWithRetry(targetUrl, publicHeaders);
+    }
+
     const token = readImageHostToken(env);
     const authenticatedHeaders: Record<string, string> = {
         Accept: 'image/*,application/octet-stream,*/*;q=0.8'
     };
     if (token) authenticatedHeaders.Authorization = `Bearer ${token}`;
-    const publicHeaders = {
-        Accept: 'image/*,application/octet-stream,*/*;q=0.8'
-    };
 
     const candidates: Array<{ url: string; headers: Record<string, string> }> = [];
     const normalizedTargetUrl = buildAuthenticatedApiUrl(targetUrl, env);

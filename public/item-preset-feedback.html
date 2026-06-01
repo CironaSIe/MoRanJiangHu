@@ -342,20 +342,10 @@ function closeViewer() {
   viewer.setAttribute('aria-hidden', 'true');
   viewerImg.removeAttribute('src');
 }
-const maxConcurrentImageLoads = 3;
+const maxConcurrentImageLoads = Number.POSITIVE_INFINITY;
 let activeImageLoads = 0;
 const imageLoadQueue = [];
 const queuedImages = new WeakSet();
-const imageObserver = 'IntersectionObserver' in window
-  ? new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        imageObserver.unobserve(entry.target);
-        const img = entry.target;
-        enqueueImageLoad(img, img.closest('.imgbox'), img.__presetItem, 0);
-      }
-    }, { rootMargin: '900px 0px' })
-  : null;
 function imageUrlForAttempt(url, attempt) {
   if (!attempt) return url;
   return `${url}${url.includes('?') ? '&' : '?'}retry=${attempt}`;
@@ -405,9 +395,7 @@ function pumpImageLoadQueue() {
 }
 function watchPresetImage(img, imgbox, item) {
   img.__presetItem = item;
-  setImageStatus(imgbox, 'loading', '等待加载');
-  if (imageObserver) imageObserver.observe(img);
-  else enqueueImageLoad(img, imgbox, item, 0);
+  enqueueImageLoad(img, imgbox, item, 0);
 }
 function currentProblemItems() {
   return items
@@ -481,7 +469,8 @@ function render() {
     const card = el('article', 'card ' + (mark.problem ? 'problem' : ''));
     const imgbox = el('div', 'imgbox');
     const img = document.createElement('img');
-    img.loading = 'lazy';
+    img.loading = 'eager';
+    img.decoding = 'async';
     img.alt = item.name;
     img.title = '点击放大';
     img.style.cursor = 'zoom-in';

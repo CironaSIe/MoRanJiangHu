@@ -1,5 +1,6 @@
 import { GameResponse } from '../../types';
 import { 规范化对白日志 } from '../../utils/dialogueLogNormalizer';
+import { 是否可信正文标签发送者, 规范化正文发送者名 } from '../../utils/dialogueSpeakerGuard';
 import { 拆分判定日志与后续正文, 提取判定日志前缀, 是否判定日志文本 } from '../../utils/judgmentFormat';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
 
@@ -646,11 +647,7 @@ export const 提取首个标签内容 = (
 };
 
 const 规范化日志发送者 = (senderRaw: string): string => {
-    const sender = (senderRaw || '').trim();
-    if (!sender) return '旁白';
-    if (sender === '判定' || sender === '【判定】') return '【判定】';
-    if (sender === 'NSFW判定' || sender === '【NSFW判定】') return '【NSFW判定】';
-    return sender;
+    return 规范化正文发送者名(senderRaw);
 };
 
 const 是否判定类日志发送者 = (senderRaw: string): boolean => {
@@ -784,6 +781,16 @@ const 解析正文日志 = (body: string): Array<{ sender: string; text: string 
     const lines = body.replace(/\r\n/g, '\n').split('\n');
     const logs: Array<{ sender: string; text: string }> = [];
     let current: { sender: string; text: string } | null = null;
+    const 写入旁白行 = (value: string) => {
+        const text = (value || '').trimEnd();
+        if (!text.trim()) return;
+        if (current?.sender === '旁白') {
+            current.text = `${current.text}\n${text}`.trimEnd();
+            return;
+        }
+        current = { sender: '旁白', text };
+        logs.push(current);
+    };
 
     for (const rawLine of lines) {
         const line = rawLine.trim();
@@ -810,6 +817,10 @@ const 解析正文日志 = (body: string): Array<{ sender: string; text: string 
         if (match) {
             const sender = 规范化日志发送者(match[1]);
             const text = (match[2] || '').trim();
+            if (!是否可信正文标签发送者(sender)) {
+                写入旁白行(rawLine.trimEnd());
+                continue;
+            }
             current = { sender, text };
             logs.push(current);
             continue;
@@ -825,8 +836,7 @@ const 解析正文日志 = (body: string): Array<{ sender: string; text: string 
             continue;
         }
         if (currentIsJudgment) {
-            current = { sender: '旁白', text: rawLine.trimEnd() };
-            logs.push(current);
+            写入旁白行(rawLine.trimEnd());
             continue;
         }
 
@@ -835,8 +845,7 @@ const 解析正文日志 = (body: string): Array<{ sender: string; text: string 
             continue;
         }
 
-        current = { sender: '旁白', text: rawLine.trimEnd() };
-        logs.push(current);
+        写入旁白行(rawLine.trimEnd());
     }
 
     return logs.filter(item => item.text.trim().length > 0);
