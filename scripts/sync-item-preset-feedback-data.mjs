@@ -10,7 +10,7 @@ const source = fs.readFileSync(sourcePath, 'utf8');
 const structuredLibrary = fs.readFileSync(structuredLibraryPath, 'utf8');
 const itemPattern = /\{\s*名称:\s*'([^']+)'\s*,\s*类型:\s*'([^']+)'\s*,\s*品质:\s*'([^']+)'\s*,\s*图片URL:\s*'([^']+)'\s*\}/g;
 
-const topicModes = ['武侠', '仙侠', '灵气复苏', '都市修仙', '现代都市', '末日丧尸'];
+const topicModes = ['武侠', '仙侠', '西方奇幻', '灵气复苏', '都市修仙', '现代都市', '末日丧尸'];
 
 function extractNamesFromConstArray(sourceText, constName) {
   const start = sourceText.indexOf(`const ${constName}`);
@@ -22,6 +22,7 @@ function extractNamesFromConstArray(sourceText, constName) {
 }
 
 const xianxiaExclusiveNames = new Set(extractNamesFromConstArray(structuredLibrary, '仙侠预设物品'));
+const westernFantasyNames = new Set(extractNamesFromConstArray(structuredLibrary, '西方奇幻预设物品'));
 const modernNames = new Set(extractNamesFromConstArray(structuredLibrary, '现代预设物品'));
 const apocalypseNames = new Set(extractNamesFromConstArray(structuredLibrary, '末日预设物品'));
 
@@ -44,17 +45,23 @@ function isXianxiaExclusiveItem(name) {
   return xianxiaExclusiveNames.has(name) || xianxiaExtraNames.has(name) || xianxiaPattern.test(name);
 }
 
+function isWesternFantasyItem(name) {
+  return westernFantasyNames.has(name);
+}
+
 function categoriesForItem(item) {
   const name = item.name;
   const modern = isModernItem(name);
   const apocalypse = isApocalypseItem(name);
   const xianxiaExclusive = isXianxiaExclusiveItem(name);
-  const premodern = !modern && !apocalypse;
+  const westernFantasy = isWesternFantasyItem(name);
+  const premodern = !modern && !apocalypse && !westernFantasy;
   const xianxiaModeItem = premodern || xianxiaExclusive;
   const categories = new Set();
 
   if (premodern && !xianxiaExclusive) categories.add('武侠');
   if (xianxiaModeItem) categories.add('仙侠');
+  if (westernFantasy) categories.add('西方奇幻');
   if (modern || xianxiaModeItem) categories.add('灵气复苏');
   if (modern || xianxiaModeItem) categories.add('都市修仙');
   if (modern) categories.add('现代都市');

@@ -340,6 +340,10 @@ export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): Gam
             return [{ sender, text }];
         }
 
+        if (是否有效角色说话人(sender)) {
+            return [{ sender, text }];
+        }
+
         return [{ sender: '旁白', text }];
     });
     return 合并相邻同发送者(normalized);

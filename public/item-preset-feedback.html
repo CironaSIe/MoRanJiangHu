@@ -125,6 +125,7 @@
       color: var(--muted);
     }
     .fail { color: #842029; font-size: 14px; padding: 8px; text-align: center; }
+    .loading { color: #8f6d3b; font-size: 13px; padding: 8px; text-align: center; }
     .meta { padding: 10px; display: grid; gap: 6px; }
     .name { font-weight: 700; font-size: 16px; }
     .tags { display: flex; gap: 6px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
@@ -276,7 +277,7 @@
 </div>
 <script>
 const storageKey = 'msjh-public-item-preset-feedback-v1';
-const categoryOrder = ['武侠', '仙侠', '灵气复苏', '都市修仙', '现代都市', '末日丧尸'];
+const categoryOrder = ['武侠', '仙侠', '西方奇幻', '灵气复苏', '都市修仙', '现代都市', '末日丧尸'];
 let items = [];
 let activeCategory = categoryOrder[0];
 let marks = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -340,6 +341,73 @@ function closeViewer() {
   viewer.classList.remove('open');
   viewer.setAttribute('aria-hidden', 'true');
   viewerImg.removeAttribute('src');
+}
+const maxConcurrentImageLoads = 3;
+let activeImageLoads = 0;
+const imageLoadQueue = [];
+const queuedImages = new WeakSet();
+const imageObserver = 'IntersectionObserver' in window
+  ? new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        imageObserver.unobserve(entry.target);
+        const img = entry.target;
+        enqueueImageLoad(img, img.closest('.imgbox'), img.__presetItem, 0);
+      }
+    }, { rootMargin: '900px 0px' })
+  : null;
+function imageUrlForAttempt(url, attempt) {
+  if (!attempt) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}retry=${attempt}`;
+}
+function setImageStatus(imgbox, className, text) {
+  if (!imgbox) return;
+  imgbox.querySelectorAll('.loading,.fail').forEach(node => node.remove());
+  if (text) imgbox.appendChild(el('div', className, text));
+}
+function enqueueImageLoad(img, imgbox, item, attempt = 0) {
+  if (!img || !imgbox || !item || img.dataset.loaded === '1') return;
+  if (queuedImages.has(img) && attempt === Number(img.dataset.attempt || 0)) return;
+  img.dataset.attempt = String(attempt);
+  queuedImages.add(img);
+  imageLoadQueue.push({ img, imgbox, item, attempt });
+  pumpImageLoadQueue();
+}
+function pumpImageLoadQueue() {
+  while (activeImageLoads < maxConcurrentImageLoads && imageLoadQueue.length) {
+    const task = imageLoadQueue.shift();
+    const { img, imgbox, item, attempt } = task;
+    if (!img.isConnected || img.dataset.loaded === '1') continue;
+    queuedImages.delete(img);
+    activeImageLoads += 1;
+    setImageStatus(imgbox, 'loading', attempt > 0 ? `图片重试中（${attempt}/4）` : '图片加载中');
+    img.onload = () => {
+      activeImageLoads = Math.max(0, activeImageLoads - 1);
+      img.dataset.loaded = '1';
+      setImageStatus(imgbox, '', '');
+      pumpImageLoadQueue();
+    };
+    img.onerror = () => {
+      activeImageLoads = Math.max(0, activeImageLoads - 1);
+      img.removeAttribute('src');
+      if (attempt < 4 && img.isConnected) {
+        const delay = Math.min(12000, 1200 * (2 ** attempt));
+        setImageStatus(imgbox, 'loading', `图片稍后重试（${attempt + 1}/4）`);
+        window.setTimeout(() => enqueueImageLoad(img, imgbox, item, attempt + 1), delay);
+      } else {
+        setImageStatus(imgbox, 'fail', '图片加载失败，滚动停留后可刷新重试');
+        if (!imgbox.querySelector('.badge')) imgbox.appendChild(el('span', 'badge', item.source));
+      }
+      pumpImageLoadQueue();
+    };
+    img.src = imageUrlForAttempt(item.src, attempt);
+  }
+}
+function watchPresetImage(img, imgbox, item) {
+  img.__presetItem = item;
+  setImageStatus(imgbox, 'loading', '等待加载');
+  if (imageObserver) imageObserver.observe(img);
+  else enqueueImageLoad(img, imgbox, item, 0);
 }
 function currentProblemItems() {
   return items
@@ -414,18 +482,13 @@ function render() {
     const imgbox = el('div', 'imgbox');
     const img = document.createElement('img');
     img.loading = 'lazy';
-    img.src = item.src;
     img.alt = item.name;
     img.title = '点击放大';
     img.style.cursor = 'zoom-in';
     img.onclick = () => openViewer(item);
-    img.onerror = () => {
-      img.remove();
-      if (!imgbox.querySelector('.fail')) imgbox.appendChild(el('div', 'fail', '图片加载失败'));
-      if (!imgbox.querySelector('.badge')) imgbox.appendChild(el('span', 'badge', item.source));
-    };
     imgbox.appendChild(img);
     if (item.source === '远程图') imgbox.appendChild(el('span', 'badge', '远程图'));
+    watchPresetImage(img, imgbox, item);
 
     const meta = el('div', 'meta');
     meta.appendChild(el('div', 'name', item.name));

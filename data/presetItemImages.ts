@@ -20,293 +20,293 @@ export interface 预置物品图片条目 {
  */
 export const 预置物品图片列表: 预置物品图片条目[] = [
     // ─── 武器：剑 ───────────────────────────────────────────────────────
-    { 名称: '青钢剑', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPVW1vTW5ZWFEySWVpYkpYb011VkcyVGVvT1Z6MEFBTEhFV3NiNjRsb1ZQOGJ0bTctM3I1REFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Z2S6ZKi5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNzk1MTQ2LCJ0IjoxNzc5MjExNjUzNjQ2LCJtaWQiOjM2NjZ9.s6MOeuDWnKSw4CAo9NZ6IDOkm2TOiKMs-W7cOYbpMaM.png' },
-    { 名称: '精钢长剑', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPVkdvTW5ZdElLZmdjTHFRUXhxS2tMT3lwd3p5TUFBTElFV3NiNjRsb1ZFT1ZjRWFmOWg1OUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi6ZW_5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDgwMDQ2LCJ0IjoxNzc5MjExNjU5OTYyLCJtaWQiOjM2Njh9.k6e90BrbhtbEu2SktdTUYTUodubpRDYeaC1pbRLsYgk.png' },
-    { 名称: '玄铁重剑', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPVm1vTW5aQ1d5NGl0MlhCZEZtWGNzU0I1OGNLVUFBTEpFV3NiNjRsb1ZEUkVTTHR6blNnMEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB6YeN5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjc3MTUyLCJ0IjoxNzc5MjExNjY0Njg3LCJtaWQiOjM2NzB9.rQSw8Ju9-VRc2-YmyhQoRxOWYq0-U2VtR2H8qRZgYBk.png' },
-    { 名称: '碧水长剑', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPV0dvTW5aVndwaW5yaVVycUVBS0RielVtTjhjQUE4b1JheHZyaVdoVTJIZGU1enlvcE80QkFBTUNBQU41QUFNN0JBIiwiZSI6InBuZyIsIm4iOiLnoqfmsLTplb_liZEucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIyOTgwNDUsInQiOjE3NzkyMTE2Njk2NTgsIm1pZCI6MzY3Mn0.mY2pma50ukDNto1EB5LE4FR525uJqp153JPa_QPk9u8.png' },
-    { 名称: '断水剑', 类型: '武器', 品质: '绝世', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPV21vTW5aclo0SFdfam95QjhDQTVVdVh5UGFPMEFBTExFV3NiNjRsb1ZDOUtuZnY4R1I4TkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pat5rC05YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjk4NTQyLCJ0IjoxNzc5MjExNjc0ODc4LCJtaWQiOjM2NzR9.9ArRJVlzJM7roFZr26GmCa6GiqbVw-l2pc7upF6zDzA.png' },
-    { 名称: '锈铁剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPWEdvTW5aLUh2bWxoczlHZE5feVdrQWx5RlFheEFBTE1FV3NiNjRsb1ZPQk54eFpMc2tfM0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZSI6ZOB5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjc1OTA4LCJ0IjoxNzc5MjExNjgwMjUwLCJtaWQiOjM2NzZ9.rBRk6_oZ_Q2j8mjYPD6JErYVm_QLld_0ZC8uRYNx5W4.png' },
+    { 名称: '青钢剑', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/anfwHfVhiACNOBZd6qmmAimCbEBhaKsU.jpg' },
+    { 名称: '精钢长剑', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/j32iPkGOeFNl3oJr8bxonYXSQ8l2N4cx.jpg' },
+    { 名称: '玄铁重剑', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/5P2oTBGW5EECcoJhL2LUitu3sDFpTBr9.jpg' },
+    { 名称: '碧水长剑', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/ifIYs9hnSpDR8u5zJOBoY1xXhUDOHIqY.jpg' },
+    { 名称: '断水剑', 类型: '武器', 品质: '绝世', 图片URL: 'https://cdn.nodeimage.com/i/G7Cq9oeHYjqFp2YLHk9MFoUcmgYhjDjY.jpg' },
+    { 名称: '锈铁剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/DjMcZGuU2rmspKp3IpXjq0DUhSY0Xwu9.jpg' },
 
     // ─── 武器：刀 ───────────────────────────────────────────────────────
-    { 名称: '柳叶刀', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPWG1vTW5hVXhJN1c0dzdLS01ILU5Yc1JNZ0lJVUFBTE5FV3NiNjRsb1ZGVXBtLWpvYURYMUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5p-z5Y-25YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDcyOTU0LCJ0IjoxNzc5MjExNjg1ODgxLCJtaWQiOjM2Nzh9.5NjZ9PxiEl452Fjwe-Arb-L7ZQW6V9AfPtsbWw-ZNrI.png' },
-    { 名称: '鬼头大刀', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPWUdvTW5hNFNaZHFNZHJHOVgtU3NoQkdUdWNUN0FBTE9FV3NiNjRsb1ZFbm9pZTExaXNZTUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ay85aS05aSn5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyOTg0OTk5LCJ0IjoxNzc5MjExNjk1MTIwLCJtaWQiOjM2ODB9.BlA64G7JSibyOualQOfSUzELAjlFsjB-7DdQuLOMTkM.png' },
-    { 名称: '雪饮狂刀', 类型: '武器', 品质: '绝世', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPWW1vTW5iVS11alVIM2gtbHlWdjRMTElPdkFWQUFBTFBFV3NiNjRsb1ZNUGZTcDdGX29jTEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Zuq6aWu54uC5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNTU4OTA0LCJ0IjoxNzc5MjExNzAxNTgwLCJtaWQiOjM2ODJ9.ffvsqqSHjFRaNaOz1WIwDioksEHFcbuCY8TabAidXUk.png' },
+    { 名称: '柳叶刀', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/KDVJlPbRd93LcMjkUm9hJFPLOpW6ZKTY.jpg' },
+    { 名称: '鬼头大刀', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/mC46XvZiLK8RnamgPSWBRpbKnNSJ07E5.jpg' },
+    { 名称: '雪饮狂刀', 类型: '武器', 品质: '绝世', 图片URL: 'https://cdn.nodeimage.com/i/qfvJ1IBsjfpJKWntpdo96r1YA6WBqai2.jpg' },
 
     // ─── 武器：枪/棍 ─────────────────────────────────────────────────────
-    { 名称: '白蜡杆枪', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPWkdvTW5ic05McldxLUF2VDI3MVM3ZTA5TERweUFBTFFFV3NiNjRsb1ZOQnBOTkdZNjZDSkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi55m96Jyh5p2G5p6qLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDY0MzA1LCJ0IjoxNzc5MjExNzA4MzI5LCJtaWQiOjM2ODR9.y-rqgFBH57avjIKsCijMnh4IjQxHHFdj5oh5JnhZEPc.png' },
-    { 名称: '霸王枪', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPWm1vTW5jYl9qZmlhbUFPS0h2enZVM0VsU3FEWEFBTFJFV3NiNjRsb1ZObjVYdVExOHUwckFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Zy4546L5p6qLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMzMyNjk0LCJ0IjoxNzc5MjExNzE4NzA3LCJtaWQiOjM2ODZ9.Hqroexevf_Syc2gxTjR2RqvPu6WeaFFlny4Yt-hYKz4.png' },
-    { 名称: '齐眉棍', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPYUdvTW5jdzltNUtpdGw5eExncDdKbTFKTVBmMUFBTFNFV3NiNjRsb1ZIalV1WFE5bWQteUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6b2Q55yJ5qONLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjA1ODY4LCJ0IjoxNzc5MjExNzI1MjAyLCJtaWQiOjM2ODh9.MRddgfiUJetShDg6DvYHRiwpLX3FuRirwTnrj0s2z6c.png' },
+    { 名称: '白蜡杆枪', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/ndadxv5OYWEAn6XgeYr3AMfYgq7pbCh8.jpg' },
+    { 名称: '霸王枪', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/lTDKi5qacDPG8J0XRoZRZWYLS2spx0YU.jpg' },
+    { 名称: '齐眉棍', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/ROEEhTiWnMxUx8rtgDhOjodPHppnVoXp.jpg' },
 
     // ─── 武器：弓/暗器 ───────────────────────────────────────────────────
-    { 名称: '铁胎弓', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPYW1vTW5kSGdkT04wNUNBUm9NS1NkYkRaREZjV0FBTFRFV3NiNjRsb1ZEa3hNQXVBYURVUUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB6IOO5byTLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDU3NTczLCJ0IjoxNzc5MjExNzMwMzAwLCJtaWQiOjM2OTB9.jSFj4jcjXjgfglMx-0W39sB7Nlx83MwNCSAZ4F9djfE.png' },
-    { 名称: '袖箭', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPYkdvTW5kZ3RYdHRLQzJEejZhcVBld3RBa09rM0FBTFVFV3NiNjRsb1ZOc0IwUWhHbGkwZEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6KKW566tLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNzM3NjcyLCJ0IjoxNzc5MjExNzM3MjUzLCJtaWQiOjM2OTJ9.jzWrFtGIlH7reud1t8Hv8BrMgRAKQQ9GjyF0lhCgfxo.png' },
-    { 名称: '毒针', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPYm1vTW5lQkJFV3FMdEFvZUZmSVU2SEVLQ1pUekFBTFZFV3NiNjRsb1ZQS2VITnJGUTV4NEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5q-S6ZKILnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMzY5NjkzLCJ0IjoxNzc5MjExNzQ1MzA3LCJtaWQiOjM2OTR9.TuNj3asImlSZ1VqEXrCthTpZ4olWUWyViPcbklssIzI.png' },
+    { 名称: '铁胎弓', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/WBWaul4WHTE7K7sVmaembvP47g5KHpLq.jpg' },
+    { 名称: '袖箭', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/GUWkwn4Ul62GGEsxrt3BYMIqFzjzMwlM.jpg' },
+    { 名称: '毒针', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/6hXwlomM9MkQY6sT6CQ3IclLbAg4NtaB.jpg' },
 
     // ─── 防具 ───────────────────────────────────────────────────────────
-    { 名称: '玄铁护甲', 类型: '防具', 品质: '极品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPY0dvTW5lZ0hjY0pVNWgzU2hwUmdmb2xDR2JBYkFBTFdFV3NiNjRsb1ZHMXVvc3ZvMk1hNUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5oqk55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjg3MTI1LCJ0IjoxNzc5MjExNzUzMTQzLCJtaWQiOjM2OTZ9.hgvUEcAjwnONKvQp2c9pvnI66uVTSdCV5UcGB9HU71Y.png' },
-    { 名称: '锁子甲', 类型: '防具', 品质: '上品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPY21vTW5lNXpzbFJlMDBPSDNfbWg4UFFDZV96ZEFBTFhFV3NiNjRsb1ZQdUZiNEJmVEVCeEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZSB5a2Q55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyOTU1MjIyLCJ0IjoxNzc5MjExNzU5MDUxLCJtaWQiOjM2OTh9.FW1-0LNH-7T2hrF3Izb2hUCR0bMFV6tKOJzzV1QkML0.png' },
-    { 名称: '软猬甲', 类型: '防具', 品质: '绝世', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPZEdvTW5mU1c0aFEyWHdrRnJfaG51RWtqQkJYNUFBTFlFV3NiNjRsb1ZMbDlhMEVqY2NSYUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6L2v54ys55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyODIxMjMwLCJ0IjoxNzc5MjExNzY0OTg4LCJtaWQiOjM3MDB9.VBUT-Wm9aS7N9JdWT2_r2uBG16gO7KyuQ6SVcuIaoFk.png' },
-    { 名称: '布衣', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPZG1vTW5mdXdHcTZPMzFwRUp0a1YxX3ktN1pacEFBTFpFV3NiNjRsb1ZCelh5bVRPMk1EM0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5biD6KGjLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyOTM2NTM0LCJ0IjoxNzc5MjExNzcxODcxLCJtaWQiOjM3MDJ9.g0Gx9su743Zmi7v_WXsro40IByFmYqkvXNiwqOfPLao.png' },
-    { 名称: '青衫', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPZUdvTW5nS0tyZ3oxXzR4TTlBUWlsejViU01LdUFBTGFFV3NiNjRsb1ZOeHR5eGRqbVk4bEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Z2S6KGrLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNzExOTc1LCJ0IjoxNzc5MjExNzc5MTY5LCJtaWQiOjM3MDR9.bWW5fVCPklZFW6-FprAZ23_BFh9b0hBPsMsjaUkmCEU.png' },
-    { 名称: '粗布青衫', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPVG1vTVpMZmJ5MW1oYUlHWTdFZDFxYzVaZ2QyaUFBSmJFV3NiNjRsb1ZQcnJJNjZFNkR2WEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57KX5biD6Z2S6KGrLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozMjM1Mjc3LCJ0IjoxNzc5MjExNzg5OTczLCJtaWQiOjM3MDZ9.I2qpe3qUIGtuKAmE4OIwLOjf8E6gwnakABDSLDUh6J4.png' },
-    { 名称: '青色练功服', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPZkdvTW5oeURncXRPNWVOQjBDVms5V1E3QjdnYUFBTGJFV3NiNjRsb1ZNMVpzR1lWSmhzeEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Z2S6Imy57uD5Yqf5pyNLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjkxNjk4LCJ0IjoxNzc5MjExODA0NDA3LCJtaWQiOjM3MDh9.mr8XHoV3gBJEH4_D70YK4VQowjcv3u5TwOwLOUNmh44.png' },
-    { 名称: '粗布长裤', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPZm1vTW5pRVpGVkRUdEpKQllXUUt1aEVaTmM1S0FBTGNFV3NiNjRsb1ZLU0p5eGtkU01Gb0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57KX5biD6ZW_6KOkLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozMDE4NTUwLCJ0IjoxNzc5MjExODEwMDk2LCJtaWQiOjM3MTB9.6HF_HVvnkviV9gHLvN5yFALBjsnc_HTuDhGNtNvOvxY.png' },
-    { 名称: '旧布鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPZ0dvTW5pZkluYXhmelQxb2lsUTAwNWFYWVVUREFBTGRFV3NiNjRsb1ZBckNKNlFPT3owd0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pen5biD6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjMwNjUxLCJ0IjoxNzc5MjExODE1NDQ5LCJtaWQiOjM3MTJ9.9URVo8tvDORlcbUoTxJTzmAT0X_6xlMaLkQR78zrpOs.png' },
-    { 名称: '护腕', 类型: '防具', 品质: '良品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPZ21vTW5pd045bXg0S0hUMkJDREY5MXcwMDBDU0FBTGZFV3NiNjRsb1ZOLU1OaFZsVzFVNkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5oqk6IWVLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNTIzMTg0LCJ0IjoxNzc5MjExODIwNjk4LCJtaWQiOjM3MTR9.vz0iyZ44w5BZYqL_fmbsU4K20UkQFqG_iMVkY27uiEA.png' },
+    { 名称: '玄铁护甲', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/j2VlrpbRuaMqc3jaWsMAi2sSWdm51vGM.jpg' },
+    { 名称: '锁子甲', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/K3uMU7S4BtrpE8c8QjX6gQCZDJt8R4NC.jpg' },
+    { 名称: '软猬甲', 类型: '防具', 品质: '绝世', 图片URL: 'https://cdn.nodeimage.com/i/J2bGu5PXEGJlLKfzmqvh0Vs8zC512kg6.jpg' },
+    { 名称: '布衣', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/5mVkZibyR5io0NjGNqY0Xab0AXmMCnPm.jpg' },
+    { 名称: '青衫', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/6TRCDavx6hJMIJtv6PH5quRt01jFpFS0.jpg' },
+    { 名称: '粗布青衫', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/goRMpZvKbQ5nrLtJrUSxdHHUdCoDuikL.jpg' },
+    { 名称: '青色练功服', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/m6UColjy8TnBj9w1ACV8WI9Ate51ZkXr.jpg' },
+    { 名称: '粗布长裤', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/KX6TGCDWYbKkrkCoYUw4tXgcMaOUIaYW.jpg' },
+    { 名称: '旧布鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/ZJ3TY6CzUDZTfwq26k3P3NVHUWLRv96w.jpg' },
+    { 名称: '护腕', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/NzKSIqzgUFQnB81EMT7vlE5yCPgeG9PB.jpg' },
 
     // ─── 消耗品：丹药 ─────────────────────────────────────────────────────
-    { 名称: '辟谷丹', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPaEdvTW5qS1Jmd0ppbkhCTkxMa2RNSWFNNmNNNEFBTGdFV3NiNjRsb1ZFaDdOc0RqODFtY0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6L6f6LC35Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjM3MTMwLCJ0IjoxNzc5MjExODI2NTY4LCJtaWQiOjM3MTZ9.W_B3TL2O1H2k--D9TBFojCi_YT39TbFweZubCxF0TfE.png' },
-    { 名称: '回气丹', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPaG1vTW5qZGdxZ01kS2FKN2tiR3NxV3NhaHBuLUFBTGhFV3NiNjRsb1ZEdlBMeGZ0Z1ZfcUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Zue5rCU5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMjIxODU1LCJ0IjoxNzc5MjExODMyMjAwLCJtaWQiOjM3MTh9.3J-VV833NApyHC_jkvhXN8Tdl9mejOojDBBqdjpAu_0.png' },
-    { 名称: '凝元丹', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPaUdvTW5qNHlBaUxaZ3FTOEhpWVJ2YVZzc094TkFBTGlFV3NiNjRsb1ZOaFZPQnM2Nk1JbkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Yed5YWD5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTg2ODEzLCJ0IjoxNzc5MjExODM4ODUyLCJtaWQiOjM3MjB9.zpfEHnsDy7FCkX7cPm9lrAFhuWB5xyEc0YHrbDP2GSc.png' },
-    { 名称: '破境丹', 类型: '消耗品', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPaW1vTW5rVFJLd29KSVBMMTM2MVdsRURnSUtzOEFBTGpFV3NiNjRsb1ZBWEtCNHhkMGFGQkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56C05aKD5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNTU0OTE1LCJ0IjoxNzc5MjExODQ1MTk1LCJtaWQiOjM3MjJ9.Dzul_s1ybqFFfVw-i0aTUauPt3YPbHmgTgBvabOnNl4.png' },
-    { 名称: '大还丹', 类型: '消耗品', 品质: '绝世', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPakdvTW5rdGhZbVZ6ZVBiNnJPSHZob3dJNEdvYkFBTGtFV3NiNjRsb1ZGaS1IOWhhQzF5N0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5aSn6L-Y5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMjE1MjkzLCJ0IjoxNzc5MjExODUxNDA1LCJtaWQiOjM3MjR9.BxEcvwdSUDirp0XJ_DGTP6KsAPbZ7DFMsVo4XlMiR3Y.png' },
-    { 名称: '金创药', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPam1vTW5sVDlGTDFMSHc4TngxWW5rdXlxYVBOUkFBTGxFV3NiNjRsb1ZKWWE4OFNuRXA2UEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6YeR5Yib6I2vLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDIwMDU1LCJ0IjoxNzc5MjExODYwOTkzLCJtaWQiOjM3MjZ9.T07FTtRdUsrqqg6jP1ijAa2P3bXn_9caftosxN7UoF8.png' },
-    { 名称: '解毒散', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPa0dvTW5seE5jZm9SQkEzelN0VHgtRGlPaXFTN0FBTG1FV3NiNjRsb1ZHMHlEU3Jzc2VZWUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Kej5q-S5pWjLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNTc2NjQ0LCJ0IjoxNzc5MjExODY4OTk1LCJtaWQiOjM3Mjh9.xe6hyQKuieha__7074z8RrZyTVK2TGcVfKkfv24ytEU.png' },
-    { 名称: '续命丹', 类型: '消耗品', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPa21vTW5tTkYweTJzM3RIOUthd1pISXloT3o1WkFBTG5FV3NiNjRsb1ZGcW94dUtENXVVeUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57ut5ZG95Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMzgwNzk5LCJ0IjoxNzc5MjExODc1OTQxLCJtaWQiOjM3MzB9.VfaOkBSNbLwYn5V7FN29zssSOfNzmiOtUNwEWabfLk4.png' },
+    { 名称: '辟谷丹', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/ei2lVYGAbAyLxJJc08EdK0yqqfNA04VN.jpg' },
+    { 名称: '回气丹', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/tm1SY5pF4FlBeTVbSdy7nwjRuHgxjY9o.jpg' },
+    { 名称: '凝元丹', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/acRWlcv3hZsSW1tCWFvhBrZyltqrR3s6.jpg' },
+    { 名称: '破境丹', 类型: '消耗品', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/8zOP8Qgkc7LumCtqtND1QmZdNOKrImkD.jpg' },
+    { 名称: '大还丹', 类型: '消耗品', 品质: '绝世', 图片URL: 'https://cdn.nodeimage.com/i/6hPKge9E3KH2A46nXCgp1dVewURDQh21.jpg' },
+    { 名称: '金创药', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/FcUEKWjZJ1VJIFw27w9ZobXQDLloJKYN.jpg' },
+    { 名称: '解毒散', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/WgnEMiY63n5FiXHxjGRcBMiEdve7HKSg.jpg' },
+    { 名称: '续命丹', 类型: '消耗品', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/mkGjuvfp9n0ACex0wlimXeftXxe2jjyF.jpg' },
 
     // ─── 材料 ───────────────────────────────────────────────────────────
-    { 名称: '寒铁矿', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPbEdvTW5tdVB1VEhTVThRU1I2Z1NNeGZKenlwSkFBTG9FV3NiNjRsb1ZCZm5CeHR6OWVfNUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB55-_LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMjY5MjE4LCJ0IjoxNzc5MjExODgzODYyLCJtaWQiOjM3MzJ9.74n5eDYfZ7OP1E99izUFiVlFuIoVg01KCsGKYkRMxPA.png' },
-    { 名称: '千年灵芝', 类型: '材料', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPbG1vTW5uT1N6VXp6Z2s2eGtrM2JDUzVRUDFyakFBTHBFV3NiNjRsb1ZKM3MzUXJUU2RmVkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Y2D5bm054G16IqdLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTUwMzAwLCJ0IjoxNzc5MjExODkxODM4LCJtaWQiOjM3MzR9.c2JEympODU6u31jeS-hSc9kmbkr63ueSLzgV6B6Xi6g.png' },
-    { 名称: '蛇胆', 类型: '材料', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPbUdvTW5uc0dVSC1GRGdSN2Vlc0plSGdwYzBSV0FBTHFFV3NiNjRsb1ZHMXhOZ2FrTnZZSkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6JuH6IOGLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTA4MzI1LCJ0IjoxNzc5MjExODk5NDU0LCJtaWQiOjM3MzZ9.RvaHVZhq-u_ryK_g7qIzo-pmFMHwDySwwHuO9x_JNl8.png' },
-    { 名称: '玄冰石', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPbW1vTW5vWXJ1LURGODd2UjVWZXlzQWdhQ1RTR0FBTHJFV3NiNjRsb1ZQR3dMdlNFcm1IUEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E5Yaw55-zLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjc0MzU1LCJ0IjoxNzc5MjExOTEwOTEwLCJtaWQiOjM3Mzh9.j7HGtWIxSyc_f3YXZJwHxL7GH8BxboWuHOhL1VoWc9k.png' },
-    { 名称: '百年何首乌', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPbkdvTW5wQ28xWjZONmR6U3pjNHVyYzRiUm4yZUFBTHNFV3NiNjRsb1ZBLU9pNnRwWXNWbEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi55m-5bm05L2V6aaW5LmMLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNTg0OTM0LCJ0IjoxNzc5MjExOTIxMDM2LCJtaWQiOjM3NDB9.b6XK8OGTz1p-3YeRuorc7Ct4o1n1T_7W30G_AH6n_kM.png' },
-    { 名称: '铁木', 类型: '材料', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPbm1vTW5wc1ZEalFPR2N3WlVGVWxiVFI2dTB1TUFBTHRFV3NiNjRsb1ZITGcyVlV6bVJ5LUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5pyoLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNzQxNDU2LCJ0IjoxNzc5MjExOTMxOTg2LCJtaWQiOjM3NDJ9.zwzHDxp6C20VAnPWzIDMolaWoKEoyBfCjSHhqZ3T3gs.png' },
-    { 名称: '兽皮', 类型: '材料', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPb0dvTW5xbURhcWNJX2RINlJmX0FfdGlyMVM1Q0FBTHVFV3NiNjRsb1ZNV0MyRFNDZFE2SkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5YW955quLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNzg0NDkxLCJ0IjoxNzc5MjExOTQ2MDM1LCJtaWQiOjM3NDR9.aUrYmENL-F_-t1nwqaIeIzqsgppStdhN2eKNWBn-C5U.png' },
+    { 名称: '寒铁矿', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/2H4OsQZLfbw2hKmdnxS4yJqZlYPhBbru.jpg' },
+    { 名称: '千年灵芝', 类型: '材料', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/lNSm2M0jvmd3yC3abRgvy329mL2XPHvt.jpg' },
+    { 名称: '蛇胆', 类型: '材料', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/lJoLpOKFavZmndME70NpPHlXhRYncHqe.jpg' },
+    { 名称: '玄冰石', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/FyiAukTrFPPR8baOAofPhozoV3ghT25K.jpg' },
+    { 名称: '百年何首乌', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/k2hGsTFSNP6kG2gqUaoDp9GSzn5jmDh1.jpg' },
+    { 名称: '铁木', 类型: '材料', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/Z9RQGTvF3ahpiHttmmTbZdbxGLNmeyGY.jpg' },
+    { 名称: '兽皮', 类型: '材料', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/gJfdL6VfcHyqNnZsvEYpeVzzpEu9XJmX.jpg' },
 
     // ─── 秘籍 ───────────────────────────────────────────────────────────
-    { 名称: '基础剑法残卷', 类型: '秘籍', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPb21vTW5yZFZ4VHlPNmhBTi1XUjRoSkl1dFpQOEFBTHZFV3NiNjRsb1ZPYkh2Vy1BTUMzLUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Z-656GA5YmR5rOV5q6L5Y23LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMzc2OTQ2LCJ0IjoxNzc5MjExOTU5NzY0LCJtaWQiOjM3NDZ9.jeUmb8JHjst8CwMHDUj7C-k3WE1SLgQCF1lqNIciKQ8.png' },
-    { 名称: '吐纳心法', 类型: '秘籍', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPcEdvTW5yMGpvTkRneHdQMTRCTXBZczVQWFY1aUFBTHdFV3NiNjRsb1ZIa2pHVXlubFlpMUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5ZCQ57qz5b-D5rOVLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMzk1NDUzLCJ0IjoxNzc5MjExOTY1NTk2LCJtaWQiOjM3NDh9.WTCPuQcDkLj_3E2iNzSu2A9psV_IqMLTuQfBY-RJfh4.png' },
-    { 名称: '轻身术', 类型: '秘籍', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPcG1vTW5zVEJ1ZlF0aFY0SllXdll1SEpfR01nZEFBTHhFV3NiNjRsb1ZHa2FDbUxmSHh2ZkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6L276Lqr5pyvLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDk3NDU5LCJ0IjoxNzc5MjExOTcyNDg3LCJtaWQiOjM3NTB9.sZ6Y85RRWVCjXLzhEeh3OeTfHh2Q0mt4O3qPRK41mvU.png' },
-    { 名称: '金钟罩', 类型: '秘籍', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPVUdvTVpxREl0WVBEQmZBS0hNUHZENHo0ZGltOEFBSm5FV3NiNjRsb1ZBcHJrQldTYVhZTkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6YeR6ZKf572pLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjg0ODY1LCJ0IjoxNzc5MjExOTc3NTI2LCJtaWQiOjM3NTJ9.gNHUFk-Nsl3ekbwReYC32E014OVlW9cZhrA61jFhJ_4.png' },
-    { 名称: '九阳真经', 类型: '秘籍', 品质: '传说', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPcW1vTW5zNUdWM3N0QWxYZlVtUU1Mb0N1UExTYUFBTHlFV3NiNjRsb1ZMSFZDbEdDLUFjREFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Lmd6Ziz55yf57uPLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMjI4MjIyLCJ0IjoxNzc5MjExOTgyODI1LCJtaWQiOjM3NTR9.Spu_iIjUMFrO_CfPk_-Bhl02Yqhu7doXYGE4W04r7S4.png' },
+    { 名称: '基础剑法残卷', 类型: '秘籍', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/SJm4tEOoyEVtgjU643Cy0nQZh6Yz7GYQ.jpg' },
+    { 名称: '吐纳心法', 类型: '秘籍', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/RHvhR2B9f0A8J6n1YepmV8epTXUmQD5j.jpg' },
+    { 名称: '轻身术', 类型: '秘籍', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/FUrCaBXhOKQJIHIkw4ArLywD0RWHgR1O.jpg' },
+    { 名称: '金钟罩', 类型: '秘籍', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/jnCdWpeHK9RpmVYclAIUYneQYMDH9gT8.jpg' },
+    { 名称: '九阳真经', 类型: '秘籍', 品质: '传说', 图片URL: 'https://cdn.nodeimage.com/i/TKysJeNxh2AoL22nScNsCrJ0FQNkH1QS.jpg' },
 
     // ─── 饰品 ───────────────────────────────────────────────────────────
-    { 名称: '玉佩', 类型: '饰品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPVEdvTVktTEhyY0RZSnoyWElZLS0zVVFMOVlYQUFBSmFFV3NiNjRsb1ZBOEVBc0V2a0lLOEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546J5L2pLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMjMyMzM3LCJ0IjoxNzc5MjExOTg3OTY0LCJtaWQiOjM3NTZ9.hob_ZpyYJ_MbOHi46iVGckpG2OGxtxe-BL-tX-wuYBU.png' },
-    { 名称: '银簪', 类型: '饰品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPcm1vTW50cWJTT1NrTHlPa0F6TFd2clRhXy1aWUFBTHpFV3NiNjRsb1ZPSWUyd0FCV0pXQlhnRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IumTtuewqi5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTc2NzYwMCwidCI6MTc3OTIxMTk5NDk0MSwibWlkIjozNzU4fQ.ERWq7R9xVW4x76uTGT4XHpmGCaulGtcCwnDBddCqibU.png' },
-    { 名称: '护身符', 类型: '饰品', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPc0dvTW51Qi00UmR5T3AzV05ZcXk4M1FPV0doN0FBTDBFV3NiNjRsb1ZPcl9JNlBBMTAyX0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5oqk6Lqr56ymLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyODE3MjQ2LCJ0IjoxNzc5MjEyMDAxMDU3LCJtaWQiOjM3NjB9.8l_l9-ERGJD3n-wUCTkvkTAU59x3dKeN-g8KsOoys7M.png' },
-    { 名称: '夜明珠', 类型: '饰品', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPc21vTW51ZmZ6SE5yM20zcmdNUkJZWjVCNkhvU0FBTDFFV3NiNjRsb1ZFNDIxOVlHYzFObkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5aSc5piO54-gLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDQ5MzM3LCJ0IjoxNzc5MjEyMDA3ODkzLCJtaWQiOjM3NjJ9.TO4jmKgTJmBzr8VbVIWCGGQ5oipE5PsAPaEq2A-6e1Q.png' },
+    { 名称: '玉佩', 类型: '饰品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/ELpsq3WkifuRaa8CMDa2rNKsHQ0hgGUs.jpg' },
+    { 名称: '银簪', 类型: '饰品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/uRsUcIILzTJDSjF7kcMx76rUCrX1Kj2o.jpg' },
+    { 名称: '护身符', 类型: '饰品', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/YpTRFOk2irjiDLcdMfbuWPK8pnxwik5A.jpg' },
+    { 名称: '夜明珠', 类型: '饰品', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/tCw94QELfxWMkSDdNYHVmf70kCzRgTYM.jpg' },
 
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPdEdvTW51N1h6bndqRWJ3YU0tZDJGSG1LT0M4eUFBTDJFV3NiNjRsb1ZNRUM5VHRMcWsxZUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNTk5NjcyLCJ0IjoxNzc5MjEyMDE0NjQ3LCJtaWQiOjM3NjR9.Wob_X4s8VIR09JPrkDvXtN2cdkuxjjHICkO-sMPO4mQ.png' },
-    { 名称: '铁剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPdG1vTW52anV1RGY0WkxKZno2a0dXNmhZbFBoUkFBTDNFV3NiNjRsb1ZCS202U290UmZqZ0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDQzNTAyLCJ0IjoxNzc5MjEyMDI0ODUzLCJtaWQiOjM3NjZ9.SBwr7bRVPZ-1oJoWPxCWX2T_9mgNwxQNugBU6kqfqQY.png' },
-    { 名称: '钢剑', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPdUdvTW53QUJpZ0pRYzU5WHUzYlRMV0pyaXdhdXFRQUMtQkZyRy11SmFGU1JsWU9xZk0zbnhBRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IumSouWJkS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjQ0NzAxNywidCI6MTc3OTIxMjAzMzAwMCwibWlkIjozNzY4fQ.yqgyhgzWBloC3SIiN8VBXXrtVzEXKhPtFv9QIApw2aY.png' },
-    { 名称: '钢盔甲', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPdW1vTW53Z0dHN2QzTlhUV1J5cS1BVVhoeUE2b0FBTDVFV3NiNjRsb1ZJTjQ3RXJKVm41RkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi55uU55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNTk2NDU3LCJ0IjoxNzc5MjEyMDQwODQ2LCJtaWQiOjM3NzB9.yjn6SOU3L6no4tk-DyOwEk_Uo1HL2OiqVouyw_s9rM0.png' },
+    { 名称: '木剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/NDDX7rqGHchW0J0W4LOGErHaeUTTGF48.jpg' },
+    { 名称: '铁剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/IdSHDh0VFJYK1T33K5CH0ikdbuDhPG3I.jpg' },
+    { 名称: '钢剑', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/nu8GnRw8Ri9YXOPi9r9LLnm4YXTREYba.jpg' },
+    { 名称: '钢盔甲', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/gd3n4rCyF2iaAqqaVtaRc9gQeK07gXAd.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木长剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPdkdvTW54Q2JrdzRaME1uSlFYd0c1QnQ4NFdXa0FBTDZFV3NiNjRsb1ZFdGU4djVXU0dfNkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo6ZW_5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNjQzNjQ2LCJ0IjoxNzc5MjEyMDQ4NTMwLCJtaWQiOjM3NzJ9.CWjxdh4_oCSecy-CK0iUbfyTBrIdvMcPvmGMP2mfkEE.png' },
+    { 名称: '木长剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/buyxtpNR7yM6if2N6I7jhaMZakCY7HY5.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木短剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPdm1vTW54bVhZd2habHpsZ1p5SWNZMGlIaXBRR0FBTDdFV3NiNjRsb1ZCM1BpRms3d1FPa0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo55-t5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDM0ODE4LCJ0IjoxNzc5MjEyMDU3NzI0LCJtaWQiOjM3NzR9.3ph8AmDU0u2fS7OnUBajzfPbXifdXFLKVjrDjEEOowc.png' },
+    { 名称: '木短剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/6DyWTENxzoMbws2lpXlYOGiqNzkPia6r.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPd0dvTW55UkFTZ3N4alI1enlDV1VzUl94UW9HZkFBTDhFV3NiNjRsb1ZLR0dja1Z1Y25GaEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDU5NTgyLCJ0IjoxNzc5MjEyMDY5Mjc3LCJtaWQiOjM3NzZ9.7S1CiNYjNcZ1rWRJLDHu8KdqJxIvifKSqOH8VLmtBhc.png' },
+    { 名称: '木刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/sZEP7civYKAcVerj6S8yZVjR3wNk3ytV.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木短刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPd21vTW56QVJ4RUZaWmJMMlFxS2o5YkhsVFlwa0FBTDlFV3NiNjRsb1ZFS043d29YTXFxUkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo55-t5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDE1MDAxLCJ0IjoxNzc5MjEyMDgwNzg5LCJtaWQiOjM3Nzh9._BZy3fMCwtP42-gl10mVy2pnkAbGynR8I8VImu9wlN8.png' },
+    { 名称: '木短刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/1Yq68NRxNfoaCtL6z0cv2YOPYhdXE1w0.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木匕首', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPeEdvTW56d1U2Z19Ed2RjS3VwYTJCeFBhM3hPeUFBTC1FV3NiNjRsb1ZLRFdvWGpRWld3bEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo5YyV6aaWLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNDMyNDIzLCJ0IjoxNzc5MjEyMDkyOTIwLCJtaWQiOjM3ODB9.cb_Bol9VrztjtRk6Fhv1Dyhfj7gMbtHG3VfJ9bT1oHA.png' },
+    { 名称: '木匕首', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/cLaXqZ5YfBQTWKXUmKgUTnj3JR3LuyOh.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木枪', 类型: '武器', 品质: '凡品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPeG1vTW4wNWVRek04TUZkWF9fay1wbDNGWVIzQUFBTF9FV3NiNjRsb1ZPVnM2UHVVSW1WcUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo5p6qLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjc4MTg1LCJ0IjoxNzc5MjEyMTEwNzQ4LCJtaWQiOjM3ODJ9._J7ICC2eGtHWqVvLRrnOIaDLemroQGehCRxSo_grtl0.png' },
+    { 名称: '木枪', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/EtDmTdqfXgae020D2YeOm8tVYuCZqujv.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木矛', 类型: '武器', 品质: '凡品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPeUdvTW4yRmhIdnk3LVp6TVVlMGdwWXJEVjRIMEFBTVNheHZyaVdoVVZYamxBV0QtOFBJQkFBTUNBQU41QUFNN0JBIiwiZSI6InBuZyIsIm4iOiLmnKjnn5sucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIwNTI5NjIsInQiOjE3NzkyMTIxMjk1NzUsIm1pZCI6Mzc4NH0.pBmfOh4rz6VyI9xxFkACHaVLIc1vSb_KXYRHHc1zT0U.png' },
+    { 名称: '木矛', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/MlUmPxjOcdUpHbwitOFu0DuFR0GpWNRy.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木棍', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPeW1vTW4zTzlIR0ttZjRZZm9yUXpGbXVHbVh0cUFBSUJFbXNiNjRsb1ZKbFVDR2tmZ1NMWEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo5qONLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzk0MTE4LCJ0IjoxNzc5MjEyMTQ3OTk1LCJtaWQiOjM3ODZ9.QHUeJ0BkN22pjnuaHjZuarRr3MPJc2Hg9oA-GeDnzV0.png' },
+    { 名称: '木棍', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/lI9XAxQQ4zfEsfkDswYLrbKyRhFYdev1.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木杖', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPekdvTW4zNHdOQVdIaDZOLUh1blpmOHB5ZVJDMEFBSUNFbXNiNjRsb1ZQRTBoeXRnMExZa0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo5p2WLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjkzMzA0LCJ0IjoxNzc5MjEyMTU4NjU2LCJtaWQiOjM3ODh9.vE4ztvX2D7TQqg8oRB3Qy3G2iX48KZVbCpwetLOGBV0.png' },
+    { 名称: '木杖', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/J2cwl3HUvxkmiCWNoq0SeDvTwLYoSeyc.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木弓', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPem1vTW40a3Q4b0thNWlvSXYwdDZfdmVUOThnbEFBSURFbXNiNjRsb1ZELTBiQXlFb2ZWQ0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo5byTLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNTM2MjAwLCJ0IjoxNzc5MjEyMTY5NzMzLCJtaWQiOjM3OTB9.vD3VaBaesl5UJKjszAvGhV00ocijQF_K5tbhWsxU5vI.png' },
+    { 名称: '木弓', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/ZgWXdj4OXTDB75sR1WtkFTBCHeBoHRvm.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木弩', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlMbEdvS0FkbnBnTkFNT3VTclVScURlQ2VaMk9hc0FBSW1EMnNiVlg1UVZGVVJJYnN2Mmd0VkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo5bypLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozMzIzOTMsInQiOjE3NzkwNDA3MjkzODgsIm1pZCI6Mjk2NH0.rcaRf1MJKjRVs7SunnatmD3o9Lgh7dI4TIhz0H-EED0.png' },
+    { 名称: '木弩', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/OEMIPPu4fiQFbQpZUkhTK3vLRgLN7u2p.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木飞刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPMG1vTW4tR0xNbjZLOU1yd001UmMwdVVrX2UyckFBSUZFbXNiNjRsb1ZKRUZNY2phckpnd0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyo6aOe5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDE2ODU4LCJ0IjoxNzc5MjEyMjU4MzMwLCJtaWQiOjM3OTR9.z_mJnDADYIidhOcy8s-3dqNQknb-gdLb7d-9oiz_A54.png' },
+    { 名称: '木飞刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/hSiLkTT2XunpGaaehHdUXfjBfiemM2YD.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '木袖箭', 类型: '武器', 品质: '凡品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPMUdvTW4teFBscGdndkY2M01TMGU2QnNBQVl0cmFBQUNCaEpyRy11SmFGVENvNnIxTGwtWXFnRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IuacqOiilueurS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTg3NjkyNiwidCI6MTc3OTIxMjI2OTIyMiwibWlkIjozNzk2fQ.QKUQH1SK2tBsDSS3NjaOSMTzVk7rgbAiG8N5SPqFRKE.png' },
+    { 名称: '木袖箭', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/8GRTmPvax5CPDCtjErr1C8OxEtDVQSZe.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPMW1vTW5fYllpcWppaXFqcWJURjNpMjgxdXFzeEFBSUhFbXNiNjRsb1ZCVGRaMVRtYUlYNEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u55YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTU5MjYxLCJ0IjoxNzc5MjEyMjc4NjY1LCJtaWQiOjM3OTh9.MjfFC8OD2v9Z5gclzaqYFtGEqOlmZYJE5ywd3V0b5Pg.png' },
+    { 名称: '竹剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/EX4qRZZRebc8fwmPYZwil4VSuuO8udiZ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹长剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPMkdvTW9BRVhyRjB6MVM2bEhyTjVOdHFMMUhTMkFBSUlFbXNiNjRsb1ZMdTFBY0ZlelhCMUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u56ZW_5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNTU4OTk1LCJ0IjoxNzc5MjEyMjg5ODE4LCJtaWQiOjM4MDB9.VVa_DqF7HZ7wcIu3jWYCqNFBBRbqhLKmxPYajwivsXQ.png' },
+    { 名称: '竹长剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/YxEPCyiB2PIQHYrtB5wBlT8cQQaUtpmR.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹短剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPMm1vTW9BejAyNTViZ3pjM1l6clJYU0VzVUdza0FBSUpFbXNiNjRsb1ZGb0l5TEw5Ti1UdkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u555-t5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODE0Mjk3LCJ0IjoxNzc5MjEyMzAxMDQxLCJtaWQiOjM4MDJ9.MBBJFv6IoyNs6xxbuQMkv8Cm0upa6fvFVlaOg19d0gY.png' },
+    { 名称: '竹短剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/zpNOxEdeVgmi67BsundsbFD5KUhi2PLk.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPM0dvTW9CcWVKRHNha3JUa2thSWN4WG5fd0htS0FBSUtFbXNiNjRsb1ZCM1YyWFpxOHlVS0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u55YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDQxNzExLCJ0IjoxNzc5MjEyMzE1MjA0LCJtaWQiOjM4MDR9.PzjuweMkXWn3YezVrKbx2bIv1Rpj4GsZgB10s2AHgdk.png' },
+    { 名称: '竹刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/GAxDZpoJvyFmVn9XSkhqcj36KKmVNOdj.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹短刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPM21vTW9DYlp3dGR0WHpFZVJ3aFhkNWpIUE5FNEFBSUxFbXNiNjRsb1ZObFlaYTVWY19wYkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u555-t5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMzAwNTcyLCJ0IjoxNzc5MjEyMzI3MzQ2LCJtaWQiOjM4MDZ9.-t0Eh4ZsoaaWwzRApeBxL321-LYlUU6vWjzvI9RMBsw.png' },
+    { 名称: '竹短刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/Zrd2uSU3GmrHhElUxmR0egd4jUKGYtVX.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹匕首', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPNEdvTW9Dc1FzY09RZ2VSWjljN3E1TFA1NHYwNEFBSU1FbXNiNjRsb1ZJdGY2UE1iQm5XYUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u55YyV6aaWLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODIwMTQ1LCJ0IjoxNzc5MjEyMzMyMjAzLCJtaWQiOjM4MDh9._r-ZabRlHC4f11vggRlc-ec7gA7BJbrYxkglYrI0IvM.png' },
+    { 名称: '竹匕首', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/ql8jIzwDd8LlUJPoRUMhfQYBFFfmE2Dv.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹枪', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPNG1vTW9EQnh5UkJTUWFjUXNRRmRTaTJoYkxURkFBSU5FbXNiNjRsb1ZQZlU1eXJDcWRUX0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u55p6qLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxMzgxOTk1LCJ0IjoxNzc5MjEyMzM2NDU5LCJtaWQiOjM4MTB9.wO6uqCwA3t5HnLXiv6CesDaVQyyMXCiWO2vi-8NcGKU.png' },
+    { 名称: '竹枪', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/TKGudEfa9ep9eZxApplSKPFcdANX3L0y.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹矛', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPNUdvTW9EUU5FSzlUQnZRZTA0X1g4aVFQdGQyb0FBSU9FbXNiNjRsb1ZIRG1tX043dk1KTEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u555-bLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODM5OTYyLCJ0IjoxNzc5MjEyMzQxMDQ3LCJtaWQiOjM4MTJ9.hwDuE1bpv2Foyg-CgrqyRbZInCjwf958gaw0yDZG9dg.png' },
+    { 名称: '竹矛', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/xTwurdE4KKQV5dDx6CZPr20tuaVqaSqH.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹棍', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPNW1vTW9EbGFndkJDWW5jb0wwdHB6X3hqRG5iOUFBSVBFbXNiNjRsb1ZLSEpBbHYwQXBvckFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u55qONLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzcxODY1LCJ0IjoxNzc5MjEyMzQ2MTc4LCJtaWQiOjM4MTR9.GIU3mkgfbxlgu90xt5IP3EAoerP-71-MgjZuKkR3OMk.png' },
+    { 名称: '竹棍', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/cF0A6Et1YkP3kYTf979qKZAXqH3H0L2Y.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹杖', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPNkdvTW9EOWxTZnplVVNUUTlCbEpxZ1lOVDJpQ0FBSVFFbXNiNjRsb1ZQazUtTC1hT2JQekFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u55p2WLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxMjMzOTkzLCJ0IjoxNzc5MjEyMzUxMzU0LCJtaWQiOjM4MTZ9.VmhFjKtOzxen3W6mVD3ORcKuKrM-ciSZdcY4SXmzkmA.png' },
+    { 名称: '竹杖', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/aHEauYiuVat4I3rm9E66gi8Yh4SilsQ5.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹弓', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPNm1vTW9FUzhQcWlWbkY2UE9tWC1FbmFYZm43V0FBSVJFbXNiNjRsb1ZQdmNEZmVFNGFNUkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u55byTLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxMzU5NTc3LCJ0IjoxNzc5MjEyMzU2NjI2LCJtaWQiOjM4MTh9.hQFRNfsIYtlU9E1lhqxHZuHfKwdzvhdywmzXrbHHQHo.png' },
+    { 名称: '竹弓', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/gMNkcFdOi95gBuBaeUykXA52VLTP3n5P.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹弩', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPN0dvTW9Fa2NTVDc2YXNCeEhLRUNzYmNiNndyaEFBSVNFbXNiNjRsb1ZBUzlJV3lPSDliSUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u55bypLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODY0NDUwLCJ0IjoxNzc5MjEyMzYyMzQ0LCJtaWQiOjM4MjB9.uY0hT5MgHjFlT17cJE8E1In_FZOOpX_ExY4mO0XXMIY.png' },
+    { 名称: '竹弩', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/aKg5St7ftVJvMFdczFsST2tnZFmRarFf.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹飞刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPN21vTW9GQ1ZKcld0VGVqdHNrT0hGdHVDY2xqV0FBSVRFbXNiNjRsb1ZQMEhjemVPOGhzTkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u56aOe5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODQ1NzMxLCJ0IjoxNzc5MjEyMzY5MTAzLCJtaWQiOjM4MjJ9.-61kxuwaGeqpg9Kxb9_0-hTsPBUSMMfzf0bjHnYRoNw.png' },
+    { 名称: '竹飞刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/9KrdZSXobOoGXGIv4sLPwIWNTnwdBzqE.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '竹袖箭', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPOEdvTW9GWWtUanU4RElWbGZlNkhJUnZIaWNYS0FBSVVFbXNiNjRsb1ZLQU9qRVllNHJOb0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56u56KKW566tLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzIwMDM0LCJ0IjoxNzc5MjEyMzc1MTU4LCJtaWQiOjM4MjR9.OS4OSfnXt65w_g65c1SI9MdVWswh7RfxmOoomWotjX8.png' },
+    { 名称: '竹袖箭', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/T4ZykM13DcDmnCExYz1XeoPAjPvaIJjA.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁长剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPOG1vTW9HUUpqVkQzMk1INU1TQnpaR1VxMnd4RUFBSVZFbXNiNjRsb1ZMTUJfV0k5V0YwVEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB6ZW_5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTQ1MjIwLCJ0IjoxNzc5MjEyMzg5MDU4LCJtaWQiOjM4MjZ9.Na7toXhcZn1BoM5oKzC8O4HYZU8fGnwSNOw9dRGmR-Q.png' },
+    { 名称: '铁长剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/LMaSkW56334nfSXngJJsEI37Fg73kg3J.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁短剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPOUdvTW9Hck03SWdWSjFmWWhvalFEOGhWVU9EUUFBSVdFbXNiNjRsb1ZEc2wzRnBMNVBrOUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB55-t5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTMxOTU3LCJ0IjoxNzc5MjEyMzk0NzQ1LCJtaWQiOjM4Mjh9.UjvcygXk3TTrPOLl_Ls8o1PyXgRHMF9TtaBzcsUlCXI.png' },
+    { 名称: '铁短剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/VLlBUNA7DodCi1yUREqxSEQY2zPxJg0t.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPOW1vTW9HX3RUWVlPS0NkZEtPRHdBdFBveUZFUUFBSVhFbXNiNjRsb1ZLc2Vhb2tCR0RLUUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTg5NDAzLCJ0IjoxNzc5MjEyMzk5NDI3LCJtaWQiOjM4MzB9.UT6_F7MVAbZ6tkPw-bCThmt2eEFTqbFZQiWCYhz4poU.png' },
+    { 名称: '铁刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/Tb4BplZBWwxhL5mnr6qebLTRG3soCvJB.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁短刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPLUdvTW9IUkJ3b1FNQzM0NDA4V3RvX0ZvSXpwR0FBSVlFbXNiNjRsb1ZHOUR6cFlWSGtpTEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB55-t5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDU1MDIxLCJ0IjoxNzc5MjEyNDA0NTEyLCJtaWQiOjM4MzJ9.18NuD-7wF3-tWJ11R1luIluI6ekgnV1nl9yicom0GOQ.png' },
+    { 名称: '铁短刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/0XtGh8Ls3mxRKg4E4z1SLpy1gQOUrJHU.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁匕首', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPLW1vTW9IbHMwRThwc0N2RnBmRE1vRlJLNzNEakFBSVpFbXNiNjRsb1ZONWVieWc0dnpGZkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5YyV6aaWLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDg5MzE2LCJ0IjoxNzc5MjEyNDA5NzQwLCJtaWQiOjM4MzR9.qVRzyLCwW9QZSIY98qGWG-vMhfz29_v-H1gTX8Uhp5E.png' },
+    { 名称: '铁匕首', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/73L15S2djBLmzFo0rDHrh5fmkstXmIwj.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁枪', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPX0dvTW9IX3hIdTV5NlhMeG5iMHJPbHc0NGg3ekFBSWFFbXNiNjRsb1ZBcVFleWVQN2hETkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5p6qLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjczMDYyLCJ0IjoxNzc5MjEyNDE2MTY4LCJtaWQiOjM4MzZ9.vKFt_5T0O-UnQO2kaDN8YjHbkHejgUjnAWojrP0P4G8.png' },
+    { 名称: '铁枪', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/alims2Ty95pwj3a8eCklIAY1cQueZX2T.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁矛', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlPX21vTW9JYWJvRC1DSF81MHZDUDdubE5xQkQ1VEFBSWJFbXNiNjRsb1ZJcWNRdWI1dVgxWkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB55-bLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzY3MDg5LCJ0IjoxNzc5MjEyNDIyMzA5LCJtaWQiOjM4Mzh9.0--u6RZThFDvNKv1VHDqnxy7ZrKOF6r6noCOT-uUgOY.png' },
+    { 名称: '铁矛', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/7Dcec1HpDuOUE8WvFShS8pmtyYp7avDn.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁棍', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQQUFGcURLQ08xOFE1RWhLRFlFekRiVlRUZkEwU1FnQUNIQkpyRy11SmFGVHFVZ0pnRDVJOE13RUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IumTgeajjS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTkxNDEzNSwidCI6MTc3OTIxMjQzMDMzOCwibWlkIjozODQwfQ.Q3n0mmYXgNbNq2h42CKkDUjcSYhKnEThZjxDSI-L8wk.png' },
+    { 名称: '铁棍', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/EK83B6wDBPdQO5P6c2zQuNuQjNEzqVCi.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁杖', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQQW1vTW9KU21sT2xNT0Z4aEJVMklCMTZTc3p6ZEFBSWRFbXNiNjRsb1ZIb2lySWREOGZqT0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5p2WLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODA4MzU1LCJ0IjoxNzc5MjEyNDM2OTkyLCJtaWQiOjM4NDJ9.n4w8z5_oitt2SoJs2w-gcCNlbQrcHg7eL4-vt9uoDpU.png' },
+    { 名称: '铁杖', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/4DsyYJIE3sM7JyFCvtRx7wMNW8ElOuXm.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁弓', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQQkdvTW9KdG1oY1JZR2xSM0twUjRCQWhQWGNzY0FBSWVFbXNiNjRsb1ZHS2JlSTVuRGJhRkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5byTLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNDcwOTEzLCJ0IjoxNzc5MjEyNDQzNzAwLCJtaWQiOjM4NDR9.pToTJJpjdcRGTikF6lBi3B_Obnuqk82caFEEqAHRQik.png' },
+    { 名称: '铁弓', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/LHgWeQ7VScV8hPd6M4SHMwyIXlu8ZqhQ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁弩', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQQm1vTW9LVDNMaTJ5cmZjMmU2S1ZQT1h0NG51RkFBSWZFbXNiNjRsb1ZDUUxvMEkwUURFTEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5bypLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODM2MzU3LCJ0IjoxNzc5MjEyNDUyMzc4LCJtaWQiOjM4NDZ9.PIH7VMEzwtac8TEMJVqOq4HM0BvFuw5H005fWYjkynk.png' },
+    { 名称: '铁弩', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/6NW4QD4mPsyGOMsXqsss5Ryfyib1ljmp.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁飞刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQQ0dvTW9LcFBDRFhyWEpLaDJNZE1CZEFjSXM2X0FBSWdFbXNiNjRsb1ZDUFlXOVRvR3BBX0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB6aOe5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTc5ODAzLCJ0IjoxNzc5MjEyNDU5MzY4LCJtaWQiOjM4NDh9.pit5NiDmrnxdmRGOI8uPd9NhfWn9gB4JDXA6YYeEMaI.png' },
+    { 名称: '铁飞刀', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/EoTuvnkBAbbsyKcO3VVSF1SUMFdDuDdP.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁袖箭', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQQ21vTW9MRkc2UUtmLW54c0NfbzBzWVp0WFAtckFBSWhFbXNiNjRsb1ZGTWkwanFDWWFicEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB6KKW566tLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTc2MzU3LCJ0IjoxNzc5MjEyNDY2MDYxLCJtaWQiOjM4NTB9.mzgUMWzOvy2fi1CRae73NbrNaBAFju27NVb6dG6NQps.png' },
+    { 名称: '铁袖箭', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/LyBHD58COyp0QLQ8lto0IGQ8I6HsILmX.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢长剑', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQREdvTW9MaWNIa1hYZl8xUDdIVDltWTRvRmN5RkFBSWlFbXNiNjRsb1ZBalpPU2ZjM3lNd0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi6ZW_5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNTc0NjE1LCJ0IjoxNzc5MjEyNDcyODU4LCJtaWQiOjM4NTJ9.lSbklYz3dbXpZjbzOXzp4zwCNVsWw8YYr66AfbZ1qzU.png' },
+    { 名称: '钢长剑', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/qI0GDGtBykQ88BT8By926CGDHuoEUUse.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢短剑', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQRG1vTW9NQm1JenZvWGpVVndLU2xibDlCS3BpVUFBSWpFbXNiNjRsb1ZNSng4emV0cG9VTkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi55-t5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTM1Mzc1LCJ0IjoxNzc5MjEyNDgwNTQ0LCJtaWQiOjM4NTR9.5O1SkYqQrOJvlqfZOmQZJzrj48CAhAddwbwh_ZWcL1s.png' },
+    { 名称: '钢短剑', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/qFeRvVJcm5fIZYbOpuGOBfRcI8B4C8l6.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢刀', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQRUdvTW9NamFxakdVbURMMU9wQWpJTVZ1VjFkRUFBSWtFbXNiNjRsb1ZIS0VZd0FCZGVrdFNnRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IumSouWIgC5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTk1Nzg3NSwidCI6MTc3OTIxMjQ4ODQwNiwibWlkIjozODU2fQ.4_BbVhCkUmYgwQi9XeHG_LlKWHppBrZZ8bWX56ytXEg.png' },
+    { 名称: '钢刀', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/ZT5OLiysF281uuNF76HhLjBj07jZQsWQ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢短刀', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQRW1vTW9NOHI0T09MZm80cFQxZlF4b1lyNjVQY0FBSWxFbXNiNjRsb1ZQdmZhdW1aYlUxZ0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi55-t5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTMyNDM0LCJ0IjoxNzc5MjEyNDk2Mjc0LCJtaWQiOjM4NTh9.F_V4HCyeRCw0Ag7CiGffDFB9qmCVO0PfvDFM8uyg_mw.png' },
+    { 名称: '钢短刀', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/9sXp9omwoezXb5svHEbayUiNqt0GW4yX.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢匕首', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQRkdvTW9OaUVQWnJtNzVmV19LWFJNSGNRS3ZlaUFBSW1FbXNiNjRsb1ZPRlV4dTN4NE1pbUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5YyV6aaWLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDMyNDU1LCJ0IjoxNzc5MjEyNTA0NTc1LCJtaWQiOjM4NjB9.-9Et9zWf9Xf59cbZ548T-MLy2rCwk0nSGW_GjgmQ2cw.png' },
+    { 名称: '钢匕首', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/p4Aolmah10nEAch7GT4tocdK6fxLnaaY.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢枪', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQRm1vTW9PRXEzaFJJRTUyRjhfRXhnbEdKLWFLSkFBSW5FbXNiNjRsb1ZGb0tiTkhRQ05LdkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5p6qLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjIzMjExLCJ0IjoxNzc5MjEyNTE0MjY2LCJtaWQiOjM4NjJ9.NDu7L-z71aTvijgjPqPWpl9NSIDiZVxccpr5VkpYAF4.png' },
+    { 名称: '钢枪', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/aUgKNe7JVsqKkfdDtnwPYBKimvpshAJ0.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢矛', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQR0dvTW9PeTlrWlJVM1Q5cTFTMEdYb1c2eEdqQUFBSW9FbXNiNjRsb1ZGRXhWMWFyaDNKX0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi55-bLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzIyMTg2LCJ0IjoxNzc5MjEyNTI1NDIyLCJtaWQiOjM4NjR9.feaVwUthybl5N-pvXNPEcNW2-gUUEbt0Dm30PVFlO5U.png' },
+    { 名称: '钢矛', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/Z7TXrjkpgpQIm4crGJwlPJUshirsSEhV.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢棍', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQR21vTW9QckpQNzFhSXlzZWx1OGVpSDA0c0wwaUFBSXBFbXNiNjRsb1ZGOTVwSmpXYnhHY0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5qONLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzM5MTYyLCJ0IjoxNzc5MjEyNTM4NzQ2LCJtaWQiOjM4NjZ9.mO7dWZJaXte511EUnB3zLH3lQ0IyPyCZ0Igr3BcDeiU.png' },
+    { 名称: '钢棍', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/w9JbpXcUSMAzrkKJ2KbIMtYRrovrDtb8.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢杖', 类型: '武器', 品质: '良品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQSEdvTW9QNGJnZUhJRUM2bWtNLUgxMVR2ZnpXZkFBSXJFbXNiNjRsb1ZKckJHZDY1aW9nSkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5p2WLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjQwNzcyLCJ0IjoxNzc5MjEyNTQzMDU0LCJtaWQiOjM4Njh9.ZaxhheNTj1ZPN_7HGkzH0CNyEoC_UGLyayRFjNKdgi8.png' },
+    { 名称: '钢杖', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/Cce6MkJDchWVRtbJb0BLe7vuyTjuzWeI.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢弓', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQSG1vTW9RUGo1bkhHY0tVVXI2bmQ2TV9Vb2RlVEFBSXNFbXNiNjRsb1ZBNHVzdVBpSDNha0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5byTLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxMzQzMzU5LCJ0IjoxNzc5MjEyNTQ4MDU3LCJtaWQiOjM4NzB9.MfPsrlDG8ybKQOJBNL6iWp2twlnQ-aejwW7-LSpD29g.png' },
+    { 名称: '钢弓', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/Vs5pbMyUuUupcfNaBsWljs0rr5tfzcfF.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢弩', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQSUdvTW9RbDNQZkYwWGpFQlc5SU1tel9UejFHbEFBSXRFbXNiNjRsb1ZBNGNCeW9XQ2ZLV0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5bypLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTA4ODQ3LCJ0IjoxNzc5MjEyNTUzNjk2LCJtaWQiOjM4NzJ9.YaLMrzmKHJBfZKGieKY0BTjL6bG-a2zq_4M11MI0qRM.png' },
+    { 名称: '钢弩', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/SpKNYrzJpI9PvR1UufI6WPXTLlsiUXB3.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢飞刀', 类型: '武器', 品质: '良品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQSW1vTW9RNWZ6MXZuMGQzV29mc0FBWWJZVXg0ZXNBQUNMaEpyRy11SmFGVGZGeGVVcGNNS013RUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IumSoumjnuWIgC5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTk2MDk1MCwidCI6MTc3OTIxMjU1OTIxOSwibWlkIjozODc0fQ.R76kcD8uaWQbJI-2apFyLVkNDUyZK_jaXCY7Tsju9x8.png' },
+    { 名称: '钢飞刀', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/7eRHa7vuUwY3JktNApMmD3JTla5Io4Vh.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢袖箭', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQSkdvTW9SUUY0aUVtTmtSZkR1WjZrV1BvZU9JdkFBSXZFbXNiNjRsb1ZIdWU0dVJnZmE4ZkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi6KKW566tLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzc0Mzg5LCJ0IjoxNzc5MjEyNTY0ODIxLCJtaWQiOjM4NzZ9.e09qzJKVBmD6oVg0a928DUFDGcQWFmpIKYqXFOIXpBw.png' },
+    { 名称: '钢袖箭', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/DaBWiL8WhkXl8uQsi5o4So33xfoy78J4.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢剑', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQSm1vTW9ScW5ONDZrWGtWVTV3VTNzckhWQUFHQXNBQUNNQkpyRy11SmFGU0hrSGFYdUowYjZBRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IueyvumSouWJkS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTkwMDAxNSwidCI6MTc3OTIxMjU3MTA0MywibWlkIjozODc4fQ.0TRCZOjogRFHXKAmYu5a-_5XEVNfwcvKTLhZSqsnnOs.png' },
+    { 名称: '精钢剑', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/2O9GwxQkiFuBAuk0jZB2YVyjU49UTAHj.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢短剑', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQS0dvTW9TQXR0UWR6Z2g3OHI1VkFiaDdqZEJVYUFBSXhFbXNiNjRsb1ZPYWtoN1pSNGhRUEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi55-t5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzU5NTMxLCJ0IjoxNzc5MjEyNTc2NjMwLCJtaWQiOjM4ODB9.MdhiqS2ZLF2qhBAbQwZTUNPdTlvuatY_0_wurrqNL-Y.png' },
+    { 名称: '精钢短剑', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/WzLAjA2YT6f2NEoAZ0aEqwqNuGGFNXoZ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢刀', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQS21vTW9TWVZlSE5Na1NOTHVZTnEyQ1J3cFlIRUFBSXlFbXNiNjRsb1ZMcXY4V0h3eEE1VkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzY0NTI0LCJ0IjoxNzc5MjEyNTgzMDAxLCJtaWQiOjM4ODJ9.yvJLt1pDeYKIY8zmHUO5J8ZGb8HFlIRc-Svc8zuSVus.png' },
+    { 名称: '精钢刀', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/xInT4NYefrobWlHo3SL4VDIYiZREsQ1X.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢短刀', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQTEdvTW9TeDNPMWRkT3p3OFh1UGZESC1Kc2NYZUFBSXpFbXNiNjRsb1ZNOER5Uk1OZlZCbEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi55-t5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODUyMDcxLCJ0IjoxNzc5MjEyNTg5MTMxLCJtaWQiOjM4ODR9.U98Lgztlo_hc_sDWzLWiC_jNSStKwP9I2p44qWZG9mo.png' },
+    { 名称: '精钢短刀', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/F4NpPtdShGJgHjBe3ebGV5fsav674NGB.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢匕首', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQTG1vTW9UaEYzZjg3RUdzZWFMbTJmdUo1UFNYcUFBSTFFbXNiNjRsb1ZEakVveWU1WExfYkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5YyV6aaWLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODA2Mzc1LCJ0IjoxNzc5MjEyNjAwNTc5LCJtaWQiOjM4ODZ9.7zRg3M3NlZErRCN8A0R03E1A9MBkJTGceUI6jcIl9YM.png' },
+    { 名称: '精钢匕首', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/7efxk8Vsffcd0kZHjJUneAg6VXLkNhgv.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢枪', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQTUdvTW9UM1dMbDJQbVdzZzRsTTlDZWpXamNQRkFBSTJFbXNiNjRsb1ZOMkoyZEF0QWRIeUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5p6qLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNTc5MjEwLCJ0IjoxNzc5MjEyNjA2MjQ4LCJtaWQiOjM4ODh9.FwbBaVyFR93vlK3qgB5cYMislgycEgCCin1ae4aO3ys.png' },
+    { 名称: '精钢枪', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/jW73pjnpir2yfrGNu4XYVzvyzDeucdN9.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢矛', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQTW1vTW9VUXRoang0Y2o0QmYtYlRHaFlGN0VheUFBSTNFbXNiNjRsb1ZNUTRkaXRYZTJWN0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi55-bLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjgwODQ1LCJ0IjoxNzc5MjEyNjEyNjQzLCJtaWQiOjM4OTB9.d1XFdExXbIL5osSbFDA5qkn04VENTwkci3XD21deK_g.png' },
+    { 名称: '精钢矛', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/d29J27QpF74107kTppRR8lts1L0mtskt.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢棍', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQTkdvTW9VdXZad0hPcTV3NjdZWm9FRHZRLTNOREFBSTRFbXNiNjRsb1ZFSFJYTjc2OUI1ckFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5qONLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNTczOTc1LCJ0IjoxNzc5MjEyNjE5NTI3LCJtaWQiOjM4OTJ9.4aWoEOD7VQpuPnQO0YSH1_6D8puSejAprNYNe80e5iQ.png' },
+    { 名称: '精钢棍', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/GXA0DlaNx2DgDShYegpBbZixvjltJFvn.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢杖', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQTm1vTW9WSFJDUjdreE1rTE9ndVJfeVdvVkw0akFBSTVFbXNiNjRsb1ZLMjBTZmJEMURlekFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5p2WLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNDUwNDIwLCJ0IjoxNzc5MjEyNjI2MjM0LCJtaWQiOjM4OTR9.z_ezq--2j1voIi5w9dYzHmUSWu6y0lbV5KwmNFh83Yk.png' },
+    { 名称: '精钢杖', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/dAGQfffNmds18ixNdrOCMLAme1K580GV.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢弓', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQT0dvTW9WbnZ6QzkwRG5vbk1OWnJrTy1RTGpxb0FBSTZFbXNiNjRsb1ZGcjRxWHhIOVB5Z0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5byTLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDM2MTE5LCJ0IjoxNzc5MjEyNjM0MDYyLCJtaWQiOjM4OTZ9.fS_RGImndVR2cWb9O3WLeHwBCtAA6HaXydw4MYLJpSM.png' },
+    { 名称: '精钢弓', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/BK40ZfZyw8g1bxmez1AUnACeOKkOdJAl.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢弩', 类型: '武器', 品质: '良品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQT21vTW9XRms3WWlNTXZjYXlsVHF0cWZYY0hnQ0FBSTdFbXNiNjRsb1ZHY1luUTM3T2Vfb0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5bypLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODcwMzAxLCJ0IjoxNzc5MjEyNjQyMDI4LCJtaWQiOjM4OTh9.HBwkoVkaMaZqXicflLwDYRI6UR0CNZQaqXTj3mtd6oc.png' },
+    { 名称: '精钢弩', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/U6OJPmgwyrsDj8txyhXYWXTqhr3CLYJl.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢飞刀', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQUEdvTW9XbUZ5bi1neXlobWZhd0hWS1VoRU9JU0FBSThFbXNiNjRsb1ZCR3F1cml3cHkwS0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi6aOe5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzI5NDI4LCJ0IjoxNzc5MjEyNjUwMTI3LCJtaWQiOjM5MDB9.yoMRKMniK4Ekl9FF3immGroJ5F10L-SSrt7ebcTl5j8.png' },
+    { 名称: '精钢飞刀', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/2eAtamaO2fgQwmhMbYgxNnL4SFAP0q4F.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢袖箭', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQUG1vTW9YTDVISzB6Y29HclE2WUZycDQydkhsYkFBSTlFbXNiNjRsb1ZQb19McEdBdDVBTUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi6KKW566tLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODE1OTM4LCJ0IjoxNzc5MjEyNjU4Njg2LCJtaWQiOjM5MDJ9.tFuVxGnWNCzaud4sdlz2EQ5grLthDQlqImt8vQ00kOE.png' },
+    { 名称: '精钢袖箭', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/C1F9J4redbWgW574QuZndvNgxMVC0X6k.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁剑', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQUUdvTW9YcHFLZXBYNHBUR1F2SnN1TExVYkw2T0FBSV9FbXNiNjRsb1ZDTEFCOHJ4VWlnOEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODQzNTEzLCJ0IjoxNzc5MjEyNjY3MDgxLCJtaWQiOjM5MDR9.wyhJJFbbria0gvOL6eJvWhLujq2gisSXa9EoEGnrAs8.png' },
+    { 名称: '寒铁剑', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/9QKh58z5JA9krX1MlznoAjfCCSnQGzdx.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁长剑', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQUW1vTW9ZVHdCVE96RG96U3lUX0daeFl2eVFXZ0FBSkFFbXNiNjRsb1ZHVVNjMkpUWnJKV0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB6ZW_5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDgzNjE5LCJ0IjoxNzc5MjEyNjc2ODI5LCJtaWQiOjM5MDZ9.0AiyQytiVyy7HxtDG-JaAsDVxfiu8NcOOEsCeMhEaec.png' },
+    { 名称: '寒铁长剑', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/qQGSn9fv6UotMxx8NXYg1MK9yXJKaXNp.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁短剑', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQUkdvTW9Za3hWZVN0bHlaX2U3U0xrdExWSXhlakFBSkJFbXNiNjRsb1ZJWWRDUk5JS05QeEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB55-t5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzU1MTM4LCJ0IjoxNzc5MjEyNjgxNzU4LCJtaWQiOjM5MDh9.jyYi6G6P3ugGahCSQP4LV3J0C3sMVLToUDZhD0e36Yo.png' },
+    { 名称: '寒铁短剑', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/Z0KK4IzSN4JniP1uBhD7wg1O35rLYpWm.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁刀', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQUm1vTW9ZNHFiMy1MR0FXd3cyMTk0cjg3SGtndkFBSkNFbXNiNjRsb1ZKMHI5MDRQT2x5akFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTU4ODM3LCJ0IjoxNzc5MjEyNjg3MTc4LCJtaWQiOjM5MTB9.HH4_S8hyffJTvnrtWdcZA8EnhxFdHjZ62NmPfDXOHDw.png' },
+    { 名称: '寒铁刀', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/i0EsEUiEYpkexorJDncR3yS65DN8XEUO.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁短刀', 类型: '武器', 品质: '上品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQU0dvTW9aTnZ4T18zLUp3VUhwSFpWVHgxV0FkWEFBSkRFbXNiNjRsb1ZKaHNiaHpnZXFid0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB55-t5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODA5Mjk0LCJ0IjoxNzc5MjEyNjkxODMzLCJtaWQiOjM5MTJ9._ql5Y797FAPKvOoidqdv7Aldz9jWdrBo4O5Wsxi3_n8.png' },
+    { 名称: '寒铁短刀', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/z4ud1KS3It2IcGcYs4vjBp3I8TRopD2r.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁匕首', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQU21vTW9aZzdzN0xBR2hFc2VQZ01NazdkMk9ja0FBSkVFbXNiNjRsb1ZMY1Z2NmFWNXI2eEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5YyV6aaWLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTA4NzAyLCJ0IjoxNzc5MjEyNjk3MDE0LCJtaWQiOjM5MTR9.bpHpNofXKCM9XlvtLSdMYn65VfJoNBTcBrsVpBnPY1o.png' },
+    { 名称: '寒铁匕首', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/48tbO5LnrG9dB04rrMX9SSQboFoPf8jf.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁枪', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQVEdvTW9aN0xBQUdqUGlRMUctRkJ3WDhwQmJZdWd3QUNSUkpyRy11SmFGUldtYVdsQlNsMDJBRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IuWvkumTgeaeqi5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTg5NTEwNiwidCI6MTc3OTIxMjcwMjYzMSwibWlkIjozOTE2fQ.iOMfte0GFdD03nPBKRCSKsP7_pN2PVTHmeAt9BP_Oos.png' },
+    { 名称: '寒铁枪', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/QTwxdCEmut6aW1DGzWZdnD3AkeS9LY1x.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁矛', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQVG1vTW9hV0xoQ1hyVV8zd2Z1MzBXOVZIOU5BR0FBSkdFbXNiNjRsb1ZFUnRjdUdrb3V0REFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB55-bLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDIwNTAyLCJ0IjoxNzc5MjEyNzA5MzcyLCJtaWQiOjM5MTh9.aqHalI8icwtQCNA6zAFxnmxFUhonSefO5h1C8NqroOc.png' },
+    { 名称: '寒铁矛', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/ojJ3TycAJ2huqJKuY7olcdNpDkx45txr.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁棍', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQVUdvTW9hcnpTd2diUFZaYzlUTXg4TnhGR3lCT0FBSkhFbXNiNjRsb1ZQRXpKSVFfRFpHekFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5qONLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTk0ODIwLCJ0IjoxNzc5MjEyNzE0ODkxLCJtaWQiOjM5MjB9._5bsypKd3Bl6St8TH2oRbfp_Ta0ZQO8YUe1d7aoWW48.png' },
+    { 名称: '寒铁棍', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/DefQIKVngtrc6YZIphVGLAlXg0PP3heJ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁杖', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQVW1vTW9iR0N3dkdoVENYanFndGt6bHNzbzhrY0FBSk5FbXNiNjRsb1ZNb2Q3SzJIYlJjLUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5p2WLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzg3OTcwLCJ0IjoxNzc5MjEyNzIxNDMzLCJtaWQiOjM5MjJ9.hX-Z0tUzmqjXCK2sOXsgLotnrTDaOoZ1-ORVUvzSBK4.png' },
+    { 名称: '寒铁杖', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/HoiFfbTZTB9uc4arO1TquwvFQOoH14Xr.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁弓', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQVkdvTW9iZUR5RkFnYjNZRjRLWWl0Z3BPNVpHQ0FBSk9FbXNiNjRsb1ZIU215MElQMFVvVEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5byTLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjU4NjE1LCJ0IjoxNzc5MjEyNzI3NDk2LCJtaWQiOjM5MjR9.nC10EH1zWSxBLMQLCNrX_kXlT6NfWBUbxXoC93_i1a0.png' },
+    { 名称: '寒铁弓', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/vqf1IwVwLtzQfqZ4HhPw8CllcXWhXGRR.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁弩', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQVm1vTW9jRFhYZWFiTXVCdUg3emtneU9XNkRuT0FBSlBFbXNiNjRsb1ZOT3V5VzNiTGp2ekFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5bypLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzY5MTAxLCJ0IjoxNzc5MjEyNzM3MDA5LCJtaWQiOjM5MjZ9.LrY3qc_y9O821KPuTC16ehRCufscirGAG4BgjSKevew.png' },
+    { 名称: '寒铁弩', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/153q5MChK7jPmbqYtRfMDbZqPBuNYdC7.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁飞刀', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQV0dvTW9jZFFHWWZQVEgyQ0JPWGUwaElpQzFfVEFBSlFFbXNiNjRsb1ZCWElERWVFRHZMYUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB6aOe5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODEyMTMwLCJ0IjoxNzc5MjEyNzQzNzAwLCJtaWQiOjM5Mjh9.YaxVEszoAVoud-vfiD8mKiwhsOFQ9qJEMAii-sxAG4U.png' },
+    { 名称: '寒铁飞刀', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/2BbddqPf3PywCkft1sBVx27owSMNQduI.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁袖箭', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQV21vTW9jLXB6allncFlaMjNuRm9SMTlXYWNObkFBSlJFbXNiNjRsb1ZPNm5ra2dnUnIybEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB6KKW566tLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTQ2ODM4LCJ0IjoxNzc5MjEyNzUxNTM1LCJtaWQiOjM5MzB9.jBntETRgy7m27VFZQ6h-igHIILzxfy5SUegCwWcKmZA.png' },
+    { 名称: '寒铁袖箭', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/TvfaUtVvZDHTVVZ245BDp93K9aGQhyiY.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁剑', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQWEdvTW9kYXpfS1d5UlBGdDg3VER6VnQyZjFuT0FBSlNFbXNiNjRsb1ZMZzFMRDY0Q3ZEb0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTgwMTgzLCJ0IjoxNzc5MjEyNzU4ODg4LCJtaWQiOjM5MzJ9.bdhEdUFLo2JbeXGPSOnR050K5W-zjV7S0PlS6p4ojzY.png' },
+    { 名称: '玄铁剑', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/JKcSd6HO7BHVPqWAYEDmVWH4cXlYqQTu.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁长剑', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQWG1vTW9kMURqaXRMZFk1eGx3VTlCZDVwbV9ZWUFBSlRFbXNiNjRsb1ZBM2s1aTk1SXd4LUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB6ZW_5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTMxMjU2LCJ0IjoxNzc5MjEyNzY2MjY3LCJtaWQiOjM5MzR9.YEwLWcmVcmuXVivv241Gv2qyryPkrq_ITTjJ80dasGI.png' },
+    { 名称: '玄铁长剑', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/IQZFOJ1qpofBNHE8EqXZTG9stYmstK48.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁短剑', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQWUdvTW9lVzNnZGR3bDhlbk9pRVl6eDg1cEM5Z0FBSlVFbXNiNjRsb1ZIaFo4Z1FGMjdWeUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB55-t5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDYxNTM4LCJ0IjoxNzc5MjEyNzc0MzEyLCJtaWQiOjM5MzZ9.1CgCQkaPr60Pozqh_aWhk8ZUmN2gu6JdYcEVGm9hVOs.png' },
+    { 名称: '玄铁短剑', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/aZIaTzhLpuGWYc5yKjL9gfOHAaan9KTR.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁刀', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQWW1vTW9lMUhiM0libmd6eDlOOVd3bFJHN3JlckFBSlZFbXNiNjRsb1ZPOFJidGFkSkVzSkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTkzMzA1LCJ0IjoxNzc5MjEyNzgxOTAzLCJtaWQiOjM5Mzh9.cnOl_oQbdsCBXB0Rlc_Il0ArP5gBsps6cnSP0CiochQ.png' },
+    { 名称: '玄铁刀', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/oNGPBnfmZJ7MQHxrSdSkaaeg7jenhsuD.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁短刀', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQWkdvTW9mVVpZU1R6SVNJbXRXZ3N5SW56Y3BHSkFBSldFbXNiNjRsb1ZBNHVUY3NuUmJUM0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB55-t5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODA3ODY1LCJ0IjoxNzc5MjEyNzg5NzI5LCJtaWQiOjM5NDB9.DX6tOIlwN-u33fWEUh9-fBXpAyoLyp6kMr2upPcttpo.png' },
+    { 名称: '玄铁短刀', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/5XiTbeTqMPCfygalR5Xz6277rN7xR4JT.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁匕首', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQWm1vTW9mX3o1bTlrbTluNkVfUTBjRlFVSmw3WUFBSlhFbXNiNjRsb1ZEanFiMzFSc29nWUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5YyV6aaWLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTcyMjQ2LCJ0IjoxNzc5MjEyNzk5NTY4LCJtaWQiOjM5NDJ9._qe1gcJCEXe_KXqKt_cx-JF7ruG3Slgp8Fu4DBFLHuw.png' },
+    { 名称: '玄铁匕首', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/TlvWJ5BrdtAQxdnJmUcMYmSLeCvDY3rX.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁枪', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQYUdvTW9nZjdRUzQ0b0ZvYnR1RUNmUVN4djlMeUFBSllFbXNiNjRsb1ZQa0VMYUF3dnZ2SkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5p6qLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjQ5MzU2LCJ0IjoxNzc5MjEyODA4MzM0LCJtaWQiOjM5NDR9.Z2g9ImNWR2jtUGZtGGcdCqHd64U6nHczJ916ayFeXeI.png' },
+    { 名称: '玄铁枪', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/Mqftz9V5s9FGp8ZbYX9M4ninICgWrDc2.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁矛', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQYW1vTW9oS2xvdHhxNXp2S240VGNCQzA4LVdEVkFBSlpFbXNiNjRsb1ZIaHNaNFdGYzJLekFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB55-bLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODc2MDY5LCJ0IjoxNzc5MjEyODE5MTM1LCJtaWQiOjM5NDZ9.4wPQpmlNHibzgdPc9yUtlNBF0YUGjUcj58WXIpMCF-Q.png' },
+    { 名称: '玄铁矛', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/rJMnqSuigbT5tlpmPbcz5vmJc7WZxWfy.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁棍', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQYkdvTW9ocDFIZUJMVlpKS2dJeHFhY0RQOVJYSEFBSmFFbXNiNjRsb1ZBS25ISWFfSzV0V0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5qONLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMjA2MTgyLCJ0IjoxNzc5MjEyODI2NDU1LCJtaWQiOjM5NDh9.6gfGDBdoMcKdHcK2QJTAsCh8Hc_3FX11eOr2XMzR5dQ.png' },
+    { 名称: '玄铁棍', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/cpDHUFq4TYXWN50rQYr03H8yl1GpTp78.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁杖', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQYm1vTW9pSXNVREpWRFIxYjV0eE1Jalp5aTdDWEFBSmZFbXNiNjRsb1ZNTXBjd0t5QVkyaUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5p2WLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzQ2MTAzLCJ0IjoxNzc5MjEyODM0Mzg4LCJtaWQiOjM5NTB9.uuBbf8jO4QzNWjalVeQz5KbFB17IHpy7Y-FWwf9KEoA.png' },
+    { 名称: '玄铁杖', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/VPaTy55VLYS9ZyX415sKlqChvD0fGYaF.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁弓', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQY0dvTW9pZ1Uwd3Q0VEZMamdRN19aZlZRLWZuSkFBSmdFbXNiNjRsb1ZKTmpyM3gxMFRCbUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5byTLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjMzMjE3LCJ0IjoxNzc5MjEyODQxMTE4LCJtaWQiOjM5NTJ9.H1Iu79FgAzGzW28oVqnZZI4HFfQGIhnox0HnCjtAWMA.png' },
+    { 名称: '玄铁弓', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/k8EyV7iHGLQq2rrZFhAd2j9EUFj2RGXL.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁弩', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQY21vTW9qQzdEaXBzdW5rVjAzdHBKbHVJQ3NIX0FBSmhFbXNiNjRsb1ZOSXZzV3RqY29XYUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5bypLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTgwODAwLCJ0IjoxNzc5MjEyODQ4OTU4LCJtaWQiOjM5NTR9.yFZSn0qKukXxxwjTDKlnD3mD47nk-pJP2JEccJ6j2TM.png' },
+    { 名称: '玄铁弩', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/GIOOjFgspGALDVt7UdqeoYl7sTZorvJh.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁飞刀', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQZEdvTW9qakZXQ2tZWjBRWDhkX2h2TkVFRk1jMkFBSmlFbXNiNjRsb1ZMNFJJWTJJZWJDREFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB6aOe5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODk2ODUzLCJ0IjoxNzc5MjEyODU2NjIzLCJtaWQiOjM5NTZ9.nfQCvaXSF95ccOLgdKS1RHrX6ZFmbLJko5ME22IsIXY.png' },
+    { 名称: '玄铁飞刀', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/qlkC306TgA3cnAzieIEWfYoBD88OsT9e.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁袖箭', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQZG1vTW9rQzRNTmdpV2ZGN1pJZFUwZ1R3RTg1MEFBSmpFbXNiNjRsb1ZBYkNyUDBneVZZNkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB6KKW566tLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDU2Nzc3LCJ0IjoxNzc5MjEyODY0NzU3LCJtaWQiOjM5NTh9.mSz_fxW5EQP8OSgZaWDN9SZG56pcwhGexC6fwAj_BbE.png' },
+    { 名称: '玄铁袖箭', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/7tK1bmzevLaZOg1JqQ1WE1fUjWdiXv2W.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金剑', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQZUdvTW9razN3dDVOTTBHeVZYa0pocFcyd2ZPRkFBSmtFbXNiNjRsb1ZCR2w1WGphdENJU0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMjkxODUzLCJ0IjoxNzc5MjEyODczODc4LCJtaWQiOjM5NjB9.XV2ZEWbDFTy9GEVbLQh4qJSDHbGROPSK7kxIOGg3jog.png' },
+    { 名称: '乌金剑', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/JcT0CzkyxB51kKcszwzP8gbcGYOj78S6.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金长剑', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQZW1vTW9sTEsxdkY4bFkwVEUtX09xc1VnbUhsQUFBSmxFbXNiNjRsb1ZCS2RMS1E5a1h2SkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR6ZW_5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODA2MDg4LCJ0IjoxNzc5MjEyODgyNjAzLCJtaWQiOjM5NjJ9.aHWjofj6k3D_thIE8XWAnyMC0RyIBhadU9xdgjEDT6k.png' },
+    { 名称: '乌金长剑', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/9sXHmtmZ5kiD9os9iXLYCub2Bl7tYYI0.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金短剑', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQZkdvTW9seDRnMmRfVi0xZkc1eEplOTl1RjlzcEFBSm1FbXNiNjRsb1ZMOUM5WWMzeVlmNkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR55-t5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTI2MzU0LCJ0IjoxNzc5MjEyODkyNzc4LCJtaWQiOjM5NjR9.D3KqIU3NL9IcJiMmbsw6Ka2Lunk_FxuwABcsJYgFUCc.png' },
+    { 名称: '乌金短剑', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/C2MkO6u0dnmlV8pzN5qUN3gBXrNfpLXE.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金刀', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQZm1vTW9tcmlNbFlpbW14TVExRGpSbHZSR052dUFBSm5FbXNiNjRsb1ZNTkprcmVRY0JtckFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTU0MzgxLCJ0IjoxNzc5MjEyOTA2ODEyLCJtaWQiOjM5NjZ9.9-wJVsoFxlfgl0-jKRonnEDAWW4GDyZIlQYNSrSUviA.png' },
+    { 名称: '乌金刀', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/LXvLAXBpwqcYYlnVeY1klepSd57cjV8N.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金短刀', 类型: '武器', 品质: '极品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQZ0dvTW9uRGFNYm5SZTRrWmNkYW8wRkRrQVptSUFBSm9FbXNiNjRsb1ZGMV9CTlJqQkRFM0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR55-t5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODcxNjkwLCJ0IjoxNzc5MjEyOTEzMDkwLCJtaWQiOjM5Njh9.fDZ0oBRQz2EGvVJ1dnOWEZeICwZN_D9DkVJfdJ_Uq40.png' },
+    { 名称: '乌金短刀', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/INTO2kk47TExXXcwDtHfUzwLSnmCMzZj.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金匕首', 类型: '武器', 品质: '极品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQZ21vTW9uV3psblk4NUJmWjg3SDQtWXRJdE83aEFBSnBFbXNiNjRsb1ZKQXp2NnhqRzdESkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5YyV6aaWLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTk3MzgzLCJ0IjoxNzc5MjEyOTE3NjA2LCJtaWQiOjM5NzB9.CWR5DOgc2OPpx9ro5N1IgzcxYXI3lA1qSDkwc6kIFqs.png' },
+    { 名称: '乌金匕首', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/7JqQKoRkHzDvyVLDcKuFwNoc97jnZtPW.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金枪', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQaEdvTW9ud2VvOWVvT29vd1dkcFVtVGhVQVYtbUFBSnFFbXNiNjRsb1ZOYVQ5blk3WWl6SUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5p6qLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODM3MjAzLCJ0IjoxNzc5MjEyOTI0NTYzLCJtaWQiOjM5NzJ9.zxv2wlBngyY8EMogX6yCbu3IYbRmjCyzxWx05zSdd3Y.png' },
+    { 名称: '乌金枪', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/sRNiv0dpAvFFwLBfLsYpolyzF7xiBGuR.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金矛', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQaG1vTW9vSXRwUTF0b3Z6RE9MYlVqQVprd0tqUkFBSnJFbXNiNjRsb1ZIODNNMHM0OTZieEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR55-bLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTExMjEyLCJ0IjoxNzc5MjEyOTMwNjc4LCJtaWQiOjM5NzR9.dQCsqetiT2MKMV0-38Q7Mzek2xZwunxOTuawahxVgcQ.png' },
+    { 名称: '乌金矛', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/ckbhWYPjjDGQT1fAPFc2Big7ZyFKvENH.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金棍', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQaUdvTW9vZ0ltXzFNVk9HOFBTM1d1cnRWb21NT0FBSnNFbXNiNjRsb1ZCRlhzb05KbU9rWkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5qONLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTc2MDE2LCJ0IjoxNzc5MjEyOTM2Nzc3LCJtaWQiOjM5NzZ9.QZS1ClkTZCEuKM_vtStbESKIQbKYZY0bso4xOJUrJII.png' },
+    { 名称: '乌金棍', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/WH66wADeSiOaCQC3PgGY7riwRGzm1XuD.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金杖', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQaW1vTW9vN1dxb1Z1QklxT2cxLWRZSW1LSmZQeUFBSnRFbXNiNjRsb1ZLT2lxSHhwUTNoYkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5p2WLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzE1MzIxLCJ0IjoxNzc5MjEyOTQyODU4LCJtaWQiOjM5Nzh9.W8W1t9Qk-yiNpXDk6NzUdSW6bJhFgSlHD4kavLus5IE.png' },
+    { 名称: '乌金杖', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/b4COlpeLQg5B3kYmM6z8XQPZzZ8tvsNQ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金弓', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQakdvTW9wUU9RQnhQTzRfbTNUWTB3WjZTQk16a0FBSnlFbXNiNjRsb1ZNOThhWXVGdy1jZkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5byTLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjk2NzY1LCJ0IjoxNzc5MjEyOTQ5MDQxLCJtaWQiOjM5ODB9.D_74oBd_duW3N4-_39zj5JF47lNygpLE1j6N0zX818k.png' },
+    { 名称: '乌金弓', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/Xz7Zzgn2oXaXrKGuqBWFFXWtweeXi6aV.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金弩', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQam1vTW9wdTM0ZGIwUGlhaWEwandRVHkycGY1RkFBSjNFbXNiNjRsb1ZCcUxLMjYyTUdVUkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5bypLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODc0NzEyLCJ0IjoxNzc5MjEyOTU1NjE2LCJtaWQiOjM5ODJ9.UiN6ZnGdE6rCwMqphUrsjckkbM9GKdCkcIbiQNJc6SA.png' },
+    { 名称: '乌金弩', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/yTogJuKl9meqISMCvIxOqPh4XnaMlVzc.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金飞刀', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQa0dvTW9xR3RzR2FGMmNEMEVfbF9LZkZGTHV3WUFBSjRFbXNiNjRsb1ZNX2h6dUlOR3hoUEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR6aOe5YiALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDYyNDM4LCJ0IjoxNzc5MjEyOTYxOTYzLCJtaWQiOjM5ODR9.8XC-odbu61U8QwPbB4Du23F_PoQRnR2JJvm6229zpG0.png' },
+    { 名称: '乌金飞刀', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/31gvTO7Wg6HXlgdo2iJr42YY2CGk7UB1.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金袖箭', 类型: '武器', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQa21vTW9xc0p3LWZ0TWtiNHpicUdSamluLWJxWkFBSjVFbXNiNjRsb1ZOUXV2ZElFb05oZ0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR6KKW566tLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODcwOTY1LCJ0IjoxNzc5MjEyOTcxNzU5LCJtaWQiOjM5ODZ9.jYFViGYAPBKcEeLFI7woLZ5ztDR0HQFgw2luxJ8gvUc.png' },
+    { 名称: '乌金袖箭', 类型: '武器', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/cK1zFDpRJ79pFoVcrzrtgoYpAlBqY6pR.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
@@ -317,12 +317,12 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '粗布鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQbEdvTW9yZGVEVjItNFRtb3A3UHZNSmt1bjlzRkFBSjZFbXNiNjRsb1ZFVUNMX25vQjJqeUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57KX5biD6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTg0NTM5LCJ0IjoxNzc5MjEyOTg0MjgzLCJtaWQiOjM5ODh9.Q6NNNG_v_w2l2Es0yd5Iv1srLxzBXoy7d3-m4m_rce4.png' },
+    { 名称: '粗布鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/hTRJQMvdywcVUQtWUGKBXnuux6EY1d7Y.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '粗布长衫', 类型: '防具', 品质: '凡品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQbG1vTW9zVHpvQ1gtTndqd0c5dHZKS0d4bFptWUFBSjdFbXNiNjRsb1ZMTVRZa0VodncwQkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57KX5biD6ZW_6KGrLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMzk3MDE5LCJ0IjoxNzc5MjEyOTk2NTM4LCJtaWQiOjM5OTB9.A4BPbKzlaUy3vDDHbGzEMEqCxxvDgCh-UGYgxB5qD_Q.png' },
+    { 名称: '粗布长衫', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/QHYZ4KxwjExTX8uiXE9aZ2J9GY9XifpT.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '粗布练功服', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQbUdvTW90Sll3UWxVTmtRQUFXRHFuci1zYjBtZW9nQUNmQkpyRy11SmFGVFk3SDA4MGJ1N193RUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6Iueyl-W4g-e7g-WKn-acjS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjU4ODAzOSwidCI6MTc3OTIxMzAxMDU3NCwibWlkIjozOTkyfQ.FhG7WM0_kAEoSPnZOFlD_FVIn-oHmmYXacsxqJui1aM.png' },
+    { 名称: '粗布练功服', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/tuoYIkKlnuUQHvMAmPEAxG9iZrGc8Uh1.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
@@ -333,51 +333,51 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '布鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQbW1vTW91SHZzU196V1VISnV3TG1pTTlyMEFtY0FBSjlFbXNiNjRsb1ZBNi1wZ01kajJwUEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5biD6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTc1NDQxLCJ0IjoxNzc5MjEzMDI1NjU3LCJtaWQiOjM5OTR9.OUJgjbx3Q1TvX1LWawbsU7Rwmnrk0FrBseOK2KgHAq8.png' },
+    { 名称: '布鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/hfCSdZe6YbUfsUYDILayYdiWtwfsVJyn.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '布长衫', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQbkdvTW92U3VTWDdxdm9ROHJoOTN6TU1ySHVxLUFBSi1FbXNiNjRsb1ZFM0N3V1JUVzRMakFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5biD6ZW_6KGrLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTYxMzg4LCJ0IjoxNzc5MjEzMDQ0NjczLCJtaWQiOjM5OTZ9.LK_h9bOmRM3Is5RulfcbJdHXjkhk7mXyEMP_duigYII.png' },
+    { 名称: '布长衫', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/jlZYuX1zPlwqyOEqv9L2lsrlXylpulxX.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '布练功服', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQbm1vTW93bmsxYnJEV0JNekxpWWE2Wk8zYnBPMEFBSl9FbXNiNjRsb1ZEMFpCSmlCcTlSdEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5biD57uD5Yqf5pyNLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMjczNjcwLCJ0IjoxNzc5MjEzMDY2MjAzLCJtaWQiOjM5OTh9.W7VC1FYYWp-YLztoGP3kP20qK8H52xB-3rI9t4OT0_4.png' },
+    { 名称: '布练功服', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/tA4roAZqwmiAtSmu0YYpM4d0SPf7pTgp.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '布长裤', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQb0dvTW94MjNVY3BGZTNpVWswTjlyNUQ0ZHowckFBS0FFbXNiNjRsb1ZESHVxUnE4dW55X0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5biD6ZW_6KOkLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTk0MTM4LCJ0IjoxNzc5MjEzMDg2MjE4LCJtaWQiOjQwMDB9.9bSngnJ1EvEHc4UJdCzEf12gt-YVo4nSkrIjGA23JxM.png' },
+    { 名称: '布长裤', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/VhVdOIbNpmhYhQjm26zdfXXLWDVDCif1.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '皮护甲', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQb21vTW96TFNzT3ZaRzBnblQ2bW1xTlcyTnVVWEFBS0JFbXNiNjRsb1ZEbFktb0l6LUhkSUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi55qu5oqk55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTU4MjMzLCJ0IjoxNzc5MjEzMTA3MDAwLCJtaWQiOjQwMDJ9.UNs22Q_j1C8p8pbpXMM0oqfvsnjWJFpTQkp-RKn1Hi0.png' },
+    { 名称: '皮护甲', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/l3gHYB7IPuuqicdpnYLfadeLEYrih4QZ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '皮软甲', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlNc21vS1Z2WDZ1U3hIZHVpVWFWY19OUTVRQm1UYkFBTE9EMnNiVlg1UVZOSkI3dGYzZ0R5ckFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi55qu6L2v55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNDk5MjMsInQiOjE3NzkwNjI1MTc0NjQsIm1pZCI6MzI1MH0.JhAZivO-eovP4iTtGGGEknoNKyLVdjCs1ErNX6jZ938.png' },
+    { 名称: '皮软甲', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/enr2poX65MRjZbIkr5yXFsWFNCBRXiup.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '皮护腕', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQcG1vTW8xU01BQUhsSzV1MldYZjZ3UzBxeVFPOS13QUNneEpyRy11SmFGU0VyOFRGQUFIcHJpQUJBQU1DQUFONUFBTTdCQSIsImUiOiJwbmciLCJuIjoi55qu5oqk6IWVLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzY3MzMxLCJ0IjoxNzc5MjEzMTQxMzA3LCJtaWQiOjQwMDZ9.xrNDHQ5qK3IxS9wCfCRrHdQtAgiLq5Vlp9FAPeCYwa0.png' },
+    { 名称: '皮护腕', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/vorYGqXpmq5MUbIZvvySt60iX5aLtXnK.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '皮护腿', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQcUdvTW8xdG1mTEFLeHZkR2c2T2k3dGYwY2IzdUFBS0VFbXNiNjRsb1ZQSi1EdFUwSWpWakFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi55qu5oqk6IW_LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTcxMDkxLCJ0IjoxNzc5MjEzMTQ4MDQxLCJtaWQiOjQwMDh9.S4D-aNVtlUy49fuvMyc8YnPBg_jwedbg2196EjK-PJ4.png' },
+    { 名称: '皮护腿', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/yec0KKHqSXU0HzWiW03oognHNlzTCCUX.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '皮护膝', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQcW1vTW8yTi1EbjNKb0tXWFh4Q19uUlV5RWYyYUFBS0ZFbXNiNjRsb1ZEaGVub3Y4T0pINkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi55qu5oqk6IadLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTYzNzA0LCJ0IjoxNzc5MjEzMTU1MzMyLCJtaWQiOjQwMTB9.G18WIAfbUaIse0MsgRDR0226oRjw8Em7qKuqrgPgPPs.png' },
+    { 名称: '皮护膝', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/BaEmikiro0yPVyrTUFsdbXoYCWcIAzWy.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '皮靴', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQckdvTW8ybzBDNEJ6aEVGYUpJSkNva2pIX1M2V0FBS0dFbXNiNjRsb1ZJVDNLdWNXSlhsS0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi55qu6Z20LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDM2NzIyLCJ0IjoxNzc5MjEzMTYyMzUxLCJtaWQiOjQwMTJ9.-JSia6fteJ5KBc5hFbQdSbOJ0Iyof031869dYpuIFng.png' },
+    { 名称: '皮靴', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/OgBQMb8lCDV4RVQiEPdP2lTPhPTGpFSL.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '皮鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQcm1vTW8zRWFlaUxqTi1nMlpuV2dEX1ZYbHR5aEFBS0hFbXNiNjRsb1ZKaWprcGo1RGJkM0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi55qu6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTIxODcxLCJ0IjoxNzc5MjEzMTY5NTU4LCJtaWQiOjQwMTR9.D_9fXR_LePPl9E5UUGMbJOR-2NhFIvpJlfixqt92voE.png' },
+    { 名称: '皮鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/7epW3kWLcN4zgV8vvAVHJGduKLv23lXD.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁盔甲', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQc0dvTW8zbEo4cnBVTS1tY3g5a2FDTXNNNXBVSEFBS0lFbXNiNjRsb1ZKbTdLdy1vMXZqU0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB55uU55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDkzMDE5LCJ0IjoxNzc5MjEzMTc3NDAwLCJtaWQiOjQwMTZ9.9sDFCU4sRQtc3mDgnmno7RIR0DC9Iu8tFXeen_YcO08.png' },
+    { 名称: '铁盔甲', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/5g40T7ZcpQdWuHmNsofMMNQEgdTxOuUl.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁护甲', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQc21vTW80RFNOeU5iZ2UwdmhFT0l1SlpodWlEYkFBS0pFbXNiNjRsb1ZNR09tbFBrRzc3a0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5oqk55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDI1Mjc2LCJ0IjoxNzc5MjEzMTg1MjUzLCJtaWQiOjQwMTh9.6V39ozHOLK3CK-W57CbT3e2Ujc4Eu1_sm07PNyJaJEQ.png' },
+    { 名称: '铁护甲', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/qJiik0TB2nQsKEamQ7hQMxDJWx3VEAfF.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁软甲', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQdEdvTW80a2o0TUtkTHFZY1p3YUQyV2cyRGp6Q0FBS0tFbXNiNjRsb1ZJY2JwQ2o0VGtWUEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB6L2v55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTQyMjkzLCJ0IjoxNzc5MjEzMTkzODIwLCJtaWQiOjQwMjB9.Og6-nSO209YX0k7ZpBiufNV9zj7yg9Y7gl_0FB-OHms.png' },
+    { 名称: '铁软甲', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/1OIFvZhbnaQ0nW5diZegL33czCDiYIP2.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁护腕', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQdG1vTW81TG5uZFNoUWZmODhyY2F3aTRSb1A0N0FBS0xFbXNiNjRsb1ZKUW96S0F1WGtwUUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5oqk6IWVLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTYzNTYwLCJ0IjoxNzc5MjEzMjAyNjUwLCJtaWQiOjQwMjJ9.Fj6f927yBDIL67ZPWviNX27o9e_lDOtTlMspYFFyUMM.png' },
+    { 名称: '铁护腕', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/G2c6kUHbG9EYASWqmOo9s27cymJYfs9K.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁护腿', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQdUdvTW81dWcwN3BSUWVuRDN5V2w1RlpYT01yc0FBS01FbXNiNjRsb1ZEN3BiV2hxeVdxQUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5oqk6IW_LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzQzMDU0LCJ0IjoxNzc5MjEzMjExNDY3LCJtaWQiOjQwMjR9.mTlPzd4qB_RVYhS1SeFAvDoIQ3IU_8AJIWt5NvbHp3A.png' },
+    { 名称: '铁护腿', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/0w77nFn4hkm4UQGbt70Oc5GUlJRI78Yo.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁护膝', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQdW1vTW82bGYtSkFiN2NRM3o3eDdMMEx5MWFETUFBS05FbXNiNjRsb1ZPeTdKQUFCLXhSQzZnRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IumTgeaKpOiGnS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjA5NjI4MywidCI6MTc3OTIxMzIyNTQ4MywibWlkIjo0MDI2fQ.a7mWAM_oOHcN2QnLuLACUG-8Fs7XBh_Tt1S3-tOlPlM.png' },
+    { 名称: '铁护膝', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/4fDuBMq0wS9Uih0vCcdfhNqmaTy2JTZO.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁头盔', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQdkdvTW83TndsTTVuYUxGYUcxQlg2NGYzQzJkRUFBS09FbXNiNjRsb1ZMaG5ENFhGcnljTEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5aS055uULnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjUwODI4LCJ0IjoxNzc5MjEzMjM1Njk4LCJtaWQiOjQwMjh9.RUb7KaXzTz9e3dDY1OqxdpOL2SISOk2a76teEkiGS7o.png' },
+    { 名称: '铁头盔', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/VA20CCG5j2wxiOJXdhpww4qGgszF6yyY.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁发冠', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQdm1vTW83M3h0M3JJNGh0YllwdEotandjSm0zbUFBS1BFbXNiNjRsb1ZMNlEyOU5Od2tVSkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB5Y-R5YagLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTA5ODc0LCJ0IjoxNzc5MjEzMjQ1NDMwLCJtaWQiOjQwMzB9.7BhWOmQKcV3mmtqNIns6ktZNtmqA4i1-Jmd2VHMo-30.png' },
+    { 名称: '铁发冠', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/tbyoHsNlez9SYp213zpx2ymENgKjMlXS.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
@@ -385,19 +385,19 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢护甲', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQd0dvTW84ZnF0YXZsUnR5NjctbDYwMHNIYV83ckFBS1FFbXNiNjRsb1ZOQS1pTjVESWxUS0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5oqk55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTc4NTgxLCJ0IjoxNzc5MjEzMjU1NjMyLCJtaWQiOjQwMzJ9.mrOHgLc9pM5rD8H93wfd7tDu5MeRXMg4hq-cAu66n5Y.png' },
+    { 名称: '钢护甲', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/WGmtRYOFDD1etpUVzlv3fsKK2cFQAdvq.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢软甲', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQd21vTW85TXFKYlNhNFgxRlRsaFYzU09sQS1UN0FBS1JFbXNiNjRsb1ZFMzA5UmZGVE5RcUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi6L2v55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMjEzMzIzLCJ0IjoxNzc5MjEzMjY3NDg0LCJtaWQiOjQwMzR9.o95jDB8Y3S14URy6RA9anRyDPe8Ez0KmLZwJrwex_DU.png' },
+    { 名称: '钢软甲', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/lumfU8OYzVGlxJUrAETt2O8tiD0l7MQo.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢护腕', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQeEdvTW8tRUlyMlpKVDZsbmlpejRpcW1OQmNab0FBS1NFbXNiNjRsb1ZJTkZEM0o0Q0VzMEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5oqk6IWVLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTg3MjIwLCJ0IjoxNzc5MjEzMjgxOTkwLCJtaWQiOjQwMzZ9.3QCahCB785kfbWIaKu8tK9KUcI6sjy1iXAgXmamgHM0.png' },
+    { 名称: '钢护腕', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/biecpdJqn2RSmRb2QRLHNTk1VNAQzz4m.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢护腿', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQeG1vTW9fSDJwalRDdVZ2cnRoSWVhX3EwbHVxbEFBS1RFbXNiNjRsb1ZDajBWazRCN013MkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5oqk6IW_LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjQ4OTQ3LCJ0IjoxNzc5MjEzMjk3ODg1LCJtaWQiOjQwMzh9.wxCPGlC7FI451WdQrwHIZycZwxmBAnkPkhIFrM7HIns.png' },
+    { 名称: '钢护腿', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/gFpIkfW82zA5hw8azbogVD9WWcGQmfIA.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢护膝', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQeUdvTXBBTWRuS213OVJqVFBTLVRXeXBuQnREWUFBS1ZFbXNiNjRsb1ZHUWs1QUtRV29YY0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5oqk6IadLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTQ1OTAzLCJ0IjoxNzc5MjEzMzE1NTY4LCJtaWQiOjQwNDB9.HTDxQH57JPCiKejFBtIoJvUaRRsEoYN6G5XnCFO-xK4.png' },
+    { 名称: '钢护膝', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/xFPsTa9uLBQvUF6eofwCDcTxj438cyeu.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢头盔', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQeW1vTXBCY3NVbWw0d25vdlI2NU50OGNWTko5OEFBS1dFbXNiNjRsb1ZDVkV0dTJLX2tEQkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5aS055uULnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODkxODEzLCJ0IjoxNzc5MjEzMzM1ODU1LCJtaWQiOjQwNDJ9.9GTZ0JfY6ap6MKxupPqalsrRbnvecIK2SsAUZEDM9Q4.png' },
+    { 名称: '钢头盔', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/HMN071dj0WmZOqBaZES4YyYDQ3p84yHI.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢发冠', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQekdvTXBDd25WZkxhUTl2TGhtaDdFMTBVLVNleEFBS1hFbXNiNjRsb1ZLQU90NEZQSDFGc0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi5Y-R5YagLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzUwMDg2LCJ0IjoxNzc5MjEzMzU2NTI2LCJtaWQiOjQwNDR9.b9tCz68pp_yBQO-iKo5MdRoecD3Z3W606Ng--T27HHQ.png' },
+    { 名称: '钢发冠', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/QAMC5XuM4QR56fpJW91yDcSXSfAtfei1.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
@@ -405,21 +405,21 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢盔甲', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQem1vTXBEcjJHR2ZfclRoSFRVTkJnX05ROXdqY0FBS1lFbXNiNjRsb1ZOWmlyU3dJY1ZYekFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi55uU55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTExMTY4LCJ0IjoxNzc5MjEzMzcxMjA0LCJtaWQiOjQwNDZ9.Ks-p1eyDlXJqq1bsLHFfSNN413i0OEeN1B5wlekWTDE.png' },
+    { 名称: '精钢盔甲', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/Hi0NiZtKBFahuLTNdrRX9uquOQrBZGAt.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢护甲', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQMEdvTXBFSGlvQW1FRUJ4NDlWY1pfNHNpYWhWOEFBS1pFbXNiNjRsb1ZBNms4MVlDcUlNbUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5oqk55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTk4MDMyLCJ0IjoxNzc5MjEzMzc3OTMxLCJtaWQiOjQwNDh9.PA9-Id8sqhbaovtbLfdJ_vLr2ucGLEWatUuYyRcBnW4.png' },
+    { 名称: '精钢护甲', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/67NuyQdgiPXkTFBaZbYAIhNIrTWroKXk.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢软甲', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQMG1vTXBFbHpIbGk5RGI0Tkw0NFVSNmpENzdEOUFBS2FFbXNiNjRsb1ZEaXBiV1ExeHhqUUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi6L2v55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODAzMDczLCJ0IjoxNzc5MjEzMzg1NzY1LCJtaWQiOjQwNTB9.5KqnseGEO5H51FOf6OnyAVPUQYJ770VbnhIvxGAL6vU.png' },
+    { 名称: '精钢软甲', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/TReitTJs2rUHncbLKOKKxANySVsTKCFD.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢护腕', 类型: '防具', 品质: '上品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQMUdvTXBGQnQ1ZS1KbTR0eEhkMXl0bElXTnpPRUFBS2JFbXNiNjRsb1ZQaWhaa1o3RkFZekFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5oqk6IWVLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTMzMzgxLCJ0IjoxNzc5MjEzMzkyNjg2LCJtaWQiOjQwNTJ9.Z8R-pS0bvHPD5V_27B3xXW10smOwK6m1yPrGYGTx4KA.png' },
+    { 名称: '精钢护腕', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/vNMavZukeeTYWPpbpUvifCWeD3QzEiai.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢护腿', 类型: '防具', 品质: '上品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQMW1vTXBGZFJRX01kS1JzeDd5c2o2VUdIVzVsbEFBS2NFbXNiNjRsb1ZJeFRScjlzekR4TUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5oqk6IW_LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODc2MzM5LCJ0IjoxNzc5MjEzNDAwMDUwLCJtaWQiOjQwNTR9.WL-NR6nYsWcmKrO46QL_wwTY0p4dV5MhFeSdh0SdnaU.png' },
+    { 名称: '精钢护腿', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/k4U8V6jHsfFeuHwxnf52HaiX25F3ubMX.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢护膝', 类型: '防具', 品质: '上品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQMkdvTXBGODB5ZnFERXFHaHJCT0hHWVJER3JJQkFBS2RFbXNiNjRsb1ZINkdzMDNWb25iWEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5oqk6IadLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMjc4MjE2LCJ0IjoxNzc5MjEzNDA3NzExLCJtaWQiOjQwNTZ9.wRJwrzws3J5fsnySAfFAh4Ev1BU6UvQHOERUj-GH2E0.png' },
+    { 名称: '精钢护膝', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/6ecKYfHfEQlEh4WGQsWBWGuYksetXB2D.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢头盔', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQMm1vTXBHZnI3cEkzMkRPM3p6ZlUweDVPaUc3bEFBS2VFbXNiNjRsb1ZGUTF0SlFfRTBkV0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5aS055uULnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDAzODY0LCJ0IjoxNzc5MjEzNDE1OTY3LCJtaWQiOjQwNTh9.-TBE6K_m4YCamTyRVeF89Q4XnqRAifBpL_kLmM2E29s.png' },
+    { 名称: '精钢头盔', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/OYrn5hX2mbpQ51IxLEMZEM9Hkq7vzACH.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢发冠', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQM0dvTXBHLXpCOFlHS2NleGpaQWI1amRZbkxrOUFBS2ZFbXNiNjRsb1ZOb1B6Z3ZRdDNxNkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi5Y-R5YagLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTE2OTY0LCJ0IjoxNzc5MjEzNDIzNzE1LCJtaWQiOjQwNjB9.W2kj_xbk7UJn9wVAHgUlwd9th70Hd6IRwgIJZRWkqpA.png' },
+    { 名称: '精钢发冠', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/uLDkpcqPvKeSLI0bARxgmV3eQXTaIDjV.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
@@ -427,21 +427,21 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁盔甲', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQM21vTXBIZjlwVmhQZ2JsSjZBMEVHTFh0b3pwc0FBS2dFbXNiNjRsb1ZNeE5uVDlwSnFNV0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB55uU55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTgyOTkxLCJ0IjoxNzc5MjEzNDMxODAzLCJtaWQiOjQwNjJ9.vurHoJK_zQPtuyDV_aJFG_bY4GKJqig_E7pkukS2EgU.png' },
+    { 名称: '寒铁盔甲', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/qQdp1uUuuB9jo6llIkisdEJ2uKG4BNY9.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁护甲', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQNEdvTXBILXJrQkhVNVAxV3U1Z3BuMXh5WmZiU0FBS2hFbXNiNjRsb1ZOd0FBUTllMXJ4RjdRRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IuWvkumTgeaKpOeUsi5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjA3NTk3OSwidCI6MTc3OTIxMzQ0MDE4MiwibWlkIjo0MDY0fQ.mstOdZc-Spj109Ud83BIo6t2XdtFdOQL9QKmn4w97NY.png' },
+    { 名称: '寒铁护甲', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/t24CuLZsW2jSBGmS44riVBRXcQX3jLAD.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁软甲', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQNG1vTXBJdmFnTnB2Y1VNU2pMVElsZV8zc2lkeUFBS2lFbXNiNjRsb1ZQTW9wckNYNHBJQkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB6L2v55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDUxNTcyLCJ0IjoxNzc5MjEzNDUyMjUwLCJtaWQiOjQwNjZ9.JCAOGGGpxkkQ6Jh-tOKthmzR_S7uMfefXVJ1P-1Rk78.png' },
+    { 名称: '寒铁软甲', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/p1O4L3gQywuipKtE8C2PKi5E5YqF50ga.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁护腕', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQNUdvTXBKSHVkeEpTQzRmYWlIM1ZrTWw2WjZKMEFBS2pFbXNiNjRsb1ZDQzE2anV1TFRITUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5oqk6IWVLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODQxMjY0LCJ0IjoxNzc5MjEzNDU3NTk3LCJtaWQiOjQwNjh9.u70ysc0wDE6Gbq6fdHFu5s7tGrQLrMCKuu0mJ-b1zJs.png' },
+    { 名称: '寒铁护腕', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/orH7l3sqgIIpGreXJhWyFzXHxYSFKXBl.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁护腿', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQNW1vTXBKcE44d1gybFhpbTVCVDdhaDdLaTlMTUFBS2tFbXNiNjRsb1ZJeVd3MDRQOEJJREFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5oqk6IW_LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTAzNjcxLCJ0IjoxNzc5MjEzNDY2NjczLCJtaWQiOjQwNzB9.cjGpe0J6q-eoWrLooguofiPfqozWNU3Y9_v93rDQD54.png' },
+    { 名称: '寒铁护腿', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/biPRrf9vdx6X5u6AxXRgqq2Gf3Zjd828.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁护膝', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQNkdvTXBLQ3VIczRVcjVjZUYyVXp2eTloVkZiZ0FBS2xFbXNiNjRsb1ZNMzVtTTdIVDVHcEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5oqk6IadLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODY3NDk1LCJ0IjoxNzc5MjEzNDcyNTAzLCJtaWQiOjQwNzJ9.lO1PU947er2GG2C7FNwWOvLiUf7WxLRQliECNJsT1oI.png' },
+    { 名称: '寒铁护膝', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/5DTLkIkleE9siBcj2ovs3EXLZB2Rjiof.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁头盔', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOS0dvS1dGM2IyZ1FEc2gwY19tZ2VLWGNTQWFlS0FBSUpFR3NiVlg1UVZFRjlwR3daT0x6NEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5aS055uULnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNDg5MjcsInQiOjE3NzkwNjI4NzgwMDAsIm1pZCI6MzM2OH0.WfEprCsN4J8XaQY69GpIvQqNbjVZpHWbWitjT5mAsH8.png' },
+    { 名称: '寒铁头盔', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/NksiK5IMTZcrXkF3XIuxIbYi5IJgSS1N.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁发冠', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOS21vS1dHTzN1QV9yQ2NtZnhCM1JMWlEwMXpQOUFBSUtFR3NiVlg1UVZFOFFjRmRfeXo4dUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB5Y-R5YagLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNjIzNjIsInQiOjE3NzkwNjI4ODM3ODgsIm1pZCI6MzM3MH0.N5gnnoeYSZiAcCEbE4337VvUzXblQAmF4MpYiTw52tA.png' },
+    { 名称: '寒铁发冠', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/N5Fq8lriRfGmJ277wfHVyIqPYn0fuDbX.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
@@ -449,19 +449,19 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁盔甲', 类型: '防具', 品质: '极品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOT0dvS1dJc3AtemliVlRTdElyY2RWUEx6T05qeEFBSVJFR3NiVlg1UVZINGhhMENsck45WEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB55uU55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNjQ1NzUsInQiOjE3NzkwNjI5MjQxNzQsIm1pZCI6MzM4NH0.826AZR3ifJQiDJE9qxuCyN6A8Qro84-P3qte02xlOuY.png' },
+    { 名称: '玄铁盔甲', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/Y7IUoQhcx0zPOk5G0ILKfqdsriI68B5O.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁软甲', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOUEdvS1dKdnFPV3FlYWxXT2pZcDBEU2tLT2g4M0FBSVRFR3NiVlg1UVZBZlQ2T042ZXpoUkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB6L2v55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNjA1NTYsInQiOjE3NzkwNjI5Mzk5MTQsIm1pZCI6MzM4OH0.g3xkFQBgWgqN5LDDGkQ8lU34qzbDK4nDcsIEpHl6gBA.png' },
+    { 名称: '玄铁软甲', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/jfhEX8FPTq6WVig5ZH3XUBs0Kmrh1dl3.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁护腕', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOUG1vS1dLRUxtRzU3SVJ4YzJoemxsNVIzQVFkZUFBSVVFR3NiVlg1UVZPaXV5Y202RVdHS0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5oqk6IWVLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNDE1NzEsInQiOjE3NzkwNjI5NDU3NDYsIm1pZCI6MzM5MH0.VkDHSq-cFOMG258MRlLfWxiK4t4uwSiTU6cWC1ZJ854.png' },
+    { 名称: '玄铁护腕', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/rJ3HVPChDTaKHKqmslvLycgMBQkcHQSa.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁护腿', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOUUdvS1dLalp5YTZHc3hhTXZlTmZrYXlrUVhQeUFBSVZFR3NiVlg1UVZLbjZZS0VMaDNrZkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5oqk6IW_LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNTA5MzMsInQiOjE3NzkwNjI5NTI2NDcsIm1pZCI6MzM5Mn0.D_ccJJg7TytH-A1Rk2MQoNsC5c4fdFtQpd9vzdjHlak.png' },
+    { 名称: '玄铁护腿', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/V2vC2jBwuSvlsDnLQ3z2sOFtD19tv3AQ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁护膝', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOUW1vS1dLMmhTWGNqTUR5bnB4am1BU3VGXzlLTkFBSVdFR3NiVlg1UVZQWDQxZld4Rm80OUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5oqk6IadLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNTQxMDgsInQiOjE3NzkwNjI5NTgyMzUsIm1pZCI6MzM5NH0.MHE_986bnVrWQPQJAJaQemucDLKrQYXZDnbzwif0_qc.png' },
+    { 名称: '玄铁护膝', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/KUe6a7JaHZRkIWbHZwwRY7P0AghNq039.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁头盔', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOUkdvS1dMT3B1RVN5TDJNSTR2ZWtHQlU5TmlSRkFBSVhFR3NiVlg1UVZKc1NsMm1OdGNHeEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5aS055uULnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNTEzNjIsInQiOjE3NzkwNjI5NjM0NjUsIm1pZCI6MzM5Nn0.s-zys642jNBn5onwk7FMkH3O1tYsQsQAxsYGY_lMYYo.png' },
+    { 名称: '玄铁头盔', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/mMEyuOiYd82Sc0r8bEUcnm8WTHFMXxIi.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁发冠', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOUm1vS1dMa3RzNVdoeE1DVkMyaXR1T1FYODhnNEFBSVlFR3NiVlg1UVZKN2lTa2dCMVhvVUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5Y-R5YagLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNjEwNDMsInQiOjE3NzkwNjI5NzAwOTQsIm1pZCI6MzM5OH0.AHxGXM4fowaqbo3CsS8Xhy32-r-VdWSh2ZuoTJhh42g.png' },
+    { 名称: '玄铁发冠', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/mbkVPw6CEfTRuAzCzUkf0Sh3DIaKY7m3.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
@@ -469,21 +469,21 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金盔甲', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOVkdvS1dPU3RZejU4U0dhU3dVbHFvRm03UFZrNEFBSWZFR3NiVlg1UVZHblA2OGVFT1ZHN0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR55uU55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNzY4ODMsInQiOjE3NzkwNjMwMTMwMjcsIm1pZCI6MzQxMn0.j6MglRzC0VlHu5022YxxjFqRwbetg804N7UMJVL3IZQ.png' },
+    { 名称: '乌金盔甲', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/X1PDt89yCEPicD6hacsXaTmvcYTUxUMw.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金护甲', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOVm1vS1dPbEJHNzdPcmVlM1o2ZDB6dkowZjkzT0FBSWdFR3NiVlg1UVZGUVl1LVZ2bmp6U0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5oqk55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNzczNzYsInQiOjE3NzkwNjMwMTgyNjEsIm1pZCI6MzQxNH0.7G_Ruvq0XLTadiMOr2uNH9Q65GiFibqokiSLDtVywTI.png' },
+    { 名称: '乌金护甲', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/HteX4QJPQp6ZPnb17H6CrYz7fEYtC3kG.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金软甲', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOV0dvS1dPLW1fZzVoUXZRdFJnTzduZW1Nb21TVEFBSWhFR3NiVlg1UVZQY2w3bWJHQXNwaEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR6L2v55SyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNzg1ODMsInQiOjE3NzkwNjMwMjM3OTYsIm1pZCI6MzQxNn0.3661fxwqaD_lzn603PQieLLLeyXVurB8o5fhIUvB4OQ.png' },
+    { 名称: '乌金软甲', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/lVDbe6q2hp9kBw0GXhpb58at6pclKDpe.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金护腕', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOa0dvS1dzTXhXZ2dJb3lBZHVPSlFQSkZabVllM0FBSkFFR3NiVlg1UVZCV0xwTnp3WGZNUUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5oqk6IWVLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNzU1MTAsInQiOjE3NzkwNjM0OTIxMTAsIm1pZCI6MzQ3Mn0._PJF2VkrnzmJl0fT11nUjk9OEifxJer9dB1UiB-mDns.png' },
+    { 名称: '乌金护腕', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/QzjgU2MXzQI8bIidHuqlkhzaa1wXFYqw.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金护腿', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOWEdvS1dQcHo2ZWVKSTZubGdGQ29YT2tsQnNRWUFBSWpFR3NiVlg1UVZNdE9pOXhzU1RCWUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5oqk6IW_LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNjkwNTgsInQiOjE3NzkwNjMwMzQ3NjMsIm1pZCI6MzQyMH0.8g-dLoz83PEvAwDSi_ajrCp6givBBKL471OrvRAq4kA.png' },
+    { 名称: '乌金护腿', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/hnt5cVLlCLx5IV4XDBm7rn0tbwiidGr4.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金护膝', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOWG1vS1dRQUJEa1VGVTNfTEF5Ymwza3hzaE9VYXR3QUNKQkJyRzFWLVVGUUFBUU5BYjktWDg5TUJBQU1DQUFONEFBTTdCQSIsImUiOiJwbmciLCJuIjoi5LmM6YeR5oqk6IadLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNjk1MzcsInQiOjE3NzkwNjMwNDA4MzcsIm1pZCI6MzQyMn0.7y2AZUeNldzyhPKNCXavXAWWMDX-MjVHXz9uqoL2j3U.png' },
+    { 名称: '乌金护膝', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/3NfImUVojJCDbqZKYONxgQHFveeNmZE3.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金头盔', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOWUdvS1dRVklFcnIxcGFiZlRacFNlNFByRU9FbUFBSWxFR3NiVlg1UVZMcHYteUhrLUhsX0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5aS055uULnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNjIyMDYsInQiOjE3NzkwNjMwNDYyMjksIm1pZCI6MzQyNH0.CvDz4vHiCi1l1D2YSirikjgPuigsqe7mllLFZeSStBo.png' },
+    { 名称: '乌金头盔', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/3JchusHjjLDfUVW62QMiNSbwIktjnQZ0.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金发冠', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOWW1vS1dROF9nQlljeGlLaUxjQ0JKSUhHWTFZRUFBSW1FR3NiVlg1UVZHMTQycThGN05LSUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR5Y-R5YagLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNjU1MzYsInQiOjE3NzkwNjMwNTYwOTgsIm1pZCI6MzQyNn0.vbZEboAu8dMvsRYe6A_oWFDc0Sq9SGkdJaihIvz80NM.png' },
+    { 名称: '乌金发冠', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/N6GDlCfDBZu60jxGlkG4pOkWElLqGWMQ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
@@ -491,318 +491,318 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '草鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOam1vS1drX05zdTRSZ0ZjeXMxUXZQYVQ4V1pUV0FBSS1FR3NiVlg1UVZDOWhBQUdvWGFYTHFnRUFBd0lBQTNnQUF6c0UiLCJlIjoicG5nIiwibiI6IuiNiemeiy5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6Mzg1OTI2LCJ0IjoxNzc5MDYzMzc1Nzk3LCJtaWQiOjM0NzB9.JvgWaksTELK98hHxEdG2TUUpu0Vx142Kas3Kybe-Cc0.png' },
+    { 名称: '草鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/xUfqMoVTgiDT9WZZxM7i51mhd3Ex648o.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁靴', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOMG1vS1hSSHNvMGdpaXc3cXhSbnhDdDhNT1BrMUFBSmpFR3NiVlg1UVZFQ0d1dmVwZVRVckFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB6Z20LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNjE3NjAsInQiOjE3NzkwNjQwODE3NjQsIm1pZCI6MzUzOH0.5B9A5_BcrOcBCzT6LjSOXgORaCE-3wOruQKlMEjNMdk.png' },
+    { 名称: '铁靴', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/ha3SIAC3OvaO33qEcFcbK5P01GtW9rFT.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁鞋', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlOMUdvS1hSWU9KeUJKd2daS2tncV9ZLUozZHo2bEFBSmtFR3NiVlg1UVZCcHhpX1MxUUpsN0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOB6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjozNjQwMDIsInQiOjE3NzkwNjQwODcwMTMsIm1pZCI6MzU0MH0.MFXuUaJmlrGmvjA4dZkBmEZ984XtHDkWpo9pAqydrTU.png' },
+    { 名称: '铁鞋', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/FGY6FvxTnSIIQhulOpMVkOxf5ae52kgO.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢靴', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQN0dvTS0zdGR3NzZ6N19rMGdBRkhvT2MzTFNMWkFBTGZFbXNiNjRsb1ZHdnNzWFlwVzd4eUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi6Z20LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzU3NTU5LCJ0IjoxNzc5MjM1NzA4MjUwLCJtaWQiOjQwNzZ9.ub05GVEudI9sIq1Fxp_STKL4Ssr1K9tBd4evaH8nw28.png' },
+    { 名称: '钢靴', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/y3iPb3TtQIK7aJa7jl5KkrnvLiBycSbp.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '钢鞋', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQN21vTS00SHI2QlBIUTAtWVFQQ2gtcDNkejN0RUFBTGdFbXNiNjRsb1ZBbHllc1JUZGpKRkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZKi6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODg5NzA2LCJ0IjoxNzc5MjM1NzE0MDI3LCJtaWQiOjQwNzh9.Jk0O9TXukBz8aSB43wMFsKZGnwnXneJrHokgU9zq4Bc.png' },
+    { 名称: '钢鞋', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/kZUO4rjcBLjXpXwH9XrcVzXVYsY25E1p.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢靴', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQOEdvTS00WWhKampIMXYxaTd6eU5hSS1EVTluUkFBTGhFbXNiNjRsb1ZDaTFiRmlDbWRhQkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi6Z20LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTUyNjAyLCJ0IjoxNzc5MjM1NzE4ODIwLCJtaWQiOjQwODB9.low_UzGm0hXfXZikOVfiCtAQO7uUJNom202NnI-9eHQ.png' },
+    { 名称: '精钢靴', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/EPoKYPK1pEnmY3MZiUYmtHaHWjw9V9z3.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '精钢鞋', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQOG1vTS00dTM5dlZKSHdIdDBzbHFvWWxCZUJraEFBTGlFbXNiNjRsb1ZHSnMyQl9kNXVzRkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57K-6ZKi6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTk1NjY1LCJ0IjoxNzc5MjM1NzIzNzcxLCJtaWQiOjQwODJ9.zwonaP-N265ixX9U72o806e4gEJDt2jOwVU-Z0G5HaE.png' },
+    { 名称: '精钢鞋', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/JnAdoWaMJDuV4NhL9np1L79nLW3Jbxhw.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁靴', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQOUdvTS01SDF2WHVFdTRhOThYZXlraXJ4THBhSkFBTGpFbXNiNjRsb1ZObWY2UFlPQ0I2eUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB6Z20LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTIwMDE1LCJ0IjoxNzc5MjM1NzI5Nzc5LCJtaWQiOjQwODR9.sBepskl5yg-HFqSVoWF0qpTnpB4rXkINMn0qHCDSzzI.png' },
+    { 名称: '寒铁靴', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/0Yyvy3NAz7E51D2Ea4d0kOrwoyLvnx2W.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '寒铁鞋', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQOW1vTS01ZHphWFR4NF80SUFScER2ZXFVMzRjVUFBTGtFbXNiNjRsb1ZJUTRReGtPRjBQcEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6ZOB6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDA1MDQ0LCJ0IjoxNzc5MjM1NzM2MTg2LCJtaWQiOjQwODZ9.FQqNBjZLlOIR5AtuD0VleAM3zpcQ-0YlWtWcvG93COI.png' },
+    { 名称: '寒铁鞋', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/F9fYiFV8eZXMkfZ88dRxIXNWxTeXGmLY.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁靴', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQLUdvTS01ME9qRkJQaC1HNjVNTFctV0czV05iWkFBTGxFbXNiNjRsb1ZCcVZWek9HdXBEbkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB6Z20LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDY1NzQwLCJ0IjoxNzc5MjM1NzQxNzk1LCJtaWQiOjQwODh9.XxOY38cn1axbEdzk4w4tcDYLbokz0Q4k3fWl74GPTj0.png' },
+    { 名称: '玄铁靴', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/1cQE9ZlRG1y9ZOvGTUklEuAW7fgiYeii.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '玄铁鞋', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQLW1vTS02TTN5Z2tqaGdwc05oSmdZYWtEbFRBM0FBTG1FbXNiNjRsb1ZHLUk2dlB1dGhVX0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODM0MTAxLCJ0IjoxNzc5MjM1NzQ3NjEwLCJtaWQiOjQwOTB9.ZQVS7SZtagWPbgbaxZeoiiANMYbyvqdojMGWDSDskk8.png' },
+    { 名称: '玄铁鞋', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/ZcMhPPu8Y7wALtpbwS7YH8Sj760qipDv.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金靴', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQX0dvTS02bkRoVnk2cy1xR2N5Q05OTG42UWxFZUFBTG5FbXNiNjRsb1ZPbzdpdW1oU0xvTUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR6Z20LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTQ2NTAyLCJ0IjoxNzc5MjM1NzUzNTA4LCJtaWQiOjQwOTJ9.JCSjgaL9y7M3j4jcrL9Ggy-sbokUMjIO-3wD-Gu38xg.png' },
+    { 名称: '乌金靴', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/ZeMbdhuHkWin42phS4onzqKLOtxiHN7z.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '乌金鞋', 类型: '防具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlQX21vTS02OUVEaGhpa1BMNDN1X0RySTRFTjdOekFBTG9FbXNiNjRsb1ZJek1SNjN1WHJpTUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LmM6YeR6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDIyMjY1LCJ0IjoxNzc5MjM1NzYwMTI5LCJtaWQiOjQwOTR9.MDadTSnFBJHqynnjnlsHgQ4D4jBU_jhk3j6QOjZ3ivw.png' },
+    { 名称: '乌金鞋', 类型: '防具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/37eOxNJhkhbxibbBNnCiS7GJYBDmX1Ed.jpg' },
     // ─── 仙侠预设：丹药/材料/秘籍/符箓/法宝/装备 ─────────────────────────
-    { 名称: '引气丹', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRQ21vTnNwNlZqSm9tcXg1X2lMTjJZRE01Q0J1aEFBSmlFV3NiQXlOeFZJelc3MFk0Qk93QkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5byV5rCU5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNDI4NzA3LCJ0IjoxNzc5Mjg1MzIyMDg1LCJtaWQiOjQxNDZ9.F5sEzwSir3gr9Q8icvI6CUKMmdgMVJJzxehK16-w5xk.png' },
-    { 名称: '聚灵丹', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRREdvTnN1ME9iNHd5blZ6QXR1YU9YRmVFS0dWUEFBSmpFV3NiQXlOeFZPaWNoOXdpaWpNSEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6IGa54G15Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNTA4ODQ5LCJ0IjoxNzc5Mjg1MzI3MDM1LCJtaWQiOjQxNDh9.MglWjj4UOFNkYxyyvHYW04ZrnuZO6JjLdbiZwUNurYo.png' },
-    { 名称: '筑基丹', 类型: '消耗品', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRRG1vTnN4NTQ2cnVrN2g2QjRyRlc3YXpTSmpiOEFBSmtFV3NiQXlOeFZINnNXbkZCRmtMbUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi562R5Z-65Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODE2OTA3LCJ0IjoxNzc5Mjg1MzM0MzE2LCJtaWQiOjQxNTB9.L18A_6Yf9pqVOwnjGTKxmpMiKuXIykvvsc2MPLHlnjQ.png' },
-    { 名称: '结金丹', 类型: '消耗品', 品质: '绝世', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRRUdvTnMxRG9fMllpNU9FdmxCMkRGZWlVM0E2X0FBSm1FV3NiQXlOeFZQR244NnBqR3NNUUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57uT6YeR5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzEzNzUwLCJ0IjoxNzc5Mjg1MzM5Mjc1LCJtaWQiOjQxNTJ9.Xb6ZV-TG0ktME-T969OOuGsyEJinq5IYKLznk6Y8VU8.png' },
-    { 名称: '凝婴丹', 类型: '消耗品', 品质: '传说', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRRW1vTnM2bjNZYW4zdG85THhlUk1USHhKQ0R2TUFBSm5FV3NiQXlOeFZJb21zcjNjbUlNSkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Yed5am05Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzEzNDA3LCJ0IjoxNzc5Mjg1MzQ0NjAzLCJtaWQiOjQxNTR9.2qKoTuzCOl8Oaq3EaOi4TJcT6PzP4V_bT14bzqRwfrc.png' },
-    { 名称: '化神丹', 类型: '消耗品', 品质: '传说', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRRkdvTnNfY1dmS0YxcXR0RTB5U2lvUTVreUpWbUFBSm9FV3NiQXlOeFZOcmYwTGY0WTl5M0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5YyW56We5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzQwNTkzLCJ0IjoxNzc5Mjg1MzQ5MjU1LCJtaWQiOjQxNTZ9.ldMQHX-MAas-JPKoJ930Z02jE4ftjwaHVcoBKrU84cY.png' },
-    { 名称: '清心丹', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRRm1vTnRDQVFscEZWZ3BuS0tGZmtheE1fbk4zS0FBSnBFV3NiQXlOeFZKeGFlUHlWbk95UkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5riF5b-D5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNTA4NTQxLCJ0IjoxNzc5Mjg1MzU0NzQwLCJtaWQiOjQxNTh9.QTH-3VUjlT34eiN3ss5DhQDIT7pcRwPRlnHIaqgiSkE.png' },
-    { 名称: '玉骨扇', 类型: '法宝', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRQ0dvTnNrR3p6ZTlIeWJ1ZzhxZ1JFZXlCbEpLYUFBSmdFV3NiQXlOeFZQZ0FBWUZqNmtlM0pnRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IueOiemqqOaJhy5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTc4NjA5NywidCI6MTc3OTI4NTM2MDIyMCwibWlkIjo0MTYwfQ.b3fiy4llGyEt_I0LmhDEnij1Zw33jWoqsWqUs5SM6Sc.png' },
-    { 名称: '淬体丹', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRR0dvTnRHTW9lZWdfdHM0N0FvWnFSWFNNb3ZHRUFBSnFFV3NiQXlOeFZMNnpWTWQydDZ3WEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5res5L2T5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzQwODkxLCJ0IjoxNzc5Mjg1MzY2ODc2LCJtaWQiOjQxNjJ9.hvwicDhrYfARH7kjalo6JPGxFDwuwJUnXwCemdhUojk.png' },
-    { 名称: '洗髓丹', 类型: '消耗品', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRR21vTnRLa1prMU9PWndpdi1GZUxPWmhoZUtsSUFBSnNFV3NiQXlOeFZCeWx6bWVkb2xzY0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5rSX6auT5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNDQ5OTAyLCJ0IjoxNzc5Mjg1MzcyOTQ3LCJtaWQiOjQxNjR9.EIQdTaPr2D8uEsVQaMCHBu08JSAsz-cJaBI76PJpl9M.png' },
-    { 名称: '护脉丹', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRSEdvTnRQc3dNUEJrdGlTNmNLMFVaOUVJaTI5UEFBSnRFV3NiQXlOeFZQTUZRY0ZCYmhvNUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5oqk6ISJ5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzI2OTk0LCJ0IjoxNzc5Mjg1MzgyOTM3LCJtaWQiOjQxNjZ9.qQ3A8EtFPjjoKwoYNoWOiQh0fbwRzwS5VgWMfXGVOvQ.png' },
-    { 名称: '回灵丹', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRSG1vTnRTelNKMjNUSFJ0Q3VlTTRyQ0tTSS14MUFBSnZFV3NiQXlOeFZQOGxHaTA5OXRNLUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Zue54G15Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNTk2ODkyLCJ0IjoxNzc5Mjg1Mzg5Mzc2LCJtaWQiOjQxNjh9.WQIEIMENcUb0h1uxh7L4if8I_9bOdzybo6mznlmUZUM.png' },
-    { 名称: '培元丹', 类型: '消耗品', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRSUdvTnRZVDVDSVpiVi1NOGJ3N3hYZjdTM0x2REFBSndFV3NiQXlOeFZOOWktX0lENGNEUEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Z-55YWD5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDAxNzE1LCJ0IjoxNzc5Mjg1Mzk2MDUzLCJtaWQiOjQxNzB9.rwchZ_XF3cR0AntiM5aIBr1UtImWCmPnSQPqp9vuxj0.png' },
-    { 名称: '下品灵石', 类型: '材料', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRSW1vTnRjX3JJSUNsZThiYWVZWlJfVXE4eFlsbkFBSnpFV3NiQXlOeFZPSTBQVEtOeVFjcEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5LiL5ZOB54G155-zLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzYzMDI2LCJ0IjoxNzc5Mjg1NDAzNTY3LCJtaWQiOjQxNzJ9.wYYlTS8MpOaEfT0sKeQjlrz11HMAoGR4b3CHfEEIKgs.png' },
-    { 名称: '中品灵石', 类型: '材料', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRSkdvTnRmcF9td3ZDXzFyanJReHpjZ25wemM1Z0FBSjBFV3NiQXlOeFZNMkhFckhqbVZkMEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Lit5ZOB54G155-zLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzMwMDI3LCJ0IjoxNzc5Mjg1NDExNzEyLCJtaWQiOjQxNzR9.nVXPOvJElPuEbO8T_-ROmaVaNXhAKjMtUS5l8v_WdkY.png' },
-    { 名称: '上品灵石', 类型: '材料', 品质: '上品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRSm1vTnRoNGF3RnUzQktDYk4wTnRzek9IMXhleEFBSjFFV3NiQXlOeFZBQUJIZHJVWEg2bVVBRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IuS4iuWTgeeBteefsy5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTU5NzkzNywidCI6MTc3OTI4NTQyMDQ1NywibWlkIjo0MTc2fQ.Rl1g9gc3lt8_gMHklMC3Z9qfw9QL1w7A5-Yn15bralg.png' },
-    { 名称: '极品灵石', 类型: '材料', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRS0dvTnRrT3djMnZuNURIUzhKVzJENllFdjYxeUFBSjJFV3NiQXlOeFZFckJmT25OQUFHRDBBRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IuaegeWTgeeBteefsy5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTc5OTkzMywidCI6MTc3OTI4NTQyODcyMiwibWlkIjo0MTc4fQ.IuSxAp16N0OS4Bhk8v3qg1JosndutK2tFywljTI3sBg.png' },
-    { 名称: '灵晶', 类型: '材料', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRS21vTnRxajMtOGh3QmI4WlFjYWVlRDRuZTFFbUFBSjNFV3NiQXlOeFZQWm80bWVKM3VtY0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi54G15pm2LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTcwMjgxLCJ0IjoxNzc5Mjg1NDM3OTM1LCJtaWQiOjQxODB9.p5SxB2wQClKZVHbCJ4NLpeZcYdC3fIoXmiJTlcW3Qqs.png' },
-    { 名称: '赤阳石', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRTEdvTnR0d2tsTmxkbkVzNUVNcENrY3lYVkFWYkFBSjRFV3NiQXlOeFZIcEU5QkJLU3JKQkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6LWk6Ziz55-zLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDQ1NjY3LCJ0IjoxNzc5Mjg1NDQ2NzMyLCJtaWQiOjQxODJ9.27dlTfixl-S1i_MK95_HNCKmyG5n16dhIslK8dgwqUA.png' },
-    { 名称: '星辰砂', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRTG1vTnQwUjlHd1QyeW5SQUJETnA2MlQtY2dVUUFBSjVFV3NiQXlOeFZHWl9BQUZORVB5S1l3RUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IuaYn-i-sOeggi5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjAyOTg3OCwidCI6MTc3OTI4NTQ1NzIzMSwibWlkIjo0MTg0fQ.rqI25Uw7TTDDn0T2s77vJMIIirSYjcgFoX6OAqA3xqw.png' },
-    { 名称: '空冥石', 类型: '材料', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRTUdvTnQ0cUJra3FIT0JOZ05JcVFZaWRaM2xWOEFBSjZFV3NiQXlOeFZCYU5iQ0JuV1kwSkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56m65Yal55-zLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTgwNDk4LCJ0IjoxNzc5Mjg1NDY2OTU2LCJtaWQiOjQxODZ9.IjhRXRL4_xPAmZkri8v7VBYbxQC47BHJYU8mOqYgMTA.png' },
-    { 名称: '雷击木', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRWEdvTnZod0JhN1hLMXBGdmNYbzdGdEstZmN4bEFBS05FV3NiQXlOeFZFX1NWdXgtMVZDX0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Zu35Ye75pyoLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTI2MDY0LCJ0IjoxNzc5Mjg1NTMyNDk5LCJtaWQiOjQxODh9.90h16CNGTHqamelgoxo6D7rbafgmx1jhITgraM7pj5M.png' },
-    { 名称: '灵竹', 类型: '材料', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRWG1vTnZtdUxDWUlGbU9NWVYtX2RyNFNXVnE1M0FBS09FV3NiQXlOeFZBUG1randCTVliMUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi54G156u5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzA2NTQ2LCJ0IjoxNzc5Mjg1NjExOTQ4LCJtaWQiOjQxOTB9.97GwnL6qqUtHJUyg8C2tY58dWqLopTBT2rUjMriRu0A.png' },
-    { 名称: '月华草', 类型: '材料', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRWUdvTnZxMWwyRjB3QXNrWkxjVW5YLXg2RFBVdkFBS1FFV3NiQXlOeFZFUWNFSjdLdGQ1UkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyI5Y2O6I2JLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzM3MDczLCJ0IjoxNzc5Mjg1Njc4MjA5LCJtaWQiOjQxOTJ9.8OC-PYVCchuuV2xpOXafq42QtcRv7r5aFf0CBshfe-k.png' },
-    { 名称: '凝露草', 类型: '材料', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRWW1vTnZ2Z29renNNektHZ1dya1ZtcXR1X1RLSkFBS1JFV3NiQXlOeFZKWTVadVBsRDh1U0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Yed6Zyy6I2JLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDM1NTMxLCJ0IjoxNzc5Mjg1NzUyNzU1LCJtaWQiOjQxOTR9.NF4rZd0CBXTn6LFC7UVKERDdg7kGpq01Kb19U_n8ynM.png' },
-    { 名称: '血参', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRWkdvTnYxSVNEb3V6MmZEckFmZGgzUHRUdWVBVEFBS1NFV3NiQXlOeFZIbjRWQ0JkSGVMYUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6KGA5Y-CLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDk2Mjc3LCJ0IjoxNzc5Mjg1ODQyNDUzLCJtaWQiOjQxOTZ9.Abj15lNpkutAqm9jAKtvyGaQDW9l7xNtsWxrRs66ZFk.png' },
-    { 名称: '朱果', 类型: '材料', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRWm1vTnY2Q2pNYmJ6SmppQjVGNWgtWHVsRE51OEFBS1RFV3NiQXlOeFZGVkI2dE50dFk3OUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyx5p6cLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTQ0Mjg4LCJ0IjoxNzc5Mjg1OTIwNzgyLCJtaWQiOjQxOTh9.sbdgyFMaXS7dpuIA2I0xb9g8kLk2U-EeqQTC31omG1k.png' },
-    { 名称: '妖丹', 类型: '材料', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRYUdvTnY5TmFuM01FcGhaNzV6OE90MXdQeDZDQUFBS1VFV3NiQXlOeFZMbC14N25kTC1IYUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5aaW5Li5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzQxMzc4LCJ0IjoxNzc5Mjg1OTcxNjAyLCJtaWQiOjQyMDB9.Ja-ZtwClsRxLKjfEYO8QPv--fpQEsK8IxFGOuhmEcwk.png' },
-    { 名称: '炼气诀', 类型: '秘籍', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRYW1vTndCZkdhRkZlZ0pHcFBiSldxZXBBLTVwcEFBS1ZFV3NiQXlOeFZIazJpdE5UZ2ZrRkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi54K85rCU6K-ALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODg1MjAwLCJ0IjoxNzc5Mjg2MDM5NTk0LCJtaWQiOjQyMDJ9.3vnfSFVVGW96gR_I-Iv8mZm99bt4z_usGZmF3WeDU4c.png' },
-    { 名称: '筑基心得', 类型: '秘籍', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRYkdvTndLNTJLQ0NUQVl6eXZtQzhOcmhDNFZwZ0FBS1hFV3NiQXlOeFZGa19xcnJvMTVfdkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi562R5Z-65b-D5b6XLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODQ2OTg4LCJ0IjoxNzc5Mjg2MTkwNzE1LCJtaWQiOjQyMDR9.yIDSC4VHDtXaf9myxyvF7baMMMB6nsbKHjgOr75jYWw.png' },
-    { 名称: '御剑术', 类型: '秘籍', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRYm1vTndWNUlqVURGa29ZWGVrbVFSTWE1RngxMUFBS1lFV3NiQXlOeFZHR3hnWjdPVjVJZUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5b6h5YmR5pyvLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODI2NDMwLCJ0IjoxNzc5Mjg2MzY2NDc5LCJtaWQiOjQyMDZ9.UDWdZiWmwExsKOlX2U1xcp4TNiOni58ROC3pbvhsC_k.png' },
-    { 名称: '小五行术', 类型: '秘籍', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRY0dvTndiZWVNZlp5Nm5zY1dURENPRGRUYTJncUFBS1pFV3NiQXlOeFZBQUJWbC1ma0hoaVBRRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IuWwj-S6lOihjOacry5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjA1NzM3NywidCI6MTc3OTI4NjQ1NTYyMCwibWlkIjo0MjA4fQ.WVuV78r-e072xcUS-VWNrJ3Jqi-ZZLeblzZGbnblLfI.png' },
-    { 名称: '太乙剑诀', 类型: '秘籍', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRY21vTndqNWhOZ2V1OEtUWUZfYjlhNmk4SEl0REFBS2FFV3NiQXlOeFZIYXdDUDk0Nk9hWkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5aSq5LmZ5YmR6K-ALnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNTUwNTU4LCJ0IjoxNzc5Mjg2NTkwNTI5LCJtaWQiOjQyMTB9.ISwAYNlKRVuckyIEnQZUE3iJGltMYgNqun8e13Yadpo.png' },
-    { 名称: '炼丹初解', 类型: '秘籍', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRZEdvTndwX1d6QzNNTVNTdHlQQmFnQ1ViWndvWkFBS2RFV3NiQXlOeFZETXRveEtZS1RmdUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi54K85Li55Yid6KejLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjIwNDM0LCJ0IjoxNzc5Mjg2Njg3NzQyLCJtaWQiOjQyMTJ9.f9dQJ7YZbZlyzs-PNnOqE3giPOibmxI1jtqO64p171I.png' },
-    { 名称: '符箓入门', 类型: '秘籍', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRZG1vTnd1MXRxY2xfdWNrT21KTkxTblhnbFc5bkFBS2VFV3NiQXlOeFZCTmhoNGxUbkxQM0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56ym566T5YWl6ZeoLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDI0ODMyLCJ0IjoxNzc5Mjg2NzY2MjExLCJtaWQiOjQyMTR9.EcYJY_K8-dJB54j_JGE_4O58ZUiA3bBtt7CTuxccicw.png' },
-    { 名称: '火球符', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRZUdvTnd6WS1jZkhzR1BhUHpuYzh5cnB4eTdRakFBS2ZFV3NiQXlOeFZIaC1ORmV1a3dBQjVBRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IueBq-eQg-espi5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTk2NDMxOCwidCI6MTc3OTI4NjgzOTEzNywibWlkIjo0MjE2fQ.4k_QRWGcvFMbcLhHo8ELnkwaiO_6Mzf6XKbzgTBImAQ.png' },
-    { 名称: '冰锥符', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRZW1vTnc0MlJ4V1drQ01OalRvN3lISzFMYnJXTkFBS2hFV3NiQXlOeFZHQ2NSWXduSkNQNEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Yaw6ZSl56ymLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODM1MDkzLCJ0IjoxNzc5Mjg2OTI2MjUzLCJtaWQiOjQyMTh9.PNbg6wMS4YrR0fg5Kz5sz3V1YbNs6QDQOLN_zvw1eBM.png' },
-    { 名称: '雷光符', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRZkdvTnc5eHJsRTZzN0k4TVB3bngzdTA2VVFaX0FBS2pFV3NiQXlOeFZEallLczZyZEJaaEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Zu35YWJ56ymLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDAxMjU1LCJ0IjoxNzc5Mjg3MDA1MTI4LCJtaWQiOjQyMjB9.bRc2C5DBA_S5OqaP4YIef4O4gNnDQ8_7BJiA1ejGfnE.png' },
-    { 名称: '金刚符', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRZm1vTnhDYTFPX0Y2ZHNYVEx4andadGgyWURmSEFBS2tFV3NiQXlOeFZHdEd3TGZ4QnFRR0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6YeR5Yia56ymLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODUwNTc5LCJ0IjoxNzc5Mjg3MDc4NzAzLCJtaWQiOjQyMjJ9.YZGlXb8JzAp8v561I6WcBuyWcpaKyW-xBrc0fqf9Vqw.png' },
-    { 名称: '神行符', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRZ0dvTnhJSVYzQktNZWJSYlhCb2FuUTZxRl9yS0FBS2xFV3NiQXlOeFZMbktNWFY4WGM1b0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi56We6KGM56ymLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzM5MjQyLCJ0IjoxNzc5Mjg3MTcwODU4LCJtaWQiOjQyMjR9.lv93z-ZXkLXPjgXb1btWqZ6YEmg7werQ8lzmWHxT6Iw.png' },
-    { 名称: '隐身符', 类型: '消耗品', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRZ21vTnhNdjNxTldJaElHa2pzYy1aMWJOX0VfNUFBS25FV3NiQXlOeFZQS1lkNzhDNFBsMUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZqQ6Lqr56ymLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTQ3NTQ1LCJ0IjoxNzc5Mjg3MjQ0MDAwLCJtaWQiOjQyMjZ9.F3gBv8xl8xbQ408xrdpkxClHVbf36eQQSrhjDYOyuB8.png' },
-    { 名称: '传音符', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRaEdvTnhSV01WZkFMTU1vYVJiMDczQUhuZnRIY0FBS3BFV3NiQXlOeFZNYjhmU3ZkNThSRkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Lyg6Z-z56ymLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzgzMjc1LCJ0IjoxNzc5Mjg3MzE3NzI4LCJtaWQiOjQyMjh9.2k7L1I39zo8oJp-1WfXcZOd3ff2DGxQmoG8eP44Zg0w.png' },
-    { 名称: '传送符', 类型: '消耗品', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRaG1vTnhXbzZmN1drSGppNVpLWXJHc0JwWjVzSkFBS3NFV3NiQXlOeFZDTjUyc3Bxc3dkOEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Lyg6YCB56ymLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTIwOTg4LCJ0IjoxNzc5Mjg3NDAzMDIxLCJtaWQiOjQyMzB9.4VevoOVJ9VTm4_3b-ql4bMVDpRELeQHXszwHjy4Zl9U.png' },
-    { 名称: '青竹飞剑', 类型: '法宝', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRaUdvTnhiZjRoVTV4dkFyRXBLb0xxNHFZdzNJOEFBS3RFV3NiQXlOeFZLWnJjd3NaTnRFVEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Z2S56u56aOe5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzk5NTMyLCJ0IjoxNzc5Mjg3NDc5NDU1LCJtaWQiOjQyMzJ9.z1BqfoNZ9B1VoTt-_YN7hpO22buP5P0D9xWOlIXstR4.png' },
-    { 名称: '寒霜飞剑', 类型: '法宝', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRaW1vTnhndldmLTc4VFU2dFk3QnE1NHNURHZ3bEFBS3VFV3NiQXlOeFZDM0VaYWN3S2pLbkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-S6Zyc6aOe5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxMzIzMjUxLCJ0IjoxNzc5Mjg3NTYzNjMwLCJtaWQiOjQyMzR9.9hGyqNPpIPmlgQC-Rp0FXUntUffc9Sjg0n0QLw85z6s.png' },
-    { 名称: '紫电飞剑', 类型: '法宝', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRakdvTnhsdWdHRmJ6X1FhMHlHSjQ2dXhfalVzWkFBS3hFV3NiQXlOeFZOdjRQdkVVY19rRUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57Sr55S16aOe5YmRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODYzNzA3LCJ0IjoxNzc5Mjg3NjQzNDMxLCJtaWQiOjQyMzZ9.grmJHywU99W6hjCEN1UBqKtR0t_LW6rk_FNYZaRgwG4.png' },
-    { 名称: '青玉葫芦', 类型: '法宝', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRam1vTnhyaTFtV0otUU43djBPUFZuX2FUejQwQkFBS3lFV3NiQXlOeFZGMVVieVRqa0ZIRUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Z2S546J6JGr6IqmLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNDg4NDc3LCJ0IjoxNzc5Mjg3NzM3MDExLCJtaWQiOjQyMzh9.I_VOwQleYSXyt9WEV2XgixmE1v964z0PEPCZDir5wcw.png' },
-    { 名称: '养魂铃', 类型: '法宝', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRa0dvTnh3ejNGZVo4SWZ6M2t1MzVhWEZUY2tfbEFBSzBFV3NiQXlOeFZQdFpfa2hEblZaQUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5YW76a2C6ZODLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNzU1MjE0LCJ0IjoxNzc5Mjg3ODIwOTMzLCJtaWQiOjQyNDB9.oPFPBWmO9rzDKLE7Mdz3hobMcGkQDLL2KvWeb9sZgWY.png' },
-    { 名称: '镇魂铃', 类型: '法宝', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRa21vTngxbTJETEpRZ3pTc3lzUTNJRXc0RWhsd0FBSzJFV3NiQXlOeFZHQVhDRmVseUhxOEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZWH6a2C6ZODLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODA1MDk4LCJ0IjoxNzc5Mjg3ODk3NDcwLCJtaWQiOjQyNDJ9.Fn4b48jzzNstGGJ0y6vjgBD6M8i8uj5D4-qinpBAUds.png' },
-    { 名称: '玄光镜', 类型: '法宝', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRbEdvTng1OW1FSUxJaDl4cGNiWHpBNnJScHBSNUFBSzNFV3NiQXlOeFZKWld6YzF2SEZaaUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E5YWJ6ZWcLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTM3MzM0LCJ0IjoxNzc5Mjg3OTY3NTc2LCJtaWQiOjQyNDR9.qB4-WMosOTuFyzuprbYTajchU18AFoDpN6vyvftGlog.png' },
-    { 名称: '八卦镜', 类型: '法宝', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRbG1vTng5YW9Lb2J2ZkdZaXE0ZGdXVksteTNRTUFBSzRFV3NiQXlOeFZFTWRocFU4ZTFvakFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5YWr5Y2m6ZWcLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMzg0ODczLCJ0IjoxNzc5Mjg4MDIyNzkwLCJtaWQiOjQyNDZ9.NFllzNp5-T-g3QJO7HsQiKsrVz8Sd6xUD8MkSzVBsIU.png' },
-    { 名称: '缚妖索', 类型: '法宝', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRbUdvTnlCcW9PWXZDTk5LS3E4bzNFZFZYSC05NkFBSzVFV3NiQXlOeFZNek9PQXdic1hxQUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57ya5aaW57SiLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTQ2MTY2LCJ0IjoxNzc5Mjg4MDkwNjgxLCJtaWQiOjQyNDh9.fQk5JuXOHgg5M_jrUmAQSMsCcb-9bEcetx9F6ltXyAw.png' },
-    { 名称: '储物袋', 类型: '法宝', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRbW1vTnlFejdsaXQ4MmV1Tzg1M0JtM1ZUakRRYUFBSzdFV3NiQXlOeFZQS0liT3dmVF84V0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5YKo54mp6KKLLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDY5NzI3LCJ0IjoxNzc5Mjg4MTQwNTE1LCJtaWQiOjQyNTB9.OraH9YYKhY9WITnJKw-DWpbLEh_sfcRm96LlFjWD1L8.png' },
-    { 名称: '储物戒', 类型: '法宝', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRbkdvTnlKbm1HWUZHczQ5SFJYVUlUSktHdG5nMkFBSzhFV3NiQXlOeFZOTWFrd2hhMXlJb0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5YKo54mp5oiSLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODE4NTgzLCJ0IjoxNzc5Mjg4MjE4MjQ2LCJtaWQiOjQyNTJ9.hnZOccktvvBex48rP2dXlr4LEnZMMy_e_4hJabw3rxM.png' },
-    { 名称: '灵兽袋', 类型: '法宝', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRbm1vTnlNWWVvS3YxZ2tRT0tLbmZRelY4U3NKQUFBTENFV3NiQXlOeFZMQUw4M2FkdTkwYkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi54G15YW96KKLLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTU1Nzg4LCJ0IjoxNzc5Mjg4MjYzMTg4LCJtaWQiOjQyNTR9.eKcf1sct2fesMiXKJ_Mw1Ke9x-0cIDdrx6mfAQGhuKw.png' },
-    { 名称: '聚灵阵盘', 类型: '法宝', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRb0dvTnlSSGJ1Qm1mSVRNYlhydWNLSnRteE1KYkFBTEZFV3NiQXlOeFZQazU1TGpBZmFRbUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6IGa54G16Zi155uYLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODI3NDAwLCJ0IjoxNzc5Mjg4MzM3NzY2LCJtaWQiOjQyNTZ9.gzTAmKXMN8jSlg7Xjlv0zLpY2P2Uj2OOHWXALwZvR9o.png' },
-    { 名称: '护山阵盘', 类型: '法宝', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRb21vTnlXMW05NkR0RWExRXUyUmNLcTlfR2JUZUFBTEhFV3NiQXlOeFZMZVNXRkloR1pwc0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5oqk5bGx6Zi155uYLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMzkyNzU3LCJ0IjoxNzc5Mjg4NDI5OTA4LCJtaWQiOjQyNTh9.Sxak-TW1Ijz6uNYHPjMqMzmihNBS6IyZCKWnG-QWxGs.png' },
-    { 名称: '寻灵罗盘', 类型: '法宝', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRcEdvTnlkSG42MXI2a2laM2Y2dy03TnhqcDgxSkFBTExFV3NiQXlOeFZHZHN0RlRZWG9neUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5a-754G1572X55uYLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMzExNTkxLCJ0IjoxNzc5Mjg4NTMwMDUyLCJtaWQiOjQyNjB9.Rz81hyp6LUylq2MdlYMd365D8oEcQZfYYZXBaJJFMQU.png' },
-    { 名称: '紫铜丹炉', 类型: '法宝', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRcG1vTnloc2xDQmhlSENKU3R5UWpDUEU3aUw0TEFBTE1FV3NiQXlOeFZLVWF4WEZ3TmFYakFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57Sr6ZOc5Li554KJLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODg5NTgyLCJ0IjoxNzc5Mjg4NjAzNTY0LCJtaWQiOjQyNjJ9.y_SchoU8c3mdQO5sRKsY06bmWBDyuSggT1lvYzsSe9o.png' },
-    { 名称: '玄铁丹炉', 类型: '法宝', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRcUdvTnltcFJvZkJOZWJ3U21hTDZvd01XeTBaVEFBTE5FV3NiQXlOeFZCRkhYUVJTRjNBSUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E6ZOB5Li554KJLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxODQ4NTY4LCJ0IjoxNzc5Mjg4NjgzNDE3LCJtaWQiOjQyNjR9.8vmRC3sZgRixI3W8CXJZ0jePFB7r8Y6KWulmcp6VuPQ.png' },
-    { 名称: '炼器锤', 类型: '法宝', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRcW1vTnlzSzNCUksyQzVldV96Vm5Ub1Utd2U5LUFBTE9FV3NiQXlOeFZMTHFvU2JPUmtzakFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi54K85Zmo6ZSkLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNjQ3MTIwLCJ0IjoxNzc5Mjg4NzcwODU3LCJtaWQiOjQyNjZ9.XJN31nMvvM5hmUz9IpgY5EeNh_Z8JXoT9kDstCtTdaw.png' },
-    { 名称: '青云法袍', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRckdvTnl4UmY3M3RQMU9VSmNIM0ZZbkJ5MTJnM0FBTFBFV3NiQXlOeFZEbm1SX0N5bkVWZUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6Z2S5LqR5rOV6KKNLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMDYwMzQwLCJ0IjoxNzc5Mjg4ODUzMDI0LCJtaWQiOjQyNjh9.tIPd6esV1V-7monqskpBP35LFkcsjmZbp2AL-JOGs9Q.png' },
-    { 名称: '月白法袍', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRcm1vTnkxZkszRkFWX1hoZUlET3ZFRkFVOGo5dkFBTFNFV3NiQXlOeFZDS3Aza090ZldCY0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5pyI55m95rOV6KKNLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTI0NTUwLCJ0IjoxNzc5Mjg4OTIwMTE5LCJtaWQiOjQyNzB9.V70UufxZ7lfs1oB0e0YFdXNEXIHIYzyg6nPK1uSxbWE.png' },
-    { 名称: '玄纹法冠', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRc0dvTnk2Tlc3VmpEZExaOGI5YTRSQkxSMHRnckFBTFZFV3NiQXlOeFZLOE8yLWRoTWVmdkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi546E57q55rOV5YagLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxNTg4NzU2LCJ0IjoxNzc5Mjg4OTk2MzUyLCJtaWQiOjQyNzJ9.6ammtZwqlVVwcpcu-MnHR5qw34JnaZz3ukaHgNCMOSw.png' },
-    { 名称: '避尘靴', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRc21vTnk4eGRUOWtGZHhvQ3M2d3lmSzJrMEhIWEFBTFdFV3NiQXlOeFZERk41Z0FCeGRrZnpBRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IumBv-WwmOmdtC5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTk0NDM4NiwidCI6MTc3OTI4OTAzNzA4MiwibWlkIjo0Mjc0fQ.cqqfNN8wrh9WcorDfPNTMamElvuBLVh93DuvIKDMViY.png' },
+    { 名称: '引气丹', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/VAoLDtKHv9epWbMlBtiCdNjY0VwpOkXy.jpg' },
+    { 名称: '聚灵丹', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/8PgwFC7TR6PiEhdO96MizAQwIsKDWJmH.jpg' },
+    { 名称: '筑基丹', 类型: '消耗品', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/jI2gpiGfDBS0ZRJuaDivj0cAJgnlVf2e.jpg' },
+    { 名称: '结金丹', 类型: '消耗品', 品质: '绝世', 图片URL: 'https://cdn.nodeimage.com/i/eDoMDvKcdDtTGMMoCMBCLTJxAEm9DybZ.jpg' },
+    { 名称: '凝婴丹', 类型: '消耗品', 品质: '传说', 图片URL: 'https://cdn.nodeimage.com/i/MzcPaBHpLfV5GRWTeVL7KSuYENlsDHEl.jpg' },
+    { 名称: '化神丹', 类型: '消耗品', 品质: '传说', 图片URL: 'https://cdn.nodeimage.com/i/wokzOi6F4HniA8zy1SSfyGytzvC0g3Bp.jpg' },
+    { 名称: '清心丹', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/3NtMHTLGX6oiZ74xIFhWvKEIpBzY120S.jpg' },
+    { 名称: '玉骨扇', 类型: '法宝', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/IhWGwz4sCi5dtHsGESj44uIDiucmQlMr.jpg' },
+    { 名称: '淬体丹', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/mgF2XtrFgSy1zK76q2CPcNI1g4QxRhN9.jpg' },
+    { 名称: '洗髓丹', 类型: '消耗品', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/t0xR15o8syhETD9MRXiBgWTTpYdOjXIm.jpg' },
+    { 名称: '护脉丹', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/tGVntob9HU28olja1uuJHfP1dspHIspq.jpg' },
+    { 名称: '回灵丹', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/rrg2P57hhiFOpwdpdb3gYJ1cPw1yrPJi.jpg' },
+    { 名称: '培元丹', 类型: '消耗品', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/o24tYWZF3lVAbsmg2B2vETigYzipKzyG.jpg' },
+    { 名称: '下品灵石', 类型: '材料', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/sOJ2vgcKf2p9qKK231819MNRcPQPs1Bj.jpg' },
+    { 名称: '中品灵石', 类型: '材料', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/ee6rcAD3w191lqCHkb9odK3gP3nYm1qV.jpg' },
+    { 名称: '上品灵石', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/v7MghMuYGQodYSpWVQoJ3XMbBIcbx8XB.jpg' },
+    { 名称: '极品灵石', 类型: '材料', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/1SLIED2PRTAUDZo9rCjFjMegyrebSXQX.jpg' },
+    { 名称: '灵晶', 类型: '材料', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/26JJuicGADupZBKNXASd4S40RtbUq1p5.jpg' },
+    { 名称: '赤阳石', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/AQf6UuVCvRyxHRZNnKXwBAE9T5UTkLfw.jpg' },
+    { 名称: '星辰砂', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/KhfVwRVaCgSkgbZrJ9DIPHUXlrYACjMW.jpg' },
+    { 名称: '空冥石', 类型: '材料', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/2er3XXXR7gJmTCITMC7gplYOeiHRWJam.jpg' },
+    { 名称: '雷击木', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/yjCwhCeProHH5bYAtDIBim60mAz60Cpb.jpg' },
+    { 名称: '灵竹', 类型: '材料', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/TYKpS6z3vn8jAY1PhKSXFyckMDMk7vil.jpg' },
+    { 名称: '月华草', 类型: '材料', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/rYllaqAxxaCqOpyuYSfp6Om96DyB4q2n.jpg' },
+    { 名称: '凝露草', 类型: '材料', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/Lj5G8YygJCO7ORNR8PHjGIHuGhhlSrPQ.jpg' },
+    { 名称: '血参', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/hj1r2fpsQuWh6wV0AUjdKBIFL9PsCcIY.jpg' },
+    { 名称: '朱果', 类型: '材料', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/LRgFzi7ie0FbgOdDEMssWpkXCmr3fxk9.jpg' },
+    { 名称: '妖丹', 类型: '材料', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/qzQSsBl0IDetH5vbo81kwLnItYcUjZi1.jpg' },
+    { 名称: '炼气诀', 类型: '秘籍', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/J9l9NqATjph5OYy6gthXYdWv02uXuLmt.jpg' },
+    { 名称: '筑基心得', 类型: '秘籍', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/1Sp2vRWoh7OWtZ8my3VsCdhZGKCOMOv3.jpg' },
+    { 名称: '御剑术', 类型: '秘籍', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/gtm1gnO1ZbziA5UF4OPocD7XSvQ27pEh.jpg' },
+    { 名称: '小五行术', 类型: '秘籍', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/fYSEMh05ZxAP2e3KMgPRV11Gq97Yo6Vk.jpg' },
+    { 名称: '太乙剑诀', 类型: '秘籍', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/GyXoUYmHdJdUzhsUcjsX6KyVjbVN36YN.jpg' },
+    { 名称: '炼丹初解', 类型: '秘籍', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/GQBVjf8dpdFDrHQPxzYccYSxKwpYKDXq.jpg' },
+    { 名称: '符箓入门', 类型: '秘籍', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/GAMaG6uobV49K1pYCp8UEVUHTNxeHnbX.jpg' },
+    { 名称: '火球符', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/e4GFHlfUDDh1csxUiUCJhKesVWaEz6dU.jpg' },
+    { 名称: '冰锥符', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/vJS4kc0dKgEuq03VGqvHnI2bPiyEwzXx.jpg' },
+    { 名称: '雷光符', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/1lwruvEUlE3R68DxIDzD2tGG8Y956nv4.jpg' },
+    { 名称: '金刚符', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/S6w1zdEaksbGjyDCoxaddK8gBIrzXIrY.jpg' },
+    { 名称: '神行符', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/fo0KJwtS6lfauRTwjioIutE2Zn6V3RPz.jpg' },
+    { 名称: '隐身符', 类型: '消耗品', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/J6lt0aAfvXDYTZyBrzP8KE25G6SerUnl.jpg' },
+    { 名称: '传音符', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/H7nTJKYIZNSPi1HM20cSttBo2GDXDi7K.jpg' },
+    { 名称: '传送符', 类型: '消耗品', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/LG3zSJCaw1WK20qUsWIIsDb2N5wNJ8Mw.jpg' },
+    { 名称: '青竹飞剑', 类型: '法宝', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/CweO9jJEo9sInPbcSHzG8vyXSaei9G0Y.jpg' },
+    { 名称: '寒霜飞剑', 类型: '法宝', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/BAn7aoYU94b8xGH9cmiTN7wXg0dgzJ1i.jpg' },
+    { 名称: '紫电飞剑', 类型: '法宝', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/OCZMcG17jASBu8EdvJytYGbTqlSSqaV2.jpg' },
+    { 名称: '青玉葫芦', 类型: '法宝', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/JMBPJd8J5vBsWKQCobH8MYFoVR3mS38V.jpg' },
+    { 名称: '养魂铃', 类型: '法宝', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/ukAKV7aSUC7e6rhS8D6bKJtNUbfppcyQ.jpg' },
+    { 名称: '镇魂铃', 类型: '法宝', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/gb4uQ3ZQ115DV6m6KbgmRu57WsKfBHXn.jpg' },
+    { 名称: '玄光镜', 类型: '法宝', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/N6vbaaBEmQgevunLu3XMpNoDYOPIejBP.jpg' },
+    { 名称: '八卦镜', 类型: '法宝', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/7RcaufHINNjqlMWp8xvQL8jHXVRqaWZX.jpg' },
+    { 名称: '缚妖索', 类型: '法宝', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/4MeFOHJQmsatAPbuL3Xh2cFclnyYKh7l.jpg' },
+    { 名称: '储物袋', 类型: '法宝', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/IIvAG8BfpTNQxGnZA0NlnKj1KY9jciKI.jpg' },
+    { 名称: '储物戒', 类型: '法宝', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/dzJ24EcaqIBwN3K9CAnCaYuaQTNHzdnB.jpg' },
+    { 名称: '灵兽袋', 类型: '法宝', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/Rc0uaTtxPH3IiITGFsemzWPG5qcriopO.jpg' },
+    { 名称: '聚灵阵盘', 类型: '法宝', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/JxKvXizSFYxnqb19ADX9BYh6R04TbHT8.jpg' },
+    { 名称: '护山阵盘', 类型: '法宝', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/f4CHTgebTdDzQEY2IMxInXjdC0gCMHfK.jpg' },
+    { 名称: '寻灵罗盘', 类型: '法宝', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/lc04TltzGifVpxTMYMwyKa0g72TaGFat.jpg' },
+    { 名称: '紫铜丹炉', 类型: '法宝', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/vgGCLmfAQo7XJuxJpYS4PIgeuD54c1mj.jpg' },
+    { 名称: '玄铁丹炉', 类型: '法宝', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/aksAt0IoWzRwM7F56HKYxdY1hwrXTOsM.jpg' },
+    { 名称: '炼器锤', 类型: '法宝', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/t38SAVw3Ng6C5DPhCbsyRKA9JSSukO3g.jpg' },
+    { 名称: '青云法袍', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/QAhODFFb7Kd8pmgebGiTCID2WlXnahcM.jpg' },
+    { 名称: '月白法袍', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/TmAtEAaSWmBe3LhfKcVSnyVBa6arp9RY.jpg' },
+    { 名称: '玄纹法冠', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/aQPesc9yhrYnrE668oXLqwCAgKJq5A9S.jpg' },
+    { 名称: '避尘靴', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/nZQEn1lLeac2UJv6QKUxISjdQRb7pYDH.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '门派令牌', 类型: '任务道具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkdjJvWEtJX3ZoZGlxdHNuOFVCb3hFMUZuMTBvYkFBSWdFbXNiUXJlNFZKZ19zcVk5NThpTUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6Zeo5rS-5Luk54mMLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MzExNTQsInQiOjE3Nzk5MDI2MDgzNTQsIm1pZCI6MjM5OTl9.mYAzG1Pll1QSxJXuxGWKeCOZO13PFDBgnvbQflSJWLA.png' },
+    { 名称: '门派令牌', 类型: '任务道具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/ItQBTyl86wgouTvCcaYhJcXDr0GWOHfK.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铜钥匙', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkeW1vWEtPaG05bU9PSUpYVzJIWHlFLVZXd2hReUFBSWhFbXNiUXJlNFZCMUlKNS0xWDVPb0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6ZOc6ZKl5YyZLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MDUxODAsInQiOjE3Nzk5MDI2OTY0ODgsIm1pZCI6MjQwMTB9.lseWiKExUjsH6XN1XLYb22iKAKG_qmOiFWBo7O5Itr8.png' },
+    { 名称: '铜钥匙', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/zX6CUgDCuHPlGmCwlDwjFjOKxcXOubsS.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '秘境钥匙', 类型: '任务道具', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkekdvWEtQQXN3aVZzdEp3NnViTzlyXzNZRXZOckFBSWlFbXNiUXJlNFZHeWJESGlfbllGWkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi56eY5aKD6ZKl5YyZLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3OTY0OTMsInQiOjE3Nzk5MDI3MDQzOTQsIm1pZCI6MjQwMTJ9.2-8S963FbNVcjUC_NFXB2JVm3XpBOqnPdJV5xV3Lyo0.png' },
+    { 名称: '秘境钥匙', 类型: '任务道具', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/PJJyNmcvtGcHQCKxb4lBXECOtYfFXCgA.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '官府文牒', 类型: '任务道具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkem1vWEtQZTlLVjEyWUFiT1JlU2I5ZzFkeFh3ZEFBSWpFbXNiUXJlNFZFMmFCZFJyWWxoaUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5a6Y5bqc5paH54mSLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo1OTE2NjIsInQiOjE3Nzk5MDI3MTIwNjcsIm1pZCI6MjQwMTR9.8CFaDVQaFZ0-JAq4rf1f50N3GQfokklREycJ8hmWuvs.png' },
+    { 名称: '官府文牒', 类型: '任务道具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/tOzbAm3hOsRFsEAH0C8lSQMVwYOFiTyE.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '宗门令牌', 类型: '任务道具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkMEdvWEtQX200X21VS1hPTkRCNXB2RjVwZnNlZ0FBSWtFbXNiUXJlNFZBMDR5bE1NMTBUUkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5a6X6Zeo5Luk54mMLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MDg0NjUsInQiOjE3Nzk5MDI3MTk0MjcsIm1pZCI6MjQwMTZ9.jRoANfzlxHgm12ga9M_i00bO7IwCN59hSILvnobbcWs.png' },
+    { 名称: '宗门令牌', 类型: '任务道具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/wqjYlbMNo0DisdisivvI1f3kaUV8aAId.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '智能手机', 类型: '杂物', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkM21vWEtVeGxFb1NQNHZGb196Sm1UNVNWcnBLYUFBSW1FbXNiUXJlNFZGUHVrS0NtOGVOdkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5pm66IO95omL5py6LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3NzE1NzQsInQiOjE3Nzk5MDI3OTY2MzgsIm1pZCI6MjQwMzB9.wiJvHA1Wkigzv3HO_A7P6qtsscsHAiYm_auFK8mLk9Q.png' },
+    { 名称: '智能手机', 类型: '杂物', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/ooIVVmheZ6SHI55JYMRZXEAmAzZKmkxT.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '洞府禁牌', 类型: '任务道具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkNEdvWEtWUlppZWFLTEFndTIyeWFrMk9PM2tEc0FBSW5FbXNiUXJlNFZEWEk1a2lJOHdlVEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5rSe5bqc56aB54mMLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3Nzg4NDcsInQiOjE3Nzk5MDI4MDQ3ODYsIm1pZCI6MjQwMzJ9.lEvdglQPgC5ljUzsvkspx12Jb0RrYPdklH9RDBcp8dU.png' },
+    { 名称: '洞府禁牌', 类型: '任务道具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/SJDC0aqC13EpW20xndD7SYz2h1ZYnOTs.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '急救包', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmS0dvWE1RX1dvblhTcTRvUXRfd3VnTklCckM0ekFBSm9FbXNiUXJlNFZOWWVnSzd0YkQ1QkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5oCl5pWR5YyFLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo5MDIzMzAsInQiOjE3Nzk5MDQ3ODQyNjcsIm1pZCI6MjQzNjB9.VJc59YpXN0V_9LKs7Y8Ho1QdiMckGrKqOlvu7-ndihA.png' },
+    { 名称: '急救包', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/61Ij9shISjRPj65bKrEs0BkJWBAqmsEm.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '录音笔', 类型: '杂物', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkNkdvWEtiUlBNQnBXRVQ1SmlrWkFEb0NvMEVxTUFBSXBFbXNiUXJlNFZOajY3ZnE1YmFjeUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5b2V6Z-z56yULnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4Mzk4NjAsInQiOjE3Nzk5MDI5MDA1ODEsIm1pZCI6MjQwNDB9.5lxb3zDeWp2IHNg47zXiD02FUs0_43FGvMSlTCGVMJo.png' },
+    { 名称: '录音笔', 类型: '杂物', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/ogYPHMxJP1W45nuEoGTECDJYfYh4ByWA.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '笔记本电脑', 类型: '杂物', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkN0dvWEtmWF84RGZuTFFZYjNlb3ZDS1J5MEYwMUFBSXFFbXNiUXJlNFZFbUlEWWdfdVJfRUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi56yU6K6w5pys55S16ISRLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3Nzk0ODAsInQiOjE3Nzk5MDI5NjYxOTMsIm1pZCI6MjQwNDR9.-DGkmshhv2PUL-dGvA4DHQ9d-dNinSfcMkzP8Ca5Log.png' },
+    { 名称: '笔记本电脑', 类型: '杂物', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/2AJVlzcL5e7NppKNnlXyiZPHS1XPE6eP.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '镖局凭证', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkN21vWEtmM05xdTlTS2lFeGZwTFdEQjZyaFBKRUFBSXJFbXNiUXJlNFZNYm9sUnY3dzhKdkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6ZWW5bGA5Yet6K-BLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo0ODY4MTksInQiOjE3Nzk5MDI5NzMzNjUsIm1pZCI6MjQwNDZ9.QWS3oTAH7mPqzwmZS29h7hvHj1mv8-_-UrFSZZRJFjo.png' },
+    { 名称: '镖局凭证', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/Db4HMKZUPVxmUcmxE11i344T2myGAGXe.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '密函', 类型: '任务道具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkOEdvWEtnUko4LWJ3VVU5dXdaeU13V2RtaV91cEFBSXNFbXNiUXJlNFZCdHZyWFktLUNtaEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5a-G5Ye9LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3NTkwNDUsInQiOjE3Nzk5MDI5ODA3NTQsIm1pZCI6MjQwNDh9.N7UX4vcVp5t5XS9OinuyWgKnALM6_Ho7Dfq6P5Oz_R0.png' },
+    { 名称: '密函', 类型: '任务道具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/rk7b3UnuA8WZgNGZfHu8OUMvD13K7LHR.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '传承玉符', 类型: '任务道具', 品质: '绝世', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkOW1vWEtnMmV4NGlmRUJPbEtWYkVFNUxFZVRabEFBSXRFbXNiUXJlNFZNc0Jfakc2TDlUVUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5Lyg5om_546J56ymLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3NzM5NDgsInQiOjE3Nzk5MDI5ODkzOTEsIm1pZCI6MjQwNTR9.eyrov4y9HE5spBQQBE8XwH0dL1k6UpCaZQM7gF6kp14.png' },
+    { 名称: '传承玉符', 类型: '任务道具', 品质: '绝世', 图片URL: 'https://cdn.nodeimage.com/i/TAcXQUHvfkgXv2WxmKlw22xI48El1YEI.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '防割手套', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkLUdvWEtoV1hoMmhFQlZpWU9JUFZTWE1kTVJCcEFBSXVFbXNiUXJlNFZOMFNjTUpVYVlpb0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6Ziy5Ymy5omL5aWXLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MzM5ODYsInQiOjE3Nzk5MDI5OTgzMDcsIm1pZCI6MjQwNTZ9.tYBTxzR68KA4AmRl3dqdIq9uyQ4DrG_4dt4OPEeuNXs.png' },
+    { 名称: '防割手套', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/lJuBSDS49P8pFzccVcPirNQ82qPtoM8Y.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '银行卡', 类型: '杂物', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkLW1vWEtoNXpUMmRTT3ZKbjFPZVVpcndteGE3NEFBSXZFbXNiUXJlNFZNTEVaUm1CUk1NZUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6ZO26KGM5Y2hLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo2OTgzNDMsInQiOjE3Nzk5MDMwMDY1MzEsIm1pZCI6MjQwNTh9.JIXHi30y32_sbwkl-w2YiGzsvQ00b9nLHWStuVSemTw.png' },
+    { 名称: '银行卡', 类型: '杂物', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/283aeUCXst8HetqkS7ZvxgxrYAHFHXYU.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '古玉残佩', 类型: '饰品', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkX0dvWEtpYkhTLThvUmtJbmloN0N1dUN2YVN1ZUFBSXdFbXNiUXJlNFZITmxBdmZfQW9JR0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5Y-k546J5q6L5L2pLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NTQxNDcsInQiOjE3Nzk5MDMwMTUwMjksIm1pZCI6MjQwNjB9.dI_fpnIv42iE9jQZwzdUrysRyfaPit53LfeapPplehE.png' },
+    { 名称: '古玉残佩', 类型: '饰品', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/KzALbyaXRqtXM0h9FocLerleOKNQAlW8.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '现金信封', 类型: '杂物', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpkX21vWEtrQ0ZlSmtjZ1k0bXdNT2dGUnpHOGF0aUFBSXhFbXNiUXJlNFZQanBJQm9pbUFud0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi546w6YeR5L-h5bCBLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo2ODA5MDMsInQiOjE3Nzk5MDMwNDA3MDMsIm1pZCI6MjQwNjJ9.5tFIkRcv8cdjeJZkoCwJE4nh91aQx7YW6vWWNOLri5U.png' },
+    { 名称: '现金信封', 类型: '杂物', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/CJcBhSH4QdHoKVWVtAgBqGu45cK0eQyU.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '合同文件', 类型: '任务道具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplQUFGcUZ5cEt3emhNUGJ6cHlTVzh1RVFTdndaeE9BQUNNaEpyRzBLM3VGU3dZRDNaNUFNajB3RUFBd0lBQTNnQUF6c0UiLCJlIjoicG5nIiwibiI6IuWQiOWQjOaWh-S7ti5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6NjQwOTkxLCJ0IjoxNzc5OTAzMDUxMDI0LCJtaWQiOjI0MDY0fQ.QQpI_xCBvfQsZPH0EzMh2fbJLeRdRezug3asgQN-Id0.png' },
+    { 名称: '合同文件', 类型: '任务道具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/OIltUoAkwZsb0EysIaAobwOr5fHqPYXR.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '证件夹', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplQkdvWEtuZXUwcHNaQ2hLTG9LbkVxb0pNZEplYUFBSXpFbXNiUXJlNFZKVG1fZFlIdFJ6T0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6K-B5Lu25aS5LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4ODM3MTcsInQiOjE3Nzk5MDMwOTYxOTYsIm1pZCI6MjQwNjh9.C2JTlqU1tWUO43og3tqiuNMq5ngjn2nk9wCVaY2UEqw.png' },
+    { 名称: '证件夹', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/EUnUL1YO6hNF80HyiyUb8Ri7RJTY0mXO.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '数据U盘', 类型: '任务道具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplQm1vWEtuOWFOTE1wTjFfV0pqOWhnS2dWZk1LMEFBSTBFbXNiUXJlNFZKaHAzdkJxTkdCZ0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5pWw5o2uVeebmC5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6ODI4OTA5LCJ0IjoxNzc5OTAzMTAzODkyLCJtaWQiOjI0MDcwfQ.L_46hRrWkv0Ar97U7kEIy5YRmSifEuZrXNXz6QxZSkA.png' },
+    { 名称: '数据U盘', 类型: '任务道具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/S9y8d2NpOl5yVI2zWxza9NEdevfW73v6.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '维修工具箱', 类型: '杂物', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplRzJvWEt1b3BrNWc4b0hFNElZajVZRWlFRl9hekFBSTJFbXNiUXJlNFZFVlVsN2x0Z1RfZ0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi57u05L-u5bel5YW3566xLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NDI0NzUsInQiOjE3Nzk5MDMyMTA0ODIsIm1pZCI6MjQwOTF9.H0CeAyucPrTUUo7bBx4vLQRlVUYaBYpqqEvaV2zkknY.png' },
+    { 名称: '维修工具箱', 类型: '杂物', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/2ZBvWH8XOgFeV0Q0tNeMCYaPd0FIHuVe.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '车钥匙', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplSG1vWEt2S2hpcEFsdTBQSzd4TktFREdIbDhVbkFBSTNFbXNiUXJlNFZPNzdpSUg5N05lVUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6L2m6ZKl5YyZLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MTIxNjEsInQiOjE3Nzk5MDMyMTg4MjEsIm1pZCI6MjQwOTR9.Gr4DNaBzwCo3wAKc_YoeziYobYk43Cdw45szZxPo27E.png' },
+    { 名称: '车钥匙', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/IYMUZUutE2tqyZp5KYQZ85Yeo24Iygwj.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '电子元件包', 类型: '材料', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplTUdvWEswR2FhUm91NmlWbDhrQ0Y2bVEtQmZBbkFBSTRFbXNiUXJlNFZMMTVsYTl1NTllMkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi55S15a2Q5YWD5Lu25YyFLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MjQ0MjAsInQiOjE3Nzk5MDMyOTgzNDksIm1pZCI6MjQxMTJ9.7jxsHwl36OATsIl_qIE6qEsbtwOxs_50EDW5f3rA8es.png' },
+    { 名称: '电子元件包', 类型: '材料', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/EwJSL4ckEUe0lcKemFWAdKbU2R8iY7cM.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '多功能工具钳', 类型: '杂物', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplTkdvWEswd3VsSDVCa2djZzYtSVJEUjQxQnMxbUFBSTVFbXNiUXJlNFZFS1VFT0NqN1pXekFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5aSa5Yqf6IO95bel5YW36ZKzLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NDM3MzQsInQiOjE3Nzk5MDMzMDg4NTcsIm1pZCI6MjQxMTZ9.tj8ZzOZ63VrPbIrPuaXO_8AiDWgSvSfJJkc4U1mTYVk.png' },
+    { 名称: '多功能工具钳', 类型: '杂物', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/jkxGoAo9K4XHKH9C3oyi2QWPmOmG8lUj.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '备用电池组', 类型: '材料', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplT0dvWEszU1RPMWNWbnppeVBDdFFSOVBBWlF3U0FBSTZFbXNiUXJlNFZOT1liRVRhZ2lxZUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5aSH55So55S15rGg57uELnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MDc4MTQsInQiOjE3Nzk5MDMzNDg5MjUsIm1pZCI6MjQxMjB9.aH2kCemM219e71QJqDJ38gmFVdM_yy-asRe4_d3WhLY.png' },
+    { 名称: '备用电池组', 类型: '材料', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/y5nfBWYNy6YkYKHGtszjOKIGdrX9L8qK.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '防身喷雾', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplUG1vWEszN056XzlGNGNhbWtmUFJwOEpVTE1SS0FBSTdFbXNiUXJlNFZMRnNaTDRyNU9qRkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6Ziy6Lqr5Za36Zu-LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MjA4MjQsInQiOjE3Nzk5MDMzNTg0MTgsIm1pZCI6MjQxMjZ9.EeEBNOl3oZv1YNgeJka5VK95mlT3iYdp8nCrTNBfGz8.png' },
+    { 名称: '防身喷雾', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/Czn3zDYhJVmVqzHSMAd6DELHXuC5703b.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '伸缩警棍', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplUW1vWEs5OTVNSlo5UlJScy04dFNmVGpOUDhNUEFBSThFbXNiUXJlNFZJMm1uODhFalNGcUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5Ly457yp6K2m5qONLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3OTg5MjksInQiOjE3Nzk5MDM0NTYzMzgsIm1pZCI6MjQxMzB9.jsTp6u2Refzk1yDA7OlIPpLy57UehCrom7XtQ6eS3oU.png' },
+    { 名称: '伸缩警棍', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/gTbqBBPIF9EVA2fIPCJLpKYd6XcMWYLz.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '轻便夹克', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplUkdvWExCS3pWeE9WVDVfdkNPT3dKOVhKbk9kWkFBSTlFbXNiUXJlNFZMWWM4REdQb2xzU0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6L275L6_5aS55YWLLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3NDcwOTIsInQiOjE3Nzk5MDM1MDY2NjMsIm1pZCI6MjQxMzJ9.ty76B6P5VcX-gPs9e2ooAzdo7jcOO4nWSPJfUP3zQl8.png' },
+    { 名称: '轻便夹克', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/yr76LWnhngimkLGkYOEeXFHGFAwFSMQp.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '运动鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplUm1vWExCbGhZU2kxLS15VjRVbWxxYVhPSnpMZ0FBSS1FbXNiUXJlNFZJY2kyem85aTlfT0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6L-Q5Yqo6Z6LLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3NDQ4MDEsInQiOjE3Nzk5MDM1MTQzOTAsIm1pZCI6MjQxMzR9.bCoW_x19H0ttyjTf6URmcVtOy4tc6NV7u6XrfEUsaXA.png' },
+    { 名称: '运动鞋', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/qC7d1SnobE2mCLGFCBOnYBnzs3pYltuY.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '防护口罩', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplVUdvWExJZ19ZSzliWHAwRTR4VVc1ZDZwT2VZNkFBSkNFbXNiUXJlNFZCNFd3eDc1dDgta0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6Ziy5oqk5Y-j572pLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3ODU0NzAsInQiOjE3Nzk5MDM2MjUwMjEsIm1pZCI6MjQxNDR9.kQU0p708qiD-7T3AA-QXL6o-bty49FIdcZ2_JL1IPkI.png' },
+    { 名称: '防护口罩', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/CrEqpGiQeB7J5jrKSx6Ula8xAWIf4LIS.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '电脑维修手册', 类型: '秘籍', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmUUdvWE1kd3BQWnhENld2aXhqV2dYaFE4ZWxtd0FBSnRFbXNiUXJlNFZKbW1jNk5YNkNQN0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi55S16ISR57u05L-u5omL5YaMLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo1NzM2MzksInQiOjE3Nzk5MDQ5ODg3NTUsIm1pZCI6MjQzODR9.236PQkTawoP-YkvXgb9m1C7-Z60lojoxcBda_6e4TY0.png' },
+    { 名称: '电脑维修手册', 类型: '秘籍', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/ZYWPaq4L0G6acUsQSXtEPk1JsHrRjeuo.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '急救手册', 类型: '秘籍', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmUW1vWE1lelc1TzhKU0tZVkgyUWZSdGE3Yk1yV0FBSnVFbXNiUXJlNFZHNmJHNVVSZlZsaUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5oCl5pWR5omL5YaMLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo1MTUzNjgsInQiOjE3Nzk5MDUwMDUxNTcsIm1pZCI6MjQzODZ9.6SFpc7twC0gSE74_gK2zRJsf38qHMsFGlgfczxpsSVg.png' },
+    { 名称: '急救手册', 类型: '秘籍', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/82u1X9Sh4uxwxdcsbCCPC6KWHIYge48g.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '便携检测仪', 类型: '杂物', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplV21vWExNa0NHaHhZRXBjZ2pIbWxpT0R2OGlHekFBSkZFbXNiUXJlNFZNRnNxZ0ZPMUp2akFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5L6_5pC65qOA5rWL5LuqLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MTk2MTEsInQiOjE3Nzk5MDM2ODk3NzAsIm1pZCI6MjQxNTR9.Yi-Z8KPloXMvu5TGKQcRyJf9N-Z6e5cebgbkOpfdoqA.png' },
+    { 名称: '便携检测仪', 类型: '杂物', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/MS4kDWZdtRk1Lzm9sGvgjX6sqTjTpF1s.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '防护服', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmTkdvWE1XWWhWdmNtcndVdVpRYTlMV25QenNSV0FBSnNFbXNiUXJlNFZFX0NicFBPWS0xREFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6Ziy5oqk5pyNLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3NjQ3MDIsInQiOjE3Nzk5MDQ4NzEzNTAsIm1pZCI6MjQzNzJ9.33jHW-R9Pj4Qdb7_edOupW0c0nDtyZGQJtBNdA5Ge7E.png' },
+    { 名称: '防护服', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/v0Rr4Yv2Or6mhotxviYah4mDnbXzapVy.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '异常样本盒', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplWW1vWExSeWNsdFJmY2Z0ZllCcFRRVGhvUElJaUFBSkhFbXNiUXJlNFZHdkNtRWdPM19hd0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5byC5bi45qC35pys55uSLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3NzkzMjksInQiOjE3Nzk5MDM3NzI0NTYsIm1pZCI6MjQxNjJ9.9XFyI9X1WqkUgOGxPYGWymb92rfPbm3PyeaDWMtB_VQ.png' },
+    { 名称: '异常样本盒', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/zMwRJEEXkAYFPpDTwIvsjxuYjGV4l0dP.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '灵能探测器', 类型: '杂物', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplWm1vWExUMkliT3ZWa0ZMM2UtU1g5MmtlazVhYkFBSklFbXNiUXJlNFZHYlhnOUxEdXhERUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi54G16IO95o6i5rWL5ZmoLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MzY0ODgsInQiOjE3Nzk5MDM4MDYwODIsIm1pZCI6MjQxNjZ9.-pSkeZac-bWcAGErSFPFtXk6Le85ie1fpcD0M0f-_aU.png' },
+    { 名称: '灵能探测器', 类型: '杂物', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/cN9qYYQt1kAN4skS31U3qMwPgsZGxBRM.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '银戒指', 类型: '饰品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplYW1vWExVVUZRT0hCcWFNaXR1OWp6bGVlbHFkdkFBSkpFbXNiUXJlNFZNNFFXTmUxekdpVEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6ZO25oiS5oyHLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NDExNjgsInQiOjE3Nzk5MDM4MTM1MTQsIm1pZCI6MjQxNzB9.Pfzhz-JG1Ap8fsxy9CWN28GlEFboj_HATkIFUu5bSwQ.png' },
+    { 名称: '银戒指', 类型: '饰品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/XCcWeEHcnozNtnWdG9gSdXmw7VYvY2HI.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '灵气抑制贴', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplYkdvWExVeExRRGR0UlJzTE52MVp2SG5TNlYyWEFBSktFbXNiUXJlNFZEVkprS2d3ZVlxdUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi54G15rCU5oqR5Yi26LS0LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4Mzc5NTksInQiOjE3Nzk5MDM4MjEyMTcsIm1pZCI6MjQxNzJ9.wh_h7-B1SZ7nWr9aZivK5Vzoyw6SGJUo0aUMfMNQvvQ.png' },
+    { 名称: '灵气抑制贴', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/bQBCDg8EflvwyyQ7HQUr7d89OAiYBEeA.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '罐头包', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplaW1vWExibE1XbmxxQmwwWENWVU9heDhnOW5BNUFBSkxFbXNiUXJlNFZIM2pxcDRQZENiQkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi572Q5aS05YyFLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MzU1NDAsInQiOjE3Nzk5MDM5MzAwNTYsIm1pZCI6MjQyMDJ9._0vG7L3vKWpE9ArTU8C00A_xDoJk0UKeM2svJlsqbW4.png' },
+    { 名称: '罐头包', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/xfBFAJ81HV2pS3QSZwnhNM010gIZylOI.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '怀表', 类型: '饰品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplb0dvWExnWXZuZjVQQ1RMajNJbWZNNTJBNEo4akFBSk1FbXNiUXJlNFZCRUZydWpoUFQ0UkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5oCA6KGoLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NjQ4OTYsInQiOjE3Nzk5MDQwMDY4OTYsIm1pZCI6MjQyMjR9.ZkTEFyxLTgK8GCzx7QQji4Pe7X8Qr-Vpa-GtpZWo6-c.png' },
+    { 名称: '怀表', 类型: '饰品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/WwWNGs4tG2y4fEs1wukejIAEK35PQRB8.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '净水片', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpldG1vWExsWWJaUV94UHpiamI2bXlpaHlrUVJsQUFBSlFFbXNiUXJlNFZOQWdQTUkxS0ludEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5YeA5rC054mHLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NDQ4NzYsInQiOjE3Nzk5MDQwODY3ODQsIm1pZCI6MjQyNDZ9.4HoR7F2zGFYiHwGYkalikz9NguBF66cuOwpqWGp3CFw.png' },
+    { 名称: '净水片', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/u6i5gVTReTXzopaof6NPXlCftHZktx1O.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '手摇电筒', 类型: '杂物', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpldldvWExsOUVPcE1UQnpWVDFTRFB6b2FZNWVHYUFBSlJFbXNiUXJlNFZCOFRkYUVWcmRMaUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5omL5pGH55S1562SLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NTQ4NTQsInQiOjE3Nzk5MDQwOTU3NDgsIm1pZCI6MjQyNTN9.TNDiUMUo-K9iQmj78nXRrVP99RdEWy7p8aC0ABlB0-k.png' },
+    { 名称: '手摇电筒', 类型: '杂物', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/ccwxZxEV0tRn4BDq1lQhwm0ptlDOB5Yu.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '弩机组件', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpld21vWExtZXd4dlZBYzBzNlQxdGVXLUxNcXlfTUFBSlNFbXNiUXJlNFZCcllodVVDS3VybEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5byp5py657uE5Lu2LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NTE5MjQsInQiOjE3Nzk5MDQxMDM4MTIsIm1pZCI6MjQyNTh9.m4c6bRq9Un6wTqLdDsBl1CfSUO0hwMkIso3Xo_QpG54.png' },
+    { 名称: '弩机组件', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/nbvqyABFda3HGgnyH5uDisC6jGTZ34Sm.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '抗生素散盒', 类型: '消耗品', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpleEdvWExtN1gwOWRkUGhnWkJneTVqUVpxbGxWMUFBSlRFbXNiUXJlNFZDMGlvWWkyM21NRUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5oqX55Sf57Sg5pWj55uSLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NTQyODUsInQiOjE3Nzk5MDQxMTExNjIsIm1pZCI6MjQyNjB9.A4omgO31BX_FTazcn7XMY_AXlDZDuhEk8Hx5we1Yybc.png' },
+    { 名称: '抗生素散盒', 类型: '消耗品', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/FSbSrfPfU7I5FGfesv7GTPare0I3wPw2.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '饮水瓶', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpleG1vWExuWUxrREl3akFwWTBYZ01nV2JiVGhZZUFBSlVFbXNiUXJlNFZBVW1jRHR3VUtqREFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6aWu5rC055O2LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MjMwMTcsInQiOjE3Nzk5MDQxMTkwNjksIm1pZCI6MjQyNjJ9.vEDL27mNXr3n8QGygCRgCRhmDa0Ad2aJ1m1YF-aQgSg.png' },
+    { 名称: '饮水瓶', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/UnNGj4dQ0uDoNPB7X0tCBp006CZcb3T9.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '汽油桶', 类型: '材料', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpleUdvWExuNGsyLUJvbWpxWGJXNkQxSnczaUdiR0FBSlZFbXNiUXJlNFZISTNPR1MwMDFnX0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5rG95rK55qG2LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3NzkwNzYsInQiOjE3Nzk5MDQxMjY4NjcsIm1pZCI6MjQyNjR9.1WdFrVT1QSW8c3Fih6NTKFAZkJb2VHPJS7Jiczo2obc.png' },
+    { 名称: '汽油桶', 类型: '材料', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/wceQL3JpihpiZdbgNTblxzYL7DTruRD4.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '压缩饼干', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpleW1vWExvZGloQTVEckpmd0xKV2FaYkdjSm1nQkFBSldFbXNiUXJlNFZCSWdSam5nYmlKa0FRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5Y6L57yp6aW85bmyLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3MTk5NzgsInQiOjE3Nzk5MDQxMzYxNDQsIm1pZCI6MjQyNjZ9.c83ncwNYo48oMnFPkLmEWT45VpTSS3Zpqr3j421kzIM.png' },
+    { 名称: '压缩饼干', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/7YK0wVz7GaFO0t1CDyHkZaOOP3kgCd0C.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '医用绷带', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplNUdvWEx6MmMzMXlKdjd3OHZvSXphRkV1MVJKaUFBSlhFbXNiUXJlNFZCNTBud3lnLUg0ZUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5Yy755So57u35bimLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MjcxODQsInQiOjE3Nzk5MDQzMTc1NDYsIm1pZCI6MjQyOTJ9.OYoMGBFzivWk3SFlTNBnz5_ysNOytNOyBn2CyngICew.png' },
+    { 名称: '医用绷带', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/MswWJUEhh4iSFXDHcTomWrEopf3YUrF1.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '止血带', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplNm1vWEwxSDAtbDBod2FsZk1KTGZhbElQVnlwM0FBSllFbXNiUXJlNFZJUkJJT210R00xMUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5q2i6KGA5bimLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NTI3MzEsInQiOjE3Nzk5MDQzMzc5NTcsIm1pZCI6MjQyOTh9.r4kCjuT3U44lBXbJTJU7E4QJOoMq2PEXdic5wshw5SY.png' },
+    { 名称: '止血带', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/Lp5sjoyPU6d7pyNMnBrpWts6pNRZNDXx.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '过滤水壶', 类型: '杂物', 品质: '良品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplN0dvWEwxbDZFQkRSY3hpaXJBQUJfaTEwekRTSllBQUNXUkpyRzBLM3VGUTlHa3R5Z0hkdXlnRUFBd0lBQTNnQUF6c0UiLCJlIjoicG5nIiwibiI6Iui_h-a7pOawtOWjti5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6ODQ2MTA3LCJ0IjoxNzc5OTA0MzQ1NjcyLCJtaWQiOjI0MzAwfQ.0tVs9U_gvW0QUc2OtQHZwNiEQCkN4HVZPQXcFOAi8ao.png' },
+    { 名称: '过滤水壶', 类型: '杂物', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/fhKmBhzgCpRXOB1oMhFiQWpF9CYDhnDW.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '干电池组', 类型: '材料', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplN21vWEwyQk1PSjNtNzBidFlqNlJnTlFTUXk2MUFBSmFFbXNiUXJlNFZCQndjLUlMcEdjNEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5bmy55S15rGg57uELnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3ODUzOTgsInQiOjE3Nzk5MDQzNTMxMjMsIm1pZCI6MjQzMDJ9.eVvD6-6z_P-43BNyWtToFyDsiva_IwGyDmYqHv1S4Fw.png' },
+    { 名称: '干电池组', 类型: '材料', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/gMjgrgMZKioyCSiIldXqNUpkpDL2Nymu.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '净水滤芯', 类型: '材料', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplOEdvWEwyakhDUnVwUlU4dEFBRUtyQXVFZ1JHWGtnQUNXeEpyRzBLM3VGU192d3JZT0pTWk5RRUFBd0lBQTNnQUF6c0UiLCJlIjoicG5nIiwibiI6IuWHgOawtOa7pOiKry5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6ODQwMzUxLCJ0IjoxNzc5OTA0MzYwNDQxLCJtaWQiOjI0MzA0fQ.iALvDduLt43oRniFbVqL_QGPBJw6fE79Eimbwhxhq-Q.png' },
+    { 名称: '净水滤芯', 类型: '材料', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/Y8AbadatS0UpejhYluKXloLRp4ItellI.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '太阳能充电板', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplOG1vWEwzUk42bWxUV1F4YWNUNVJBM0hjanBRX0FBSmNFbXNiUXJlNFZDZ2xqWmNEeEhyNUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5aSq6Ziz6IO95YWF55S15p2_LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3OTI2OTUsInQiOjE3Nzk5MDQzNzI4MzMsIm1pZCI6MjQzMDZ9.IwSCZXJk-Iv4WnSm-zYeUVpiti6jg1_lx2mtr5S1HHU.png' },
+    { 名称: '太阳能充电板', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/MQLoQy2ZRmh2eboOInBtKrSxZ6LLVYsm.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '弹药盒', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplLUdvWEwzMk5PTzJnUHhGYmp3VW5CUUFCM1BxeHZnQUNYUkpyRzBLM3VGUTdRamNjTUFnSEt3RUFBd0lBQTNnQUF6c0UiLCJlIjoicG5nIiwibiI6IuW8ueiNr-ebki5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6ODE1NDkzLCJ0IjoxNzc5OTA0MzgxNTQyLCJtaWQiOjI0MzEyfQ.iFg6ZEopfkHS1LLbFd2X6Sjv-UQswrVydqRlHMtcyUk.png' },
+    { 名称: '弹药盒', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/Bo7ff9nkWsHYfIGnsdP0nfKBQUgNvlut.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '护目镜', 类型: '防具', 品质: '良品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplLW1vWEw0UVNYQzZod0I3MFV1VWdXeDVmWjZZNEFBSmVFbXNiUXJlNFZETl93WWp3N1ROWUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5oqk55uu6ZWcLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NTkzODQsInQiOjE3Nzk5MDQzODkwNjUsIm1pZCI6MjQzMTR9.WriL3smqzOtZVWSFNUx3LhoaFK1NuCiXg2Dj_2FZd3o.png' },
+    { 名称: '护目镜', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/Y30W0Wt4dyNq96TSQGlBJgz1PTkfnuvD.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '防毒面具', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplX0dvWEw0NTlLLTZra2ZhQTJueTRUNnEwVUJoVUFBSmZFbXNiUXJlNFZKb3NyeEhFd180bkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6Ziy5q-S6Z2i5YW3LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NTQ0ODIsInQiOjE3Nzk5MDQzOTg4NzUsIm1pZCI6MjQzMTZ9.6CVDuzG1FkWcpCanCM3Qen8Eg7DKo7OcGhGqxVczxrw.png' },
+    { 名称: '防毒面具', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/4YwIArERXgfYo0DPsFLcpKOtvFM4hSMU.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '撬棍', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUplX21vWEw2YjBLc0g1TWM0Nm1RdmlnODljN19Cc0FBSmdFbXNiUXJlNFZHMUNSNG9XWGFmNkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5pKs5qONLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3ODA4NjIsInQiOjE3Nzk5MDQ0MjI3MjQsIm1pZCI6MjQzMTh9.u2zzMgBEpk6wLgIvGe4xoiucysIrCWnO02XQ8EFMO0s.png' },
+    { 名称: '撬棍', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/RbIjYYhXpfBCvM5zkZawiSNqPp5E8nCc.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '战术背心', 类型: '防具', 品质: '良品', 图片URL: 'https://image.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmQUFGcUZ5LXVmNzNFWkV5cFFpeWY5cjIzR1JGeXR3QUNZUkpyRzBLM3VGUjZEczRYbGYxNjJnRUFBd0lBQTNnQUF6c0UiLCJlIjoicG5nIiwibiI6IuaImOacr-iDjOW_gy5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6ODAxMTE3LCJ0IjoxNzc5OTA0NDMwNzY4LCJtaWQiOjI0MzIwfQ.ydecqRVEVX9b1oehWDRf7RwZAbjQg4EYbfYFn1V5pGc.png' },
+    { 名称: '战术背心', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/JblCgJAjtprxiCySY598fZY2R2YBXa9T.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '消音弩', 类型: '武器', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmQW1vWEw3WjNNcGFQc25GTlM3SEZ3UVhiNWRjWkFBSmlFbXNiUXJlNFZCU19mdFFaU245NUFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5raI6Z-z5bypLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4MjAwODQsInQiOjE3Nzk5MDQ0MzkyNzQsIm1pZCI6MjQzMjJ9.4qQt1yYze0H6wLFddGRF28ho67DhmSFhsgrMAC1dqII.png' },
+    { 名称: '消音弩', 类型: '武器', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/3JLFrH2cEm4tMTooW0BlX9x8u1s8GJYe.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '求生手册', 类型: '秘籍', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmUm1vWE1mU0lGaUNBTlZWZlVNcVRHWFlpbERaTEFBSnZFbXNiUXJlNFZFRFVVV21LbDQtOEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5rGC55Sf5omL5YaMLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo1MzUyNzIsInQiOjE3Nzk5MDUwMTI4NDAsIm1pZCI6MjQzOTB9.NMkAHaV_Oy3DG_mVfD_g9mKtejzxIZNMXbxtzp7wgW4.png' },
+    { 名称: '求生手册', 类型: '秘籍', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/RPoN4UKHYK6KvAMtSUCj44WAVOFvQnEJ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '营地通行证', 类型: '任务道具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmQ21vWEw5RkdodlZRSzhmM2VfNE9xLUItYzBReEFBSmtFbXNiUXJlNFZBYUphNjF0SDZrMkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6JCl5Zyw6YCa6KGM6K-BLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo2OTI1ODksInQiOjE3Nzk5MDQ0NjU0NTIsIm1pZCI6MjQzMzB9.yrVQag__E73_ecckBiDJdkgoaH2jJvwd6i7qDu8e0iw.png' },
+    { 名称: '营地通行证', 类型: '任务道具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/aS7Y1vnxES4ywsGuYNXVBPccMJXsljSi.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '无线电台', 类型: '杂物', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmR0dvWE1BNGl1MGtJVHM4SnVyamV5QmZYdjUwbEFBSmxFbXNiUXJlNFZDTk9HTV9oNldkNkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5peg57q_55S15Y-wLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4Mzc5OTgsInQiOjE3Nzk5MDQ1MjY0NjcsIm1pZCI6MjQzNDR9.sXJd8hxEftwlfxCk3bJEEwyst4CJ0JGQHs0Hd_KA1A0.png' },
+    { 名称: '无线电台', 类型: '杂物', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/GBGA9JfCqrE2WIxUbAf8Oc1R2EBat48i.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '防水火柴', 类型: '杂物', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmR21vWE1CczVyWWRQYXNOdnIwNHd4Z2hBVkVHVUFBSm1FbXNiUXJlNFZOU1picWRXVi1RdEFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi6Ziy5rC054Gr5p-0LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo4NzExOTAsInQiOjE3Nzk5MDQ1NDAyNTYsIm1pZCI6MjQzNDZ9.9xGjmW0wcNg3yeoWF4A_aFd-IEzsj71NvBGc4-lXJCc.png' },
+    { 名称: '防水火柴', 类型: '杂物', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/SF3zKZCJrBdrEMqLgOBz8JMdzvGEZTXb.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '感染检测卡', 类型: '任务道具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUpmSEdvWE1DNl8yNGZsSm91cXd3djdZUkhCQ2NvbUFBSm5FbXNiUXJlNFZGaFozc2VyN1FVdkFRQURBZ0FEZUFBRE93USIsImUiOiJwbmciLCJuIjoi5oSf5p-T5qOA5rWL5Y2hLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjo3MjQxMDUsInQiOjE3Nzk5MDQ1NTg4NTMsIm1pZCI6MjQzNDh9.jtt9f4mC1l5bisKP9B-7_XyPwmxogT0ZJwU-7B2n_RQ.png' },
+    { 名称: '感染检测卡', 类型: '任务道具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/zYfYLnVQP9jn2xZHzAKZYcMPyzaJTB1j.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '骑士长剑', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUthdEdvYjZqWUtYS1JyUXNYNllMMXZKM3VfbUdDRUFBS3VEbXNiZDhyaFZJbDd6NFJXODBUaEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LWU5YWE5MWU1YTNhYmU5OTViZmU1ODk5MS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTc0MDA0OSwidCI6MTc4MDIxNDU2MDcxMSwibWlkIjozOTYzNX0.wZ0CmoKR1iFUhOW6QJzspRYPLSR0Xg3H36aDGvtBi38.png' },
+    { 名称: '骑士长剑', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/mCFyE6rWvboTDf7rEYgzgYtkHQR4EMBj.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '冒险者短剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUthODJvYjdOYjdldWlWQ3RFNW5ucFJIX1JQdktHZkFBS3hEbXNiZDhyaFZNazFJN1QtTEdOZEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LWU1ODY5MmU5OTlhOWU4ODA4NWU3OWZhZGU1ODk5MS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjA0MDE4MywidCI6MTc4MDIxNDk5OTMyMywibWlkIjozOTY2N30.NBsZ8rm8ufLuv6TSgloE4EQ1InFbKJdve91QqNQZXmI.png' },
+    { 名称: '冒险者短剑', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/TBhrN3FOlXP6jDgVLOujRPLXxSsu4Mng.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '牧师钉头锤', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiRTJvYjd1MWxJb1FmTGNFVWdzTjVIUV8xbEpnSEFBSzREbXNiZDhyaFZPaXdyTTFGSE9JNEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LWU3ODlhN2U1Yjg4OGU5OTI4OWU1YTRiNGU5OTRhNC5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTc2ODQwNSwidCI6MTc4MDIxNTUzNDM2MywibWlkIjozOTY5OX0.J-DUBxfYHM-9g-MDzgFRCYVfaBUnzAl2zsPHnamHmjA.png' },
+    { 名称: '牧师钉头锤', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/gls95UIKNLfeSyFcxo27MFX0rRJs81Sm.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '橡木法杖', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiSVdvYjc5ZFpuRExET1drVWxwQ18wdllxNHFDU0FBSzdEbXNiZDhyaFZMMFRxOGlDeTNNdEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LWU2YTlhMWU2OWNhOGU2YjM5NWU2OWQ5Ni5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTkyNzQ5OCwidCI6MTc4MDIxNTc2ODI4OCwibWlkIjozOTcxM30.9aJjNgN67pnW9opr81PW80fcM3D_XUKHzApv4LJaJEw.png' },
+    { 名称: '橡木法杖', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/zCz0Re3jL1YthuADItMN8mM4TYOTaYn7.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '长矛', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiSldvYjhDVXliZU1FT19oc0VodWZHYk9wWV9UYkFBSzhEbXNiZDhyaFZGSFlibTRzNzdSakFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LWU5OTViZmU3OWY5Yi5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTc1NDgyMCwidCI6MTc4MDIxNTg0NTQ1MiwibWlkIjozOTcxN30.SKHPWiBtcTHQJeZtZTMvSJhz3blN8YCX6WJNtIV7Y_U.png' },
+    { 名称: '长矛', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/6bzR7c3eY3e5NCAb9PerQ5ZaCfN4Apnp.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '轻弩', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiUjJvYjhXcnZYQ0JZRlAwOVV3OFFqaG53cHRDY0FBSzlEbXNiZDhyaFZQc1RvZm9OM0t1SkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LWU4YmRiYmU1YmNhOS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTYwNDMxNCwidCI6MTc4MDIxNjE3MDY1OSwibWlkIjozOTc1MX0.KoU8LWcjjmVYis-J2Zv-F-YKqoTakW15Sfd-PskCjiY.png' },
+    { 名称: '轻弩', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/21BNiH8U29ucK5QYuWyRBDt7oldi6yfn.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '猎人匕首', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiVFdvYjhidDhoNUFXSkhRaWxsb3BIZDhNbXhfM0FBSy1EbXNiZDhyaFZCeUxxTHRYUmpHQ0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFic2h0cHEtbXB0aXJ6OW0tMS16am45ODEucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIwMjMzODEsInQiOjE3ODAyMTYyNTE1OTgsIm1pZCI6Mzk3NTd9.zqjmd7YaNMuAi9oGW6zX2KcG3bw9onZFYuLqRejkKT0.png' },
+    { 名称: '猎人匕首', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/jtyXaDNIQUeDNv2zDP5gXFSpxah2WzDi.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '战斧', 类型: '武器', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiVldvYjhqdmp5a0hTRjJSRHh1a0RMSkhWdXJSLUFBS19EbXNiZDhyaFZJMktlV3pBc0ZhV0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTIydjRrYy1tcHRpdXExcy00LTZnZW83Ni5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTkzMDQ3NCwidCI6MTc4MDIxNjM3OTU2MCwibWlkIjozOTc2NX0.41lLPQIvq9tkUsokO-N0cDIib306Fh7axxdAGizT9tM.png' },
+    { 名称: '战斧', 类型: '武器', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/C5HBTMs0z7T47bewi8dUi8iqMxGb1b4d.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '短弓', 类型: '武器', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiVjJvYjhqN01odFB4YWhRX1R2TFdsczJ4UlRZSEFBTEFEbXNiZDhyaFZOa05CY1RQYjFFRUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTIzYXM3Yi1tcHRpdXVldi0xLTRpaXp5ZS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTk3MjY3NywidCI6MTc4MDIxNjM4MzAxNSwibWlkIjozOTc2N30.hj24YPg8koJRSFnMn-lS4t6cWqfGFULcdqjXYmXbV0g.png' },
+    { 名称: '短弓', 类型: '武器', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/Vx1itzpcgRuVG5VF2vpN9VcvsYbkY0XZ.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '圆盾', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiWjJvYjgteFJROHRqcjF5MC1MZ1hWQ2tYM1JCSUFBTEVEbXNiZDhyaFZMYlFfV1pFT3FqbEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTIybjlqMS1tcHRqM3poeS0xLXhjajEwby5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjA1NDE2MiwidCI6MTc4MDIxNjgxMzAxNywibWlkIjozOTc4M30.oAJUHYfbmMEuJa1eQcQiAbL5TILThgHndovC0pvBgzU.png' },
+    { 名称: '圆盾', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/ZVZDqn13gGj7YCEXsXUZ9mnp6DM7qAmc.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '皮甲', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiaDJvYjlJQTNESURvZ0gzMUJfWVYwQnVKUWdHdkFBTEZEbXNiZDhyaFZFdVlJTnoxV2ZrT0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTIzYTBidC1tcHRqNzQ4di0xLXQxZGw3dS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjA5NzE4MSwidCI6MTc4MDIxNjk2MTMwMiwibWlkIjozOTgxNX0.sXzSpFz7KMhgf8kmqSw3rzle8lLsnLH_kyV5sV1TW4c.png' },
+    { 名称: '皮甲', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/uh9LFvQAVpQpfCkv0u8d9oj99ln4CZXz.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁盔', 类型: '防具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtialdvYjlOdVBjWG5iQnpsVFpGUkRBWUxsM3hvVEFBTEdEbXNiZDhyaFZPaW0xX1hab080MUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTIzdm12OC1tcHRqOTQzdy0xLTUxam5kYy5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTgzODg1NywidCI6MTc4MDIxNzA1MjEwMSwibWlkIjozOTgyMX0.0TrBY9VwcYg2GfiViHupcFn5Dy7tLzmsjTsEUkkPHD0.png' },
+    { 名称: '铁盔', 类型: '防具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/KLRsyvvJc1apaetoC163xKI1d2VNj47w.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '板甲胸甲', 类型: '防具', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtibDJvYjlWOEFBYWE1RVJzc0tLamFGUzNCYXBmTzBBQUN5UTVyRzNmSzRWVHNUSHlRTlVIYW9nRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6InByZXNldC1ibW5jNDYtbXB0amJ5dDEtMS0yYWk3ZWQucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjE4MTE1ODMsInQiOjE3ODAyMTcxODM2MDUsIm1pZCI6Mzk4MzF9.0xzJterg9864X9aw6S82MZE30B3YFHQIpWBEsdY7ZhA.png' },
+    { 名称: '板甲胸甲', 类型: '防具', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/crOFjdgLbbxtndta1nfgCrwuFrBVKyVu.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '旅行干粮', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtibVdvYjlaX0FqTm9fdzdXaTZnN19Icm02LWszdEFBTExEbXNiZDhyaFZMOHgtZC1OZGwwcEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTF2bGZyNjQtbXB0amQ4MDktMS1hOTAyaDYucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIwNjgzNTcsInQiOjE3ODAyMTcyNDc4ODYsIm1pZCI6Mzk4MzN9.qgBgqsMdhjhNERErBsO0nn3nfymTOGx0i2-05mdNZvA.png' },
+    { 名称: '旅行干粮', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/sfFVFTrRB4Yyea7JV7bN6aVa2eH2dkvR.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '兜帽披风', 类型: '防具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtibTJvYjliWmxYQkJ3VlVKWEdOdEhRVThodnJvSkFBTE1EbXNiZDhyaFZCeDJnR294LUdUSUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LWNjYmFmMS1tcHRqZHIxOS0xLXBkZnBkcC5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTk4MjkzMywidCI6MTc4MDIxNzI3MDkxOSwibWlkIjozOTgzNX0.N-p19dK92btGis31W2clkhpyKz7-AkoSC0h6IrlSLYQ.png' },
+    { 名称: '兜帽披风', 类型: '防具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/a1hJNMFiBlZwjwg5QPXXadpUAe1gPDc9.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '治疗药水', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtib1dvYjlmdkFCUUhXd1hmNnd4RW9OUnpnU3k0MEFBTE5EbXNiZDhyaFZQemFvSzZZNkl2ZkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFwaDlhbGEtbXB0amZiNmgtMS02eGhjdTMucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjE2MDcwMzMsInQiOjE3ODAyMTczMzk2NzQsIm1pZCI6Mzk4NDF9.BGDGAhsnHwTkxp_BjYtFv7r97Ko1JIofmxpaQZYEv-4.png' },
+    { 名称: '治疗药水', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/lFJ46Vc6hBBiPJKyrenZXTCEo38aUUV1.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '清水水囊', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUticDJvYjloRVNqTjJqSHhoN2hfNk96R2J3U09xZ0FBTE9EbXNiZDhyaFZCbkxidmlkX3lQb0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTIwdGVoaS1tcHRqZnBrNy0xLTIwOWFqMy5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTkwMjg2MSwidCI6MTc4MDIxNzM2MTM3NSwibWlkIjozOTg0N30.h7bhdauumjZe_nldwld30ba91jY-HVX5nH-84t7gbDs.png' },
+    { 名称: '清水水囊', 类型: '消耗品', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/iOltudArJoq2CEy8vhdUSUenRqRytvVb.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '法力药水', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtic1dvYjlqTGdwWlpjRkRFRWZhSVVmZnFDNkV6aEFBTFBEbXNiZDhyaFZIWVNTV3NRcGhLM0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFud2p3NzQtbXB0amdpbGwtMS11bjJpeXcucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjE0MDg2MDgsInQiOjE3ODAyMTczOTUwNTAsIm1pZCI6Mzk4NTd9.X_fT_PX_rWmlXSkvhbFT3xTDzWVsZF0fMTHBQWjfgDc.png' },
+    { 名称: '法力药水', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/aVsRDHICTi3sG8FZCVZ7TnrHG4LLG2bO.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '解毒药剂', 类型: '消耗品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtidldvYjlrd3JoQjhvaFFuTHpCVUpjVGJxTFM3dkFBTFFEbXNiZDhyaFZIdW1SNHd2NE9DS0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFpNWhiZzctbXB0amgydjUtMS0zbWF5dHgucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjE2MzQ5MTAsInQiOjE3ODAyMTc0MjA5OTEsIm1pZCI6Mzk4Njl9.FqkJxrmxnzsOYPwYzGgmnUWCQhliJfdTimvswaxYoiQ.png' },
+    { 名称: '解毒药剂', 类型: '消耗品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/ehMRYtu9Rgt21TpbIRx1rRjDN4tIjfwD.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '火把', 类型: '杂物', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiM1dvYjlyTGpNc2Roekh2cGJmaFc5dHFDdDBPWEFBTFREbXNiZDhyaFZQUEpJcDUwTEhUWUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTIzNWVtMC1tcHRqaXducS0xLWY3Z2J5by5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTcxODQ4NCwidCI6MTc4MDIxNzUyMzI1MywibWlkIjozOTkwMX0.8mIwuvHQ-NULwLsr0oXjP-EbRZCUgBVdG1WjsCWfDic.png' },
+    { 名称: '火把', 类型: '杂物', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/B5N2DcduDhwB3IBi86RBMmJ4w0s1ePL7.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '火绒盒', 类型: '杂物', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtiNTJvYjl0RUg3ZXBTNTBNdXpCYkxMV2EtWjg0WUFBTFVEbXNiZDhyaFZQRFhTeWg5VkRsZ0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFvZHd6ZjYtbXB0amp3YjgtMS15ejZnYWQucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIwNDcxODIsInQiOjE3ODAyMTc1NTM5MjcsIm1pZCI6Mzk5MTF9.PyJMDMM9qFmzFaHWMvW1PGOtAF0IZgT1EHuFDwTknn8.png' },
+    { 名称: '火绒盒', 类型: '杂物', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/XIoqCTKYW1z1YaMqg4smgfCZ5M3h8qQT.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '王国地图', 类型: '杂物', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjQVdvYjkwYmxYamcydnpjc01sV0hCZzU4UVQwcEFBTFZEbXNiZDhyaFZBMFF0aUhZT3JJN0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFoMWhlY3gtbXB0am1haWctMS05eXdpZHMucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjI0NTc1MjMsInQiOjE3ODAyMTc2NzEwMTYsIm1pZCI6Mzk5Mzd9.2du23J7behuvr0L4X9ZlBDZKE3DjNmfTXvWsy4nu9eA.png' },
+    { 名称: '王国地图', 类型: '杂物', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/HSpLkHWAt04gZ58LXazhBbhohZ5NCosE.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '冒险者绳索', 类型: '杂物', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjQjJvYjkxaUpJMlFXOFJSbEUycURoSi10Z1JuSkFBTFdEbXNiZDhyaFZCay1KVHpkRjBNZEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFpcXczMC1tcHRqbXE2dC0xLW1tbTVycS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjIzOTIxNywidCI6MTc4MDIxNzY4ODkyNCwibWlkIjozOTk0M30.IOGTy-q6CG_2U0WS838RsauIPcRjDrbVIsPt7AaPckA.png' },
+    { 名称: '冒险者绳索', 类型: '杂物', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/mLCkWuesOBwzAhYejprtHjrBili6vXG5.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '公会徽章', 类型: '饰品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjR1dvYjk0M1h1cy1oeVgwUTQ5bTBSd2dOMU5qckFBTFhEbXNiZDhyaFZQa3F6WWk1U0RNY0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LWJ1Mm8xbS1tcHRqbng5My0xLTRweG9yNy5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjA3Mjc5MywidCI6MTc4MDIxNzc0MTQzOSwibWlkIjozOTk2MX0.pGjIGpyZifARR-1iyKSCIFm1koJQJkIjvNmL5JwChJM.png' },
+    { 名称: '公会徽章', 类型: '饰品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/nhZJg61R7myaz1EUerfXfXYWQ4iJnHYG.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '指南针', 类型: '杂物', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjTVdvYjktM05ZUko2bE1MVzVaOHF4RS15VlYzVEFBTFlEbXNiZDhyaFZPcUVPelpidDdCdkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFuZTEwOWYtbXB0anB6dXctMS03eW9yMDUucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIxODExNzAsInQiOjE3ODAyMTc4MzgzMDYsIm1pZCI6Mzk5ODV9.Kl0ijlNyChvl862WL6Mxi9tlV4jaqAMky9MwYRxje3I.png' },
+    { 名称: '指南针', 类型: '杂物', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/5ghsZ2FnDPfHgBgtXEzBTbDPtUvrWAyI.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '护佑圣徽', 类型: '饰品', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjU1dvYi1EcUFrYkkycENRT1I1aXZEdUlLY2dYOUFBTGJEbXNiZDhyaFZDWHd2VTJaNmdYUkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LXhvNTk5Yy1tcHRqcm53di0xLTZuczNqYi5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTk2NjMwNCwidCI6MTc4MDIxNzkxNTE3MCwibWlkIjo0MDAwOX0.Bg-pu2OHYZOjylWk6FSt9sVVeaMbPCW2YtBUxk3-t38.png' },
+    { 名称: '护佑圣徽', 类型: '饰品', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/LYcfEZHbKsm2BAWJwvBGccyaiTLPB1Qs.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '魔晶吊坠', 类型: '饰品', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjV21vYi1HdjRvR2NPbmhLQmhwOVpFSDRGbGJTR0FBTGREbXNiZDhyaFZGMFlTbkEwOEVHOEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTZuZHJ5dC1tcHRqczhoNy0xLTYyNWNwei5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTkxNjU4MSwidCI6MTc4MDIxNzk2NDA5NCwibWlkIjo0MDAyNn0.XsMz-_7yBNRLB-RyTT5yVMZMl5QrPHXgDqeMUyESlw4.png' },
+    { 名称: '魔晶吊坠', 类型: '饰品', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/zBB6OF8yefYAgFQFFRWekaiitDXiBPdS.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铁矿石', 类型: '材料', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjWjJvYi1NSjJ0NTliQkR4TDJjSVRadDZ2ZUloREFBTGVEbXNiZDhyaFZOblFxbmpvek43NUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFyMHRqbHMtbXB0anVqb3QtMS02MmQwdG0ucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjE5OTQyOTIsInQiOjE3ODAyMTgwNTEyMzQsIm1pZCI6NDAwMzl9.03CzB5SQq0LHeO0B2kPAUtk4o4wkxW-gV2-KcZ626xs.png' },
+    { 名称: '铁矿石', 类型: '材料', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/e1zLbA3lRpMRa3Ap9buDzvxuCkoi8784.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '家族纹章戒指', 类型: '饰品', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjYzJvYi1VQXBEUG9RVkpOZkNDOUFOdzhxQ3hWY0FBTGdEbXNiZDhyaFZKM3hVREFNTHg0MUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTJjejJocS1tcHRqeDkwMy0xLTE4MnU4ay5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTYxNzY4OSwidCI6MTc4MDIxODE3NjQ3NCwibWlkIjo0MDA1MX0.P1OeRZsAIH7du5oFzmRhoDM48w3UVXPY2xCgJM_GWQI.png' },
+    { 名称: '家族纹章戒指', 类型: '饰品', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/z6MRTLurX8EzHppeO8frEoB0lBc9hXVh.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '秘银矿石', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjZTJvYi1hbGJ0bjg0V3dZYk9CbF9QVjk5d2x1cEFBTGhEbXNiZDhyaFZBNUNJZDVqZHlhU0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFhaTF6cXItbXB0anppbjYtMS1vcjVwcXcucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjI0Mjk4MzIsInQiOjE3ODAyMTgyODIwMTEsIm1pZCI6NDAwNTl9.xLCg1C8JWqHmrP95sA_ea-9yZH775ik7w0JvhK0yLwA.png' },
+    { 名称: '秘银矿石', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/7QfEjrV57lheC9ZPYuYTJNMwlYfswGcw.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '魔晶', 类型: '材料', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjaDJvYi1kZ3l6bk1EamlQalJmeldfM0V5SWlyb0FBTGlEbXNiZDhyaFZHeHBnM2hocFdZUEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTI0MDlyMy1tcHRrMGoyNS0xLW5mYnB4cC5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTY4NDMxNCwidCI6MTc4MDIxODMyOTM0OSwibWlkIjo0MDA3MX0.fjLmFgzpbdkSMa-QS3W_xpAJf6WBy6W7HhRKf2zy6Y0.png' },
+    { 名称: '魔晶', 类型: '材料', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/FylNG7AZq1JjfRyHw7tdAa027WFXMNhl.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '龙鳞', 类型: '材料', 品质: '极品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjbUdvYi1oRkxHcGdRQjZmR1B5TjRqZGRJaFFpV0FBTGpEbXNiZDhyaFZGbEVramdjeUYxLUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTI0M216YS1tcHRrMXFxdy0xLTF2N3Z2bC5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjQwNjY5MywidCI6MTc4MDIxODM4NjMxMywibWlkIjo0MDA4OH0.spcPYgjH_e7ebJ4TXC1wmIvuSMUHx7rxqZHVGbpX2-U.png' },
+    { 名称: '龙鳞', 类型: '材料', 品质: '极品', 图片URL: 'https://cdn.nodeimage.com/i/A0Kb8pzcwS4qr616nc6vW9uEDKgEcf57.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '狼皮', 类型: '材料', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjbW1vYi1oaTk1cDd3V1o5SmlFX3l0SGR3WHU3YkFBTGtEbXNiZDhyaFZHUUd3U3NjSzI1VkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTIzN2N6ei1tcHRrMXc3ZS0xLXk3bTF5YS5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjA2MTYyNCwidCI6MTc4MDIxODM5MzM0MSwibWlkIjo0MDA5MH0.D-PXIOQDQpJzsDqkaSSLT7pcgkKPczXKIufcv-UUQUE.png' },
+    { 名称: '狼皮', 类型: '材料', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/Cr3lfoCY0bszPZq9kTiFGshF9ew5X2zM.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '初级魔法书', 类型: '秘籍', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjcG1vYi1uZXVlem9vY185dHR3ZnZQSzhtenhaWUFBTG1EbXNiZDhyaFZFYmE1Y3FOZ2Q5VkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LXM2a3UxdS1tcHRrM3dxeC0xLTNpODlvei5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTk3MTA0NCwidCI6MTc4MDIxODQ4NzgzOCwibWlkIjo0MDEwMn0.5BS53y1nY-gdKy9uCA40NhBzo_SZHRX9LwJBSaV7keg.png' },
+    { 名称: '初级魔法书', 类型: '秘籍', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/GcV0mvbeajgS1yjvaTj5thqbpDJeYabl.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '银叶草', 类型: '材料', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjcUdvYi1ubkViZTFUX0tBeU9sR0RBQUg0WjdMTzR3QUM1dzVyRzNmSzRWU0IwcWQzaXhXZTdnRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6InByZXNldC0xcjBuNzZnLW1wdGszeXpuLTEtcXN4YTRnLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTUxODQ2LCJ0IjoxNzgwMjE4NDg5NjU3LCJtaWQiOjQwMTA0fQ.1RHRK_VHH36ulZoDY03GsoYlY5SAvlWJ-58TET9_F-w.png' },
+    { 名称: '银叶草', 类型: '材料', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/MAwkkxETUrHRPDD81tEAUMYcYY2cFuEG.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '火球术卷轴', 类型: '秘籍', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjcjJvYi1zNHMweWloR2lOMTRaczdmbW5vNHZFREFBTHNEbXNiZDhyaFZHSlluU3A1cDZMUUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFweml4cG4tbXB0azVzemwtMS1xYzdybm4ucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIyODQyOTMsInQiOjE3ODAyMTg1NzUxMDksIm1pZCI6NDAxMTF9.3J30ZuwwQ53xmtxrc7YFJHqeb7uXGU5vGNMwT8__9Cg.png' },
+    { 名称: '火球术卷轴', 类型: '秘籍', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/yqpKshWJ6kyJDh8zMPDf1Epde1igyg9j.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '治疗祷文', 类型: '秘籍', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjdkdvYi15b0hLdXNMZUpLd2F3T0t3SmR0b0t5MUFBTHZEbXNiZDhyaFZOYXA4OXJadEdEQ0FRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFwaDIzYmQtbXB0azdyMzAtMS01Y2RobWgucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIwOTA5MjgsInQiOjE3ODAyMTg2NjY4ODYsIm1pZCI6NDAxMjR9.UQcY_-_UIhJLvfPvcFxoSeKl-l26fAJ0Ekzp4sEIpmA.png' },
+    { 名称: '治疗祷文', 类型: '秘籍', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/qcIzgth9xeEI3V5yp6LTiMdeBE4Xsqf8.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '委托羊皮卷', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjeTJvYi0yY3JGTWpQdWhhbVlCZ1R3Si0zQ3k2WUFBTHdEbXNiZDhyaFZQR1VVRTBIdjNQREFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTF5d2VuZzYtbXB0azh6dDMtMS1uOGNhanQucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjE5OTc4MzcsInQiOjE3ODAyMTg3Mjc4NDAsIm1pZCI6NDAxMzl9.GvpvTdEcLjgiT5yjbXy63W1Fiuamv1SfzE_eqVULpdQ.png' },
+    { 名称: '委托羊皮卷', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/x5lIsRAxevZWQIy2Kc69JYDZ1GCLThD5.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '炼金笔记', 类型: '秘籍', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjMFdvYi0zU3JDTWFMMFgzblk2OXVTTU1XaG1NWkFBTHhEbXNiZDhyaFZCZHlKdXZKSWg0QUFRRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6InByZXNldC11bHE5djItbXB0azlhb2ItMS13aTlkYTcucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIyMDIyMDksInQiOjE3ODAyMTg3NDAzNzcsIm1pZCI6NDAxNDV9.Jawgoy8qjM-IlngYpr_QuZKLv1S5-7ya1QUs8Psu9Cw.png' },
+    { 名称: '炼金笔记', 类型: '秘籍', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/NwFdksr8vaXL4m79Cwx4SDV36md78QLC.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '地牢钥匙', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjMUdvYi03UDhhRXVIUnlzcENkc2c0aGlfTXp2d0FBTDREbXNiZDhyaFZBV3pkVlRldHFrVkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTF4YXlzZjMtbXB0a2FsYTktMS01Z3NmajUucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIyNjc0NTEsInQiOjE3ODAyMTg4MDQwMjcsIm1pZCI6NDAxNDh9.n1ujgz7GVaMZPopkBL2HzeIbC7-337PcQljeOMH0XPE.png' },
+    { 名称: '地牢钥匙', 类型: '任务道具', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/8S9wrSQJkcap0SkYXikD9egXVNA70yg5.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '冒险者执照', 类型: '任务道具', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjNDJvYl9COF83Zklsdm1xUjBuMTl3bEMzTDVxcUFBTDVEbXNiZDhyaFZGUjBxcWxZNEN5QUFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFpNmIybC1tcHRrY3gzdy0xLThpbm44dy5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MjI0MTg2MSwidCI6MTc4MDIxODkxMTk4NywibWlkIjo0MDE2M30.8LJ9s7LNr5-S4R7spGPqD84lgvWwWxRJ87c3MkHh5k0.png' },
+    { 名称: '冒险者执照', 类型: '任务道具', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/sPFPpgrxw3stY07d7npKcWQgsh3RnYvg.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '铜币袋', 类型: '杂物', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjN1dvYl9LRFY1MnBxN00xWU93NGZEY1NGZG1KNkFBTDZEbXNiZDhyaFZCaXRSdnFnQncwckFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFyMGt2dGQtbXB0a2Zyc3gtMS1xbjl6YzAucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjE4MjY1NTQsInQiOjE3ODAyMTkwNDA1NDIsIm1pZCI6NDAxNzN9.fX8-MvZnfJ99tCRfvX0bKubaYTbZmlOwG3lXs67qEx8.png' },
+    { 名称: '铜币袋', 类型: '杂物', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/u7Gl4OfLUjFiWoxdjQofGiD08sxrJYem.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '银币袋', 类型: '杂物', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjLVdvYl9PdHVLSWNYbFdnMzN4UXE4U2pvdlN6UUFBTDdEbXNiZDhyaFZIQXU5TTgzNlAxbEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFyMHVnM2YtbXB0a2hkbTAtMS02eWlkNDUucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjIwNDczNTEsInQiOjE3ODAyMTkxMTYxMjksIm1pZCI6NDAxODV9.HNudDKPbyoxqmqkFLQR0ICp2CwhbRhxjydH1kEg2vtQ.png' },
+    { 名称: '银币袋', 类型: '杂物', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/6hvsihBMqeochVn9iiSatgKdozHaiyBj.jpg' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
-    { 名称: '金币袋', 类型: '杂物', 品质: '上品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUtjX21vYl9TNFFPcVRDeDJQYUF3TURUdTkybnpGdUFBTDhEbXNiZDhyaFZPcUhvLWRCMXNpbEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoicHJlc2V0LTFxc21jb2UtbXB0a2l0ajAtMi1nc2NleGIucG5nIiwibSI6ImltYWdlL3BuZyIsInMiOjE4NjMwMTEsInQiOjE3ODAyMTkxODMxODMsIm1pZCI6NDAxOTB9.SO9qcL1jYE5hVOJIhA-k4mUuEMgZ_oKhNHgHPuYoHWA.png' },
+    { 名称: '金币袋', 类型: '杂物', 品质: '上品', 图片URL: 'https://cdn.nodeimage.com/i/OEzADJ3R3bmF6VARtdUxldxB4Snbdw6D.jpg' },
     // ─── 杂物/通用 ─────────────────────────────────────────────────────
-    { 名称: '火折子', 类型: '杂物', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRQUFGcURQdTZ2VkR1cFBjOXBnSGZOZGNaQ3U1VkpnQUM2UkpyRy11SmFGUkNpbE9oanBTcXpnRUFBd0lBQTNrQUF6c0UiLCJlIjoicG5nIiwibiI6IueBq-aKmOWtkC5wbmciLCJtIjoiaW1hZ2UvcG5nIiwicyI6MTczMDQwNSwidCI6MTc3OTIzNTc3MDY1NCwibWlkIjo0MDk2fQ.peth8xUyZ5lMtWUxnK7Xmt2DNTmKosLVbpnBaCZki5w.png' },
-    { 名称: '绳索', 类型: '杂物', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRQW1vTS04TE5nU25WS3o4S2lqQXNLOUtENmloRkFBTHFFbXNiNjRsb1ZMTzgxbFlURjA3UEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi57uz57SiLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyMTU1ODAyLCJ0IjoxNzc5MjM1Nzc4NTEzLCJtaWQiOjQwOTh9.1zt2OgO60tRYXzqkQ2XmLJNy25EFNihr9igq5Q96Cyc.png' },
-    { 名称: '地图', 类型: '杂物', 品质: '良品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRQkdvTS04cV9McjdOYU5iN20zYjBhZ1NhcnQtekFBTHJFbXNiNjRsb1ZFR05kZGdzTmgzaEFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi5Zyw5Zu-LnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoyNDQ2ODgyLCJ0IjoxNzc5MjM1Nzg2NjEzLCJtaWQiOjQxMDB9.OU8umPmwVAEva0G4xVKpVyvlzkGI-m_j08t74YTHQqA.png' },
-    { 名称: '银两', 类型: '杂物', 品质: '凡品', 图片URL: 'https://image1.bacon159.pp.ua/file/tgs_eyJ2IjoxLCJmIjoiQWdBQ0FnVUFBeUVHQUFUcVR5V1JBQUlRQm1vTS05S2Rnd1hZVDBNeTV4ZlEyWjU5TFA1LUFBTHNFbXNiNjRsb1ZJc3hHbVpMMnQtTkFRQURBZ0FEZVFBRE93USIsImUiOiJwbmciLCJuIjoi6ZO25LikLnBuZyIsIm0iOiJpbWFnZS9wbmciLCJzIjoxOTMwMjI2LCJ0IjoxNzc5MjM1Nzk0NDczLCJtaWQiOjQxMDJ9.k63zNDAvhFv2pyoenNJQwZA0T_Zvjs2TLMuFRFAGyKU.png' },
+    { 名称: '火折子', 类型: '杂物', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/nh2APKGa5993PpJ7v988qL3IV32LYlo7.jpg' },
+    { 名称: '绳索', 类型: '杂物', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/n23MSCC4ZXtXniqh0XuwwvPcDdOZYUI2.jpg' },
+    { 名称: '地图', 类型: '杂物', 品质: '良品', 图片URL: 'https://cdn.nodeimage.com/i/CFhBrTFr68PRy4gw2zJnTLZavSqw5KrA.jpg' },
+    { 名称: '银两', 类型: '杂物', 品质: '凡品', 图片URL: 'https://cdn.nodeimage.com/i/7tTSVxkMEM5GZkcYEl2TEJalFjSSxPyU.jpg' },
 ];
 
 /**
