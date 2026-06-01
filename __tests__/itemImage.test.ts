@@ -4,7 +4,7 @@ import { 构建物品图提示词, 构建物品负面提示词 } from '../servic
 
 describe('item image preset fallback', () => {
     const expectHostedPreset = (url: string | undefined) => {
-        expect(url).toMatch(/^https:\/\/(?:cdn\.nodeimage\.com\/i|i\.111666\.best\/image)\/.+\.(?:jpg|jpeg|png|webp)$/);
+        expect(url).toMatch(/^https:\/\/(?:(?:cdn\.nodeimage\.com\/i|i\.111666\.best\/image)\/.+|msjh\.bacon159\.pp\.ua\/api\/preset-image\/.+)\.(?:jpg|jpeg|png|webp)$/);
     };
 
     it('uses safe preset icons for known starter equipment instead of stale generated images', () => {
