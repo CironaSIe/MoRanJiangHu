@@ -279,12 +279,65 @@ const 提取判定前缀名称 = (prefix?: string): string => {
 const 格式化旁白断行 = (value: string): string => {
     const source = String(value || '').replace(/\r\n/g, '\n').trim();
     if (!source) return '';
+    const protectBrackets = (text: string): { segments: Array<{ text: string; isBracket: boolean }> } => {
+        const segments: Array<{ text: string; isBracket: boolean }> = [];
+        let remaining = text;
+        const openers: Array<{ open: string; close: string }> = [
+            { open: '【', close: '】' },
+            { open: '"', close: '"' },
+            { open: '"', close: '"' },
+            { open: '「', close: '」' },
+            { open: '『', close: '』' },
+            { open: '（', close: '）' }
+        ];
+        while (remaining.length > 0) {
+            let earliest = -1;
+            let earliestPair: { open: string; close: string } | null = null;
+            for (const pair of openers) {
+                const idx = remaining.indexOf(pair.open);
+                if (idx !== -1 && (earliest === -1 || idx < earliest)) {
+                    earliest = idx;
+                    earliestPair = pair;
+                }
+            }
+            if (earliest === -1 || !earliestPair) {
+                if (remaining) segments.push({ text: remaining, isBracket: false });
+                break;
+            }
+            if (earliest > 0) segments.push({ text: remaining.slice(0, earliest), isBracket: false });
+            const end = remaining.indexOf(earliestPair.close, earliest + earliestPair.open.length);
+            if (end === -1) {
+                segments.push({ text: remaining.slice(earliest), isBracket: true });
+                break;
+            }
+            segments.push({ text: remaining.slice(earliest, end + earliestPair.close.length), isBracket: true });
+            remaining = remaining.slice(end + earliestPair.close.length);
+        }
+        return { segments };
+    };
     return source
         .split(/\n+/)
         .flatMap((paragraph) => {
             const text = paragraph.trim();
             if (!text) return [];
-            return text.match(/[^。！？!?；;\n]+[。！？!?；;]?/g)?.map(line => line.trim()).filter(Boolean) || [text];
+            const { segments } = protectBrackets(text);
+            const lines: string[] = [];
+            for (const seg of segments) {
+                if (seg.isBracket) {
+                    lines.push(seg.text);
+                } else {
+                    const split = seg.text.match(/[^。！？!?；;\n]+[。！？!?；;]?/g);
+                    if (split) {
+                        for (const line of split) {
+                            const trimmed = line.trim();
+                            if (trimmed) lines.push(trimmed);
+                        }
+                    } else if (seg.text.trim()) {
+                        lines.push(seg.text.trim());
+                    }
+                }
+            }
+            return lines.length > 0 ? lines : [text];
         })
         .join('\n');
 };
