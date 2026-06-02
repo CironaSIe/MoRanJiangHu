@@ -656,14 +656,22 @@ const 是否判定类日志发送者 = (senderRaw: string): boolean => {
         || /^(【)?(?:判定|NSFW判定|先机|瞄准|接战|对撞|对抗|防御|化解|伤害|态势|反击|反馈|消耗|洞察|衰退)(】)?$/.test(sender);
 };
 
+const 正文冒号说话人排除集合 = new Set([
+    '地点', '时间', '天气', '任务', '命令', '短期记忆', '中期记忆', '长期记忆', '即时记忆',
+    '剧情规划', '变量规划', '正文', '行动选项', '动态世界', '触发对象', '对象', '判定值',
+    '难度', '胜方', '败方', '差值', '伤害值', '消耗', '剩余', '后果', '发现度',
+    '基础', '环境', '状态', '幸运', '装备', '结果', '奖励', '获得', '失去'
+]);
+
 const 解析无括号正文发送者行 = (line: string): { sender: string; text: string } | null => {
-    const match = (line || '').trim().match(/^([^\s【】｜:：]{1,16})[:：]\s*(.*)$/);
+    const match = (line || '').trim().match(/^([A-Za-z][A-Za-z0-9_· -]{1,23}|[\u4e00-\u9fff]{2,4})(?:[（(][^）)\n]{1,16}[）)])?\s*[:：]\s*(.+)$/u);
     if (!match) return null;
-    const sender = (match[1] || '').trim();
+    const sender = 规范化日志发送者(match[1] || '');
     if (!sender) return null;
-    if (/^(触发对象|对象|判定值|难度|胜方|败方|差值|伤害值|消耗|剩余|后果|发现度)$/.test(sender)) return null;
+    if (正文冒号说话人排除集合.has(sender)) return null;
+    if (!是否可信正文标签发送者(sender, { allowUnknownName: true })) return null;
     return {
-        sender: 规范化日志发送者(sender),
+        sender,
         text: (match[2] || '').trim()
     };
 };
@@ -827,9 +835,7 @@ const 解析正文日志 = (body: string): Array<{ sender: string; text: string 
         }
 
         const currentIsJudgment = current && (是否判定类日志发送者(current.sender) || 是否判定日志文本(current.text));
-        const plainSenderLine = currentIsJudgment
-            ? 解析无括号正文发送者行(line)
-            : null;
+        const plainSenderLine = 解析无括号正文发送者行(line);
         if (plainSenderLine) {
             current = plainSenderLine;
             logs.push(current);

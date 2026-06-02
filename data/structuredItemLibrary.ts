@@ -311,6 +311,33 @@ const 末日预设物品: 结构化物品条目[] = [
     { 名称: '感染检测卡', 物品: '检测卡', 类型: '任务道具', 品质: '上品', 视觉标签: ['infection test card', 'medical evidence'], 生图描述: 'blank medical test card in a clear pouch with sample tube, no readable text or symbols' },
 ];
 
+const 无限流预设物品: 结构化物品条目[] = [
+    { 名称: '战术匕首', 物品: '匕首', 类型: '武器', 品质: '良品', 武器子类: '暗器', 视觉标签: ['tactical dagger', 'survival trial weapon', 'infinite flow'], 生图描述: 'compact tactical dagger prop with worn black grip, isolated inventory item, no blood, no person, no readable text' },
+    { 名称: '消音手枪', 物品: '手枪', 类型: '武器', 品质: '上品', 武器子类: '暗器', 视觉标签: ['suppressed pistol prop', 'modern weapon', 'mission exchange'], 生图描述: 'nonfunctional suppressed pistol prop on a neutral surface, angled inventory product view, no bullets fired, no person, no logo, no readable text' },
+    { 名称: '折叠弩', 物品: '弩', 类型: '武器', 品质: '上品', 武器子类: '暗器', 视觉标签: ['folding crossbow', 'quiet mission gear', 'survival trial'], 生图描述: 'compact folding crossbow prop with collapsed limbs and simple stock, isolated product photo, no person, no readable text' },
+    { 名称: '高周波短刃', 物品: '短刃', 类型: '武器', 品质: '极品', 武器子类: '暗器', 视觉标签: ['high frequency blade', 'sci fi melee weapon', 'exchange gear'], 生图描述: 'sleek short high-frequency sci-fi blade with subtle blue edge glow, single item on dark neutral cloth, no text, no logo' },
+    { 名称: '电磁脉冲枪', 物品: '脉冲枪', 类型: '武器', 品质: '极品', 武器子类: '枪', 视觉标签: ['EMP launcher', 'sci fi weapon prop', 'trial equipment'], 生图描述: 'compact sci-fi electromagnetic pulse launcher prop with coils and blank indicator panel, no projectile, no person, no readable text' },
+    { 名称: '防弹背心', 物品: '防弹背心', 类型: '防具', 品质: '良品', 装备位置: '胸部', 视觉标签: ['ballistic vest', 'tactical armor', 'survival mission'], 生图描述: 'empty plain black ballistic vest laid flat with pouches, no person, no patches, no logos, no readable text' },
+    { 名称: '战术护臂', 物品: '护臂', 类型: '防具', 品质: '良品', 装备位置: '手部', 视觉标签: ['tactical bracers', 'forearm protection', 'mission armor'], 生图描述: 'pair of rugged tactical forearm bracers with straps, isolated product view, no arms, no text, no logo' },
+    { 名称: '作战靴', 物品: '作战靴', 类型: '防具', 品质: '良品', 装备位置: '足部', 视觉标签: ['combat boots', 'survival footwear', 'mission armor'], 生图描述: 'pair of empty black combat boots side by side, worn but clean, no feet, no person, no brand, no readable text' },
+    { 名称: '主神制式防护服', 物品: '防护服', 类型: '防具', 品质: '上品', 装备位置: '胸部', 视觉标签: ['trial protective suit', 'main god shop', 'sci fi survival suit'], 生图描述: 'folded futuristic protective suit with hood and gloves, clean white and graphite panels, no person, no emblem, no readable text' },
+    { 名称: '止血喷雾', 物品: '止血喷雾', 类型: '消耗品', 品质: '良品', 视觉标签: ['hemostatic spray', 'field medicine', 'mission recovery'], 生图描述: 'small plain medical spray canister beside gauze pads, emergency field medicine, no logo, no readable text' },
+    { 名称: '肾上腺素针剂', 物品: '针剂', 类型: '消耗品', 品质: '上品', 视觉标签: ['adrenaline injector', 'emergency medicine', 'trial recovery'], 生图描述: 'single auto injector medical prop in clear sterile tray, amber fluid window, no needle exposed, no readable text' },
+    { 名称: '病毒抑制剂', 物品: '抑制剂', 类型: '消耗品', 品质: '上品', 视觉标签: ['virus inhibitor vial', 'bio trial medicine', 'zombie mission'], 生图描述: 'sealed unlabeled medical vial with faint green liquid in a sterile tray, no symbols, no readable text, no logo' },
+    { 名称: '精神稳定剂', 物品: '稳定剂', 类型: '消耗品', 品质: '上品', 视觉标签: ['mental stabilizer', 'psychic recovery', 'trial medicine'], 生图描述: 'small unlabeled blue medical vial and calming patch kit, clean sci-fi medical prop, no readable text' },
+    { 名称: '体力恢复药剂', 物品: '恢复药剂', 类型: '消耗品', 品质: '良品', 视觉标签: ['stamina recovery potion', 'main god exchange', 'field medicine'], 生图描述: 'compact transparent ampoule with warm orange liquid in a padded case, no label, no readable text' },
+    { 名称: '异种细胞样本', 物品: '细胞样本', 类型: '材料', 品质: '上品', 视觉标签: ['alien cell sample', 'sealed specimen', 'mission material'], 生图描述: 'sealed transparent specimen capsule with faint organic glow inside, sterile tray, no biohazard symbol, no readable text' },
+    { 名称: '变异晶核', 物品: '晶核', 类型: '材料', 品质: '上品', 视觉标签: ['mutant crystal core', 'monster drop', 'mission material'], 生图描述: 'single irregular dark red crystal core with inner glow, small inventory prop on neutral cloth, no text' },
+    { 名称: '记忆金属片', 物品: '金属片', 类型: '材料', 品质: '极品', 视觉标签: ['memory metal plate', 'sci fi crafting material', 'main god shop'], 生图描述: 'thin flexible silver memory-metal plates slightly curling on a dark surface, subtle sci-fi sheen, no text or logo' },
+    { 名称: '主神能量碎片', 物品: '能量碎片', 类型: '材料', 品质: '极品', 视觉标签: ['main god energy shard', 'dimensional energy', 'exchange material'], 生图描述: 'faceted translucent energy shard floating just above a small black stand, white-blue glow, no symbols, no readable text' },
+    { 名称: '黑曜病毒培养皿', 物品: '培养皿', 类型: '材料', 品质: '上品', 视觉标签: ['obsidian virus culture', 'sealed petri dish', 'mission material'], 生图描述: 'sealed petri dish with dark obsidian-colored culture sealed under glass, scientific prop, no biohazard symbol, no readable text' },
+    { 名称: '基因锁训练手册', 物品: '训练手册', 类型: '秘籍', 品质: '上品', 视觉标签: ['gene lock manual', 'training booklet', 'main god exchange'], 生图描述: 'plain futuristic training manual booklet with abstract body-diagram lines, no readable words, no logo' },
+    { 名称: '精神力扫描教程', 物品: '教程', 类型: '秘籍', 品质: '上品', 视觉标签: ['psychic scan tutorial', 'mind training manual', 'team support'], 生图描述: 'thin sci-fi tutorial booklet with abstract wave and brain diagrams, blank cover, no readable text' },
+    { 名称: '近战格斗模块', 物品: '技能模块', 类型: '秘籍', 品质: '良品', 视觉标签: ['combat training module', 'skill chip', 'exchange tutorial'], 生图描述: 'small training data module chip in a clear case with abstract fighting pose icon shapes, no readable text or logo' },
+    { 名称: '枪械速成模块', 物品: '技能模块', 类型: '秘籍', 品质: '良品', 视觉标签: ['firearm training module', 'skill chip', 'exchange tutorial'], 生图描述: 'compact training data chip in padded case with abstract target diagram shapes, no weapon brand, no readable text' },
+    { 名称: '轮回者腕表', 物品: '腕表', 类型: '饰品', 品质: '上品', 视觉标签: ['reincarnator wristwatch', 'mission countdown device', 'infinite flow'], 生图描述: 'rugged black wristwatch device with blank glowing screen and metal clasp, no wrist, no numbers, no readable text' },
+];
+
 const 生成材质物品 = (): 结构化物品条目[] => {
     const weapons = 武器材质.flatMap((material) => 武器模板.map((template) => ({
         名称: `${material.名称}${template.物品}`,
@@ -362,7 +389,7 @@ const 生成材质物品 = (): 结构化物品条目[] => {
         视觉标签: [...material.标签, template.物品],
         生图描述: `a ${material.标签.join(', ')} wuxia ${template.物品}, leather defensive gear or footwear, isolated product prop, visible stitched hide texture`
     })));
-    return [...weapons, ...hardArmors, ...metalFootwear, ...clothItems, ...leatherItems, ...无材质物品, ...仙侠预设物品, ...西方奇幻预设物品, ...现代预设物品, ...末日预设物品];
+    return [...weapons, ...hardArmors, ...metalFootwear, ...clothItems, ...leatherItems, ...无材质物品, ...仙侠预设物品, ...西方奇幻预设物品, ...现代预设物品, ...末日预设物品, ...无限流预设物品];
 };
 
 export const 结构化物品库: 结构化物品条目[] = 生成材质物品();
@@ -372,6 +399,7 @@ const 仙侠专属名称 = new Set(取名称(仙侠预设物品));
 const 西方奇幻专属名称 = new Set(取名称(西方奇幻预设物品));
 const 现代专属名称 = new Set(取名称(现代预设物品));
 const 末日专属名称 = new Set(取名称(末日预设物品));
+const 无限流专属名称 = new Set(取名称(无限流预设物品));
 const 额外仙侠法宝名称 = new Set(['玉骨扇']);
 const 去重名称 = (...groups: string[][]): string[] => Array.from(new Set(groups.flat().filter(Boolean)));
 
@@ -381,6 +409,7 @@ const 武侠基础物品名称 = 结构化物品库
         && !西方奇幻专属名称.has(entry.名称)
         && !现代专属名称.has(entry.名称)
         && !末日专属名称.has(entry.名称)
+        && !无限流专属名称.has(entry.名称)
         && entry.类型 !== '法宝'
     ))
     .map((entry) => entry.名称);
@@ -405,6 +434,10 @@ const 末日物品名称 = 结构化物品库
     .filter((entry) => 末日专属名称.has(entry.名称))
     .map((entry) => entry.名称);
 
+const 无限流物品名称 = 结构化物品库
+    .filter((entry) => 无限流专属名称.has(entry.名称))
+    .map((entry) => entry.名称);
+
 export const 题材模式预设物品名称清单: Record<题材模式类型, string[]> = {
     武侠: 去重名称(武侠基础物品名称),
     仙侠: 去重名称(仙侠物品名称),
@@ -413,7 +446,7 @@ export const 题材模式预设物品名称清单: Record<题材模式类型, st
     都市修仙: 去重名称(现代都市物品名称, 仙侠物品名称, ['银行卡', '合同文件', '智能手机', '古玉残佩', '下品灵石', '符箓入门', '护身符']),
     现代都市: 去重名称(现代都市物品名称),
     末日丧尸: 去重名称(末日物品名称, ['智能手机', '急救包', '维修工具箱', '多功能工具钳', '备用电池组', '防护口罩', '运动鞋']),
-    无限流: 去重名称(现代都市物品名称, 末日物品名称, 仙侠物品名称, 西方奇幻物品名称, ['智能手机', '急救包', '防护服', '净水片', '护身符', '基础剑法残卷', '下品灵石', '手摇电筒']),
+    无限流: 去重名称(无限流物品名称, ['智能手机', '急救包', '防护服', '净水片', '护身符', '玉骨扇', '治疗药水', '基础剑法残卷', '下品灵石', '手摇电筒', '防毒面具', '无线电台', '感染检测卡', '数据U盘']),
 };
 
 const 规范化题材模式 = (mode?: unknown): 题材模式类型 => (

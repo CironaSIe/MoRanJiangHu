@@ -261,6 +261,14 @@ html[data-theme="day"] .day-mode-chat-jump-button:focus-visible {
   border-color: rgba(7, 89, 133, 0.58) !important;
 }
 
+html[data-theme="day"] .day-mode-settings-savebar {
+  background: rgba(255, 252, 244, 0.96) !important;
+  background-color: rgba(255, 252, 244, 0.96) !important;
+  color: #2f1b0a !important;
+  border-color: rgba(92, 45, 10, 0.35) !important;
+  box-shadow: 0 8px 18px rgba(92, 45, 10, 0.10) !important;
+}
+
 html[data-theme="day"] [class*="bg-wuxia-gold/"],
 html[data-theme="day"] [class*="bg-yellow-"],
 html[data-theme="day"] [class*="bg-amber-"],

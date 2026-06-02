@@ -61,6 +61,39 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         ]);
     });
 
+    it('splits bare colon speaker lines from old narration into character bubbles', () => {
+        const logs = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: [
+                '门外有人走来。',
+                '林婉儿（皱眉）：我也看到这个bug了，有些角色说话的时候对话框就没了。',
+                '她抬头看你。'
+            ].join('\n')
+        }] as any);
+
+        expect(logs).toEqual([
+            { sender: '旁白', text: '门外有人走来。' },
+            { sender: '林婉儿', text: '我也看到这个bug了，有些角色说话的时候对话框就没了。' },
+            { sender: '旁白', text: '她抬头看你。' }
+        ]);
+    });
+
+    it('keeps bare colon protocol labels as narration', () => {
+        const logs = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: [
+                '地点：杨家堡后院',
+                '任务：检查对话框',
+                '林婉儿：真正的对白才需要头像。'
+            ].join('\n')
+        }] as any);
+
+        expect(logs).toEqual([
+            { sender: '旁白', text: '地点：杨家堡后院\n任务：检查对话框' },
+            { sender: '林婉儿', text: '真正的对白才需要头像。' }
+        ]);
+    });
+
     it('does not treat narrative phrase prefixes as speaker names', () => {
         const logs = 规范化可渲染对白日志([{
             sender: '旁白',

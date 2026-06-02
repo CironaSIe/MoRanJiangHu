@@ -432,7 +432,7 @@ const WorkflowGraphSettings: React.FC<{
             activeConfigId: channelId || prev.activeConfigId,
             功能模型占位: {
                 ...prev.功能模型占位,
-                主剧情使用模型: trim(nextConfig?.model) || prev.功能模型占位.主剧情使用模型
+                主剧情使用模型: trim(nextConfig?.model)
             }
         }));
     };
@@ -519,7 +519,7 @@ const WorkflowGraphSettings: React.FC<{
                         } else {
                             updatePlaceholderStage(stage, {
                                 [cfg.channelKey!]: channelId,
-                                [cfg.modelKey!]: trim(nextConfig?.model) || modelValue || trim(mainApi?.model)
+                                [cfg.modelKey!]: trim(nextConfig?.model)
                             } as Partial<功能模型占位配置结构>);
                         }
                         setModelOptionsByStage((prev) => ({ ...prev, [stage.id]: [] }));

@@ -77,8 +77,13 @@ describe('题材模式预设物品清单', () => {
 
     it('无限流预设清单支持跨题材主神兑换物资', () => {
         const names = 获取题材模式预设物品库('无限流').map((item) => item.名称);
-        expect(names).toContain('智能手机');
-        expect(names).toContain('急救包');
+        expect(names).toContain('轮回者腕表');
+        expect(names).toContain('主神能量碎片');
+        expect(names).toContain('基因锁训练手册');
+        expect(names).toContain('枪械速成模块');
+        expect(names).toContain('病毒抑制剂');
+        expect(names).toContain('感染检测卡');
+        expect(names).toContain('玉骨扇');
         expect(names).toContain('下品灵石');
         expect(names).toContain('治疗药水');
     });

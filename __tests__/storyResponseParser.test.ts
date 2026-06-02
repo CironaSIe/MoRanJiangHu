@@ -151,6 +151,35 @@ describe('storyResponseParser', () => {
         ]);
     });
 
+    it('parses bare colon speaker lines as dialogue turns', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '林婉儿：我也看到这个bug了，有些角色说话的时候对话框就没了。',
+            '</正文>',
+            '<短期记忆>林婉儿反馈部分角色对白缺少气泡。</短期记忆>'
+        ].join('\n'), { validateDialogueFormat: true });
+
+        expect(parsed.logs).toEqual([
+            { sender: '林婉儿', text: '我也看到这个bug了，有些角色说话的时候对话框就没了。' }
+        ]);
+    });
+
+    it('parses colon speaker lines with action hints without promoting protocol labels', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '地点：杨家堡后院',
+            '任务：检查对话框',
+            '林婉儿（皱眉）：真正的对白才需要头像。',
+            '</正文>',
+            '<短期记忆>林婉儿说明对白气泡问题。</短期记忆>'
+        ].join('\n'), { validateDialogueFormat: true });
+
+        expect(parsed.logs).toEqual([
+            { sender: '旁白', text: '地点：杨家堡后院\n任务：检查对话框' },
+            { sender: '林婉儿', text: '真正的对白才需要头像。' }
+        ]);
+    });
+
     it('still rejects likely unlabeled oral dialogue during strict parsing', () => {
         expect(() => parseStoryRawText([
             '<正文>',
