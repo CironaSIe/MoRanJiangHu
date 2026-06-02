@@ -616,6 +616,8 @@ If the task is "confirm this UI works" and the opening flow depends on external 
   - Reverse processing: `--reverse`
   - Separate reports: `--report=some-report.json`
 - As of the 2026-06-01 run, all `现代都市` and `末日丧尸` preset images were regenerated through GPT image 2 and moved to the 111666 image host.
+- Preset item images must be realistic product-photography style: one tangible object, full object visible, realistic material texture, neutral tabletop/background, no UI frame, no text labels, no people, no illustrated icon style.
+- Do not use local SVG/icon fallback images as final `data/presetItemImages.ts` registry entries. If GPT image 2 credentials, endpoint, or balance are unavailable, report the blocker or use an existing realistic preset image only as a clearly temporary placeholder, then regenerate with GPT image 2 when the endpoint is restored.
 
 ## Topic Mode Preset Feedback Rule
 

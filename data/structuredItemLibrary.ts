@@ -129,6 +129,10 @@ const 无材质物品: 结构化物品条目[] = [
     { 名称: '绳索', 物品: '绳索', 类型: '杂物', 品质: '凡品', 视觉标签: ['hemp rope', 'coil'], 生图描述: 'coil of rough braided hemp rope' },
     { 名称: '地图', 物品: '地图', 类型: '杂物', 品质: '良品', 视觉标签: ['aged paper map', 'ink routes'], 生图描述: 'hand drawn map on aged paper showing mountains rivers and paths' },
     { 名称: '银两', 材质: '银', 物品: '银两', 类型: '杂物', 品质: '凡品', 视觉标签: ['silver ingots', 'currency'], 生图描述: 'small pile of Chinese silver ingots and loose silver pieces' },
+    { 名称: '迷魂香囊', 物品: '香囊', 类型: '任务道具', 品质: '上品', 视觉标签: ['fictional forbidden incense pouch', 'sealed brocade sachet', 'investigation evidence'], 生图描述: 'sealed ancient brocade incense sachet used as fictional contraband evidence, wax thread closure, no loose powder, no formula, no writing, no person' },
+    { 名称: '合欢香丸', 物品: '香丸', 类型: '消耗品', 品质: '上品', 视觉标签: ['fictional romance incense pellets', 'lacquer case', 'plot prop'], 生图描述: 'small fictional romance-incense pellets sealed in a red lacquer case, elegant inventory prop, no ingredient detail, no label, no person' },
+    { 名称: '清心解香丸', 物品: '解香丸', 类型: '消耗品', 品质: '良品', 视觉标签: ['clarity antidote pills', 'plain porcelain bottle', 'anti charm'], 生图描述: 'white clarity antidote pills in a plain porcelain bottle beside a folded paper packet, no readable text, no formula, no person' },
+    { 名称: '醒神银针', 物品: '银针', 类型: '杂物', 品质: '良品', 视觉标签: ['silver needles', 'awareness aid', 'detective prop'], 生图描述: 'set of fine silver awareness needles arranged in a small wooden case, fictional investigation prop, no blood, no body, no text' },
     { 名称: '门派令牌', 物品: '令牌', 类型: '任务道具', 品质: '良品', 视觉标签: ['sect token', 'carved wood and bronze'], 生图描述: 'ancient sect identity token made of carved wood and bronze, abstract emblem only, no readable text' },
     { 名称: '镖局凭证', 物品: '凭证', 类型: '任务道具', 品质: '凡品', 视觉标签: ['escort agency voucher', 'paper seal'], 生图描述: 'folded ancient escort agency voucher with wax seal and unreadable ink strokes, no real text' },
     { 名称: '密函', 物品: '密函', 类型: '任务道具', 品质: '上品', 视觉标签: ['sealed letter', 'secret document'], 生图描述: 'sealed ancient secret letter tied with cord and wax seal, unreadable marks only, no real text' },
@@ -173,6 +177,9 @@ const 仙侠预设物品: 结构化物品条目[] = [
     { 名称: '隐身符', 物品: '符箓', 类型: '消耗品', 品质: '上品', 视觉标签: ['pale talisman paper', 'stealth charm', 'soft glow'], 生图描述: 'single pale translucent talisman paper charm with abstract gray ink strokes and soft vanishing aura, no readable text' },
     { 名称: '传音符', 物品: '符箓', 类型: '消耗品', 品质: '良品', 视觉标签: ['small talisman paper', 'message charm', 'blue thread'], 生图描述: 'small folded talisman paper charm tied with blue thread, abstract unreadable marks, communication charm still life' },
     { 名称: '传送符', 物品: '符箓', 类型: '消耗品', 品质: '极品', 视觉标签: ['silver talisman paper', 'teleport charm', 'ring pattern'], 生图描述: 'single silver talisman paper charm with abstract circular ink pattern and spatial glow, no readable characters' },
+    { 名称: '摄魂符', 物品: '符箓', 类型: '任务道具', 品质: '极品', 视觉标签: ['fictional soul charm talisman', 'sealed evidence', 'purple ink'], 生图描述: 'single sealed purple talisman charm as fictional soul-bewitching contraband evidence, abstract ink strokes, wax seal, no readable characters, no person' },
+    { 名称: '破妄清心符', 物品: '符箓', 类型: '消耗品', 品质: '上品', 视觉标签: ['anti illusion talisman', 'clarity charm', 'gold paper'], 生图描述: 'gold talisman charm for clarity and anti-illusion protection, abstract white ink pattern and clean aura, no readable text, no person' },
+    { 名称: '定神玉佩', 物品: '玉佩', 类型: '饰品', 品质: '上品', 视觉标签: ['mind anchor jade pendant', 'anti charm accessory', 'white jade'], 生图描述: 'white jade mind-anchor pendant with silk cord and subtle clear glow, protective accessory prop, no readable text, no person' },
     { 名称: '青竹飞剑', 物品: '飞剑', 类型: '法宝', 品质: '良品', 视觉标签: ['flying sword', 'bamboo green blade', 'jade hilt'], 生图描述: 'slender decorative cultivation flying sword artifact with bamboo-green sheath and jade hilt, ceremonial prop, no blood, no person' },
     { 名称: '寒霜飞剑', 物品: '飞剑', 类型: '法宝', 品质: '上品', 视觉标签: ['flying sword', 'frosted blade', 'white jade hilt'], 生图描述: 'slender frosted cultivation flying sword artifact with white jade hilt, cold aura, decorative ceremonial prop, no person' },
     { 名称: '紫电飞剑', 物品: '飞剑', 类型: '法宝', 品质: '极品', 视觉标签: ['flying sword', 'violet lightning', 'dark scabbard'], 生图描述: 'refined violet lightning flying sword artifact with dark scabbard and silver fittings, ceremonial display prop, no person' },
@@ -223,6 +230,9 @@ const 西方奇幻预设物品: 结构化物品条目[] = [
     { 名称: '治疗药水', 物品: '药水', 类型: '消耗品', 品质: '良品', 视觉标签: ['western fantasy', 'healing potion', 'red glass vial', 'cork'], 生图描述: 'small round glass vial of red healing potion with cork stopper, wax seal without text, realistic glass and liquid' },
     { 名称: '法力药水', 物品: '药水', 类型: '消耗品', 品质: '良品', 视觉标签: ['western fantasy', 'mana potion', 'blue glass vial', 'cork'], 生图描述: 'small glass vial of blue mana potion with cork stopper, subtle liquid glow, no label or runes' },
     { 名称: '解毒药剂', 物品: '药剂', 类型: '消耗品', 品质: '良品', 视觉标签: ['western fantasy', 'antidote', 'green vial', 'apothecary'], 生图描述: 'green antidote potion in a small unmarked apothecary vial, cork stopper, no readable text' },
+    { 名称: '魅惑药剂', 物品: '药剂', 类型: '任务道具', 品质: '上品', 视觉标签: ['western fantasy', 'fictional charm potion', 'sealed pink vial', 'contraband evidence'], 生图描述: 'sealed pink fictional charm potion vial kept as contraband evidence, cork and wax seal, no label, no formula, no person' },
+    { 名称: '沉眠熏香', 物品: '熏香', 类型: '任务道具', 品质: '良品', 视觉标签: ['western fantasy', 'sleep incense', 'sealed incense tin', 'mystery prop'], 生图描述: 'small sealed medieval apothecary incense tin for fictional sleep magic, wax cord closure, no loose powder, no readable text, no person' },
+    { 名称: '反魅惑护符', 物品: '护符', 类型: '饰品', 品质: '上品', 视觉标签: ['western fantasy', 'anti charm amulet', 'silver ward'], 生图描述: 'silver anti-charm amulet with abstract moon and knot relief, protective fantasy accessory, no readable letters, no person' },
     { 名称: '火把', 物品: '火把', 类型: '杂物', 品质: '凡品', 视觉标签: ['western fantasy', 'torch', 'wooden handle', 'cloth wrapped end'], 生图描述: 'unlit wooden torch with cloth wrapped head and tar-darkened end, single object on neutral tabletop, no flame scene' },
     { 名称: '火绒盒', 物品: '火绒盒', 类型: '杂物', 品质: '凡品', 视觉标签: ['western fantasy', 'tinderbox', 'flint', 'steel striker'], 生图描述: 'small metal tinderbox opened to show flint, steel striker and dry tinder, no text' },
     { 名称: '冒险者绳索', 物品: '绳索', 类型: '杂物', 品质: '凡品', 视觉标签: ['western fantasy', 'hemp rope', 'adventuring gear'], 生图描述: 'coil of thick hemp rope with a simple brass hook, adventurer utility gear, no label' },
@@ -267,6 +277,10 @@ const 现代预设物品: 结构化物品条目[] = [
     { 名称: '多功能工具钳', 物品: '工具钳', 类型: '杂物', 品质: '良品', 视觉标签: ['multitool pliers', 'pocket tool'], 生图描述: 'folding multitool pliers opened slightly, isolated product photo, no logo' },
     { 名称: '电子元件包', 物品: '电子元件', 类型: '材料', 品质: '良品', 视觉标签: ['electronic components', 'repair parts'], 生图描述: 'small tray of generic electronic components, wires and circuit parts, no readable markings' },
     { 名称: '备用电池组', 物品: '电池组', 类型: '材料', 品质: '良品', 视觉标签: ['battery pack', 'portable cells'], 生图描述: 'compact unlabeled rechargeable battery pack and loose generic cells, no text' },
+    { 名称: '违禁香氛样本', 物品: '香氛样本', 类型: '任务道具', 品质: '上品', 视觉标签: ['fictional contraband fragrance sample', 'sealed evidence vial', 'modern investigation'], 生图描述: 'sealed modern evidence vial containing fictional contraband fragrance sample, tamper-evident cap, no label text, no formula, no person' },
+    { 名称: '催眠录音芯片', 物品: '录音芯片', 类型: '任务道具', 品质: '上品', 视觉标签: ['fictional hypnosis audio chip', 'evidence bag', 'modern mystery'], 生图描述: 'small data chip sealed in a clear evidence sleeve as fictional hypnosis-audio plot evidence, no readable text, no person' },
+    { 名称: '清醒贴片', 物品: '贴片', 类型: '消耗品', 品质: '良品', 视觉标签: ['awareness patch', 'anti hypnosis patch', 'sealed medical prop'], 生图描述: 'sealed plain awareness adhesive patches in a sterile blister pack, fictional anti-hypnosis support prop, no readable text, no formula' },
+    { 名称: '香氛检测卡', 物品: '检测卡', 类型: '杂物', 品质: '良品', 视觉标签: ['fragrance detector card', 'investigation tool', 'modern safety'], 生图描述: 'blank modern fragrance detection cards with a small sealed swab tube, investigation prop, no readable text, no logos' },
     { 名称: '防身喷雾', 物品: '防身喷雾', 类型: '武器', 品质: '凡品', 武器子类: '暗器', 视觉标签: ['defense spray canister', 'nonlethal tool'], 生图描述: 'small plain personal safety spray canister, capped, no brand, no readable text' },
     { 名称: '伸缩警棍', 物品: '警棍', 类型: '武器', 品质: '良品', 武器子类: '棍', 视觉标签: ['telescopic baton', 'modern self defense tool'], 生图描述: 'closed telescopic baton as a nonfunctional prop, isolated on neutral background, no person' },
     { 名称: '轻便夹克', 物品: '夹克', 类型: '防具', 品质: '凡品', 装备位置: '胸部', 视觉标签: ['light jacket', 'urban clothing'], 生图描述: 'plain lightweight urban jacket laid flat, no person, no logo' },
@@ -299,6 +313,9 @@ const 末日预设物品: 结构化物品条目[] = [
     { 名称: '净水滤芯', 物品: '滤芯', 类型: '材料', 品质: '良品', 视觉标签: ['water filter cartridge', 'survival component'], 生图描述: 'generic water filter cartridge and charcoal pellets, no text' },
     { 名称: '弹药盒', 物品: '弹药盒', 类型: '材料', 品质: '上品', 视觉标签: ['ammunition box', 'sealed metal box'], 生图描述: 'closed rugged metal ammunition supply box as a survival resource prop, no weapons, no readable text' },
     { 名称: '太阳能充电板', 物品: '太阳能板', 类型: '材料', 品质: '上品', 视觉标签: ['portable solar panel', 'survival power'], 生图描述: 'folding portable solar charging panel on a dusty surface, no logo or text' },
+    { 名称: '镇静烟雾罐', 物品: '烟雾罐', 类型: '任务道具', 品质: '上品', 视觉标签: ['fictional sedative smoke canister', 'sealed survival contraband', 'apocalypse evidence'], 生图描述: 'sealed rugged fictional sedative smoke canister stored as apocalypse contraband evidence, safety pin intact, no gas cloud, no label, no person' },
+    { 名称: '诱导素样本', 物品: '样本管', 类型: '材料', 品质: '上品', 视觉标签: ['fictional lure pheromone sample', 'sealed specimen tube', 'apocalypse research'], 生图描述: 'sealed specimen tube containing fictional lure-agent sample in a padded survival research case, no formula, no biohazard symbol, no readable text' },
+    { 名称: '神志清明针', 物品: '针剂', 类型: '消耗品', 品质: '上品', 视觉标签: ['clarity injector', 'emergency awareness aid', 'survival medicine'], 生图描述: 'single capped auto-injector clarity aid in a sterile tray, no exposed needle, no readable text, no person' },
     { 名称: '防毒面具', 物品: '防毒面具', 类型: '防具', 品质: '上品', 装备位置: '头部', 视觉标签: ['gas mask', 'respirator'], 生图描述: 'single rugged gas mask respirator lying on a table, no person, no symbol, no text' },
     { 名称: '护目镜', 物品: '护目镜', 类型: '防具', 品质: '良品', 装备位置: '头部', 视觉标签: ['protective goggles', 'survival eyewear'], 生图描述: 'scratched protective goggles on a dusty surface, no face, no logo' },
     { 名称: '战术背心', 物品: '战术背心', 类型: '防具', 品质: '良品', 装备位置: '胸部', 视觉标签: ['tactical vest', 'survival armor'], 生图描述: 'empty rugged tactical vest laid flat with pouches, no person, no patches or text' },
@@ -326,6 +343,9 @@ const 无限流预设物品: 结构化物品条目[] = [
     { 名称: '病毒抑制剂', 物品: '抑制剂', 类型: '消耗品', 品质: '上品', 视觉标签: ['virus inhibitor vial', 'bio trial medicine', 'zombie mission'], 生图描述: 'sealed unlabeled medical vial with faint green liquid in a sterile tray, no symbols, no readable text, no logo' },
     { 名称: '精神稳定剂', 物品: '稳定剂', 类型: '消耗品', 品质: '上品', 视觉标签: ['mental stabilizer', 'psychic recovery', 'trial medicine'], 生图描述: 'small unlabeled blue medical vial and calming patch kit, clean sci-fi medical prop, no readable text' },
     { 名称: '体力恢复药剂', 物品: '恢复药剂', 类型: '消耗品', 品质: '良品', 视觉标签: ['stamina recovery potion', 'main god exchange', 'field medicine'], 生图描述: 'compact transparent ampoule with warm orange liquid in a padded case, no label, no readable text' },
+    { 名称: '魅惑抗性贴片', 物品: '抗性贴片', 类型: '消耗品', 品质: '上品', 视觉标签: ['charm resistance patch', 'main god exchange', 'psychic safety'], 生图描述: 'sealed sci-fi charm-resistance adhesive patches in a clean black case, no readable text, no person, no logo' },
+    { 名称: '违禁迷情香囊', 物品: '香囊', 类型: '任务道具', 品质: '极品', 视觉标签: ['forbidden fictional romance incense', 'main god contraband', 'sealed pouch'], 生图描述: 'sealed futuristic evidence pouch holding a fictional forbidden romance-incense sachet, black case and red wax seal, no loose powder, no formula, no person' },
+    { 名称: '精神锚定护符', 物品: '护符', 类型: '饰品', 品质: '极品', 视觉标签: ['mental anchor amulet', 'psychic protection', 'trial gear'], 生图描述: 'geometric mental-anchor amulet with silver frame and blue core, protective trial accessory prop, no readable text, no person' },
     { 名称: '异种细胞样本', 物品: '细胞样本', 类型: '材料', 品质: '上品', 视觉标签: ['alien cell sample', 'sealed specimen', 'mission material'], 生图描述: 'sealed transparent specimen capsule with faint organic glow inside, sterile tray, no biohazard symbol, no readable text' },
     { 名称: '变异晶核', 物品: '晶核', 类型: '材料', 品质: '上品', 视觉标签: ['mutant crystal core', 'monster drop', 'mission material'], 生图描述: 'single irregular dark red crystal core with inner glow, small inventory prop on neutral cloth, no text' },
     { 名称: '记忆金属片', 物品: '金属片', 类型: '材料', 品质: '极品', 视觉标签: ['memory metal plate', 'sci fi crafting material', 'main god shop'], 生图描述: 'thin flexible silver memory-metal plates slightly curling on a dark surface, subtle sci-fi sheen, no text or logo' },
@@ -487,6 +507,14 @@ export const 构建结构化物品库提示词摘要 = (): string => {
         .slice(0, 120)
         .map((entry) => entry.名称)
         .join('、');
+    const specialPlotItemSummary = [
+        '武侠: 迷魂香囊、合欢香丸、清心解香丸、醒神银针',
+        '仙侠/灵气复苏/都市修仙: 摄魂符、破妄清心符、定神玉佩、违禁香氛样本、催眠录音芯片、清醒贴片、香氛检测卡',
+        '西方奇幻: 魅惑药剂、沉眠熏香、反魅惑护符',
+        '现代都市: 违禁香氛样本、催眠录音芯片、清醒贴片、香氛检测卡',
+        '末日丧尸: 镇静烟雾罐、诱导素样本、神志清明针',
+        '无限流: 魅惑抗性贴片、违禁迷情香囊、精神锚定护符'
+    ].join('；');
     const modeSummary = Object.entries(题材模式预设物品名称清单)
         .map(([mode, names]) => `${mode}: ${names.slice(0, 28).join('、')}${names.length > 28 ? '等' : ''}`)
         .join('；');
@@ -499,6 +527,7 @@ export const 构建结构化物品库提示词摘要 = (): string => {
         '- 物品图片、装备识别和预设复用以规范物品名称为准；剧情化展示名只负责风味，不应破坏规范物品映射。',
         '- 只有库中没有合适条目、且剧情确有特殊性时，才允许自由生成新规范名称；新规范名称也应保持材质和物品本体一致。',
         '- 题材模式应优先从对应预设清单选物品；现代/末日不要回落到古代银钱、宗门法宝或仙侠灵石，灵气复苏/都市修仙可同时使用现代物资与修行物资。',
+        `- 若剧情涉及迷魂、魅惑、催眠、情香、反制、侦查或安全防护，应优先使用这些虚构剧情道具/反制道具，不要编写现实配方、剂量、使用教程或非自愿细节：${specialPlotItemSummary}。`,
         `- 当前题材模式预设清单示例：${modeSummary}。`,
         `- 当前可参考的常用结构化条目示例：${sampleNames}。`
     ].join('\n');
