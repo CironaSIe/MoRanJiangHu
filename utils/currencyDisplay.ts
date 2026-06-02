@@ -3,7 +3,7 @@ import type { 角色金钱 } from '../models/character';
 import { 推断单位仙侠 } from './realmDisplay';
 import { 获取题材模式配置, 题材是否仙侠 } from './topicModeProfiles';
 
-export type 货币显示模式 = 'wuxia' | 'xianxia' | 'fantasy' | 'urban' | 'modern' | 'apocalypse';
+export type 货币显示模式 = 'wuxia' | 'xianxia' | 'fantasy' | 'urban' | 'modern' | 'apocalypse' | 'infinite';
 
 export const 仙侠货币汇率说明 = '1 中品灵石 = 1000 下品灵石；1 上品灵石 = 100 中品灵石 = 100000 下品灵石。';
 
@@ -42,6 +42,11 @@ export const 获取货币单位标签 = (
         if (key === '金元宝') return '安全通行牌';
         if (key === '银子') return '物资票';
         return '营地信用点';
+    }
+    if (mode === 'infinite') {
+        if (key === '金元宝') return 'C级支线剧情';
+        if (key === '银子') return 'D级支线剧情';
+        return '奖励点';
     }
     if (mode === 'fantasy') {
         if (key === '金元宝') return '金币';

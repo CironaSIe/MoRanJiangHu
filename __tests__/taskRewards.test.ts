@@ -73,4 +73,22 @@ describe('任务完成奖励结算', () => {
         expect(result.state.角色.物品列表).toEqual([]);
         expect(response.logs).toEqual([]);
     });
+
+    it('支持无限流奖励点和支线剧情结算到底层货币字段', () => {
+        const state = 创建奖励状态();
+        state.任务列表[0].标题 = '完成第一次主神任务';
+        state.任务列表[0].奖励描述 = ['奖励点 +1000', 'D级支线剧情 +1', 'C级支线剧情 +1', '队伍信用 +30'];
+        const response: any = { logs: [], tavern_commands: [] };
+        const result = 结算已完成任务奖励({
+            response,
+            state
+        });
+
+        expect(result.changed).toBe(true);
+        expect(result.state.角色.金钱.铜钱).toBe(1000);
+        expect(result.state.角色.金钱.银子).toBe(1);
+        expect(result.state.角色.金钱.金元宝).toBe(1);
+        expect(result.state.玩家门派.玩家贡献).toBe(150);
+        expect(response.logs.some((log: any) => log.text.includes('奖励点 +1000') && log.text.includes('D级支线剧情 +1'))).toBe(true);
+    });
 });

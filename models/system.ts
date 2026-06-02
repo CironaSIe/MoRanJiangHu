@@ -481,7 +481,7 @@ export type 游戏难度 = 'relaxed' | 'easy' | 'normal' | 'hard' | 'extreme';
 export type 初始关系模板类型 = '独行少系' | '家族牵引' | '师门牵引' | '世家官门' | '青梅旧识' | '旧仇旧债';
 export type 关系侧重类型 = '亲情' | '友情' | '师门' | '情缘' | '利益' | '仇怨';
 export type 开局切入偏好类型 = '日常低压' | '在途起手' | '家宅起手' | '门派起手' | '风波前夜';
-export type 题材模式类型 = '武侠' | '仙侠' | '西方奇幻' | '灵气复苏' | '都市修仙' | '现代都市' | '末日丧尸';
+export type 题材模式类型 = '武侠' | '仙侠' | '西方奇幻' | '灵气复苏' | '都市修仙' | '现代都市' | '末日丧尸' | '无限流';
 export type 同人来源类型 = '小说' | '动漫' | '游戏' | '影视';
 export type 同人融合强度类型 = '轻度映射' | '中度混编' | '显性同台';
 
@@ -549,7 +549,7 @@ export interface ModeRuntimeProfile {
         isFandomIp: boolean;
     };
     economy: {
-        currencyDisplayMode: 'wuxia' | 'xianxia' | 'fantasy' | 'urban' | 'modern' | 'apocalypse';
+        currencyDisplayMode: 'wuxia' | 'xianxia' | 'fantasy' | 'urban' | 'modern' | 'apocalypse' | 'infinite';
         primaryCurrency: string;
         accountingUnit: string;
         exchangeRules: string;

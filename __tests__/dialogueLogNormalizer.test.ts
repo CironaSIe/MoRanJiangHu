@@ -44,6 +44,23 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         expect(logs.some((item: any) => item.sender === '俞月荷' && item.text.includes('动作能不能轻一点'))).toBe(true);
     });
 
+    it('splits bracket speaker lines from narration into character bubbles', () => {
+        const logs = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: [
+                '门被从外面推开，热水汽涌进屋内。',
+                '【绛雨】 “师姐，铁匠大哥，你们在聊什么呢？”',
+                '她一边擦着头发，一边走到桌前。'
+            ].join('\n')
+        }] as any);
+
+        expect(logs).toEqual([
+            { sender: '旁白', text: '门被从外面推开，热水汽涌进屋内。' },
+            { sender: '绛雨', text: '师姐，铁匠大哥，你们在聊什么呢？' },
+            { sender: '旁白', text: '她一边擦着头发，一边走到桌前。' }
+        ]);
+    });
+
     it('does not treat narrative phrase prefixes as speaker names', () => {
         const logs = 规范化可渲染对白日志([{
             sender: '旁白',

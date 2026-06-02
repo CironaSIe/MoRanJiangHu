@@ -162,7 +162,7 @@ type 贡献草稿 = {
     description: string;
     type: 创意工坊模块类型;
     mode: 题材模式类型;
-    currencyDisplayMode: 'wuxia' | 'xianxia' | 'fantasy' | 'urban' | 'modern' | 'apocalypse';
+    currencyDisplayMode: 'wuxia' | 'xianxia' | 'fantasy' | 'urban' | 'modern' | 'apocalypse' | 'infinite';
     auctionName: string;
     marketVerb: string;
     mapPrompt: string;
@@ -904,6 +904,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                         <option value="urban">都市/灵气复苏</option>
                         <option value="modern">现代现实</option>
                         <option value="apocalypse">末世物资</option>
+                        <option value="infinite">主神奖励</option>
                     </select>
                 </label>
             );
@@ -1219,6 +1220,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                                         <option value="urban">都市/灵气复苏</option>
                                                         <option value="modern">现代现实</option>
                                                         <option value="apocalypse">末世物资</option>
+                                                        <option value="infinite">主神奖励</option>
                                                     </select>
                                                 </label>
                                                 <label className="block text-xs text-gray-300">
@@ -1306,6 +1308,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                                                                 <option value="urban">都市/灵气复苏</option>
                                                                                 <option value="modern">现代现实</option>
                                                                                 <option value="apocalypse">末世物资</option>
+                                                                                <option value="infinite">主神奖励</option>
                                                                             </select>
                                                                         </label>
                                                                     );

@@ -28,7 +28,7 @@ export const 拆分模式配置短语 = (value: unknown): string[] => {
 
 const 判断现代 = (mode: 题材模式类型): boolean => {
     const group = 获取题材模式配置(mode).group;
-    return group === 'urban_xianxia' || group === 'modern' || group === 'apocalypse';
+    return group === 'urban_xianxia' || group === 'modern' || group === 'apocalypse' || group === 'infinite';
 };
 
 const 判断修炼 = (mode: 题材模式类型): boolean => {
@@ -37,6 +37,7 @@ const 判断修炼 = (mode: 题材模式类型): boolean => {
 };
 
 const 取记账单位 = (currencyDisplayMode: ModeRuntimeProfile['economy']['currencyDisplayMode']): string => {
+    if (currencyDisplayMode === 'infinite') return '奖励点';
     if (currencyDisplayMode === 'apocalypse') return '营地信用点';
     if (currencyDisplayMode === 'xianxia') return '下品灵石';
     if (currencyDisplayMode === 'fantasy') return '铜币';
@@ -53,6 +54,16 @@ const 组织默认值 = (mode: 题材模式类型) => {
             rankNames: ['临时成员', '营地成员', '巡逻队员', '骨干成员', '区域负责人'],
             organizationAliases: ['避难所', '安全区', '车队', '哨站', '幸存者小队'],
             memberAliases: ['队友', '营地成员', '幸存者', '巡逻员', '后勤人员']
+        };
+    }
+    if (profile.group === 'infinite') {
+        return {
+            organizationName: '轮回小队',
+            memberName: '轮回者',
+            contributionName: '队伍信用',
+            rankNames: ['新人', '正式队员', '资深者', '队长候补', '队长'],
+            organizationAliases: ['轮回小队', '主神小队', '队伍房间', '临时同盟', '团战小队'],
+            memberAliases: ['轮回者', '新人', '资深者', '队友', '精神力者', '火力手', '医疗位']
         };
     }
     if (profile.group === 'modern') {
@@ -123,6 +134,15 @@ const 能力默认值 = (mode: 题材模式类型) => {
             combatResolution: '战斗必须计算噪音、距离、弹药、伤病、防护、感染暴露和撤离路线。'
         };
     }
+    if (mode === '无限流') {
+        return {
+            primaryAxis: '奖励点规划、支线剧情、兑换强化、基因锁、恐怖片情报与团队分工',
+            progressionNames: ['新人', '正式轮回者', '资深者', '解开一阶基因锁', '队长级轮回者'],
+            attributePointRules: '属性点代表身体素质、精神韧性、兑换适配、战斗经验和基因锁承受力提升；高阶强化必须消耗奖励点和支线剧情。',
+            skillGrowthVerb: '提升掌握度',
+            combatResolution: '战斗必须计算任务规则、恐惧压力、弹药/道具消耗、队友配合、支线触发、基因锁风险和回归条件。'
+        };
+    }
     if (mode === '现代都市') {
         return {
             primaryAxis: '职业技能、人脉信用、资产管理、心理韧性和社会资源',
@@ -187,6 +207,15 @@ const 物品默认值 = (mode: 题材模式类型) => {
             resourceToggles: { food: true, water: true, ammo: true, medicine: true, fuel: true, batteries: true, spiritStones: false }
         };
     }
+    if (mode === '无限流') {
+        return {
+            initialItemPool: ['智能手机', '急救包', '防护服', '净水片', '护身符', '基础剑法残卷', '下品灵石', '手摇电筒'],
+            rewardItemPool: ['奖励点', 'D级支线剧情', '急救包', '弹药', '防护服', '血统强化权限', '恐怖片情报'],
+            bannedItemKeywords: ['银子', '铜钱', '金元宝', '门派贡献', '营地信用', '普通工资', '人民币结算'],
+            exclusiveItemTypes: ['科技装备', '魔法物品', '血统强化', '技能卷轴', '补给', '情报', '支线凭证'],
+            resourceToggles: { food: true, water: true, ammo: true, medicine: true, fuel: true, batteries: true, spiritStones: true }
+        };
+    }
     if (mode === '现代都市') {
         return {
             initialItemPool: ['手机', '笔记本电脑', '银行卡', '合同', '录音笔', '急救包'],
@@ -240,6 +269,7 @@ export const 构建官方模式运行时配置 = (
     const items = 物品默认值(baseMode);
     const isModern = 判断现代(baseMode);
     const isApocalypse = profile.group === 'apocalypse';
+    const isInfinite = profile.group === 'infinite';
     const runtime: ModeRuntimeProfile = {
         identity: {
             modeId: profile.value,
@@ -248,7 +278,7 @@ export const 构建官方模式运行时配置 = (
             isModern,
             usesCultivation: 判断修炼(baseMode),
             isApocalypse,
-            isSurvival: isApocalypse,
+            isSurvival: isApocalypse || isInfinite,
             isFandomIp: false
         },
         economy: {
@@ -270,7 +300,9 @@ export const 构建官方模式运行时配置 = (
         map: {
             layerNames: ['寰宇', '大地点', '中地点', '小地点', '区地点', '子地点'],
             locationTypes: profile.mapPrompt.split(/[、，,]/u).map((item) => item.replace(/世界版图应按|组织。|等/u, '').trim()).filter(Boolean),
-            poiTypes: profile.group === 'apocalypse'
+            poiTypes: profile.group === 'infinite'
+                ? ['主神空间', '队伍房间', '训练场', '主神广场', '任务世界', '剧情地点', '安全屋', '补给点', '隐藏支线地点', '回归通道']
+                : profile.group === 'apocalypse'
                 ? ['感染区', '医院', '商超', '仓库', '避难所', '公路', '封锁线', '营地', '市场', '资源点']
                 : profile.group === 'modern'
                     ? ['社区', '商圈', '写字楼', '学校', '医院', '交通站点', '灰色渠道']
@@ -279,7 +311,9 @@ export const 构建官方模式运行时配置 = (
                         : profile.group === 'western_fantasy'
                             ? ['王国', '城堡', '教会', '魔法学院', '冒险者公会', '港口', '地下城', '遗迹', '魔物巢穴']
                             : ['城镇', '门派', '山道', '关隘', '渡口', '市场', '野外险地'],
-            bannedLocationKeywords: profile.group === 'apocalypse'
+            bannedLocationKeywords: profile.group === 'infinite'
+                ? ['宗门山门', '王朝朝堂', '营地信用市场', '现实工资结算']
+                : profile.group === 'apocalypse'
                 ? ['宗门', '山门', '藏经阁', '洞府', '仙坊']
                 : profile.group === 'modern'
                     ? ['宗门', '山门', '藏经阁', '仙坊', '坊市']
@@ -289,14 +323,16 @@ export const 构建官方模式运行时配置 = (
             mapPrompt: profile.mapPrompt
         },
         task: {
-            mainQuestStyle: isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
+            mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
             sideQuestDedupeKeys: ['目标地点', '发放者', '奖励类型', '核心行动', '关联NPC'],
             rewardDistributor: organization.organizationName,
-            rewardVisualizationTemplate: '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、属性点或境界变化。'
+            rewardVisualizationTemplate: isInfinite ? '正文中用【任务奖励】展示主神结算、奖励点、支线剧情、兑换权限、技能提升、属性点或队伍信用。' : '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、属性点或境界变化。'
         },
         npc: {
             defaultIdentityPool: organization.memberAliases,
-            relationTemplates: profile.group === 'apocalypse'
+            relationTemplates: profile.group === 'infinite'
+                ? ['队友', '资深者带新人', '利益同盟', '团战敌对', '临时合作']
+                : profile.group === 'apocalypse'
                 ? ['互助', '物资合作', '冲突', '临时同行']
                 : profile.group === 'western_fantasy'
                     ? ['契约', '同伴', '委托', '阵营', '旧怨']
@@ -304,25 +340,27 @@ export const 构建官方模式运行时配置 = (
             requiredMainCharacterFields: ['姓名', '性别', '年龄', '外貌', '性格', '身份', '位置', '关系', '性癖', '敏感点'],
             sexualityFallback: '按角色性格与经历生成明确偏好，不得写未知。',
             sensitivityFallback: '按角色身体/心理特征生成明确敏感点，不得写未知。',
-            autoImageStyle: isModern
+            autoImageStyle: isInfinite
+                ? '现代轮回者服饰、任务世界装备、主神空间冷白光和兑换道具清晰可见。'
+                : isModern
                 ? '现代服饰、现实材质、题材道具清晰可见。'
                 : profile.group === 'western_fantasy'
                     ? '中世纪西方奇幻服饰、职业装备、公会/城堡/地下城环境和魔法道具清晰可见。'
                     : '符合题材时代与身份的服饰、武器和环境。'
         },
         image: {
-            characterClothingEra: isApocalypse ? '现代末日生存服饰' : isModern ? '当代城市服饰' : profile.group === 'xianxia' ? '古典修真服饰' : profile.group === 'western_fantasy' ? '中世纪西方奇幻服饰' : '武侠江湖服饰',
-            sceneMaterials: isApocalypse ? '现代废墟、混凝土、铁皮、塑料布、车辆、临时照明' : isModern ? '城市街区、玻璃、混凝土、电子设备、办公室、商场' : profile.group === 'western_fantasy' ? '石砌城堡、木梁酒馆、羊皮卷、皮革、锁甲、彩绘玻璃、森林、矿洞、地下城、遗迹' : '木石、布帛、山水、院落、兵器、古道',
+            characterClothingEra: isInfinite ? '现代轮回者与任务世界混合装备' : isApocalypse ? '现代末日生存服饰' : isModern ? '当代城市服饰' : profile.group === 'xianxia' ? '古典修真服饰' : profile.group === 'western_fantasy' ? '中世纪西方奇幻服饰' : '武侠江湖服饰',
+            sceneMaterials: isInfinite ? '主神空间冷白光、金属地面、队伍房间、训练场、电影任务世界道具、现代战术装备' : isApocalypse ? '现代废墟、混凝土、铁皮、塑料布、车辆、临时照明' : isModern ? '城市街区、玻璃、混凝土、电子设备、办公室、商场' : profile.group === 'western_fantasy' ? '石砌城堡、木梁酒馆、羊皮卷、皮革、锁甲、彩绘玻璃、森林、矿洞、地下城、遗迹' : '木石、布帛、山水、院落、兵器、古道',
             itemRealismPrompt: '物品必须按真实用途、材质、尺寸和磨损状态绘制，不要把普通物资画成法宝或装饰概念图。',
-            negativePrompt: isModern ? '禁止古装、仙侠长袍、山门、丹炉、飞剑、宗门弟子。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
-            visualStyle: isApocalypse ? '写实、压抑、物资细节明确' : isModern ? '写实、当代、职业和城市细节明确' : profile.group === 'western_fantasy' ? '写实西方奇幻，职业装备、材质和冒险氛围明确' : '写实国风，服饰和物件符合题材'
+            negativePrompt: isInfinite ? '禁止把主神商城画成古代拍卖行、宗门坊市、普通超市或金银钱庄。' : isModern ? '禁止古装、仙侠长袍、山门、丹炉、飞剑、宗门弟子。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
+            visualStyle: isInfinite ? '写实电影感，主神空间、任务世界和兑换道具边界明确' : isApocalypse ? '写实、压抑、物资细节明确' : isModern ? '写实、当代、职业和城市细节明确' : profile.group === 'western_fantasy' ? '写实西方奇幻，职业装备、材质和冒险氛围明确' : '写实国风，服饰和物件符合题材'
         },
         opening: {
             defaultBackgrounds: profile.backgroundSuggestions,
             defaultTalents: profile.talentSuggestions,
             companionTemplate: `${organization.memberName}或同行者，能承接${profile.label}的第一幕冲突。`,
             cutInTemplates: ['日常低压', '在途起手', '家宅起手', '门派起手', '风波前夜'],
-            initialQuestTemplates: isApocalypse ? ['确认安全点', '获取饮水与药品', '建立营地联系'] : ['确认身份牵引', '接触初始组织', '取得第一条主线线索']
+            initialQuestTemplates: isInfinite ? ['读懂主神任务', '确认队伍分工', '寻找第一条支线线索'] : isApocalypse ? ['确认安全点', '获取饮水与药品', '建立营地联系'] : ['确认身份牵引', '接触初始组织', '取得第一条主线线索']
         },
         validation: {
             bannedWords: items.bannedItemKeywords,
@@ -350,7 +388,7 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
             isFandomIp: 布尔(raw?.identity?.isFandomIp, official.identity.isFandomIp)
         },
         economy: {
-            currencyDisplayMode: ['wuxia', 'xianxia', 'fantasy', 'urban', 'modern', 'apocalypse'].includes(raw?.economy?.currencyDisplayMode)
+            currencyDisplayMode: ['wuxia', 'xianxia', 'fantasy', 'urban', 'modern', 'apocalypse', 'infinite'].includes(raw?.economy?.currencyDisplayMode)
                 ? raw.economy.currencyDisplayMode
                 : official.economy.currencyDisplayMode,
             primaryCurrency: 文本(raw?.economy?.primaryCurrency, official.economy.primaryCurrency),
@@ -443,6 +481,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
     const items = 物品默认值(baseMode);
     const isModern = 判断现代(baseMode);
     const isApocalypse = profile.group === 'apocalypse';
+    const isInfinite = profile.group === 'infinite';
     return {
         identity: {
             modeId: profile.value,
@@ -451,7 +490,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             isModern,
             usesCultivation: 判断修炼(baseMode),
             isApocalypse,
-            isSurvival: isApocalypse,
+            isSurvival: isApocalypse || isInfinite,
             isFandomIp: false
         },
         economy: {
@@ -470,7 +509,9 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
         map: {
             layerNames: ['寰宇', '大地点', '中地点', '小地点', '区地点', '子地点'],
             locationTypes: profile.mapPrompt.split(/[、，,]/u).map((item) => item.replace(/世界版图应按|组织。|等/u, '').trim()).filter(Boolean),
-            poiTypes: profile.group === 'apocalypse'
+            poiTypes: profile.group === 'infinite'
+                ? ['主神空间', '队伍房间', '训练场', '主神广场', '任务世界', '剧情地点', '安全屋', '补给点', '隐藏支线地点', '回归通道']
+                : profile.group === 'apocalypse'
                 ? ['感染区', '医院', '商超', '仓库', '避难所', '公路', '封锁线', '营地', '市场', '资源点']
                 : profile.group === 'modern'
                     ? ['社区', '商圈', '写字楼', '学校', '医院', '交通站点', '灰色渠道']
@@ -479,7 +520,9 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
                         : profile.group === 'western_fantasy'
                             ? ['王国', '城堡', '教会', '魔法学院', '冒险者公会', '港口', '地下城', '遗迹', '魔物巢穴']
                             : ['城镇', '门派', '山道', '关隘', '渡口', '市场', '野外险地'],
-            bannedLocationKeywords: profile.group === 'apocalypse'
+            bannedLocationKeywords: profile.group === 'infinite'
+                ? ['宗门山门', '王朝朝堂', '营地信用市场', '现实工资结算']
+                : profile.group === 'apocalypse'
                 ? ['宗门', '山门', '藏经阁', '洞府', '仙坊']
                 : profile.group === 'modern'
                     ? ['宗门', '山门', '藏经阁', '仙坊', '坊市']
@@ -489,14 +532,16 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             mapPrompt: profile.mapPrompt
         },
         task: {
-            mainQuestStyle: isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
+            mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
             sideQuestDedupeKeys: ['目标地点', '发放者', '奖励类型', '核心行动', '关联NPC'],
             rewardDistributor: organization.organizationName,
-            rewardVisualizationTemplate: '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、属性点或境界变化。'
+            rewardVisualizationTemplate: isInfinite ? '正文中用【任务奖励】展示主神结算、奖励点、支线剧情、兑换权限、技能提升、属性点或队伍信用。' : '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、属性点或境界变化。'
         },
         npc: {
             defaultIdentityPool: organization.memberAliases,
-            relationTemplates: profile.group === 'apocalypse'
+            relationTemplates: profile.group === 'infinite'
+                ? ['队友', '资深者带新人', '利益同盟', '团战敌对', '临时合作']
+                : profile.group === 'apocalypse'
                 ? ['互助', '物资合作', '冲突', '临时同行']
                 : profile.group === 'western_fantasy'
                     ? ['契约', '同伴', '委托', '阵营', '旧怨']
@@ -504,25 +549,27 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             requiredMainCharacterFields: ['姓名', '性别', '年龄', '外貌', '性格', '身份', '位置', '关系', '性癖', '敏感点'],
             sexualityFallback: '按角色性格与经历生成明确偏好，不得写未知。',
             sensitivityFallback: '按角色身体/心理特征生成明确敏感点，不得写未知。',
-            autoImageStyle: isModern
+            autoImageStyle: isInfinite
+                ? '现代轮回者服饰、任务世界装备、主神空间冷白光和兑换道具清晰可见。'
+                : isModern
                 ? '现代服饰、现实材质、题材道具清晰可见。'
                 : profile.group === 'western_fantasy'
                     ? '中世纪西方奇幻服饰、职业装备、公会/城堡/地下城环境和魔法道具清晰可见。'
                     : '符合题材时代与身份的服饰、武器和环境。'
         },
         image: {
-            characterClothingEra: isApocalypse ? '现代末日生存服饰' : isModern ? '当代城市服饰' : profile.group === 'xianxia' ? '古典修真服饰' : profile.group === 'western_fantasy' ? '中世纪西方奇幻服饰' : '武侠江湖服饰',
-            sceneMaterials: isApocalypse ? '现代废墟、混凝土、铁皮、塑料布、车辆、临时照明' : isModern ? '城市街区、玻璃、混凝土、电子设备、办公室、商场' : profile.group === 'western_fantasy' ? '石砌城堡、木梁酒馆、羊皮卷、皮革、锁甲、彩绘玻璃、森林、矿洞、地下城、遗迹' : '木石、布帛、山水、院落、兵器、古道',
+            characterClothingEra: isInfinite ? '现代轮回者与任务世界混合装备' : isApocalypse ? '现代末日生存服饰' : isModern ? '当代城市服饰' : profile.group === 'xianxia' ? '古典修真服饰' : profile.group === 'western_fantasy' ? '中世纪西方奇幻服饰' : '武侠江湖服饰',
+            sceneMaterials: isInfinite ? '主神空间冷白光、金属地面、队伍房间、训练场、电影任务世界道具、现代战术装备' : isApocalypse ? '现代废墟、混凝土、铁皮、塑料布、车辆、临时照明' : isModern ? '城市街区、玻璃、混凝土、电子设备、办公室、商场' : profile.group === 'western_fantasy' ? '石砌城堡、木梁酒馆、羊皮卷、皮革、锁甲、彩绘玻璃、森林、矿洞、地下城、遗迹' : '木石、布帛、山水、院落、兵器、古道',
             itemRealismPrompt: '物品必须按真实用途、材质、尺寸和磨损状态绘制，不要把普通物资画成法宝或装饰概念图。',
-            negativePrompt: isModern ? '禁止古装、仙侠长袍、山门、丹炉、飞剑、宗门弟子。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
-            visualStyle: isApocalypse ? '写实、压抑、物资细节明确' : isModern ? '写实、当代、职业和城市细节明确' : profile.group === 'western_fantasy' ? '写实西方奇幻，职业装备、材质和冒险氛围明确' : '写实国风，服饰和物件符合题材'
+            negativePrompt: isInfinite ? '禁止把主神商城画成古代拍卖行、宗门坊市、普通超市或金银钱庄。' : isModern ? '禁止古装、仙侠长袍、山门、丹炉、飞剑、宗门弟子。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
+            visualStyle: isInfinite ? '写实电影感，主神空间、任务世界和兑换道具边界明确' : isApocalypse ? '写实、压抑、物资细节明确' : isModern ? '写实、当代、职业和城市细节明确' : profile.group === 'western_fantasy' ? '写实西方奇幻，职业装备、材质和冒险氛围明确' : '写实国风，服饰和物件符合题材'
         },
         opening: {
             defaultBackgrounds: profile.backgroundSuggestions,
             defaultTalents: profile.talentSuggestions,
             companionTemplate: `${organization.memberName}或同行者，能承接${profile.label}的第一幕冲突。`,
             cutInTemplates: ['日常低压', '在途起手', '家宅起手', '门派起手', '风波前夜'],
-            initialQuestTemplates: isApocalypse ? ['确认安全点', '获取饮水与药品', '建立营地联系'] : ['确认身份牵引', '接触初始组织', '取得第一条主线线索']
+            initialQuestTemplates: isInfinite ? ['读懂主神任务', '确认队伍分工', '寻找第一条支线线索'] : isApocalypse ? ['确认安全点', '获取饮水与药品', '建立营地联系'] : ['确认身份牵引', '接触初始组织', '取得第一条主线线索']
         },
         validation: {
             bannedWords: items.bannedItemKeywords,

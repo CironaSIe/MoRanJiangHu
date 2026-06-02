@@ -26,7 +26,7 @@ import {
     新开局步骤列表,
     默认初始伙伴配置,
     默认开局配置,
-    获取难度设定,
+    获取题材化难度设定,
     获取难度总属性点,
     获取同人角色替换规则列表,
     格式化角色替换规则摘要,
@@ -677,8 +677,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const partnerRemainingPoints = totalStatBudget - partnerUsedPoints;
     const stepProgress = ((step + 1) / STEPS.length) * 100;
     const currentStepLabel = STEPS[step] || '创建';
-    const 当前难度设定 = useMemo(() => 获取难度设定(worldConfig.difficulty), [worldConfig.difficulty]);
     const 当前题材配置 = useMemo(() => 获取题材模式配置(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前难度设定 = useMemo(() => 获取题材化难度设定(worldConfig.difficulty, openingConfig.题材模式), [worldConfig.difficulty, openingConfig.题材模式]);
     const 出身剩余重Roll次数 = Math.max(0, 当前难度设定.天赋重Roll次数 - 出身已重Roll次数);
     const 天赋剩余重Roll次数 = Math.max(0, 当前难度设定.天赋重Roll次数 - 天赋已重Roll次数);
     const 当前出身展示列表 = 出身选择模式 === '抽卡' ? 当前抽卡出身选项 : 全部背景选项;

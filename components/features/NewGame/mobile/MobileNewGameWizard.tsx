@@ -26,7 +26,7 @@ import {
     新开局步骤列表,
     默认初始伙伴配置,
     默认开局配置,
-    获取难度设定,
+    获取题材化难度设定,
     获取难度总属性点,
     获取同人角色替换规则列表,
     格式化角色替换规则摘要,
@@ -649,8 +649,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
     const partnerRemainingPoints = totalStatBudget - partnerUsedPoints;
     const stepProgress = ((step + 1) / STEPS.length) * 100;
     const currentStepLabel = STEPS[step] || '创建';
-    const 当前难度设定 = useMemo(() => 获取难度设定(worldConfig.difficulty), [worldConfig.difficulty]);
     const 当前题材配置 = useMemo(() => 获取题材模式配置(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前难度设定 = useMemo(() => 获取题材化难度设定(worldConfig.difficulty, openingConfig.题材模式), [worldConfig.difficulty, openingConfig.题材模式]);
     const 当前开局配置文案 = useMemo(() => 获取题材开局配置文案(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前关系侧重选项 = useMemo(() => 获取题材关系侧重选项(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前开局切入偏好选项 = useMemo(() => 获取题材开局切入偏好选项(openingConfig.题材模式), [openingConfig.题材模式]);

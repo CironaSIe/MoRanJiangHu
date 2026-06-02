@@ -99,6 +99,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
     const 底部判定阈值 = 120;
     const [接近底部, set接近底部] = React.useState(true);
     const [显示快速置底, set显示快速置底] = React.useState(false);
+    const [显示全部历史, set显示全部历史] = React.useState(false);
     const 隐藏按钮计时器Ref = React.useRef<number | null>(null);
     const 待抑制自动滚动Ref = React.useRef(false);
     const 抑制滚动位置Ref = React.useRef<number | null>(null);
@@ -264,6 +265,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
 
     // Slice by real turns (assistant structured responses), not by message count.
     const sliceIndex = React.useMemo(() => {
+        if (显示全部历史) return 0;
         if (turnAnchors.length <= normalizedRenderCount) return 0;
         const firstVisibleAnchorPos = turnAnchors.length - normalizedRenderCount;
         if (firstVisibleAnchorPos <= 0) return 0;
@@ -271,7 +273,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
         // Include the user input/system notes between previous turn and current visible turn.
         const previousAnchor = turnAnchors[firstVisibleAnchorPos - 1];
         return Math.min(history.length, previousAnchor.index + 1);
-    }, [history.length, normalizedRenderCount, turnAnchors]);
+    }, [history.length, normalizedRenderCount, turnAnchors, 显示全部历史]);
 
     const 流式草稿索引 = React.useMemo(() => {
         for (let index = history.length - 1; index >= sliceIndex; index -= 1) {
@@ -427,9 +429,27 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
 
                 {hiddenCount > 0 && (
                     <div className="w-full text-center py-4">
-                        <div className="inline-block px-4 py-1 rounded-full bg-white/5 border border-gray-700 text-gray-500 font-serif italic" style={{ fontSize: 紧凑字号 }}>
-                            已隐藏早期 {hiddenTurns} 回合 / {hiddenCount} 条记录 (请在设置-互动历史中查看)
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => set显示全部历史(true)}
+                            className="inline-flex max-w-full items-center justify-center rounded-full border border-wuxia-gold/35 bg-white/8 px-4 py-1.5 font-serif text-wuxia-gold/90 shadow-sm transition-colors hover:border-wuxia-cyan/55 hover:text-wuxia-cyan day-mode-chat-jump-button"
+                            style={{ fontSize: 紧凑字号 }}
+                        >
+                            展开早期 {hiddenTurns} 回合 / {hiddenCount} 条对话记录
+                        </button>
+                    </div>
+                )}
+
+                {显示全部历史 && turnAnchors.length > normalizedRenderCount && (
+                    <div className="w-full text-center py-2">
+                        <button
+                            type="button"
+                            onClick={() => set显示全部历史(false)}
+                            className="inline-flex max-w-full items-center justify-center rounded-full border border-white/15 bg-black/35 px-4 py-1.5 font-serif text-gray-300 shadow-sm transition-colors hover:border-wuxia-gold/45 hover:text-wuxia-gold day-mode-chat-jump-button"
+                            style={{ fontSize: 紧凑字号 }}
+                        >
+                            收起早期对话，仅显示最近 {normalizedRenderCount} 回合
+                        </button>
                     </div>
                 )}
             

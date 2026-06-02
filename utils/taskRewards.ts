@@ -129,7 +129,7 @@ export const 结算已完成任务奖励 = (
         const itemRewards: any[] = [];
 
         rewardDescriptions.flatMap(解析奖励片段).forEach((part, rewardIndex) => {
-            const contributionMatch = part.match(/(?:门派贡献|营地贡献|组织信用|贡献点|资源额度|信用额度)\s*[+＋]\s*(\d+)/u);
+            const contributionMatch = part.match(/(?:门派贡献|营地贡献|组织信用|队伍信用|贡献点|资源额度|信用额度)\s*[+＋]\s*(\d+)/u);
             if (contributionMatch) {
                 const amount = Math.max(0, Math.trunc(Number(contributionMatch[1])));
                 if (amount > 0) {
@@ -144,13 +144,19 @@ export const 结算已完成任务奖励 = (
                 return;
             }
 
-            const moneyMatch = part.match(/(金元宝|元宝|银子|银两|铜钱)\s*[+＋]\s*(\d+)/u);
+            const moneyMatch = part.match(/(金元宝|元宝|银子|银两|铜钱|奖励点|D级支线剧情|C级支线剧情)\s*[+＋]\s*(\d+)/u);
             if (moneyMatch) {
-                const key = moneyMatch[1] === '元宝' ? '金元宝' : moneyMatch[1] === '银两' ? '银子' : moneyMatch[1];
+                const key = moneyMatch[1] === '元宝' || moneyMatch[1] === 'C级支线剧情'
+                    ? '金元宝'
+                    : moneyMatch[1] === '银两' || moneyMatch[1] === 'D级支线剧情'
+                        ? '银子'
+                        : moneyMatch[1] === '奖励点'
+                            ? '铜钱'
+                            : moneyMatch[1];
                 const amount = Math.max(0, Math.trunc(Number(moneyMatch[2])));
                 if (amount > 0) {
                     role.金钱[key] = Math.max(0, 取数字(role.金钱[key])) + amount;
-                    rewardRecords.push(`${key} +${amount}`);
+                    rewardRecords.push(`${moneyMatch[1]} +${amount}`);
                     changed = true;
                 }
                 return;
