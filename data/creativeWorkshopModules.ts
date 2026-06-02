@@ -3,6 +3,7 @@ import type { ModeRuntimeProfile, 世界书结构, 世界书条目结构, 世界
 import { 题材模式配置表, 题材模式顺序 } from '../utils/topicModeProfiles';
 import { 构建官方模式运行时配置, 规范化模式运行时配置, 渲染模式运行时配置世界书内容 } from '../utils/modeRuntimeProfile';
 import { 默认ComfyUI工作流JSON, 默认NSFWComfyUI工作流JSON } from './defaultComfyWorkflow';
+import { 获取题材预设背景, 获取题材预设天赋 } from './presets';
 
 export type 创意工坊模块类型 = 'topic' | 'world_rules' | 'opening' | 'ability' | 'comfy_workflow';
 export type 创意工坊模块来源 = 'builtin' | 'cloud' | 'local';
@@ -206,19 +207,21 @@ export const 创意工坊模块分区: Array<{ id: 创意工坊模块类型; tit
 ];
 
 const 题材默认角色: Record<keyof typeof 题材模式配置表, { 姓名: string; 背景: string; 天赋: string[]; 开局补充: string }> = {
-    武侠: { 姓名: '沈砚', 背景: '门派外门', 天赋: ['稳扎稳打', '人情练达'], 开局补充: '第一幕从镖局、门派外门、药铺或江湖小镇切入，保持武侠尺度。' },
-    仙侠: { 姓名: '沈玄', 背景: '宗门旧徒', 天赋: ['药灵体', '静心观微'], 开局补充: '第一幕从低阶宗门、坊市或灵田压力切入，不直接赠送高阶法宝。' },
+    武侠: { 姓名: '沈砚', 背景: '镖局少东家', 天赋: ['稳扎稳打', '人情练达'], 开局补充: '第一幕从镖局、门派外门、药铺或江湖小镇切入，保持武侠尺度。' },
+    仙侠: { 姓名: '沈玄', 背景: '散修遗孤', 天赋: ['灵觉敏锐', '道心澄明'], 开局补充: '第一幕从低阶宗门、坊市或灵田压力切入，不直接赠送高阶法宝。' },
     西方奇幻: { 姓名: '莱恩', 背景: '冒险者学徒', 天赋: ['魔力亲和', '骑士誓言'], 开局补充: '第一幕从冒险者公会、边境酒馆、护送委托、魔物骚扰或地下城入口切入，不直接赠送神器。' },
-    灵气复苏: { 姓名: '林澈', 背景: '城市学生', 天赋: ['灵觉敏锐', '耐苦心性'], 开局补充: '第一幕从校园、医院、研究点或异常封控现场切入，保留现代社会惯性。' },
-    都市修仙: { 姓名: '许临安', 背景: '都市散修', 天赋: ['静心观微', '经商嗅觉'], 开局补充: '第一幕从公司、家族、人脉债务或城市暗市切入，不要直接进入成熟宗门社会。' },
-    现代都市: { 姓名: '周行', 背景: '普通职员', 天赋: ['人情练达', '稳扎稳打'], 开局补充: '第一幕从现实工作、家庭、人情、商业或城市案件切入，不写成超凡常态。' },
-    末日丧尸: { 姓名: '陈砾', 背景: '维修工', 天赋: ['稳扎稳打', '独行者'], 开局补充: '第一幕从安全屋、医院遗址、商超搜索或营地冲突切入。' },
+    灵气复苏: { 姓名: '林澈', 背景: '大学生', 天赋: ['灵觉敏锐', '社区纽带'], 开局补充: '第一幕从校园、医院、研究点或异常封控现场切入，保留现代社会惯性。' },
+    都市修仙: { 姓名: '许临安', 背景: '古玩店学徒', 天赋: ['灵觉敏锐', '市井耳目'], 开局补充: '第一幕从公司、家族、人脉债务或城市暗市切入，不要直接进入成熟宗门社会。' },
+    现代都市: { 姓名: '周行', 背景: '白领文职', 天赋: ['人情练达', '账房脑子'], 开局补充: '第一幕从现实工作、家庭、人情、商业或城市案件切入，不写成超凡常态。' },
+    末日丧尸: { 姓名: '陈砾', 背景: '维修工', 天赋: ['独行者', '守夜人'], 开局补充: '第一幕从安全屋、医院遗址、商超搜索或营地冲突切入。' },
     无限流: { 姓名: '周砚', 背景: '恐怖片影迷', 天赋: ['情报记忆', '恐惧抗性'], 开局补充: '第一幕从主神空间醒来、主神任务倒计时、队伍新人互相试探和第一次恐怖片任务切入。' }
 };
 
 const 构建题材模块 = (mode: keyof typeof 题材模式配置表): 创意工坊模块条目 => {
     const profile = 题材模式配置表[mode];
     const actor = 题材默认角色[mode];
+    const backgrounds = 获取题材预设背景(mode);
+    const talents = 获取题材预设天赋(mode);
     return {
         id: `topic-${profile.value}`,
         type: 'topic',
@@ -226,12 +229,18 @@ const 构建题材模块 = (mode: keyof typeof 题材模式配置表): 创意工
         subtitle: `${profile.worldSizeLabel}、${profile.dynastyLabel}、${profile.tianjiaoLabel}`,
         description: `把新开局切换到${profile.label}口径，注入货币、地图空间、势力关系和基础叙事边界。`,
         tags: [profile.shortLabel, profile.currencyDisplayMode, profile.group],
-        payload: profile,
+        payload: {
+            ...profile,
+            backgrounds,
+            talents
+        },
         injectionPreview: [
             `worldConfig.worldExtraRequirement：${profile.worldDefaults.worldExtraRequirement}`,
             `worldConfig.manualWorldPrompt：${profile.promptLines.join(' / ')}`,
             `openingConfig.题材模式：${mode}`,
-            `货币/市场口径：${profile.currencyExchangePrompt}`
+            `货币/市场口径：${profile.currencyExchangePrompt}`,
+            `身份背景池：${backgrounds.slice(0, 6).map((item) => item.名称).join('、')}`,
+            `天赋池：${talents.slice(0, 6).map((item) => item.名称).join('、')}`
         ],
         source: 'builtin',
         contributor: '官方',
@@ -447,6 +456,8 @@ const 构建标准内容模块 = (params: {
         .map((block) => [`【${block.title}】`, block.content.trim()].filter(Boolean).join('\n'))
         .join('\n\n');
     const actor = 题材默认角色[params.mode];
+    const backgrounds = 获取题材预设背景(params.mode);
+    const talents = 获取题材预设天赋(params.mode);
     const preset = 构建题材预设(
         `workshop_${params.id}`,
         `工坊·${params.title}`,
@@ -474,7 +485,9 @@ const 构建标准内容模块 = (params: {
             content,
             contentBlocks: params.blocks,
             usagePrompt: params.usagePrompt,
-            safetyNotes: params.safetyNotes || []
+            safetyNotes: params.safetyNotes || [],
+            backgrounds,
+            talents
         },
         contentBlocks: params.blocks,
         usagePrompt: params.usagePrompt,
@@ -483,6 +496,8 @@ const 构建标准内容模块 = (params: {
             `标准格式：v2 / ${params.type}`,
             ...(params.suiteTitle ? [`完整模式包：${params.suiteTitle}`] : []),
             ...params.blocks.slice(0, 4).map((block) => `${block.injectionTarget || 'referenceOnly'}：${block.title} - ${block.purpose}`),
+            `身份背景池：${backgrounds.slice(0, 6).map((item) => item.名称).join('、')}`,
+            `天赋池：${talents.slice(0, 6).map((item) => item.名称).join('、')}`,
             `使用提示：${params.usagePrompt}`
         ],
         source: 'builtin',
@@ -969,6 +984,8 @@ const 构建整合模式包 = (topic: 创意工坊模块条目, worldRules?: 创
     const manualWorldPrompt = 取模块文本(topic, 'manualWorldPrompt');
     const worldExtraRequirement = worldRules ? 取模块文本(worldRules, 'worldExtraRequirement') : '';
     const manualRealmPrompt = ability ? 取模块文本(ability, 'manualRealmPrompt') : '';
+    const backgrounds = Array.isArray((topic.payload as any)?.backgrounds) ? (topic.payload as any).backgrounds : 获取题材预设背景(mode);
+    const talents = Array.isArray((topic.payload as any)?.talents) ? (topic.payload as any).talents : 获取题材预设天赋(mode);
     const rawRuntimeProfile = (topic as any).modeRuntimeProfile || (topic.payload as any)?.modeRuntimeProfile || (worldRules?.payload as any)?.modeRuntimeProfile || (ability?.payload as any)?.modeRuntimeProfile;
     const modeRuntimeProfile = 规范化模式运行时配置({
         ...(rawRuntimeProfile && typeof rawRuntimeProfile === 'object' ? rawRuntimeProfile : {}),
@@ -1049,6 +1066,8 @@ const 构建整合模式包 = (topic: 创意工坊模块条目, worldRules?: 创
             manualWorldPrompt,
             worldExtraRequirement,
             manualRealmPrompt,
+            backgrounds,
+            talents,
             content: contentBlocks.map((block) => [`【${block.title}】`, block.content.trim()].filter(Boolean).join('\n')).join('\n\n'),
             contentBlocks,
             usagePrompt: '作为完整模式包注入新建存档：模式专属世界书会统一接管题材口径、世界规则和能力体系；旧版手动提示词字段仅作兼容。',
@@ -1064,7 +1083,9 @@ const 构建整合模式包 = (topic: 创意工坊模块条目, worldRules?: 创
             `世界书条目：${modeWorldbooks[0]?.条目.length || 0} 条`,
             `题材口径：${manualWorldPrompt.slice(0, 120)}`,
             ...(worldExtraRequirement ? [`世界规则：${worldExtraRequirement.slice(0, 120)}`] : []),
-            ...(manualRealmPrompt ? [`能力体系：${manualRealmPrompt.slice(0, 120)}`] : [])
+            ...(manualRealmPrompt ? [`能力体系：${manualRealmPrompt.slice(0, 120)}`] : []),
+            `身份背景池：${backgrounds.slice(0, 6).map((item: any) => item?.名称).filter(Boolean).join('、')}`,
+            `天赋池：${talents.slice(0, 6).map((item: any) => item?.名称).filter(Boolean).join('、')}`
         ],
         preset
     };

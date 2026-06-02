@@ -398,6 +398,33 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             .filter((item): item is 天赋结构 => Boolean(item))
             .slice(0, 3)
     );
+    const 提取模块背景列表 = (module: 创意工坊模块条目): 背景结构[] => {
+        const payload = module.payload as any;
+        const rawList = Array.isArray(payload?.backgrounds)
+            ? payload.backgrounds
+            : Array.isArray(payload?.characterBackgrounds)
+                ? payload.characterBackgrounds
+                : [];
+        return rawList.map((item: 背景结构) => 标准化背景(item)).filter((item: 背景结构 | null): item is 背景结构 => Boolean(item));
+    };
+    const 提取模块天赋列表 = (module: 创意工坊模块条目): 天赋结构[] => {
+        const payload = module.payload as any;
+        const rawList = Array.isArray(payload?.talents)
+            ? payload.talents
+            : Array.isArray(payload?.characterTalents)
+                ? payload.characterTalents
+                : [];
+        return rawList.map((item: 天赋结构) => 标准化天赋(item)).filter((item: 天赋结构 | null): item is 天赋结构 => Boolean(item));
+    };
+    const 按候选名称查找背景 = (名称: string, candidates: 背景结构[]): 背景结构 | null => (
+        candidates.find(item => item.名称 === 名称) || null
+    );
+    const 按候选名称查找天赋列表 = (名称列表: string[], candidates: 天赋结构[]): 天赋结构[] => (
+        名称列表
+            .map((名称) => candidates.find(item => item.名称 === 名称))
+            .filter((item): item is 天赋结构 => Boolean(item))
+            .slice(0, 3)
+    );
     const 读取图片文件 = (file: File, setter: (value: string) => void) => {
         if (!file || !file.type.startsWith('image/')) return;
         const reader = new FileReader();
@@ -840,6 +867,46 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 module.modeRuntimeProfile || (module.payload as any)?.modeRuntimeProfile,
                 mode || openingConfig.题材模式
             );
+            const resolvedMode = modeRuntimeProfile.identity.baseMode as 题材模式类型;
+            const moduleBackgrounds = 提取模块背景列表(module);
+            const moduleTalents = 提取模块天赋列表(module);
+            const nextCustomBackgrounds = moduleBackgrounds.length > 0
+                ? 合并去重背景([...自定义背景列表, ...moduleBackgrounds])
+                : 自定义背景列表;
+            const nextCustomTalents = moduleTalents.length > 0
+                ? 合并去重天赋([...自定义天赋列表, ...moduleTalents])
+                : 自定义天赋列表;
+            if (moduleBackgrounds.length > 0) {
+                设置自定义背景列表(nextCustomBackgrounds);
+                await dbService.保存设置(自定义背景存储键, nextCustomBackgrounds);
+            }
+            if (moduleTalents.length > 0) {
+                设置自定义天赋列表(nextCustomTalents);
+                await dbService.保存设置(自定义天赋存储键, nextCustomTalents);
+            }
+            const backgroundCandidates = 合并去重背景([
+                ...moduleBackgrounds,
+                ...获取题材预设背景(resolvedMode),
+                ...全部背景选项,
+                ...nextCustomBackgrounds,
+                ...预设背景
+            ]);
+            const talentCandidates = 合并去重天赋([
+                ...moduleTalents,
+                ...获取题材预设天赋(resolvedMode),
+                ...全部天赋选项,
+                ...nextCustomTalents,
+                ...预设天赋
+            ]);
+            const presetCharacter = module.preset?.character;
+            if (presetCharacter?.背景名称) {
+                const nextBackground = 按候选名称查找背景(presetCharacter.背景名称, backgroundCandidates);
+                if (nextBackground) setSelectedBackground(nextBackground);
+            }
+            if (presetCharacter?.天赋名称列表?.length) {
+                const nextTalents = 按候选名称查找天赋列表(presetCharacter.天赋名称列表, talentCandidates);
+                if (nextTalents.length > 0) setSelectedTalents(nextTalents);
+            }
             setOpeningConfig((prev) => ({
                 ...prev,
                 题材模式: modeRuntimeProfile.identity.baseMode,
@@ -892,7 +959,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 const realmPrompt = String((module.payload as any)?.manualRealmPrompt || module.preset?.worldConfig?.manualRealmPrompt || content).trim();
                 if (realmPrompt) setWorldConfig((prev) => ({ ...prev, manualRealmPrompt: realmPrompt }));
             }
-            设置创意工坊注入状态(`已注入「${module.title}」的模式专属世界书。可在下方继续微调世界观、世界规则和能力边界；开局配置仍在后续步骤单独调整。`);
+            设置创意工坊注入状态(`已注入「${module.title}」的模式专属世界书、身份背景池和天赋池。可在后续步骤继续微调角色与开局要求。`);
         } catch (error: any) {
             设置创意工坊注入状态(`工坊预设注入失败：${error?.message || '未知错误'}`);
         } finally {
@@ -2382,6 +2449,33 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                     {/* STEP 3: TALENTS & BACKGROUND */}
                     {step === 1 && (
                         <div className="space-y-8 animate-slide-in max-w-6xl mx-auto">
+                            <OrnateBorder className="p-4 md:p-5 bg-black/30">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <div className="text-[11px] uppercase tracking-[0.28em] text-wuxia-cyan/70 font-mono">Mode Fit</div>
+                                        <div className="mt-1 text-sm text-gray-300">当前模式：<span className="text-wuxia-gold">{当前题材配置.label}</span></div>
+                                    </div>
+                                    <GameButton
+                                        onClick={() => { void runAiFrameworkAssist(); }}
+                                        disabled={aiFrameworkStatus.type === 'loading' || !接口配置是否可用(当前主剧情接口配置)}
+                                        variant="secondary"
+                                        className="px-4 py-2 text-xs"
+                                    >
+                                        {aiFrameworkStatus.type === 'loading' ? 'AI 生成中' : 'AI 生成本模式身份/天赋'}
+                                    </GameButton>
+                                </div>
+                                {aiFrameworkStatus.message && (
+                                    <div className={`mt-3 rounded-lg border px-3 py-2 text-xs leading-5 ${
+                                        aiFrameworkStatus.type === 'error'
+                                            ? 'border-red-500/30 bg-red-500/10 text-red-200'
+                                            : aiFrameworkStatus.type === 'success'
+                                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                                                : 'border-wuxia-cyan/25 bg-wuxia-cyan/10 text-wuxia-cyan'
+                                    }`}>
+                                        {aiFrameworkStatus.message}
+                                    </div>
+                                )}
+                            </OrnateBorder>
                             <OrnateBorder className="p-6 md:p-7 bg-gradient-to-br from-black/70 via-black/55 to-wuxia-gold/5">
                                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 border-b border-wuxia-gold/30 pb-4 mb-5">
                                     <div>

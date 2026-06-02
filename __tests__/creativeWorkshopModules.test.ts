@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { 创意工坊模块分区, 创意工坊模块列表 } from '../data/creativeWorkshopModules';
 import { 标准化开局预设方案 } from '../utils/customNewGamePresets';
 import { 题材模式顺序 } from '../utils/topicModeProfiles';
+import { 获取题材预设背景, 获取题材预设天赋 } from '../data/presets';
 
 describe('creativeWorkshopModules', () => {
     it('规划分区均有当前可用模块', () => {
@@ -30,6 +31,18 @@ describe('creativeWorkshopModules', () => {
             expect(entry.payload?.modeRuntimeProfile).toEqual(entry.modeRuntimeProfile);
             expect(entry.preset?.openingConfig?.modeRuntimeProfile?.identity.baseMode, mode).toBe(mode);
             expect(entry.preset?.worldConfig?.modeRuntimeProfile?.identity.baseMode, mode).toBe(mode);
+            expect(Array.isArray(entry.payload?.backgrounds), mode).toBe(true);
+            expect(Array.isArray(entry.payload?.talents), mode).toBe(true);
+            expect((entry.payload?.backgrounds as any[]).length, mode).toBeGreaterThanOrEqual(8);
+            expect((entry.payload?.talents as any[]).length, mode).toBeGreaterThanOrEqual(8);
+            expect(entry.payload?.backgrounds).toEqual(获取题材预设背景(mode));
+            expect(entry.payload?.talents).toEqual(获取题材预设天赋(mode));
+            const backgroundNames = new Set((entry.payload?.backgrounds as any[]).map((item) => item.名称));
+            const talentNames = new Set((entry.payload?.talents as any[]).map((item) => item.名称));
+            expect(backgroundNames.has(entry.preset?.character.背景名称), mode).toBe(true);
+            for (const talentName of entry.preset?.character.天赋名称列表 || []) {
+                expect(talentNames.has(talentName), `${mode}:${talentName}`).toBe(true);
+            }
             expect(String(entry.payload?.manualWorldPrompt || '')).toBeTruthy();
             expect(String(entry.payload?.worldExtraRequirement || '')).toBeTruthy();
             expect(String(entry.payload?.manualRealmPrompt || '')).toBeTruthy();
