@@ -616,3 +616,10 @@ If the task is "confirm this UI works" and the opening flow depends on external 
   - Reverse processing: `--reverse`
   - Separate reports: `--report=some-report.json`
 - As of the 2026-06-01 run, all `现代都市` and `末日丧尸` preset images were regenerated through GPT image 2 and moved to the 111666 image host.
+
+## Topic Mode Preset Feedback Rule
+
+- Whenever a new topic mode is added, its preset items and preset images must also be included in the public preset feedback data.
+- Do not stop after updating `utils/topicModeProfiles.ts`, `data/structuredItemLibrary.ts`, or `data/presetItemImages.ts`; also run `npm.cmd run preset:feedback`.
+- Verify `public/assets/item-preset-feedback-data.json` contains the new topic mode category and that the mode's preset images appear on `/item-preset-feedback`.
+- Keep `scripts/sync-item-preset-feedback-data.mjs` deriving topic mode categories from `题材模式顺序` instead of a hard-coded old mode list, so future modes are not silently omitted.

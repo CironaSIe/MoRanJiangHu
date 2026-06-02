@@ -609,3 +609,10 @@
   - 反向处理：`--reverse`
   - 独立报表：`--report=some-report.json`
 - 截至 2026-06-01 本轮处理，`现代都市` 与 `末日丧尸` 的预设图已全部通过 GPT image 2 重生，并迁移到 111666 图床。
+
+## 题材模式预设图反馈规则
+
+- 每次新增题材模式时，该模式的预设物品和预设图必须同步进入公开预设图反馈数据。
+- 不能只更新 `utils/topicModeProfiles.ts`、`data/structuredItemLibrary.ts` 或 `data/presetItemImages.ts`；还必须运行 `npm.cmd run preset:feedback`。
+- 必须确认 `public/assets/item-preset-feedback-data.json` 包含新题材模式分类，并且该模式的预设图能在 `/item-preset-feedback` 页面看到。
+- `scripts/sync-item-preset-feedback-data.mjs` 应继续从 `题材模式顺序` 自动推导题材分类，不要退回手写旧模式列表，避免未来新增模式被静默漏掉。

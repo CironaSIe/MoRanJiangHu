@@ -4,13 +4,24 @@ import path from 'node:path';
 const root = process.cwd();
 const sourcePath = path.join(root, 'data', 'presetItemImages.ts');
 const structuredLibraryPath = path.join(root, 'data', 'structuredItemLibrary.ts');
+const topicModeProfilesPath = path.join(root, 'utils', 'topicModeProfiles.ts');
 const outputPath = path.join(root, 'public', 'assets', 'item-preset-feedback-data.json');
 
 const source = fs.readFileSync(sourcePath, 'utf8');
 const structuredLibrary = fs.readFileSync(structuredLibraryPath, 'utf8');
+const topicModeProfiles = fs.readFileSync(topicModeProfilesPath, 'utf8');
 const itemPattern = /\{\s*名称:\s*'([^']+)'\s*,\s*类型:\s*'([^']+)'\s*,\s*品质:\s*'([^']+)'\s*,\s*图片URL:\s*'([^']+)'\s*\}/g;
 
-const topicModes = ['武侠', '仙侠', '西方奇幻', '灵气复苏', '都市修仙', '现代都市', '末日丧尸'];
+function extractTopicModes(sourceText) {
+  const match = sourceText.match(/export\s+const\s+题材模式顺序[^=]*=\s*\[([\s\S]*?)\]/);
+  if (!match) return [];
+  return Array.from(match[1].matchAll(/'([^']+)'/g), (item) => item[1]);
+}
+
+const topicModes = extractTopicModes(topicModeProfiles);
+if (!topicModes.length) {
+  throw new Error(`No topic modes parsed from ${topicModeProfilesPath}`);
+}
 
 function extractNamesFromConstArray(sourceText, constName) {
   const start = sourceText.indexOf(`const ${constName}`);
@@ -25,9 +36,11 @@ const xianxiaExclusiveNames = new Set(extractNamesFromConstArray(structuredLibra
 const westernFantasyNames = new Set(extractNamesFromConstArray(structuredLibrary, '西方奇幻预设物品'));
 const modernNames = new Set(extractNamesFromConstArray(structuredLibrary, '现代预设物品'));
 const apocalypseNames = new Set(extractNamesFromConstArray(structuredLibrary, '末日预设物品'));
+const infiniteFlowNames = new Set(extractNamesFromConstArray(structuredLibrary, '无限流预设物品'));
 
 const xianxiaExtraNames = new Set(['玉骨扇']);
 const apocalypseModernFallbackNames = new Set(['智能手机', '急救包', '维修工具箱', '多功能工具钳', '备用电池组', '防护口罩', '运动鞋']);
+const infiniteFlowFallbackNames = new Set(['智能手机', '急救包', '防护服', '护身符', '基础剑法残卷', '下品灵石', '净水片']);
 
 const modernPattern = /(智能手机|手机|录音笔|笔记本电脑|电脑|急救包|防割手套|银行卡|现金|信封|合同|证件|U盘|车钥匙|维修|工具箱|工具钳|电子元件|备用电池|防身喷雾|警棍|夹克|防护口罩|运动鞋|急救手册|电脑维修手册|便携检测仪|防护服|异常样本盒|灵能探测器|灵气抑制贴|银戒指|怀表)/;
 const apocalypsePattern = /(罐头|净水|电筒|弩机|抗生素|饮水瓶|汽油|压缩饼干|绷带|止血带|过滤|干电池|滤芯|太阳能|弹药|护目镜|防毒面具|撬棍|战术背心|消音弩|求生|营地|无线电|防水火柴|感染)/;
@@ -49,13 +62,19 @@ function isWesternFantasyItem(name) {
   return westernFantasyNames.has(name);
 }
 
+function isInfiniteFlowItem(name) {
+  return infiniteFlowNames.has(name) || infiniteFlowFallbackNames.has(name);
+}
+
 function categoriesForItem(item) {
   const name = item.name;
   const modern = isModernItem(name);
   const apocalypse = isApocalypseItem(name);
   const xianxiaExclusive = isXianxiaExclusiveItem(name);
   const westernFantasy = isWesternFantasyItem(name);
-  const premodern = !modern && !apocalypse && !westernFantasy;
+  const infiniteFlowExclusive = infiniteFlowNames.has(name);
+  const infiniteFlow = infiniteFlowExclusive || infiniteFlowFallbackNames.has(name);
+  const premodern = !modern && !apocalypse && !westernFantasy && !infiniteFlowExclusive;
   const xianxiaModeItem = premodern || xianxiaExclusive;
   const categories = new Set();
 
@@ -66,6 +85,7 @@ function categoriesForItem(item) {
   if (modern || xianxiaModeItem) categories.add('都市修仙');
   if (modern) categories.add('现代都市');
   if (apocalypse || apocalypseModernFallbackNames.has(name)) categories.add('末日丧尸');
+  if (infiniteFlow) categories.add('无限流');
   if (!categories.size) categories.add('武侠');
 
   return topicModes.filter((mode) => categories.has(mode));
