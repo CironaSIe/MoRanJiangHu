@@ -5,8 +5,9 @@ export const RELEASE_INFO = {
     "releaseChannel": "stable",
     "releaseNotes": [
         "各题材模式新增迷魂、魅惑、催眠线索类虚构剧情道具，并同步加入清醒、反制、检测类安全道具。",
-        "正文生成和变量生成都会明确看到这批特殊道具预设，相关剧情会优先复用规范物品名，减少乱编物品和缺图。",
-        "新增 20 张 gpt-image-2 写实风格预设物品图，预设图反馈页也已同步这些新道具。",
+        "参考禁忌法宝题材新增六欲琉璃炉、合欢迷神铃、魅心摄魂镜、缚念红绫、净欲明心镜、断欲镇魂印，仙侠、灵气复苏、都市修仙与无限流剧情会优先复用这些规范法宝。",
+        "正文生成和变量生成都会明确看到这批特殊道具与法宝预设，相关剧情会优先复用规范物品名，减少乱编物品和缺图。",
+        "新增 26 张 gpt-image-2 写实风格预设物品图，预设图反馈页也已同步这些新道具和法宝。",
         "官网：https://msjh.bacon159.pp.ua/",
         "同步更新 Web、APK 与更新清单到 v1.0.387。"
     ],
@@ -2577,7 +2578,7 @@ export const RELEASE_INFO = {
     "r2Bucket": "quark-downloads-bacon",
     "r2Prefix": "moranjianghu",
     "backupWebsiteUrl": "https://msjh.bacon.de5.net",
-    "releasePublishedAt": "2026-06-02T20:21:06+08:00",
+    "releasePublishedAt": "2026-06-02T20:45:52+08:00",
     "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
     "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html",
     "changes": [
@@ -2587,7 +2588,7 @@ export const RELEASE_INFO = {
         "官网：https://msjh.bacon159.pp.ua/",
         "同步更新 Web、APK 与更新清单到 v1.0.387。"
     ],
-    "notes": "各题材模式新增迷魂、魅惑、催眠线索类虚构剧情道具，并同步加入清醒、反制、检测类安全道具。\n正文生成和变量生成都会明确看到这批特殊道具预设，相关剧情会优先复用规范物品名，减少乱编物品和缺图。\n新增 20 张 gpt-image-2 写实风格预设物品图，预设图反馈页也已同步这些新道具。\n官网：https://msjh.bacon159.pp.ua/\n同步更新 Web、APK 与更新清单到 v1.0.387。"
+    "notes": "各题材模式新增迷魂、魅惑、催眠线索类虚构剧情道具，并同步加入清醒、反制、检测类安全道具。\n参考禁忌法宝题材新增六欲琉璃炉、合欢迷神铃、魅心摄魂镜、缚念红绫、净欲明心镜、断欲镇魂印，仙侠、灵气复苏、都市修仙与无限流剧情会优先复用这些规范法宝。\n正文生成和变量生成都会明确看到这批特殊道具与法宝预设，相关剧情会优先复用规范物品名，减少乱编物品和缺图。\n新增 26 张 gpt-image-2 写实风格预设物品图，预设图反馈页也已同步这些新道具和法宝。\n官网：https://msjh.bacon159.pp.ua/\n同步更新 Web、APK 与更新清单到 v1.0.387。"
 } as const;
 
 export type ReleaseInfo = typeof RELEASE_INFO;

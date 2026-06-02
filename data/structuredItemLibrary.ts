@@ -180,6 +180,12 @@ const 仙侠预设物品: 结构化物品条目[] = [
     { 名称: '摄魂符', 物品: '符箓', 类型: '任务道具', 品质: '极品', 视觉标签: ['fictional soul charm talisman', 'sealed evidence', 'purple ink'], 生图描述: 'single sealed purple talisman charm as fictional soul-bewitching contraband evidence, abstract ink strokes, wax seal, no readable characters, no person' },
     { 名称: '破妄清心符', 物品: '符箓', 类型: '消耗品', 品质: '上品', 视觉标签: ['anti illusion talisman', 'clarity charm', 'gold paper'], 生图描述: 'gold talisman charm for clarity and anti-illusion protection, abstract white ink pattern and clean aura, no readable text, no person' },
     { 名称: '定神玉佩', 物品: '玉佩', 类型: '饰品', 品质: '上品', 视觉标签: ['mind anchor jade pendant', 'anti charm accessory', 'white jade'], 生图描述: 'white jade mind-anchor pendant with silk cord and subtle clear glow, protective accessory prop, no readable text, no person' },
+    { 名称: '六欲琉璃炉', 物品: '琉璃炉', 类型: '法宝', 品质: '绝世', 视觉标签: ['forbidden six desires glazed censer', 'cultivation treasure', 'sealed artifact'], 生图描述: 'realistic ancient glazed bronze censer as a forbidden six-desires cultivation artifact, lotus relief, sealed lid, faint pink-violet aura, no smoke cloud, no person, no text, no explicit imagery' },
+    { 名称: '合欢迷神铃', 物品: '法铃', 类型: '法宝', 品质: '极品', 视觉标签: ['fictional charm bell', 'cultivation artifact', 'sealed evidence'], 生图描述: 'single ornate bronze ritual bell with red silk tassel as a fictional charm-mind artifact, photographed on dark cloth, no person, no readable text, no explicit imagery' },
+    { 名称: '魅心摄魂镜', 物品: '宝镜', 类型: '法宝', 品质: '极品', 视觉标签: ['charm mirror artifact', 'soul capture mirror', 'cultivation prop'], 生图描述: 'round antique bronze mirror with cloudy rose-gold reflective surface as a fictional charm artifact, full object visible, no face reflection, no person, no text' },
+    { 名称: '缚念红绫', 物品: '红绫', 类型: '法宝', 品质: '上品', 视觉标签: ['mind-binding red silk ribbon', 'cultivation artifact', 'sealed prop'], 生图描述: 'coiled crimson silk ribbon talisman artifact with small bronze clasps, realistic fabric texture, no body, no knots on a person, no text, no explicit imagery' },
+    { 名称: '净欲明心镜', 物品: '宝镜', 类型: '法宝', 品质: '上品', 视觉标签: ['anti charm clarity mirror', 'protective artifact', 'cultivation'], 生图描述: 'small silver protective clarity mirror with pale jade inlay, anti-charm cultivation artifact, clean tabletop product photo, no person, no text' },
+    { 名称: '断欲镇魂印', 物品: '法印', 类型: '法宝', 品质: '极品', 视觉标签: ['anti desire soul seal', 'protective artifact', 'cultivation treasure'], 生图描述: 'heavy black jade ritual seal used as a protective soul-stabilizing artifact, carved abstract cloud pattern, no readable writing, no person' },
     { 名称: '青竹飞剑', 物品: '飞剑', 类型: '法宝', 品质: '良品', 视觉标签: ['flying sword', 'bamboo green blade', 'jade hilt'], 生图描述: 'slender decorative cultivation flying sword artifact with bamboo-green sheath and jade hilt, ceremonial prop, no blood, no person' },
     { 名称: '寒霜飞剑', 物品: '飞剑', 类型: '法宝', 品质: '上品', 视觉标签: ['flying sword', 'frosted blade', 'white jade hilt'], 生图描述: 'slender frosted cultivation flying sword artifact with white jade hilt, cold aura, decorative ceremonial prop, no person' },
     { 名称: '紫电飞剑', 物品: '飞剑', 类型: '法宝', 品质: '极品', 视觉标签: ['flying sword', 'violet lightning', 'dark scabbard'], 生图描述: 'refined violet lightning flying sword artifact with dark scabbard and silver fittings, ceremonial display prop, no person' },
@@ -466,7 +472,7 @@ export const 题材模式预设物品名称清单: Record<题材模式类型, st
     都市修仙: 去重名称(现代都市物品名称, 仙侠物品名称, ['银行卡', '合同文件', '智能手机', '古玉残佩', '下品灵石', '符箓入门', '护身符']),
     现代都市: 去重名称(现代都市物品名称),
     末日丧尸: 去重名称(末日物品名称, ['智能手机', '急救包', '维修工具箱', '多功能工具钳', '备用电池组', '防护口罩', '运动鞋']),
-    无限流: 去重名称(无限流物品名称, ['智能手机', '急救包', '防护服', '净水片', '护身符', '玉骨扇', '治疗药水', '基础剑法残卷', '下品灵石', '手摇电筒', '防毒面具', '无线电台', '感染检测卡', '数据U盘']),
+    无限流: 去重名称(无限流物品名称, ['智能手机', '急救包', '防护服', '净水片', '护身符', '玉骨扇', '六欲琉璃炉', '魅心摄魂镜', '净欲明心镜', '治疗药水', '基础剑法残卷', '下品灵石', '手摇电筒', '防毒面具', '无线电台', '感染检测卡', '数据U盘']),
 };
 
 const 规范化题材模式 = (mode?: unknown): 题材模式类型 => (
@@ -509,11 +515,11 @@ export const 构建结构化物品库提示词摘要 = (): string => {
         .join('、');
     const specialPlotItemSummary = [
         '武侠: 迷魂香囊、合欢香丸、清心解香丸、醒神银针',
-        '仙侠/灵气复苏/都市修仙: 摄魂符、破妄清心符、定神玉佩、违禁香氛样本、催眠录音芯片、清醒贴片、香氛检测卡',
+        '仙侠/灵气复苏/都市修仙: 摄魂符、六欲琉璃炉、合欢迷神铃、魅心摄魂镜、缚念红绫、破妄清心符、定神玉佩、净欲明心镜、断欲镇魂印、违禁香氛样本、催眠录音芯片、清醒贴片、香氛检测卡',
         '西方奇幻: 魅惑药剂、沉眠熏香、反魅惑护符',
         '现代都市: 违禁香氛样本、催眠录音芯片、清醒贴片、香氛检测卡',
         '末日丧尸: 镇静烟雾罐、诱导素样本、神志清明针',
-        '无限流: 魅惑抗性贴片、违禁迷情香囊、精神锚定护符'
+        '无限流: 六欲琉璃炉、魅心摄魂镜、净欲明心镜、魅惑抗性贴片、违禁迷情香囊、精神锚定护符'
     ].join('；');
     const modeSummary = Object.entries(题材模式预设物品名称清单)
         .map(([mode, names]) => `${mode}: ${names.slice(0, 28).join('、')}${names.length > 28 ? '等' : ''}`)
