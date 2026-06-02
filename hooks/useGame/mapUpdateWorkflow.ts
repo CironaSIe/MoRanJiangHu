@@ -132,7 +132,7 @@ export const 构建地图更新用户提示词 = (params: {
     const env = params.环境 || {};
     const world = params.世界 || {};
     const layers = Array.isArray(world?.地图层级) ? world.地图层级 : [];
-    const isOpeningEmptyMap = params.mode === 'auto_incremental' && layers.length === 0;
+    const isOpeningEmptyMap = params.mode === 'auto_incremental' && layers.length < 6;
     const currentLocation = [env?.大地点, env?.中地点, env?.小地点, env?.具体地点].map(取文本).filter(Boolean).join(' > ');
     const existingLayerInfo = layers.length > 0
         ? JSON.stringify(layers.map((layer: any) => ({

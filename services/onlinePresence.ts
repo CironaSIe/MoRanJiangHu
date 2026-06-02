@@ -72,9 +72,9 @@ export const startOnlinePresenceHeartbeat = (): (() => void) => {
 
     const sessionId = readSessionId();
     let stopped = false;
-    let timer: ReturnType<typeof window.setInterval> | null = null;
-    let wsTimer: ReturnType<typeof window.setInterval> | null = null;
-    let reconnectTimer: ReturnType<typeof window.setTimeout> | null = null;
+    let timer: number | null = null;
+    let wsTimer: number | null = null;
+    let reconnectTimer: number | null = null;
     let socket: WebSocket | null = null;
 
     const clearWsTimer = () => {

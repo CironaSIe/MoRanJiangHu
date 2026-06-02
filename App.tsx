@@ -35,12 +35,13 @@ import { 获取题材模式配置 } from './utils/topicModeProfiles';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
 import { 分配角色属性点, type 可分配六维属性键 } from './utils/characterAttributePoints';
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
-import { 获取本地图片图床迁移状态, 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 读取图片资源兜底地址, 订阅旧存档谱系迁移状态, 订阅本地图片图床迁移状态, type 旧存档谱系迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
+import { 获取本地图片图床迁移状态, 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 读取图片资源兜底地址, 订阅旧存档谱系迁移状态, 订阅本地图片图床迁移状态, 执行延迟上传队列, type 旧存档谱系迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
 import { startOnlinePresenceHeartbeat } from './services/onlinePresence';
 import { 等待云端后台同步完成, 确保本地存档已同步到云端, 确保最新本地存档已同步到云端, 读取云端游玩存储模式 } from './services/cloudPlayService';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 import type { 游戏物品 } from './models/item';
+import type { 功法结构, 功法类型, 功法品质, 消耗类型, 伤害类型, 目标类型 } from './models/kungfu';
 
 const RELEASE_NOTES_SUPPRESS_DATE_KEY = 'moranjianghu.releaseNotesSuppressDate';
 const DESKTOP_DETAIL_WIDTHS_STORAGE_KEY = 'moranjianghu.desktopRightDetailWidths.v3';
@@ -1444,7 +1445,7 @@ const App: React.FC = () => {
                 console.warn('[物品自动生图] 生成失败', candidate.sourceLocation, candidate.item?.名称, error);
                 if (是生图后端不可用错误文本(errorMessage)) {
                     autoItemImageBackendCooldownUntilRef.current = Date.now() + ITEM_AUTO_IMAGE_BACKEND_FAILURE_COOLDOWN_MS;
-                    recordDiagnosticLog('warning', '[物品自动生图] 当前 ComfyUI 后端不可用，已暂停自动提交以等待后端恢复', {
+                    recordDiagnosticLog('warn', '[物品自动生图] 当前 ComfyUI 后端不可用，已暂停自动提交以等待后端恢复', {
                         cooldownMs: ITEM_AUTO_IMAGE_BACKEND_FAILURE_COOLDOWN_MS,
                         sourceLocation: candidate.sourceLocation,
                         itemName: candidate.item?.名称 || '无名物品',
@@ -1456,7 +1457,7 @@ const App: React.FC = () => {
                     message: 是生图后端不可用错误文本(errorMessage)
                         ? '当前 ComfyUI 后端不可用，已暂停自动提交，稍后会自动重试。'
                         : `「${candidate.item?.名称 || '无名物品'}」已自动重试 ${生图最大自动重试次数} 次，仍未成功。`,
-                    tone: 'warning'
+                    tone: 'error'
                 });
             } finally {
                 autoItemImageRunningRef.current.delete(candidate.key);
@@ -1593,7 +1594,7 @@ const App: React.FC = () => {
             }
             await 确保最新本地存档已同步到云端();
         })();
-        let timeoutId: ReturnType<typeof window.setTimeout> | null = null;
+        let timeoutId: number | null = null;
         try {
             await Promise.race([
                 syncTask,
@@ -1751,10 +1752,14 @@ const App: React.FC = () => {
             )));
         });
         closeAllPanels();
-        setSelectedSocialNpcId(npc?.id || npc?.ID || null);
+        setSelectedSocialNpcId(npc?.id || null);
         setters.setShowSocial(true);
         if (!npc) {
-            actions.pushNotification?.('未在同门名录里找到对应角色档案，已打开角色列表。', 'info');
+            actions.pushNotification?.({
+                title: '已打开角色列表',
+                message: '未在同门名录里找到对应角色档案。',
+                tone: 'info'
+            });
         }
     }, [actions, closeAllPanels, setters, state.社交]);
     const openKungfu = React.useCallback(() => {
@@ -1800,7 +1805,7 @@ const App: React.FC = () => {
             actions.pushNotification({ title: '已学过', message: `「${book.名称 || '此典籍'}」已经在功法列表中。`, tone: 'info' });
             return;
         }
-        const typeMap: Record<string, string> = { 功法: '招式', 剑法: '招式', 刀法: '招式', 拳法: '招式', 身法: '轻功', 心法: '内功', 杂学: '被动' };
+        const typeMap: Record<string, 功法类型> = { 功法: '绝技', 剑法: '绝技', 刀法: '绝技', 拳法: '绝技', 身法: '轻功', 心法: '内功', 杂学: '被动' };
         const bookName = String(book.名称 || '');
         const inferredType = bookName.includes('剑') ? '剑法' : book.类型;
         const quality = ['凡品', '良品', '上品', '极品', '绝世', '传说'].includes(book.品阶) ? book.品阶 : '凡品';
@@ -1809,8 +1814,8 @@ const App: React.FC = () => {
             来源藏经ID: book.id,
             名称: book.名称 || '未命名典籍',
             描述: book.简介 || '藏经阁所藏典籍。',
-            类型: typeMap[inferredType] || '招式',
-            品质: quality,
+            类型: (typeMap[inferredType] || '绝技') as 功法类型,
+            品质: quality as 功法品质,
             来源: `${state.玩家门派?.名称 || '门派'}藏经阁`,
             当前重数: 1,
             最高重数: 10,
@@ -1821,7 +1826,7 @@ const App: React.FC = () => {
             大成方向: '稳固根基',
             圆满效果: `${book.名称 || '此典籍'}圆满后可强化对应武学表现。`,
             武器限制: [],
-            消耗类型: inferredType === '心法' ? '内力' : '精力',
+            消耗类型: (inferredType === '心法' ? '内力' : '精力') as 消耗类型,
             消耗数值: 0,
             施展耗时: '1息',
             冷却时间: '0息',
@@ -1829,8 +1834,8 @@ const App: React.FC = () => {
             加成属性: inferredType === '身法' ? '敏捷' : inferredType === '心法' ? '根骨' : '力量',
             加成系数: 0,
             内力系数: inferredType === '心法' ? 1 : 0,
-            伤害类型: inferredType === '心法' ? '内功' : '物理',
-            目标类型: '自身',
+            伤害类型: (inferredType === '心法' ? '内功' : '物理') as 伤害类型,
+            目标类型: '自身' as 目标类型,
             最大目标数: 1,
             重数描述映射: [{ 重数: 1, 描述: book.简介 || '初窥门径。' }],
             附带效果: [],
@@ -1841,7 +1846,7 @@ const App: React.FC = () => {
             ...state.角色,
             功法列表: [learnedSkill, ...currentSkills]
         };
-        setters.setCharacter(nextCharacter);
+        setters.setCharacter(nextCharacter as any);
         void actions.performAutoSave?.({ role: nextCharacter, force: true });
         actions.pushNotification({ title: '藏经阁学习成功', message: `已习得「${learnedSkill.名称}」，可在功法页查看。`, tone: 'success' });
     }, [actions, setters, state.玩家门派?.名称, state.角色]);
@@ -1863,7 +1868,8 @@ const App: React.FC = () => {
             + Math.floor(Number(sect.弟子总数 || 0) * Number(rule.规模系数 || 0))
         );
         const nextSect = { ...sect, 上次俸禄月份: monthKey };
-        const nextCharacter = { ...state.角色, 金钱: Math.max(0, Number(state.角色?.金钱 || 0)) + amount };
+        const currentMoney = state.角色?.金钱 || { 金元宝: 0, 银子: 0, 铜钱: 0 };
+        const nextCharacter = { ...state.角色, 金钱: { ...currentMoney, 铜钱: Math.max(0, Number(currentMoney.铜钱 || 0)) + amount } };
         setters.setPlayerSect(nextSect);
         setters.setCharacter(nextCharacter);
         void actions.performAutoSave?.({ role: nextCharacter, sect: nextSect, force: true });
@@ -2381,10 +2387,11 @@ const App: React.FC = () => {
                 actions.pushNotification({
                     title: '本地存档已保存',
                     message: `云端同步将在后台继续重试：${syncError?.message || '同步暂时未完成'}`,
-                    tone: 'warning'
+                    tone: 'info'
                 });
             }
             closeAllPanels();
+            void 执行延迟上传队列();
             actions.handleReturnToHome();
             setters.setShowSettings(false);
         } catch (error: any) {

@@ -483,7 +483,7 @@ const 获取NPC头像地址 = (sender: string, socialList?: NPC结构[]): string
         if (获取图片展示地址(portraitRecord)) {
             return 获取图片展示地址(portraitRecord);
         }
-        const profileUrl = 获取图片资源文本地址(npc?.头像图片URL || (npc as any)?.立绘图片URL);
+        const profileUrl = 获取图片资源文本地址((npc as any)?.头像图片URL || (npc as any)?.立绘图片URL);
         if (profileUrl) {
             return profileUrl;
         }

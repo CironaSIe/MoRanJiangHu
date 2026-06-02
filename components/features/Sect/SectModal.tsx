@@ -53,10 +53,39 @@ const 现代晋升梯队: RankStep[] = [
     { rank: '负责人', lvl: 6, required: 3200, discount: 0.22, perks: ['关键决策', '资源调配'] }
 ];
 
+const 无限流晋升梯队: RankStep[] = [
+    { rank: '新人', lvl: 1, required: 0, discount: 0, perks: ['基础任务', '新人补给'] },
+    { rank: '正式成员', lvl: 2, required: 150, discount: 0.05, perks: ['支线任务权限', '主神商城九五折'] },
+    { rank: '骨干成员', lvl: 3, required: 500, discount: 0.1, perks: ['高级任务优先', '主神商城九折'] },
+    { rank: '副队长', lvl: 4, required: 1200, discount: 0.15, perks: ['小队管理权限', '主神商城八五折'] },
+    { rank: '队长', lvl: 5, required: 3000, discount: 0.2, perks: ['小队决策权', '主神商城八折'] },
+    { rank: '核心轮回者', lvl: 6, required: 6000, discount: 0.28, perks: ['独立任务权限', '主神商城七二折'] }
+];
+
 const 获取组织显示文案 = (sectData: 详细门派结构) => {
     const text = JSON.stringify(sectData || {});
     const isApocalypse = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|医疗维修|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(text);
-    const isModern = !isApocalypse && /现代|都市|公司|项目组|事务所|社区中心|门店|合作团队|合同|客户|技术成员|行政联系人|培训|手机|电脑/u.test(text);
+    const isInfinite = !isApocalypse && /主神|轮回|小队|奖励点|支线剧情|基因锁|主神空间|副本|恐怖片|轮回者/u.test(text);
+    const isModern = !isApocalypse && !isInfinite && /现代|都市|公司|项目组|事务所|社区中心|门店|合作团队|合同|客户|技术成员|行政联系人|培训|手机|电脑/u.test(text);
+    if (isInfinite) {
+        return {
+            hall: '小队总览',
+            exchange: '主神商城',
+            library: '技能库',
+            members: '轮回者名录',
+            rankPath: '轮回进阶',
+            contribution: '奖励点',
+            organizationPower: '小队战力',
+            memberCount: '轮回者',
+            capabilitySuffix: '',
+            rules: '准则',
+            principle: '小队信条',
+            exchangeHint: '奖励点足够即可兑换强化。兑换消耗当前奖励点，不影响进阶所需的累计奖励点。',
+            spendHint: '进阶只看累计获得的奖励点，主神商城兑换只消耗当前可用奖励点。',
+            rankLadder: 无限流晋升梯队,
+            rankMap: {} as Record<string, string>
+        };
+    }
     if (isModern) {
         return {
             hall: '组织总览',

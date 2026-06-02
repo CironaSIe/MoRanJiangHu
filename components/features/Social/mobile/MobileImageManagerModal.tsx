@@ -517,6 +517,7 @@ const ManualTabContent: React.FC<TabProps> = ({ socialList, cultivationSystemEna
             { part: '屁穴' as const, label: '屁穴特写', description: selectedNpc?.屁穴描述 || '暂无记录', result: archive?.屁穴 }
         ];
     }, [femboyNsfwEnabled, selectedNpc]);
+    use图片资源回源预取(selectedNpc, secretPartRecords);
     const secretPartCountLabel = React.useMemo(() => {
         const count = secretPartRecords.length;
         if (count === 2) return '两处';

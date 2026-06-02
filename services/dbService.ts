@@ -32,6 +32,40 @@ const 深拷贝 = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const 文本编码器 = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
 const 图片资源签名缓存 = new Map<string, string>();
 let 正在自动迁移本地图片到图床 = false;
+
+/** 延迟上传队列：生成图片后先写入本地，返回主界面时批量上传到图床 */
+const 延迟上传队列: Array<{ dataUrl: string; id: string; signature?: string }> = [];
+let 延迟上传中 = false;
+const 延迟上传监听器 = new Set<(pending: number) => void>();
+
+export const 订阅延迟上传队列 = (listener: (pending: number) => void): (() => void) => {
+    延迟上传监听器.add(listener);
+    listener(延迟上传队列.length);
+    return () => { 延迟上传监听器.delete(listener); };
+};
+
+const 通知延迟上传监听器 = () => {
+    const count = 延迟上传队列.length;
+    延迟上传监听器.forEach((fn) => { try { fn(count); } catch { /* */ } });
+};
+
+export const 获取延迟上传队列数量 = (): number => 延迟上传队列.length;
+
+export const 执行延迟上传队列 = async (): Promise<void> => {
+    if (延迟上传中 || 延迟上传队列.length === 0) return;
+    延迟上传中 = true;
+    while (延迟上传队列.length > 0) {
+        const item = 延迟上传队列.shift()!;
+        通知延迟上传监听器();
+        try {
+            await 上传图片资源到图床并登记(item.dataUrl, item.id, item.signature);
+        } catch (error) {
+            console.warn('延迟图床上传失败，已跳过', item.id, error);
+        }
+    }
+    延迟上传中 = false;
+    通知延迟上传监听器();
+};
 const 是DataUrl图片 = (value: string): boolean => /^data:image\//i.test(value);
 const 是远程地址 = (value: string): boolean => /^https?:\/\//i.test(value);
 const 是图床图片地址 = (value: string): boolean => {
@@ -775,7 +809,7 @@ export const 保存图片资源 = async (dataUrl: string, preferredIdOrOptions?:
     }
     const options: 保存图片资源选项 = typeof preferredIdOrOptions === 'object' && preferredIdOrOptions !== null
         ? preferredIdOrOptions
-        : { preferredId: preferredIdOrOptions };
+        : { preferredId: typeof preferredIdOrOptions === 'string' ? preferredIdOrOptions : undefined };
     const returnRemote = options.returnRemote === true;
     const signature = 生成图片资源签名(normalized);
     const cachedRef = signature ? 图片资源签名缓存.get(signature) : '';
@@ -802,7 +836,8 @@ export const 保存图片资源 = async (dataUrl: string, preferredIdOrOptions?:
         if (uploaded) return uploaded;
         return ref;
     }
-    void 上传图片资源到图床并登记(normalized, id, signature);
+    延迟上传队列.push({ dataUrl: normalized, id, signature });
+    通知延迟上传监听器();
     return ref;
 };
 
@@ -1961,7 +1996,9 @@ export const 读取存档摘要列表 = async (options?: {
             历史记录是否裁剪: false,
             摘要缺失: true,
             排序占位ID: id
-        } as any
+        } as any,
+        角色数据: undefined as any,
+        环境信息: undefined as any
     });
 
     if (limit > 0) {

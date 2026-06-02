@@ -8,6 +8,7 @@ type MenuId =
     | 'inventory'
     | 'social'
     | 'kungfu'
+    | 'skills'
     | 'world'
     | 'map'
     | 'team'
@@ -24,6 +25,7 @@ type MenuId =
     | 'save'
     | 'load'
     | 'settings'
+    | 'cloud_play'
     | 'music'
     | 'more';
 
@@ -76,6 +78,7 @@ const MENU_META: Record<Exclude<MenuId, 'more'>, MenuMeta> = {
     inventory: { id: 'inventory', label: '背包', icon: 'bag' },
     social: { id: 'social', label: '社交', icon: 'social' },
     kungfu: { id: 'kungfu', label: '功法', icon: 'kungfu' },
+    skills: { id: 'skills', label: '技艺', icon: 'kungfu' },
     world: { id: 'world', label: '世界', icon: 'world' },
     map: { id: 'map', label: '地图', icon: 'map' },
     team: { id: 'team', label: '队伍', icon: 'team' },
@@ -93,6 +96,7 @@ const MENU_META: Record<Exclude<MenuId, 'more'>, MenuMeta> = {
     load: { id: 'load', label: '读取', icon: 'load' },
     settings: { id: 'settings', label: '设置', icon: 'settings' },
     music: { id: 'music', label: '音乐', icon: 'novel' },
+    cloud_play: { id: 'cloud_play', label: '云端', icon: 'grid' },
 };
 
 const MobileQuickMenu: React.FC<Props> = ({

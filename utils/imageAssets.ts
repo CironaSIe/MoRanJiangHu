@@ -284,7 +284,7 @@ export const 获取图片资源文本地址 = (value: unknown): string => {
     if (是否图片资源引用(text)) {
         const local = 读取图片资源缓存(text);
         if (local) return local;
-        return '';
+        return 读取图片资源远程兜底地址(text);
     }
     return text;
 };

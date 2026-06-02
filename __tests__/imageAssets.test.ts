@@ -34,12 +34,22 @@ describe('imageAssets', () => {
         expect(获取图片资源文本地址(remoteUrl)).toBe(dataUrl);
     });
 
-    it('does not switch a local asset ref to a remote fallback while the local cache is still loading', () => {
+    it('falls back to the registered remote URL when a local asset ref has no warm cache', () => {
         const remoteUrl = 'https://image.bacon159.pp.ua/api/v1/file/player-avatar-cloud.png';
         const fallbackRef = 创建图片资源引用('player-avatar-cloud-local');
         清空图片资源缓存();
         注册远程图片兜底引用(remoteUrl, fallbackRef);
 
-        expect(获取图片资源文本地址(fallbackRef)).toBe('');
+        expect(获取图片资源文本地址(fallbackRef)).toBe(remoteUrl);
+    });
+
+    it('uses the registered image-host URL when a local asset ref has no warm cache', () => {
+        const remoteUrl = 'https://image.bacon159.pp.ua/api/v1/file/nsfw-secret-part.png';
+        const fallbackRef = 创建图片资源引用('npc-secret-part-local');
+        清空图片资源缓存();
+        注册远程图片兜底引用(remoteUrl, fallbackRef);
+
+        expect(获取图片资源文本地址(fallbackRef)).toBe(remoteUrl);
+        expect(图片资源记录含可恢复地址({ 本地路径: fallbackRef })).toBe(true);
     });
 });

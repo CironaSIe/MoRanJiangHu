@@ -1113,6 +1113,7 @@ const ImageManagerModal: React.FC<Props> = ({
     const currentLibraryGroup = React.useMemo(() => {
         return npcLibraryGroups.find((group) => group.npc.id === libraryNpcId) || null;
     }, [npcLibraryGroups, libraryNpcId]);
+    use图片资源回源预取(selectedNpc, selectedNpcSecretPartRecords, currentLibraryGroup);
 
     const historyRecords = React.useMemo(() => filteredRecords.slice(), [filteredRecords]);
     const combinedHistoryRecords = React.useMemo<合并历史记录[]>(() => {

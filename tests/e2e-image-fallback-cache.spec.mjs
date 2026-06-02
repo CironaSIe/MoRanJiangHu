@@ -70,11 +70,13 @@ const run = async () => {
             imageAssets.清空图片资源缓存();
 
             const before = imageAssets.获取图片资源文本地址(remoteUrl);
+            const directRefBefore = imageAssets.获取图片资源文本地址(assetRef);
             const extractedRefs = prefetch.提取图片资源引用列表({
                 社交: [{ 姓名: '端到端头像', 图片URL: remoteUrl }]
             });
             const loadedDataUrl = await dbService.读取图片资源(assetRef);
             const after = imageAssets.获取图片资源文本地址(remoteUrl);
+            const directRefAfter = imageAssets.获取图片资源文本地址(assetRef);
 
             const img = new Image();
             const loadResult = await new Promise((resolve) => {
@@ -86,15 +88,19 @@ const run = async () => {
             db.close();
             return {
                 ok: before === remoteUrl
+                    && directRefBefore === remoteUrl
                     && extractedRefs.includes(assetRef)
                     && loadedDataUrl === dataUrl
                     && after === dataUrl
+                    && directRefAfter === dataUrl
                     && loadResult.ok === true,
                 beforeUsesRemote: before === remoteUrl,
+                directRefBeforeUsesRemote: directRefBefore === remoteUrl,
                 extractedRefs,
                 assetRef,
                 loadedFromIndexedDb: loadedDataUrl === dataUrl,
                 afterUsesLocalDataUrl: after === dataUrl,
+                directRefAfterUsesLocalDataUrl: directRefAfter === dataUrl,
                 imageLoaded: loadResult
             };
         });
