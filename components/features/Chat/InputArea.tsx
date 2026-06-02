@@ -755,11 +755,7 @@ const InputArea: React.FC<Props> = ({
     ]);
 
     return (
-        <div className={`shrink-0 relative z-20 pb-2 px-2 sm:px-4 flex flex-col gap-1 ${
-            queueVisible && !queueCollapsed
-                ? 'bg-transparent'
-                : 'bg-gradient-to-t from-ink-black/90 via-ink-black/75 to-transparent backdrop-blur-[2px]'
-        }`}>
+        <div className={`shrink-0 relative z-20 pb-2 px-2 sm:px-4 flex flex-col gap-1`}>
             {queueVisible && (
                 <div className="w-full px-2 md:px-4">
                     <div className="mx-auto w-full max-w-5xl space-y-1">

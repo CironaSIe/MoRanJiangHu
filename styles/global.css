@@ -263,10 +263,17 @@ html[data-theme="day"] .day-mode-chat-jump-button:focus-visible {
 
 html[data-theme="day"] .day-mode-settings-savebar {
   background: rgba(255, 252, 244, 0.96) !important;
-  background-color: rgba(255, 252, 244, 0.96) !important;
-  color: #2f1b0a !important;
-  border-color: rgba(92, 45, 10, 0.35) !important;
-  box-shadow: 0 8px 18px rgba(92, 45, 10, 0.10) !important;
+}
+
+html[data-theme="day"] .workflow-stage-tip {
+  background: #fff8ed !important;
+  color: #1f2937 !important;
+  border-color: rgba(92, 45, 10, 0.48) !important;
+  box-shadow: 0 10px 32px rgba(75, 63, 38, 0.16) !important;
+}
+html[data-theme="day"] .workflow-stage-tip + div,
+html[data-theme="day"] .workflow-stage-tip > div:last-child {
+  border-top-color: #fff8ed !important;
 }
 
 html[data-theme="day"] [class*="bg-wuxia-gold/"],
