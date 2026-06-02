@@ -147,6 +147,7 @@ const 测试OpenAI兼容图片接口 = async (params: {
     apiKey: string;
     model: string;
     path?: string;
+    responseFormat?: 功能模型占位配置结构['文生图响应格式'];
     label: string;
 }): Promise<string> => {
     const endpoint = 构建OpenAI图片生成端点(params.rawBaseUrl, params.path, { useRuntimeProxy: true });
@@ -167,7 +168,13 @@ const 测试OpenAI兼容图片接口 = async (params: {
         response = await fetch(endpoint, {
             method: 'POST',
             headers,
-            body: JSON.stringify({ model, n: 1, response_format: 'b64_json' }),
+            body: JSON.stringify({
+                model,
+                prompt: '一张干净的连接测试图片，plain connection test image',
+                n: 1,
+                size: '1024x1024',
+                response_format: params.responseFormat || 'b64_json'
+            }),
             signal: abortController.signal
         });
     } catch (error: any) {
@@ -1355,6 +1362,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 apiKey,
                 model: normalizedModel,
                 path: 读取文生图接口路径(feature, backend),
+                responseFormat: feature.文生图响应格式,
                 label: 'OpenAI 兼容文生图接口'
             });
             setMainConnectionMessage(message);
@@ -1418,6 +1426,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 apiKey,
                 model: nsfwConfig.model || 'gpt-image-2',
                 path: nsfwConfig.图片接口路径 || '/v1/images/generations',
+                responseFormat: nsfwConfig.图片响应格式 || 'url',
                 label: 'NSFW OpenAI 兼容接口'
             });
             setNsfwConnectionMessage(message);
@@ -2088,7 +2097,8 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 value={form.功能模型占位.文生图响应格式}
                                 options={[
                                     { value: 'url', label: 'URL' },
-                                    { value: 'b64_json', label: 'Base64 / b64_json' }
+                                    { value: 'b64_json', label: 'Base64 / b64_json' },
+                                    { value: 'base64', label: 'Base64 / base64' }
                                 ]}
                                 onChange={(value) => updatePlaceholder('文生图响应格式', value as 功能模型占位配置结构['文生图响应格式'])}
                                 buttonClassName="bg-black/50 border-gray-600 py-2.5"

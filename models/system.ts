@@ -34,7 +34,7 @@ export interface DeepSeek策略结构 {
     开局Thinking: boolean;
 }
 
-export type 图片响应格式类型 = 'url' | 'b64_json';
+export type 图片响应格式类型 = 'url' | 'b64_json' | 'base64';
 export type 文生图后端类型 = 'openai' | 'novelai' | 'sd_webui' | 'comfyui';
 export type 文生图接口路径模式类型 = 'preset' | 'custom';
 export type 文生图预设接口路径类型 = 'openai_images' | 'openai_chat' | 'novelai_generate' | 'sd_txt2img' | 'comfyui_prompt';
