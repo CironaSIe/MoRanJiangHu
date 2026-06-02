@@ -237,6 +237,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
     const [天赋已重Roll次数, set天赋已重Roll次数] = useState(0);
     const [自定义天赋列表, 设置自定义天赋列表] = useState<天赋结构[]>([]);
     const [自定义背景列表, 设置自定义背景列表] = useState<背景结构[]>([]);
+    const [模式包天赋列表, 设置模式包天赋列表] = useState<天赋结构[]>([]);
+    const [模式包背景列表, 设置模式包背景列表] = useState<背景结构[]>([]);
     const [自定义开局预设列表, 设置自定义开局预设列表] = useState<开局预设方案结构[]>([]);
     const [小说拆分数据集列表, 设置小说拆分数据集列表] = useState<小说拆分数据集结构[]>([]);
     const [创意工坊模块列表, 设置创意工坊模块列表] = useState<创意工坊模块条目[]>([]);
@@ -300,12 +302,12 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
     const 当前题材预设背景名称集合 = useMemo(() => new Set(当前题材预设背景.map(item => item.名称)), [当前题材预设背景]);
     const 当前题材预设天赋名称集合 = useMemo(() => new Set(当前题材预设天赋.map(item => item.名称)), [当前题材预设天赋]);
     const 全部背景选项 = useMemo(
-        () => [...当前题材预设背景, ...自定义背景列表.filter(item => !当前题材预设背景.some(p => p.名称 === item.名称))],
-        [当前题材预设背景, 自定义背景列表]
+        () => 合并去重背景([...模式包背景列表, ...当前题材预设背景, ...自定义背景列表]),
+        [模式包背景列表, 当前题材预设背景, 自定义背景列表]
     );
     const 全部天赋选项 = useMemo(
-        () => [...当前题材预设天赋, ...自定义天赋列表.filter(item => !当前题材预设天赋.some(p => p.名称 === item.名称))],
-        [当前题材预设天赋, 自定义天赋列表]
+        () => 合并去重天赋([...模式包天赋列表, ...当前题材预设天赋, ...自定义天赋列表]),
+        [模式包天赋列表, 当前题材预设天赋, 自定义天赋列表]
     );
     const 当前抽卡出身选项 = useMemo(
         () => 根据名称映射抽卡(出身抽卡名称列表, 全部背景选项),
@@ -678,7 +680,10 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
     const currentStepLabel = STEPS[step] || '创建';
     const 当前题材配置 = useMemo(() => 获取题材模式配置(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前难度设定 = useMemo(() => 获取题材化难度设定(worldConfig.difficulty, openingConfig.题材模式), [worldConfig.difficulty, openingConfig.题材模式]);
-    const 当前开局配置文案 = useMemo(() => 获取题材开局配置文案(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前开局配置文案 = useMemo(
+        () => 获取题材开局配置文案(openingConfig.题材模式, openingConfig.modeRuntimeProfile),
+        [openingConfig.题材模式, openingConfig.modeRuntimeProfile]
+    );
     const 当前关系侧重选项 = useMemo(() => 获取题材关系侧重选项(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前开局切入偏好选项 = useMemo(() => 获取题材开局切入偏好选项(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前伙伴关系占位 = 当前题材配置.group === 'apocalypse'
@@ -728,6 +733,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
     ]);
     const 更新题材模式 = (题材模式: OpeningConfig['题材模式']) => {
         const modeRuntimeProfile = 构建官方模式运行时配置(题材模式);
+        设置模式包背景列表([]);
+        设置模式包天赋列表([]);
         setOpeningConfig((prev) => ({
             ...prev,
             题材模式,

@@ -239,6 +239,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const [天赋已重Roll次数, set天赋已重Roll次数] = useState(0);
     const [自定义天赋列表, 设置自定义天赋列表] = useState<天赋结构[]>([]);
     const [自定义背景列表, 设置自定义背景列表] = useState<背景结构[]>([]);
+    const [模式包天赋列表, 设置模式包天赋列表] = useState<天赋结构[]>([]);
+    const [模式包背景列表, 设置模式包背景列表] = useState<背景结构[]>([]);
     const [自定义开局预设列表, 设置自定义开局预设列表] = useState<开局预设方案结构[]>([]);
     const [小说拆分数据集列表, 设置小说拆分数据集列表] = useState<小说拆分数据集结构[]>([]);
     const [创意工坊模块列表, 设置创意工坊模块列表] = useState<创意工坊模块条目[]>([]);
@@ -303,12 +305,12 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const 当前题材预设背景名称集合 = useMemo(() => new Set(当前题材预设背景.map(item => item.名称)), [当前题材预设背景]);
     const 当前题材预设天赋名称集合 = useMemo(() => new Set(当前题材预设天赋.map(item => item.名称)), [当前题材预设天赋]);
     const 全部背景选项 = useMemo(
-        () => [...当前题材预设背景, ...自定义背景列表.filter(item => !当前题材预设背景.some(p => p.名称 === item.名称))],
-        [当前题材预设背景, 自定义背景列表]
+        () => 合并去重背景([...模式包背景列表, ...当前题材预设背景, ...自定义背景列表]),
+        [模式包背景列表, 当前题材预设背景, 自定义背景列表]
     );
     const 全部天赋选项 = useMemo(
-        () => [...当前题材预设天赋, ...自定义天赋列表.filter(item => !当前题材预设天赋.some(p => p.名称 === item.名称))],
-        [当前题材预设天赋, 自定义天赋列表]
+        () => 合并去重天赋([...模式包天赋列表, ...当前题材预设天赋, ...自定义天赋列表]),
+        [模式包天赋列表, 当前题材预设天赋, 自定义天赋列表]
     );
     const 当前抽卡出身选项 = useMemo(
         () => 根据名称映射抽卡(出身抽卡名称列表, 全部背景选项),
@@ -800,7 +802,10 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     ]);
     const 当前主剧情接口配置 = useMemo(() => apiConfig ? 获取主剧情接口配置(apiConfig) : null, [apiConfig]);
     const aiFrameworkAvailable = 接口配置是否可用(当前主剧情接口配置);
-    const 当前开局配置文案 = useMemo(() => 获取题材开局配置文案(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前开局配置文案 = useMemo(
+        () => 获取题材开局配置文案(openingConfig.题材模式, openingConfig.modeRuntimeProfile),
+        [openingConfig.题材模式, openingConfig.modeRuntimeProfile]
+    );
     const 当前关系侧重选项 = useMemo(() => 获取题材关系侧重选项(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前开局切入偏好选项 = useMemo(() => 获取题材开局切入偏好选项(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前伙伴关系占位 = 当前题材配置.group === 'apocalypse'
@@ -814,6 +819,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 : '例如：青梅竹马、同门师妹、护卫、好友';
     const 更新题材模式 = (题材模式: OpeningConfig['题材模式']) => {
         const modeRuntimeProfile = 构建官方模式运行时配置(题材模式);
+        设置模式包背景列表([]);
+        设置模式包天赋列表([]);
         setOpeningConfig((prev) => ({
             ...prev,
             题材模式,
@@ -870,32 +877,20 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             const resolvedMode = modeRuntimeProfile.identity.baseMode as 题材模式类型;
             const moduleBackgrounds = 提取模块背景列表(module);
             const moduleTalents = 提取模块天赋列表(module);
-            const nextCustomBackgrounds = moduleBackgrounds.length > 0
-                ? 合并去重背景([...自定义背景列表, ...moduleBackgrounds])
-                : 自定义背景列表;
-            const nextCustomTalents = moduleTalents.length > 0
-                ? 合并去重天赋([...自定义天赋列表, ...moduleTalents])
-                : 自定义天赋列表;
-            if (moduleBackgrounds.length > 0) {
-                设置自定义背景列表(nextCustomBackgrounds);
-                await dbService.保存设置(自定义背景存储键, nextCustomBackgrounds);
-            }
-            if (moduleTalents.length > 0) {
-                设置自定义天赋列表(nextCustomTalents);
-                await dbService.保存设置(自定义天赋存储键, nextCustomTalents);
-            }
+            设置模式包背景列表(moduleBackgrounds);
+            设置模式包天赋列表(moduleTalents);
             const backgroundCandidates = 合并去重背景([
                 ...moduleBackgrounds,
                 ...获取题材预设背景(resolvedMode),
                 ...全部背景选项,
-                ...nextCustomBackgrounds,
+                ...自定义背景列表,
                 ...预设背景
             ]);
             const talentCandidates = 合并去重天赋([
                 ...moduleTalents,
                 ...获取题材预设天赋(resolvedMode),
                 ...全部天赋选项,
-                ...nextCustomTalents,
+                ...自定义天赋列表,
                 ...预设天赋
             ]);
             const presetCharacter = module.preset?.character;

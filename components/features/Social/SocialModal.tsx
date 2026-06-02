@@ -88,10 +88,13 @@ const SocialModal: React.FC<Props> = ({
     const [stealTargets, setStealTargets] = useState<Record<string, string>>({});
     const 组织名称 = String(playerSect?.名称 || '').trim();
     const 当前组织为末世营地 = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(JSON.stringify(playerSect || {}));
+    const 当前组织为无限流 = /主神|轮回|小队|奖励点|支线剧情|基因锁|主神空间|副本/u.test(JSON.stringify(playerSect || {}));
     const 格式化关系状态 = React.useCallback((value?: string) => {
         const text = String(value || '').trim() || '萍水相逢';
-        return 当前组织为末世营地 ? text.replace(/同门/g, '同伴').replace(/门派成员/g, '营地成员') : text;
-    }, [当前组织为末世营地]);
+        if (当前组织为末世营地) return text.replace(/同门/g, '同伴').replace(/门派成员/g, '营地成员');
+        if (当前组织为无限流) return text.replace(/同门/g, '轮回者').replace(/门派成员/g, '小队成员').replace(/宗门成员/g, '轮回者');
+        return text;
+    }, [当前组织为末世营地, 当前组织为无限流]);
     const NPC已属当前组织 = React.useCallback((npc: any): boolean => {
         if (!npc || !组织名称 || ['none', '无', '无门无派', '未加入', '散人'].includes(组织名称)) return false;
         const text = [
@@ -108,10 +111,10 @@ const SocialModal: React.FC<Props> = ({
         ].filter(Boolean).join(' ');
         if (npc?.是否队友 === true) return true;
         if (text.includes(组织名称)) return true;
-        return 当前组织为末世营地
-            ? /同营|营地成员|营地队友|队伍成员|同队|同伴|同事/u.test(text)
-            : /同门|门派成员|宗门成员|同宗|同派/u.test(text);
-    }, [组织名称, 当前组织为末世营地]);
+        if (当前组织为末世营地) return /同营|营地成员|营地队友|队伍成员|同队|同伴|同事/u.test(text);
+        if (当前组织为无限流) return /轮回者|小队成员|队友|同队|轮回队友|队伍成员/u.test(text);
+        return /同门|门派成员|宗门成员|同宗|同派/u.test(text);
+    }, [组织名称, 当前组织为末世营地, 当前组织为无限流]);
 
     useEffect(() => {
         if (sortedSocialList.length === 0) {
@@ -821,20 +824,20 @@ const SocialModal: React.FC<Props> = ({
                                                  </button>
                                                  {onRecruitToSect && (() => {
                                                      const 已属当前组织 = NPC已属当前组织(currentNPC);
-                                                     const inviteLabel = 当前组织为末世营地 ? '邀入营地' : '邀入门派';
+                                                     const inviteLabel = 当前组织为末世营地 ? '邀入营地' : 当前组织为无限流 ? '邀入小队' : '邀入门派';
                                                      return (
                                                      <button
                                                          type="button"
                                                          onClick={() => onRecruitToSect(currentNPC)}
                                                          disabled={当前角色已死亡 || 已属当前组织}
-                                                         title={已属当前组织 ? (当前组织为末世营地 ? '已是同营地' : '已是同门') : inviteLabel}
+                                                         title={已属当前组织 ? (当前组织为末世营地 ? '已是同营地' : 当前组织为无限流 ? '已是队友' : '已是同门') : inviteLabel}
                                                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded border transition-all text-xs ${
                                                              当前角色已死亡 || 已属当前组织
                                                                  ? 'cursor-not-allowed border-gray-800 bg-black/45 text-gray-600'
                                                                  : 'border-cyan-500/30 bg-cyan-950/20 text-cyan-100 hover:border-cyan-300/60 hover:bg-cyan-900/35'
                                                          }`}
                                                      >
-                                                         {已属当前组织 ? (当前组织为末世营地 ? '已在营地' : '已入门派') : inviteLabel}
+                                                         {已属当前组织 ? (当前组织为末世营地 ? '已在营地' : 当前组织为无限流 ? '已在小队' : '已入门派') : inviteLabel}
                                                      </button>
                                                      );
                                                  })()}
