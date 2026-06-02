@@ -471,6 +471,7 @@ export const CharacterRenderer: React.FC<{
 }> = ({ sender, text, visualConfig, socialList, playerProfile, onOpenNpcDetail }) => {
     use图片资源回源预取(playerProfile?.头像图片URL, socialList);
     const [avatarPreviewOpen, setAvatarPreviewOpen] = useState(false);
+    const displayText = (text || '').replace(/\s*\n+\s*/g, ' ').replace(/[ \t]{2,}/g, ' ').trim();
     const colors = ['bg-red-900', 'bg-blue-900', 'bg-emerald-900', 'bg-violet-900', 'bg-amber-900'];
     const colorIdx = sender.charCodeAt(0) % colors.length;
     const bgClass = colors[colorIdx];
@@ -522,7 +523,7 @@ export const CharacterRenderer: React.FC<{
             <div className="relative flex-1 mt-0.5 sm:mt-1 min-w-0">
                 <div className="mobile-chat-dialogue-bubble relative bg-[#fcfaf7] px-3.5 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl shadow-[0_10px_25px_rgba(0,0,0,0.15)] border border-black/10 z-10 min-h-[52px] sm:min-h-[64px] flex items-center group-hover:border-wuxia-gold/40 transition-colors duration-500" data-mobile-chat-bubble="true">
                     <div className="absolute top-3.5 sm:top-4 -left-1.5 w-3 h-3 sm:w-4 sm:h-4 bg-[#fcfaf7] rotate-45 border-l border-b border-black/10 -z-10"></div>
-                    <p className="font-medium relative z-10 tracking-wide whitespace-pre-wrap break-words leading-relaxed text-[#1a1a1a]" style={style}>{text}</p>
+                    <p className="font-medium relative z-10 tracking-wide whitespace-normal break-words leading-relaxed text-[#1a1a1a]" style={style}>{displayText}</p>
                 </div>
             </div>
             {avatarUrl && avatarPreviewOpen && typeof document !== 'undefined' && createPortal(

@@ -22,6 +22,12 @@ const 是否像中文姓名 = (value: string): boolean => (
     && (姓名含已知中文姓氏(value) || 额外常见姓氏.has(value[0]))
 );
 
+const 是否可接受未知中文角色名 = (value: string): boolean => (
+    /^[\u4e00-\u9fa5]{2,4}$/u.test(value)
+    && !四字非复姓名词正则.test(value)
+    && (是否像中文姓名(value) || value.length === 2)
+);
+
 export const 规范化正文发送者名 = (senderRaw: string): string => {
     const sender = (senderRaw || '')
         .replace(/[【】\[\]「」『』“”"']/g, '')
@@ -69,7 +75,7 @@ export const 是否可信角色发送者 = (
     if (knownSpeakers.some(item => item === sender)) return true;
 
     if (/^[\u4e00-\u9fa5]{2,4}$/u.test(sender)) {
-        return options?.allowUnknownName !== false && 是否像中文姓名(sender);
+        return options?.allowUnknownName !== false && 是否可接受未知中文角色名(sender);
     }
 
     if (/^[A-Za-z][A-Za-z0-9_· -]{1,23}$/.test(sender)) {

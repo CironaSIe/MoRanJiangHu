@@ -224,6 +224,62 @@ const 统计角色对白条数 = (logs: 正文日志结构): number => (
         .length
 );
 
+const 角色行开头引号正则 = /^[“"「『]/;
+const 角色行结尾引号正则 = /[”"」』]$/;
+const 角色行叙事特征正则 = /(?:她|他|你|我|众人|旁边|车轮|马蹄|目光|视线|脚步|裙摆|衣袖|风声|雨声|声音|说完|说罢|说着|看了|望了|靠了|抬头|低头|转身|收回|走到|驶上|发出|响起|掠过|落在|停在)/;
+
+const 查找首段角色引号闭合位置 = (text: string): number => {
+    const source = (text || '').trim();
+    if (!source) return -1;
+    const open = source[0];
+    const close = open === '“' ? '”'
+        : open === '「' ? '」'
+            : open === '『' ? '』'
+                : open === '"' ? '"'
+                    : '';
+    if (!close) return -1;
+    return source.indexOf(close, 1);
+};
+
+const 剥离角色行外层引号 = (text: string): string => {
+    const source = (text || '').trim();
+    const closingIndex = 查找首段角色引号闭合位置(source);
+    if (closingIndex === source.length - 1 && 角色行开头引号正则.test(source) && 角色行结尾引号正则.test(source)) {
+        return source.slice(1, -1).trim();
+    }
+    return source;
+};
+
+export const 净化角色对白行 = (logs: 正文日志结构): 正文日志结构 => {
+    const result: 正文日志结构 = [];
+    (Array.isArray(logs) ? logs : []).forEach((item) => {
+        const sender = 规范化正文发送者(item?.sender || '旁白');
+        const text = typeof item?.text === 'string' ? item.text.trim() : '';
+        if (!text) return;
+        if (!是否角色正文发送者(sender)) {
+            result.push({ sender, text });
+            return;
+        }
+
+        const closingIndex = 查找首段角色引号闭合位置(text);
+        if (closingIndex > 0) {
+            const quoted = text.slice(1, closingIndex).trim();
+            const rest = text.slice(closingIndex + 1).trim();
+            if (quoted) result.push({ sender, text: quoted });
+            if (rest) result.push({ sender: '旁白', text: rest });
+            return;
+        }
+
+        if (!/[我你咱？?！!]|(?:吧|吗|呢|啊|呀|嘛|呗|啦|喂|哼|嗯|唔|哦|行|好|当然|自然|可以|不行|回来|看看)/.test(text) && 角色行叙事特征正则.test(text)) {
+            result.push({ sender: '旁白', text });
+            return;
+        }
+
+        result.push({ sender, text: 剥离角色行外层引号(text) });
+    });
+    return 规范化对白日志(result);
+};
+
 export const 执行正文润色 = async (
     baseResponse: GameResponse,
     rawText: string,
@@ -406,10 +462,10 @@ export const 执行正文润色 = async (
         polishCotPseudoPrompt,
         deps.onDelta ? { stream: true, onDelta: deps.onDelta } : undefined
     );
-    let polishedLogs = 规范化对白日志(限制润色结果判定数量(
+    let polishedLogs = 净化角色对白行(规范化对白日志(限制润色结果判定数量(
         sourceLogs,
         解析正文日志文本(polishedResult.bodyText)
-    ));
+    )));
     if (polishedLogs.length === 0) {
         return { response: baseResponse, applied: false, error: '优化后正文为空，已保留原文。', rawText: polishedResult.rawText };
     }
@@ -443,10 +499,10 @@ export const 执行正文润色 = async (
             polishCotPseudoPrompt,
             deps.onDelta ? { stream: true, onDelta: deps.onDelta } : undefined
         );
-        const retryLogs = 规范化对白日志(限制润色结果判定数量(
+        const retryLogs = 净化角色对白行(规范化对白日志(限制润色结果判定数量(
             sourceLogs,
             解析正文日志文本(retryResult.bodyText)
-        ));
+        )));
         const retryLength = 统计润色正文字符数(retryLogs);
         const retryCheck = 评估润色长度结果({
             sourceLength,

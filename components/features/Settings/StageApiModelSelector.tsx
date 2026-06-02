@@ -54,7 +54,7 @@ const StageApiModelSelector: React.FC<Props> = ({
     const handleChannelChange = (channelId: string) => {
         const nextConfig = form.configs.find((cfg) => cfg.id === channelId) || null;
         onChange(channelKey, channelId as any);
-        onChange(modelKey, (trim(nextConfig?.model) || trim(form.功能模型占位[modelKey]) || fallbackModel) as any);
+        onChange(modelKey, trim(nextConfig?.model) as any);
         setModelOptions([]);
         setMessage('');
     };

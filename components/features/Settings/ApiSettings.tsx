@@ -143,6 +143,36 @@ const 匹配模型输出推荐 = (modelRaw: string): 模型输出推荐项 | nul
     return 模型输出推荐数据.find((item) => item.matchers.some((matcher) => matcher.test(model))) || null;
 };
 
+const 提取模型版本数字 = (model: string): number[] => (
+    (model || '')
+        .match(/\d+(?:\.\d+)?/g)
+        ?.map((item) => Number(item))
+        .filter(Number.isFinite)
+        || []
+);
+
+export const 选择最佳可用模型 = (models: string[]): string => {
+    const candidates = Array.from(new Set((Array.isArray(models) ? models : [])
+        .map((item) => (item || '').trim())
+        .filter(Boolean)));
+    if (candidates.length === 0) return '';
+
+    const scoreModel = (model: string): number => {
+        const lower = model.toLowerCase();
+        let score = 0;
+        if (/(embedding|moderation|rerank|tts|audio|image|vision|whisper|speech)/i.test(lower)) score -= 10000;
+        if (/(gpt-5|claude|gemini|deepseek|qwen|glm|kimi)/i.test(lower)) score += 4000;
+        if (/(pro|max|ultra|opus|sonnet|reasoner|thinking)/i.test(lower)) score += 900;
+        if (/(chat|instruct|turbo)/i.test(lower)) score += 150;
+        if (/(mini|lite|flash|haiku|nano|small|embedding|moderation|rerank|tts|audio|image|vision)/i.test(lower)) score -= 500;
+        if (/(preview|beta|experimental|exp)/i.test(lower)) score -= 120;
+        const versionScore = 提取模型版本数字(lower).reduce((acc, value, index) => acc + value / Math.pow(10, index), 0) * 100;
+        return score + versionScore;
+    };
+
+    return candidates.sort((a, b) => scoreModel(b) - scoreModel(a) || b.localeCompare(a))[0] || '';
+};
+
 const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
     const [form, setForm] = useState<接口设置结构>(() => 规范化接口设置(settings));
     const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
@@ -260,7 +290,13 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
         const result = await fetchModelsFromCurrentConfig();
         if (result) {
             setMainModelOptions(result);
-            setMessage('主剧情模型列表获取成功。');
+            const bestModel = 选择最佳可用模型(result);
+            if (bestModel) {
+                updateMainModel(bestModel);
+                setMessage(`主剧情模型列表获取成功，已自动选择 ${bestModel}。`);
+            } else {
+                setMessage('主剧情模型列表获取成功。');
+            }
         }
         setLoadingMainModels(false);
     };
@@ -319,35 +355,60 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
 
     const handleTestConnection = async () => {
         if (!activeConfig) return;
-        const tokenValidationError = 校验主剧情最大输出配置();
-        if (tokenValidationError) {
-            setMessage(tokenValidationError);
-            return;
-        }
-        const modelForTest = (activeConfig.model || '').trim() || (form.功能模型占位.主剧情使用模型 || '').trim();
         if (!activeConfig.apiKey || !activeConfig.baseUrl) {
             setMessage('请先填写当前配置的 API Key 和 Base URL');
             return;
         }
-        if (!modelForTest) {
-            setMessage('请先填写主剧情模型或配置默认模型');
-            return;
-        }
         setMessage('');
         setTestingConnection(true);
+        let modelForTest = (activeConfig.model || '').trim() || (form.功能模型占位.主剧情使用模型 || '').trim();
+        let configForTest = activeConfig;
         try {
+            setMessage('正在获取模型列表并选择最佳模型...');
+            const models = await fetchModelsFromCurrentConfig();
+            if (models && models.length > 0) {
+                setMainModelOptions(models);
+                const bestModel = 选择最佳可用模型(models);
+                if (bestModel) {
+                    modelForTest = bestModel;
+                    const nextConfig = { ...activeConfig, model: bestModel, updatedAt: Date.now() };
+                    configForTest = nextConfig;
+                    setForm((prev) => ({
+                        ...prev,
+                        activeConfigId: activeConfig.id,
+                        configs: prev.configs.map((cfg) => cfg.id === activeConfig.id ? nextConfig : cfg),
+                        功能模型占位: {
+                            ...prev.功能模型占位,
+                            主剧情使用模型: bestModel
+                        }
+                    }));
+                }
+            }
+            const matched = 匹配模型输出推荐(modelForTest);
+            if (
+                matched
+                && typeof configForTest.maxTokens === 'number'
+                && configForTest.maxTokens > matched.officialMaxOutput
+            ) {
+                setMessage(`${modelForTest} 官方最大输出约为 ${matched.officialMaxOutput}，当前设置 ${configForTest.maxTokens} 过高，请调整。`);
+                return;
+            }
+            if (!modelForTest) {
+                setMessage('请先填写主剧情模型或配置默认模型');
+                return;
+            }
             const result = await textAIService.testConnection({
-                ...activeConfig,
+                ...configForTest,
                 model: modelForTest
             });
             const title = result.ok ? '连接测试成功' : '连接测试失败';
             const meta = [
-                `配置: ${activeConfig.名称 || activeConfig.id}`,
-                `供应商: ${供应商标签[activeConfig.供应商]}`,
+                `配置: ${configForTest.名称 || configForTest.id}`,
+                `供应商: ${供应商标签[configForTest.供应商]}`,
                 `模型: ${modelForTest}`,
-                `最大输出Token: ${typeof activeConfig.maxTokens === 'number' ? activeConfig.maxTokens : '未设置'}`,
-                `温度: ${typeof activeConfig.temperature === 'number' ? activeConfig.temperature : '按场景默认'}`,
-                `Base URL: ${activeConfig.baseUrl}`,
+                `最大输出Token: ${typeof configForTest.maxTokens === 'number' ? configForTest.maxTokens : '未设置'}`,
+                `温度: ${typeof configForTest.temperature === 'number' ? configForTest.temperature : '按场景默认'}`,
+                `Base URL: ${configForTest.baseUrl}`,
                 '',
                 '---',
                 '',
@@ -367,6 +428,7 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
                 ok: false
             });
         } finally {
+            setMessage('');
             setTestingConnection(false);
         }
     };
@@ -383,12 +445,18 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
     );
 
     return (
-        <div className="space-y-6 text-sm animate-fadeIn">
-            <div className="mb-6 flex items-center justify-between border-b border-wuxia-gold/30 pb-3">
-                <div>
-                    <h3 className="text-xl font-bold font-serif text-wuxia-gold">接口配置中心</h3>
-                    <div className="mt-1 text-xs text-gray-400">这里只保留主接口连接与主剧情模型设置；功能模型请到对应独立页面管理。</div>
+        <div className="relative space-y-6 text-sm animate-fadeIn">
+            <div className="sticky top-0 z-30 flex justify-end pointer-events-none">
+                <div className="rounded-md border border-wuxia-gold/30 bg-[#0b0b0c]/95 p-1.5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-[#0b0b0c]/80 pointer-events-auto day-mode-settings-savebar">
+                    <GameButton onClick={handleSave} variant="primary" className="shrink-0 px-4 py-2 text-xs sm:px-6">
+                        {showSuccess ? '✔ 配置已保存' : '保存配置'}
+                    </GameButton>
                 </div>
+            </div>
+
+            <div className="-mt-14 pr-32 sm:pr-44">
+                <h3 className="text-xl font-bold font-serif text-wuxia-gold">接口配置中心</h3>
+                <div className="mt-1 text-xs text-gray-400">这里只保留主接口连接与主剧情模型设置；功能模型请到对应独立页面管理。</div>
             </div>
 
             <div className="space-y-4 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
@@ -753,12 +821,6 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
             )}
 
             {message && <p className="animate-pulse text-xs text-wuxia-cyan">{message}</p>}
-
-            <div className="mt-8 border-t border-wuxia-gold/20 pt-6">
-                <GameButton onClick={handleSave} variant="primary" className="w-full">
-                    {showSuccess ? '✔ 配置已保存' : '保存配置'}
-                </GameButton>
-            </div>
 
             {testResultModal.open && (
                 <div

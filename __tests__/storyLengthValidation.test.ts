@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { 校验主剧情正文最低字数, 获取主剧情正文不足信息, 统计正文字符数 } from '../hooks/useGame/sendWorkflow';
-import { 评估润色长度结果 } from '../hooks/useGame/bodyPolish';
+import { 净化角色对白行, 评估润色长度结果 } from '../hooks/useGame/bodyPolish';
 import { 构建主剧情请求参数, type 主剧情系统上下文 } from '../hooks/useGame/mainStoryRequest';
 import { 构建字数要求提示词 } from '../prompts/runtime/protocolDirectives';
 import { 默认游戏设置 } from '../utils/gameSettings';
@@ -90,6 +90,30 @@ describe('主剧情正文字数校验', () => {
             requiredLength: 300,
             allowExpansionForLength: true
         })).toMatchObject({ ok: true });
+    });
+
+    it('文章优化后会把污染到角色行里的旁白拆回旁白', () => {
+        const logs = 净化角色对白行([
+            {
+                sender: '灵灵',
+                text: '"那是当然。本助手可是按照地球东亚审美天花板调的参数——宿主从前不是说想回高中吗？回不去了，看看我过过瘾也行嘛。" 她说完往驾座那一处靠了靠，两条穿着黑色短袜的腿晃了两下。'
+            },
+            {
+                sender: '旁白',
+                text: '吴杰涛朝她那一处望了一眼，又把目光收回到前方那条黄土官道上。'
+            }
+        ]);
+
+        expect(logs).toEqual([
+            {
+                sender: '灵灵',
+                text: '那是当然。本助手可是按照地球东亚审美天花板调的参数——宿主从前不是说想回高中吗？回不去了，看看我过过瘾也行嘛。'
+            },
+            {
+                sender: '旁白',
+                text: '她说完往驾座那一处靠了靠，两条穿着黑色短袜的腿晃了两下。\n吴杰涛朝她那一处望了一眼，又把目光收回到前方那条黄土官道上。'
+            }
+        ]);
     });
 
     it('主剧情有序消息会把动态最低字数要求放到最终任务前', () => {
