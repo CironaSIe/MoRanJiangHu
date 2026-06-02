@@ -277,7 +277,8 @@
 </div>
 <script>
 const storageKey = 'msjh-public-item-preset-feedback-v1';
-const categoryOrder = ['武侠', '仙侠', '西方奇幻', '灵气复苏', '都市修仙', '现代都市', '末日丧尸'];
+const preferredCategoryOrder = ['武侠', '仙侠', '西方奇幻', '灵气复苏', '都市修仙', '现代都市', '末日丧尸'];
+let categoryOrder = [...preferredCategoryOrder];
 let items = [];
 let activeCategory = categoryOrder[0];
 let marks = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -472,6 +473,12 @@ function scopedItemsForActiveCategory() {
 function renderTabs() {
   tabs.textContent = '';
   const availableCategories = new Set(items.map(item => item.category || '武侠'));
+  categoryOrder = [
+    ...preferredCategoryOrder,
+    ...[...availableCategories]
+      .filter(category => !preferredCategoryOrder.includes(category))
+      .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))
+  ];
   for (const category of categoryOrder) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -592,12 +599,17 @@ async function loadData() {
   const response = await fetch('./assets/item-preset-feedback-data.json', { cache: 'no-store' });
   if (!response.ok) throw new Error('反馈数据载入失败');
   items = await response.json();
+  const availableCategories = new Set(items.map(item => item.category || '武侠'));
+  if (!availableCategories.has(activeCategory)) {
+    activeCategory = categoryOrder.find(category => availableCategories.has(category)) || [...availableCategories][0] || '武侠';
+  }
   renderTabs();
   rebuildTypeOptions();
   render();
 }
 function setCategory(category) {
-  if (!categoryOrder.includes(category)) return;
+  const availableCategories = new Set(items.map(item => item.category || '武侠'));
+  if (!availableCategories.has(category)) return;
   activeCategory = category;
   [...tabs.querySelectorAll('.tab')].forEach((button) => {
     const isActive = button.textContent.startsWith(category);
