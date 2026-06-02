@@ -246,6 +246,7 @@ const 是否像引号对白内容 = (text: string): boolean => {
 const 人物动作动词正则 = /^(?:将|把|给|向|对|朝|走|站|坐|停|回|转|看|望|抬|低|点|摇|皱|叹|笑|冷笑|苦笑|轻笑|沉|伸|握|按|收|拔|举|放|推|扶|拂|敛|挑|倒|取|递|开口|提醒|解释|说道|说|道|问|答)/;
 const 无标签言语引导正则 = /^(.{1,32}?)(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:，,]\s*(.{2,500})$/;
 const 方括号说话人行正则 = /^[【\[]\s*([A-Za-z0-9_\u4e00-\u9fff·]{1,16})\s*[】\]]\s*(.{1,800})$/;
+const 可疑方括号无引号旁白标签正则 = /(?:的|了|着|过|他|她|它|你|我|这|那|带来|摇|低头|抬头|转身|眼力|细雨|雨声|风声|灯光|夜色|青石|空气)/;
 const 口语起始正则 = /^(?:我|我们|咱|咱们|你|你们|这事|那就|既然|今天|明天|昨天|前天|刚才|之前|现在|眼下|先|别|不要|必须|可以|应该|不是|恐怕|看来|听我|放心|等等|走|快|慢着|且慢|好|嗯|不行|没错|自然|当然|只要)/;
 const 叙事动作特征正则 = /(?:走到|来到|回到|站在|坐在|望向|看向|拿起|放下|推开|打开|穿过|掠过|落在|映在|吹过|响起|传来|升起|落下|归鞘|倒了|喝了|吃了|伸手|抬手|皱眉|点头|摇头|叹息|沉默|停下|转身)/;
 const 口语证据正则 = /[我你咱]|[？?！!]|(?:吧|吗|呢|啊|呀|嘛|呗|啦|喂|哼|嗯|唔|哦|行|好|滚|停|走|快|慢着|且慢)[。！？!?…~～]*$/;
@@ -288,10 +289,13 @@ const 拆分旁白夹杂无标签对白 = (log: GameLog): GameLog[] => {
         const bracketSpeaker = line.match(方括号说话人行正则);
         const bracketSpeakerName = (bracketSpeaker?.[1] || '').trim();
         if (bracketSpeaker && bracketSpeakerName) {
-            const speech = 剥离外层引号((bracketSpeaker[2] || '').trim());
+            const rawSpeech = (bracketSpeaker[2] || '').trim();
+            const hasQuotedSpeech = 开头引号正则.test(rawSpeech);
+            const speech = 剥离外层引号(rawSpeech);
             if (
                 speech
-                && bracketSpeakerName.length <= 12
+                && bracketSpeakerName.length <= (hasQuotedSpeech ? 12 : 4)
+                && (hasQuotedSpeech || !可疑方括号无引号旁白标签正则.test(bracketSpeakerName))
                 && !非单一说话人正则.test(bracketSpeakerName)
                 && !泛称说话人正则.test(bracketSpeakerName)
                 && !拟声词正则.test(speech)

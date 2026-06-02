@@ -1,14 +1,15 @@
 {
-    "versionCode":  384,
-    "versionName":  "1.0.383",
+    "versionCode":  385,
+    "versionName":  "1.0.384",
     "releaseChannel":  "stable",
     "releaseNotes":  [
                          "新增官方无限流模式：新建存档和创意工坊模式包可直接选择主神空间题材，围绕恐怖片任务、轮回小队、基因锁、强化兑换和团队生存展开。",
                          "无限流经济深度接入系统：市场入口显示为主神商城，货币显示为奖励点、D级支线剧情和C级支线剧情，任务奖励可直接结算奖励点与支线剧情。",
                          "修复正文里【角色】对白被当成旁白的问题，角色头像和对话框会恢复显示。",
+                         "修复【林间细雨】、【他摇了摇头】这类旁白标题被误当成角色名的问题，对话框恢复更稳。",
                          "聊天记录新增早期对话展开入口，默认隐藏的旧回合可一键展开查看。",
                          "官网：https://msjh.bacon159.pp.ua/",
-                         "同步更新 Web、APK 与更新清单到 v1.0.383。"
+                         "同步更新 Web、APK 与更新清单到 v1.0.384。"
                      ],
     "releaseHistory":  [
                            {
@@ -2548,7 +2549,7 @@
     "r2Bucket":  "quark-downloads-bacon",
     "r2Prefix":  "moranjianghu",
     "backupWebsiteUrl":  "https://msjh.bacon.de5.net",
-    "releasePublishedAt":  "2026-06-02T08:18:49+08:00",
+    "releasePublishedAt":  "2026-06-02T08:35:10+08:00",
     "multiDeviceSyncGuideUrl":  "https://msjh.bacon159.pp.ua/tutorials.html#sync",
     "tutorialsUrl":  "https://msjh.bacon159.pp.ua/tutorials.html",
     "changes":  [
