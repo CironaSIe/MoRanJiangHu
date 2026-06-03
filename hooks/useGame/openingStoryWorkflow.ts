@@ -852,7 +852,7 @@ export const 执行开场剧情生成工作流 = async (
         const openingPartnerSetupText = 构建开局伙伴建档摘要(options?.开局配置, {
             cultivationSystemEnabled: 启用修炼体系
         });
-        const openingConfigText = 构建开局配置提示词(options?.开局配置);
+        const openingConfigText = 构建开局配置提示词(options?.开局配置, options?.开局额外要求);
         const openingLatestUserInputRole: 'assistant' | 'user' = (
             openingTavernPresetModeEnabled
             || openingRuntimeGptMode
