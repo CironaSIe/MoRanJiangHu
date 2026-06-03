@@ -749,7 +749,8 @@ export const 执行开场剧情生成工作流 = async (
                     openingTaskPromptWithFandom,
                     openingNovelDecompositionSystemPrompt,
                     构建开局配置提示词(options?.开局配置),
-                    typeof options?.开局额外要求 === 'string' ? options.开局额外要求 : ''
+                    typeof options?.开局额外要求 === 'string' ? options.开局额外要求 : '',
+                    (openingGameConfig as any)?.activeModuleExtraRules || ''
                 ],
                 openingConfig: options?.开局配置,
                 强制剧情COT提示词ID: 'core_cot'
