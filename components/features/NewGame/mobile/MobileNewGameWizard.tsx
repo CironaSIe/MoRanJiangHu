@@ -785,18 +785,6 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
         设置创意工坊注入中(true);
         try {
             const module = await 下载创意工坊模块(entry);
-            if (module.safetyNotes?.length || module.usagePrompt) {
-                const parts: string[] = [];
-                if (module.safetyNotes?.length) {
-                    parts.push('【模块安全说明】', ...module.safetyNotes.map((n) => `- ${n}`));
-                }
-                if (module.usagePrompt) {
-                    parts.push('【模块使用说明】', module.usagePrompt);
-                }
-                setActiveModuleExtraRules(parts.join('\n'));
-            } else {
-                setActiveModuleExtraRules('');
-            }
             const mode = 读取模块模式(module);
             if (mode) 更新题材模式(mode);
             const modeRuntimeProfile = 规范化模式运行时配置(
@@ -806,6 +794,26 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
             const resolvedMode = modeRuntimeProfile.identity.baseMode as 题材模式类型;
             const moduleBackgrounds = 提取模块背景列表(module);
             const moduleTalents = 提取模块天赋列表(module);
+            const extraParts: string[] = [];
+            if (module.safetyNotes?.length) {
+                extraParts.push('【模块安全说明】', ...module.safetyNotes.map((n) => `- ${n}`));
+            }
+            if (module.usagePrompt) {
+                extraParts.push('【模块使用说明】', module.usagePrompt);
+            }
+            if (moduleBackgrounds.length > 0) {
+                extraParts.push(
+                    '【本世界可用出身背景池】',
+                    ...moduleBackgrounds.map((b, i) => `${i + 1}. ${b.名称}：${b.描述}${b.效果 ? `（效果：${b.效果}）` : ''}`)
+                );
+            }
+            if (moduleTalents.length > 0) {
+                extraParts.push(
+                    '【本世界可用天赋池】',
+                    ...moduleTalents.map((t, i) => `${i + 1}. ${t.名称}：${t.描述}${t.效果 ? `（效果：${t.效果}）` : ''}`)
+                );
+            }
+            setActiveModuleExtraRules(extraParts.join('\n'));
             if (moduleBackgrounds.length > 0) {
                 设置模式包背景列表(moduleBackgrounds);
             }
