@@ -87,6 +87,17 @@
 - Use `/` in paths, including Windows paths.
 - Write explanations in normal prose; keep file refs standalone.
 
+## Local And Cloud Environment Variable Rule
+
+- Use local env files plus Cloudflare Wrangler Secrets for collaborative local/cloud development.
+- Keep real secrets only in local `.env.local`, `.env.production`, `.dev.vars`, user environment variables, or Cloudflare Secrets. Never commit OAuth client secrets, GitHub tokens, image-host tokens, object-storage credentials, or AI/API keys.
+- Commit only safe templates such as `.env.production.example` and `.dev.vars.example`.
+- Frontend build-time variables use the `VITE_` prefix and can be embedded into built assets, so only put public client IDs or public API base URLs there.
+- Cloudflare runtime secrets should be set with `npm run cf:secrets:bulk -- .env.production` or individual `wrangler secret put ...` commands.
+- `wrangler.jsonc` should contain bindings and non-sensitive vars such as R2 bindings, key prefixes, static asset bindings, and public repository defaults; do not put runtime secrets in `wrangler.jsonc`.
+- Current required Cloudflare secrets include `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_NATIVE_CLIENT_ID`, `GITHUB_NATIVE_CLIENT_SECRET`, `FANDOM_PRESET_GITHUB_TOKEN`, and `IMAGE_HOST_TOKEN`.
+- Current public frontend build variables include `VITE_GITHUB_CLIENT_ID`, `VITE_GITHUB_NATIVE_CLIENT_ID`, and `VITE_SYNC_API_BASE_URL`.
+
 ## Shell Encoding Rule
 
 - When reading or writing UTF-8 JSON/text on PowerShell, do not rely on the default console encoding.

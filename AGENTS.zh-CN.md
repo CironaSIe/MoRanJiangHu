@@ -87,6 +87,17 @@
 - 路径统一使用 `/`，包括 Windows 路径。
 - 正常 prose 解释即可；文件引用单独写成 `@...` 形式。
 
+## 本地与云端环境变量规则
+
+- 本地/云端协同开发统一使用“本地 env 文件 + Cloudflare Wrangler Secrets”。
+- 真实密钥只能保存在本机 `.env.local`、`.env.production`、`.dev.vars`、用户环境变量或 Cloudflare Secrets 中。不要把 OAuth client secret、GitHub token、图床 token、对象存储凭据、AI/API key 提交进仓库。
+- 只提交安全模板，例如 `.env.production.example` 和 `.dev.vars.example`。
+- 前端构建期变量使用 `VITE_` 前缀，会被写入构建产物，所以这里只能放公开 client id 或公开 API base URL。
+- Cloudflare 运行时密钥应通过 `npm run cf:secrets:bulk -- .env.production` 或单个 `wrangler secret put ...` 命令设置。
+- `wrangler.jsonc` 只放绑定和非敏感变量，例如 R2 绑定、键名前缀、静态资源绑定、公开仓库默认值；不要把运行时密钥写进 `wrangler.jsonc`。
+- 当前需要的 Cloudflare secrets 包括 `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`GITHUB_NATIVE_CLIENT_ID`、`GITHUB_NATIVE_CLIENT_SECRET`、`FANDOM_PRESET_GITHUB_TOKEN`、`IMAGE_HOST_TOKEN`。
+- 当前公开前端构建变量包括 `VITE_GITHUB_CLIENT_ID`、`VITE_GITHUB_NATIVE_CLIENT_ID`、`VITE_SYNC_API_BASE_URL`。
+
 ## 根因级 Bug 修复规则
 
 - 当用户要求修复问题时，必须先判断该现象是孤立问题，还是更大流程/数据一致性问题的一部分。如果属于后者，必须一并修复整条链路，而不是只修表面症状。
