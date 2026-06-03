@@ -79,6 +79,32 @@ const clampPercent = (value: number | undefined): number => {
 
 type 云端时间树节点 = 云端存档摘要 & { children: 云端时间树节点[] };
 
+const 扁平化云端树节点 = (nodes: 云端时间树节点[]): 云端存档摘要[] => {
+    const result: 云端存档摘要[] = [];
+    const walk = (list: 云端时间树节点[]) => {
+        list.forEach((node) => {
+            const { children, ...summary } = node;
+            result.push(summary);
+            if (children?.length) walk(children);
+        });
+    };
+    walk(nodes);
+    return result;
+};
+
+const 扁平化对象存储树节点 = (nodes: 对象存储时间树节点[]): 对象存储云存档元数据[] => {
+    const result: 对象存储云存档元数据[] = [];
+    const walk = (list: 对象存储时间树节点[]) => {
+        list.forEach((node) => {
+            const { children, ...metadata } = node;
+            result.push(metadata as 对象存储云存档元数据);
+            if (children?.length) walk(children);
+        });
+    };
+    walk(nodes);
+    return result;
+};
+
 const 估算云端复制进度 = (progress: 云端上传进度 | null): number => {
     if (!progress) return 0;
     const total = Math.max(1, Number(progress.total || 0));
@@ -550,6 +576,70 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
         }
     };
 
+    const handleDeleteCloudSaveSeries = async (series: { key: string; title: string; roots: 云端时间树节点[]; count: number }) => {
+        if (!session) return;
+        const allNodes = 扁平化云端树节点(series.roots);
+        if (allNodes.length === 0) return;
+        if (!window.confirm(`确定删除整个云端系列「${series.title}」吗？这将删除该系列下的全部 ${allNodes.length} 个存档节点，且不可恢复。`)) return;
+        setBusy(`delete-series:${series.key}`);
+        setMessage(`正在删除云端系列「${series.title}」的 ${allNodes.length} 个节点...`);
+        try {
+            let currentSession = session;
+            let currentManifest: 云端存档清单 | null = null;
+            let deleted = 0;
+            for (const node of allNodes) {
+                try {
+                    const result = await 删除云端存档节点(currentSession, node);
+                    currentSession = result.session;
+                    currentManifest = result.manifest;
+                    if (result.removed) deleted += 1;
+                } catch {
+                    // 单个节点删除失败时继续删除其他节点
+                }
+            }
+            setSession(currentSession);
+            if (currentManifest) setManifest(currentManifest);
+            setSelectedCloudSeriesKey(null);
+            setMessage(`已删除云端系列「${series.title}」中的 ${deleted}/${allNodes.length} 个节点。`);
+        } catch (error: any) {
+            setMessage(`删除系列失败：${error?.message || '未知错误'}`);
+        } finally {
+            setBusy('');
+        }
+    };
+
+    const handleDeleteObjectStorageSaveSeries = async (series: { key: string; title: string; roots: 对象存储时间树节点[]; count: number }) => {
+        if (!objectStorageConfig) return;
+        const allNodes = 扁平化对象存储树节点(series.roots);
+        if (allNodes.length === 0) return;
+        if (!window.confirm(`确定删除对象存储系列「${series.title}」吗？这将删除该系列下的全部 ${allNodes.length} 个存档节点，且不可恢复。`)) return;
+        setBusy(`object-delete-series:${series.key}`);
+        setMessage(`正在删除对象存储系列「${series.title}」的 ${allNodes.length} 个节点...`);
+        try {
+            let currentSaves: 对象存储云存档元数据[] | null = null;
+            let deleted = 0;
+            let allWarnings: string[] = [];
+            for (const node of allNodes) {
+                try {
+                    const result = await 删除对象存储云存档(objectStorageConfig, node, (progress) => setMessage(`${deleted + 1}/${allNodes.length}: ${progress.message}`));
+                    if (result.removed) deleted += 1;
+                    currentSaves = result.saves;
+                    allWarnings.push(...result.warnings);
+                } catch {
+                    // 单个节点删除失败时继续删除其他节点
+                }
+            }
+            if (currentSaves) setObjectStorageSaves(currentSaves);
+            setSelectedObjectSeriesKey(null);
+            const warningText = allWarnings.length ? ` 部分旧文件可能需稍后清理。` : '';
+            setMessage(`已删除对象存储系列「${series.title}」中的 ${deleted}/${allNodes.length} 个节点。${warningText}`);
+        } catch (error: any) {
+            setMessage(`删除系列失败：${error?.message || '未知错误'}`);
+        } finally {
+            setBusy('');
+        }
+    };
+
     const renderObjectStorageCard = (item: 对象存储时间树节点): React.ReactNode => (
         <div className="w-[min(16rem,calc(100vw-4rem))] shrink-0 snap-start border border-sky-400/15 bg-black/25 px-3 py-3">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -791,6 +881,9 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                                 <button type="button" onClick={() => setSelectedObjectSeriesKey(series.key)} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10">
                                                     选择节点
                                                 </button>
+                                                <button type="button" disabled={busy === `object-delete-series:${series.key}`} onClick={() => { void handleDeleteObjectStorageSaveSeries(series); }} className="border border-red-400/30 px-3 py-2 text-xs text-red-200 hover:bg-red-500/10 disabled:opacity-50">
+                                                    {busy === `object-delete-series:${series.key}` ? '删除中...' : '删除系列'}
+                                                </button>
                                             </div>
                                         </div>
                                         <div className="text-[11px] text-gray-500">同一角色的对象存储云端节点已整理为连续进度线；此处不显示本地存档，重复自动节点会自动收敛。</div>
@@ -938,6 +1031,9 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                                                 </button>
                                                 <button type="button" onClick={() => setSelectedCloudSeriesKey(series.key)} className="border border-sky-400/35 px-3 py-2 text-xs text-sky-100 hover:bg-sky-500/10">
                                                     选择节点
+                                                </button>
+                                                <button type="button" disabled={busy === `delete-series:${series.key}`} onClick={() => { void handleDeleteCloudSaveSeries(series); }} className="border border-red-400/30 px-3 py-2 text-xs text-red-200 hover:bg-red-500/10 disabled:opacity-50">
+                                                    {busy === `delete-series:${series.key}` ? '删除中...' : '删除系列'}
                                                 </button>
                                             </div>
                                         </div>

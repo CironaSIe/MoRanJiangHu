@@ -976,6 +976,60 @@ const SocialModal: React.FC<Props> = ({
                                             </div>
                                         </div>
 
+                                        {/* NPC Status Section: Location, Tasks, Intentions */}
+                                        {(() => {
+                                            const npcLocation = 取首个非空文本((currentNPC as any).当前位置, (currentNPC as any).当前地点);
+                                            const npcLocationPath = 取首个非空文本((currentNPC as any).位置路径);
+                                            const npcTask = 取首个非空文本((currentNPC as any).当前任务);
+                                            const npcIntention = 取首个非空文本((currentNPC as any).行动意图);
+                                            const npcPendingOrder = 取首个非空文本((currentNPC as any).待执行指令);
+                                            const npcOrderSource = 取首个非空文本((currentNPC as any).指令来源);
+                                            const hasAnyStatus = npcLocation || npcLocationPath || npcTask || npcIntention || npcPendingOrder;
+                                            if (!hasAnyStatus) return null;
+                                            return (
+                                                <div className="bg-amber-950/10 p-5 border border-amber-900/30 rounded-xl shadow-lg relative overflow-hidden">
+                                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-900/50 via-amber-500/20 to-transparent"></div>
+                                                    <h4 className="flex items-center gap-2 text-amber-300/90 font-serif font-bold mb-4 uppercase tracking-[0.2em] text-sm">
+                                                        <span className="w-1.5 h-1.5 rotate-45 bg-amber-400/70"></span>
+                                                        动态状态
+                                                    </h4>
+                                                    <div className="grid sm:grid-cols-2 gap-3">
+                                                        {npcLocation && (
+                                                            <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
+                                                                <div className="text-[10px] tracking-[0.18em] text-gray-500">当前位置</div>
+                                                                <div className="mt-1 text-sm text-amber-100">{npcLocation}</div>
+                                                            </div>
+                                                        )}
+                                                        {npcLocationPath && (
+                                                            <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
+                                                                <div className="text-[10px] tracking-[0.18em] text-gray-500">位置路径</div>
+                                                                <div className="mt-1 text-sm text-amber-100">{npcLocationPath}</div>
+                                                            </div>
+                                                        )}
+                                                        {npcTask && (
+                                                            <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
+                                                                <div className="text-[10px] tracking-[0.18em] text-gray-500">当前任务</div>
+                                                                <div className="mt-1 text-sm text-emerald-100">{npcTask}</div>
+                                                            </div>
+                                                        )}
+                                                        {npcIntention && (
+                                                            <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
+                                                                <div className="text-[10px] tracking-[0.18em] text-gray-500">行动意图</div>
+                                                                <div className="mt-1 text-sm text-sky-100">{npcIntention}</div>
+                                                            </div>
+                                                        )}
+                                                        {npcPendingOrder && (
+                                                            <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2 sm:col-span-2">
+                                                                <div className="text-[10px] tracking-[0.18em] text-gray-500">待执行指令</div>
+                                                                <div className="mt-1 text-sm text-cyan-100">{npcPendingOrder}</div>
+                                                                {npcOrderSource && <div className="mt-1 text-[9px] text-gray-500">来源：{npcOrderSource}</div>}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
                                         {展示关系驱动面板 && (
                                             <div className="bg-cyan-950/10 p-5 border border-cyan-900/40 rounded-xl shadow-lg relative overflow-hidden group">
                                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-900/50 via-cyan-500/20 to-transparent"></div>
