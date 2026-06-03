@@ -57,6 +57,7 @@ type 回合快照结构 = {
 type 会话生命周期依赖 = {
     apiConfig: any;
     gameConfig: any;
+    设置游戏设置: (value: any) => void;
     memoryConfig: any;
     view: 'home' | 'game' | 'new_game';
     prompts: 提示词结构[];
@@ -88,6 +89,7 @@ type 会话生命周期依赖 = {
     setShowSettings: (value: boolean) => void;
     设置历史记录: (value: any) => void;
     设置最近开局配置: (value: 最近开局配置结构 | null) => void;
+    设置游戏设置: (value: any) => void;
     清空重Roll快照: () => void;
     推入重Roll快照: (snapshot: 回合快照结构) => void;
     重置自动存档状态: () => void;
@@ -342,7 +344,8 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         mode: 'all' | 'step',
         _openingStreaming: boolean = true,
         openingExtraPrompt: string = '',
-        options?: 世界生成选项
+        options?: 世界生成选项,
+        activeModuleExtraRules?: string
     ) => {
         const promptPool = (Array.isArray(deps.prompts) && deps.prompts.length > 0) ? deps.prompts : await deps.ensurePromptsLoaded();
         deps.设置开局文章优化进度(null);
@@ -350,6 +353,12 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         deps.设置开局世界演变进度(null);
         deps.设置开局规划进度(null);
         deps.设置开局地图更新进度(null);
+        if (typeof activeModuleExtraRules === 'string' && activeModuleExtraRules.trim()) {
+            deps.设置游戏设置((prev: any) => ({
+                ...prev,
+                activeModuleExtraRules: activeModuleExtraRules.trim()
+            }));
+        }
         return 执行世界生成工作流(
             worldConfig,
             charData,

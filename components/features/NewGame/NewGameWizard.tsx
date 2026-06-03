@@ -51,7 +51,8 @@ interface Props {
         openingConfig: OpeningConfig | undefined,
         mode: 'all' | 'step',
         openingStreaming: boolean,
-        openingExtraPrompt?: string
+        openingExtraPrompt?: string,
+        activeModuleExtraRules?: string
     ) => void;
     onCancel: () => void;
     loading: boolean;
@@ -248,6 +249,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const [已选创意工坊子项, 设置已选创意工坊子项] = useState<Partial<Record<创意工坊模块类型, string>>>({});
     const [创意工坊注入状态, 设置创意工坊注入状态] = useState('');
     const [创意工坊注入中, 设置创意工坊注入中] = useState(false);
+    const [activeModuleExtraRules, setActiveModuleExtraRules] = useState('');
 
     // Custom Inputs
     const [customTalent, setCustomTalent] = useState<天赋结构>({ 名称: '', 描述: '', 效果: '' });
@@ -868,6 +870,18 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         设置创意工坊注入中(true);
         try {
             const module = await 下载创意工坊模块(entry);
+            if (module.safetyNotes?.length || module.usagePrompt) {
+                const parts: string[] = [];
+                if (module.safetyNotes?.length) {
+                    parts.push('【模块安全说明】', ...module.safetyNotes.map((n) => `- ${n}`));
+                }
+                if (module.usagePrompt) {
+                    parts.push('【模块使用说明】', module.usagePrompt);
+                }
+                setActiveModuleExtraRules(parts.join('\n'));
+            } else {
+                setActiveModuleExtraRules('');
+            }
             const mode = 读取模块模式(module);
             if (mode) 更新题材模式(mode);
             const modeRuntimeProfile = 规范化模式运行时配置(
@@ -1600,7 +1614,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             })
             : true;
         if (!ok) return;
-        onComplete(effectiveWorldConfig, charData, effectiveOpeningConfig, 'all', true, effectiveOpeningExtraRequirement.trim());
+        onComplete(effectiveWorldConfig, charData, effectiveOpeningConfig, 'all', true, effectiveOpeningExtraRequirement.trim(), activeModuleExtraRules || undefined);
     };
 
     if (loading) {

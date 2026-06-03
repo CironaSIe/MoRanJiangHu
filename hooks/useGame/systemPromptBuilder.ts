@@ -1412,7 +1412,8 @@ export const 构建系统提示词 = ({
         开局剧情推动协议内容,
         ...开局女主协议提示词.map(item => item.content),
         actionOptionsPromptContent,
-        按当前设置过滤提示词(worldbookInjection.systemRuleText)
+        按当前设置过滤提示词(worldbookInjection.systemRuleText),
+        (gameConfig as any)?.activeModuleExtraRules || ''
     ]
         .filter(Boolean)
         .join('\n\n');

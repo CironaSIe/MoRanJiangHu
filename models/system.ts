@@ -857,6 +857,7 @@ export interface 游戏设置结构 {
         小说拆分: boolean;
     };
     额外提示词: string; // Custom prompt injected at the end
+    activeModuleExtraRules?: string; // Creative workshop module safety/usage rules, injected as system_rule
 }
 
 export interface 记忆配置结构 {
