@@ -609,6 +609,7 @@ export interface ModeRuntimeProfile {
         sexualityFallback: string;
         sensitivityFallback: string;
         autoImageStyle: string;
+        genderRatio: string;
     };
     image: {
         characterClothingEra: string;

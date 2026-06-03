@@ -94,6 +94,7 @@
 - 只提交安全模板，例如 `.env.production.example` 和 `.dev.vars.example`。
 - 前端构建期变量使用 `VITE_` 前缀，会被写入构建产物，所以这里只能放公开 client id 或公开 API base URL。
 - Cloudflare 运行时密钥应通过 `npm run cf:secrets:bulk -- .env.production` 或单个 `wrangler secret put ...` 命令设置。
+- 每次环境变量新增、删除或修改后，都要刷新本机 `.env.production`，重新加密，并把加密包同步到对象存储。
 - `wrangler.jsonc` 只放绑定和非敏感变量，例如 R2 绑定、键名前缀、静态资源绑定、公开仓库默认值；不要把运行时密钥写进 `wrangler.jsonc`。
 - 当前需要的 Cloudflare secrets 包括 `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`GITHUB_NATIVE_CLIENT_ID`、`GITHUB_NATIVE_CLIENT_SECRET`、`FANDOM_PRESET_GITHUB_TOKEN`、`IMAGE_HOST_TOKEN`。
 - 当前公开前端构建变量包括 `VITE_GITHUB_CLIENT_ID`、`VITE_GITHUB_NATIVE_CLIENT_ID`、`VITE_SYNC_API_BASE_URL`。

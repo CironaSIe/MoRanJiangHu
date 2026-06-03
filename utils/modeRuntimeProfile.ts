@@ -346,7 +346,8 @@ export const 构建官方模式运行时配置 = (
                 ? '现代服饰、现实材质、题材道具清晰可见。'
                 : profile.group === 'western_fantasy'
                     ? '中世纪西方奇幻服饰、职业装备、公会/城堡/地下城环境和魔法道具清晰可见。'
-                    : '符合题材时代与身份的服饰、武器和环境。'
+                    : '符合题材时代与身份的服饰、武器和环境。',
+            genderRatio: isInfinite ? '1:5' : isApocalypse ? '1:3' : profile.group === 'xianxia' ? '1:3' : profile.group === 'western_fantasy' ? '1:2' : '1:3'
         },
         image: {
             characterClothingEra: isInfinite ? '现代轮回者与任务世界混合装备' : isApocalypse ? '现代末日生存服饰' : isModern ? '当代城市服饰' : profile.group === 'xianxia' ? '古典修真服饰' : profile.group === 'western_fantasy' ? '中世纪西方奇幻服饰' : '武侠江湖服饰',
@@ -449,7 +450,8 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
             requiredMainCharacterFields: 拆分模式配置短语(raw?.npc?.requiredMainCharacterFields).length ? 拆分模式配置短语(raw.npc.requiredMainCharacterFields) : official.npc.requiredMainCharacterFields,
             sexualityFallback: 文本(raw?.npc?.sexualityFallback, official.npc.sexualityFallback),
             sensitivityFallback: 文本(raw?.npc?.sensitivityFallback, official.npc.sensitivityFallback),
-            autoImageStyle: 文本(raw?.npc?.autoImageStyle, official.npc.autoImageStyle)
+            autoImageStyle: 文本(raw?.npc?.autoImageStyle, official.npc.autoImageStyle),
+            genderRatio: 文本(raw?.npc?.genderRatio, official.npc.genderRatio)
         },
         image: {
             characterClothingEra: 文本(raw?.image?.characterClothingEra, official.image.characterClothingEra),
@@ -555,7 +557,8 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
                 ? '现代服饰、现实材质、题材道具清晰可见。'
                 : profile.group === 'western_fantasy'
                     ? '中世纪西方奇幻服饰、职业装备、公会/城堡/地下城环境和魔法道具清晰可见。'
-                    : '符合题材时代与身份的服饰、武器和环境。'
+                    : '符合题材时代与身份的服饰、武器和环境。',
+            genderRatio: isInfinite ? '1:5' : isApocalypse ? '1:3' : profile.group === 'xianxia' ? '1:3' : profile.group === 'western_fantasy' ? '1:2' : '1:3'
         },
         image: {
             characterClothingEra: isInfinite ? '现代轮回者与任务世界混合装备' : isApocalypse ? '现代末日生存服饰' : isModern ? '当代城市服饰' : profile.group === 'xianxia' ? '古典修真服饰' : profile.group === 'western_fantasy' ? '中世纪西方奇幻服饰' : '武侠江湖服饰',
@@ -587,7 +590,7 @@ export const 渲染模式运行时配置世界书内容 = (profile: ModeRuntimeP
     `物品系统：初始池=${profile.items.initialItemPool.join('、')}；奖励池=${profile.items.rewardItemPool.join('、')}；禁用=${profile.items.bannedItemKeywords.join('、')}`,
     `地图系统：地点=${profile.map.locationTypes.join('、')}；POI=${profile.map.poiTypes.join('、')}；禁用地点=${profile.map.bannedLocationKeywords.join('、')}`,
     `任务系统：主线=${profile.task.mainQuestStyle}；去重=${profile.task.sideQuestDedupeKeys.join('、')}；奖励发放=${profile.task.rewardDistributor}；可视化=${profile.task.rewardVisualizationTemplate}`,
-    `NPC系统：身份池=${profile.npc.defaultIdentityPool.join('、')}；关系=${profile.npc.relationTemplates.join('、')}；主要角色必填=${profile.npc.requiredMainCharacterFields.join('、')}；生图=${profile.npc.autoImageStyle}`,
+    `NPC系统：身份池=${profile.npc.defaultIdentityPool.join('、')}；关系=${profile.npc.relationTemplates.join('、')}；主要角色必填=${profile.npc.requiredMainCharacterFields.join('、')}；男女比例=${profile.npc.genderRatio}；生图=${profile.npc.autoImageStyle}`,
     `生图系统：服饰=${profile.image.characterClothingEra}；场景=${profile.image.sceneMaterials}；物品=${profile.image.itemRealismPrompt}；负面=${profile.image.negativePrompt}`,
     `开局系统：背景=${profile.opening.defaultBackgrounds.join('、')}；天赋=${profile.opening.defaultTalents.join('、')}；切入=${profile.opening.cutInTemplates.join('、')}；初始任务=${profile.opening.initialQuestTemplates.join('、')}`,
     `校验系统：禁词=${profile.validation.bannedWords.join('、')}；冲突检测=${profile.validation.conflictChecks.join('、')}；迁移清理=${profile.validation.migrationCleanupRules.join('、')}`

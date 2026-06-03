@@ -232,7 +232,7 @@ export const 执行世界生成工作流 = async (
             : [...promptPool, next];
     };
 
-    const openingStreaming = true;
+    const openingStreaming = _openingStreaming !== false;
     const normalizedGameConfig = 规范化游戏设置(deps.gameConfig);
     const 启用修炼体系 = normalizedGameConfig.启用修炼体系 !== false;
     const currentApi = 获取主剧情接口配置(deps.apiConfig);

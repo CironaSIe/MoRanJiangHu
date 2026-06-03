@@ -68,4 +68,14 @@ describe('NPC death judgement guard', () => {
             logs: [{ sender: '旁白', text: '韩小霜被你一掌打到陨落，肉身灰飞烟灭，神魂俱灭。' }]
         } as unknown as GameResponse)).toEqual([]);
     });
+
+    it('accepts explicit corpse wording and lets local fallback fill hp zero', () => {
+        const commands: TavernCommand[] = [
+            { action: 'set', key: '社交[0].生死状态', value: '死亡' }
+        ];
+
+        expect(检测NPC死亡判定风险命令(commands, social, {
+            logs: [{ sender: '旁白', text: '韩小霜一分为二的尸体砸落在地，断口焦黑，再无生机。' }]
+        } as unknown as GameResponse)).toEqual([]);
+    });
 });

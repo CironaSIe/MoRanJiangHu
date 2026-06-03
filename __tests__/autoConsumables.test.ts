@@ -394,4 +394,27 @@ describe('背包堆叠与负重兜底', () => {
         expect(normalized.物品列表.filter((item: any) => item.名称 === '粗糙绷带')).toHaveLength(1);
         expect(normalized.物品列表.find((item: any) => item.名称 === '粗糙绷带')?.堆叠数量).toBe(2);
     });
+
+    it('会把无限流支线剧情凭证视为可堆叠资源而不是唯一任务道具', () => {
+        const role: any = {
+            姓名: '测试',
+            当前负重: 0,
+            最大负重: 250,
+            物品列表: [
+                { ID: 'side_d_1', 名称: 'D级支线剧情', 类型: '任务道具', 描述: '主神奖励凭证。', 重量: 0, 堆叠数量: 1, 是否可堆叠: true },
+                { ID: 'side_d_2', 名称: 'D级支线剧情', 类型: '任务道具', 描述: '主神奖励凭证。', 重量: 0, 堆叠数量: 2, 是否可堆叠: true },
+                { ID: 'side_c_1', 名称: 'C级支线剧情卷轴', 类型: '消耗品', 描述: '主神高级兑换资源。', 重量: 0, 堆叠数量: 1, 是否可堆叠: true },
+                { ID: 'used_zero', 名称: '任务磁卡', 类型: '任务道具', 描述: '已提交的任务道具。', 重量: 0, 堆叠数量: 0, 是否可堆叠: false }
+            ],
+            已补齐系统丹药预设: true
+        };
+
+        const normalized = 规范化角色物品容器映射(role, { 题材模式: '无限流' });
+
+        expect(normalized.物品列表.filter((item: any) => item.名称 === 'D级支线剧情')).toHaveLength(1);
+        expect(normalized.物品列表.find((item: any) => item.名称 === 'D级支线剧情')?.堆叠数量).toBe(3);
+        expect(normalized.物品列表.find((item: any) => item.名称 === 'D级支线剧情')?.是否可堆叠).toBe(true);
+        expect(normalized.物品列表.find((item: any) => item.名称 === 'C级支线剧情卷轴')?.是否可堆叠).toBe(true);
+        expect(normalized.物品列表.some((item: any) => item.名称 === '任务磁卡')).toBe(false);
+    });
 });

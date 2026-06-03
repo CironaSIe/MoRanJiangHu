@@ -237,8 +237,8 @@ const 提取对白发送者集合 = (response: GameResponse, playerName?: string
 const 现场缺席事实正则 = /(不在(?:场|此处|现场|身边)|未在(?:场|此处|现场|身边)|离场|离开|退下|退走|散去|走远|远在|留守|待命|守在|守于|驻守|回到|返回|躲在|藏在|被押走|被带走|被拖走|逃走|逃离|不见踪影)/;
 const 现场确认事实正则 = /(在场|在此|现场|身侧|身旁|旁边|面前|眼前|跟前|近前|席间|堂中|厅中|屋内|房内|院中|站在|立在|坐在|跪在|伏在|靠在|走进|进入|赶来|来到|现身|出声|开口|说道|问道|答道|回应|看着|望向|盯着|拔刀|出手|跪下|行礼|沉默|皱眉|冷笑|微笑)/;
 const 同行确认事实正则 = /(同行|随行|随队|随我|随主角|跟随|跟着|一同|一起|同去|同往|同来|带着|领着|率领|听令|听命|出列|列队|编队|队伍|队友|同伴|伴随|护送|压阵|随身|并肩|并行)/;
+const 同行强确认事实正则 = /(同行|随行|随队|随我|随主角|跟随|跟着|同去|同往|同来|带着|领着|护送|压阵|随身|并肩|并行|队友|同伴)/;
 const 同行离队事实正则 = /(离队|退队|不再同行|不再随行|分道扬镳|各自行动|分头行动|留守|待命|退下|退走|离开|散去|走远|留在|驻守)/;
-const 同行群体事实正则 = /((?:约|近|将近|足有|共有|共)?[一二三四五六七八九十百千万两\d]{1,5}(?:余|多|来)?(?:个|名|位|队|群|拨|批)?[^。！？\n\r]{0,16}(?:同门|师弟|师兄|师妹|弟子|门人|护卫|随从|部众|精锐|人手|队员|帮众|兵卒|亲卫|随员|船工|水手|镖师))/;
 const 敌对或阻拦事实正则 = /(敌方|敌人|敌军|敌阵|敌手|对手|贼人|杀手|守卫|护院|拦路|拦住|阻拦|围住|围攻|袭击|攻击|交战|厮杀|追杀|堵截|拔刀相向|兵刃相向)/;
 const 随行者占位名正则 = /^随行者([1-9]\d*)$/;
 
@@ -317,107 +317,6 @@ const 同步当前视角在场状态 = (
     });
 };
 
-const 中文数字值: Record<string, number> = {
-    零: 0,
-    一: 1,
-    二: 2,
-    两: 2,
-    三: 3,
-    四: 4,
-    五: 5,
-    六: 6,
-    七: 7,
-    八: 8,
-    九: 9
-};
-
-const 解析中文整数 = (value: string): number => {
-    const text = (value || '').trim();
-    if (!text) return NaN;
-    const digit = Number(text);
-    if (Number.isFinite(digit)) return digit;
-    if (!text.includes('十')) return 中文数字值[text] ?? NaN;
-    const [left, right] = text.split('十');
-    const tens = left ? (中文数字值[left] ?? NaN) : 1;
-    const ones = right ? (中文数字值[right] ?? NaN) : 0;
-    if (!Number.isFinite(tens) || !Number.isFinite(ones)) return NaN;
-    return tens * 10 + ones;
-};
-
-const 提取人数 = (text: string): number => {
-    const match = (text || '').match(/(?:约|近|将近|足有|共有|共)?([一二三四五六七八九十两\d]{1,5})(?:余|多|来)?(?:个|名|位|人|队员|同门|弟子|护卫|随从|精锐|水手|镖师|兵卒|亲卫|随员)?/);
-    const value = match ? 解析中文整数(match[1]) : NaN;
-    if (!Number.isFinite(value)) return 0;
-    return Math.max(0, Math.min(80, Math.floor(value)));
-};
-
-const 构建随行者ID = (groupLabel: string, index: number): string => `npc_companion_${稳定哈希文本(groupLabel)}_${index}`;
-
-const 提取同行群体信息 = (responseFactText: string): { 名称: string; 人数: number } | null => {
-    const sentences = 拆分事实句(responseFactText);
-    const matchedSentence = sentences.find((sentence) => (
-        同行确认事实正则.test(sentence)
-        && !同行离队事实正则.test(sentence)
-        && !敌对或阻拦事实正则.test(sentence)
-        && 同行群体事实正则.test(sentence)
-    ));
-    const raw = matchedSentence?.match(同行群体事实正则)?.[1]?.trim() || '';
-    if (!raw) return null;
-    const 名称 = raw.replace(/^(?:约|近|将近|足有|共有|共)/, '').replace(/\s+/g, '');
-    const 人数 = 提取人数(raw);
-    return 人数 > 0 ? { 名称, 人数 } : null;
-};
-
-const 是否随行群体条目 = (npc: any): boolean => {
-    const name = 读取NPC名称(npc);
-    const identity = typeof npc?.身份 === 'string' ? npc.身份.trim() : '';
-    return identity === '随行队伍' || (npc?.是否队友 === true && 提取人数(name) > 1 && /同门|弟子|护卫|随从|精锐|队伍|队员|水手|镖师|兵卒|亲卫|随员|难度/.test(name));
-};
-
-const 创建随行者条目 = (groupLabel: string, index: number, template?: any): any => ({
-    ...(template && typeof template === 'object' ? template : {}),
-    id: 构建随行者ID(groupLabel, index),
-    姓名: `随行者${index}`,
-    性别: template?.性别 || '未知',
-    年龄: template?.年龄,
-    境界: template?.境界 || '未知境界',
-    身份: template?.身份 && template.身份 !== '随行队伍' ? template.身份 : '随行者',
-    是否在场: true,
-    是否队友: true,
-    是否主要角色: false,
-    好感度: Number.isFinite(Number(template?.好感度)) ? Number(template.好感度) : 0,
-    关系状态: '同行',
-    简介: `本回合剧情明确随主角行动的第 ${index} 名成员，来源：${groupLabel}。`,
-    记忆: Array.isArray(template?.记忆) ? template.记忆 : []
-});
-
-const 拆分随行群体条目 = (list: any[]): any[] => {
-    const result: any[] = [];
-    const existingNames = new Set(
-        (Array.isArray(list) ? list : [])
-            .map((npc: any) => 读取NPC名称(npc))
-            .filter((name: string) => name && !随行者占位名正则.test(name))
-    );
-    (Array.isArray(list) ? list : []).forEach((npc: any) => {
-        if (!npc || typeof npc !== 'object' || !是否随行群体条目(npc)) {
-            result.push(npc);
-            return;
-        }
-        const groupLabel = 读取NPC名称(npc) || npc?.简介 || '随行队伍';
-        const count = 提取人数(groupLabel);
-        if (count <= 1) {
-            result.push(npc);
-            return;
-        }
-        for (let i = 1; i <= count; i += 1) {
-            const placeholderName = `随行者${i}`;
-            if (existingNames.has(placeholderName)) continue;
-            result.push(创建随行者条目(groupLabel, i, npc));
-        }
-    });
-    return result;
-};
-
 const 提取响应实名 = (response: GameResponse, playerName?: string): string[] => {
     const names: string[] = [];
     const seen = new Set<string>();
@@ -438,7 +337,7 @@ const 是否明确同行实名 = (name: string, responseFactText: string): boole
     if (!key) return false;
     return 拆分事实句(responseFactText).some((sentence) => (
         sentence.includes(name)
-        && 同行确认事实正则.test(sentence)
+        && 同行强确认事实正则.test(sentence)
         && !同行离队事实正则.test(sentence)
         && !敌对或阻拦事实正则.test(sentence)
     ));
@@ -450,6 +349,7 @@ const 用实名替换随行占位 = (response: GameResponse, list: any[], player
     const responseFactText = 提取响应事实文本(response);
     let next = [...list];
     let changed = false;
+    const confirmedNames = names.filter((name) => 是否明确同行实名(name, responseFactText));
     names.forEach((name) => {
         if (!是否明确同行实名(name, responseFactText)) return;
         const nameKey = 归一化文本键(name);
@@ -482,6 +382,45 @@ const 用实名替换随行占位 = (response: GameResponse, list: any[], player
         }
         changed = true;
     });
+    const confirmedNamedKeys = new Set(
+        names
+            .filter((name) => 是否明确同行实名(name, responseFactText))
+            .map(归一化文本键)
+            .filter(Boolean)
+    );
+    confirmedNamedKeys.forEach((key) => {
+        const hasNamedCompanion = next.some((npc: any) => (
+            npc?.是否队友 === true
+            && 归一化文本键(读取NPC名称(npc)) === key
+            && !随行者占位名正则.test(读取NPC名称(npc))
+        ));
+        if (!hasNamedCompanion) return;
+        const placeholderIndex = next.findIndex((npc: any) => (
+            npc?.是否队友 === true
+            && 随行者占位名正则.test(读取NPC名称(npc))
+        ));
+        if (placeholderIndex < 0) return;
+        next[placeholderIndex] = {
+            ...next[placeholderIndex],
+            是否队友: false,
+            是否在场: false,
+            关系状态: typeof next[placeholderIndex]?.关系状态 === 'string' && next[placeholderIndex].关系状态.trim()
+                ? next[placeholderIndex].关系状态
+                : '已由实名同行档案替代'
+        };
+        changed = true;
+    });
+    confirmedNames.forEach((name) => {
+        const namedCompanionExists = next.some((npc: any) => (
+            归一化文本键(读取NPC名称(npc)) === 归一化文本键(name)
+            && npc?.是否队友 === true
+        ));
+        if (!namedCompanionExists) return;
+        const placeholderIndex = next.findIndex((npc: any) => npc?.是否队友 === true && 随行者占位名正则.test(读取NPC名称(npc)));
+        if (placeholderIndex < 0) return;
+        next[placeholderIndex] = { ...next[placeholderIndex], 是否队友: false, 是否在场: false };
+        changed = true;
+    });
     return changed ? next : list;
 };
 
@@ -506,7 +445,7 @@ const 应用同行事实到队伍 = (
             changed = true;
             return { ...npc, 是否队友: false };
         }
-        if (!relatedSentences.some((sentence) => 同行确认事实正则.test(sentence))) return npc;
+        if (!relatedSentences.some((sentence) => 同行强确认事实正则.test(sentence))) return npc;
         if (npc.是否队友 === true && npc.是否在场 === true) return npc;
         changed = true;
         return {
@@ -519,19 +458,37 @@ const 应用同行事实到队伍 = (
         };
     });
 
-    const expandedExisting = 拆分随行群体条目(nextList);
-    const groupInfo = 提取同行群体信息(responseFactText);
-    const withGroup = (() => {
-        if (!groupInfo) return expandedExisting;
-        const existingCompanionCount = expandedExisting.filter((npc: any) => npc?.是否队友 === true).length;
-        if (existingCompanionCount >= groupInfo.人数) return expandedExisting;
-        const additions: any[] = [];
-        for (let i = existingCompanionCount + 1; i <= groupInfo.人数; i += 1) {
-            additions.push(创建随行者条目(groupInfo.名称, i));
+    let renamed = 用实名替换随行占位(response, nextList, playerName);
+    const namedCompanionCount = renamed.filter((npc: any) => {
+        const name = 读取NPC名称(npc);
+        return npc?.是否队友 === true
+            && name
+            && !随行者占位名正则.test(name)
+            && 归一化文本键(name) !== 归一化文本键(playerName)
+            && responseFactText.includes(name);
+    }).length;
+    if (namedCompanionCount > 0) {
+        let remainingToConsume = namedCompanionCount;
+        const compacted = renamed.map((npc: any) => {
+            if (remainingToConsume <= 0) return npc;
+            if (npc?.是否队友 === true && 随行者占位名正则.test(读取NPC名称(npc))) {
+                remainingToConsume -= 1;
+                return {
+                    ...npc,
+                    是否队友: false,
+                    是否在场: false,
+                    关系状态: typeof npc?.关系状态 === 'string' && npc.关系状态.trim()
+                        ? npc.关系状态
+                        : '已由实名同行档案替代'
+                };
+            }
+            return npc;
+        });
+        if (remainingToConsume < namedCompanionCount) {
+            renamed = compacted;
+            changed = true;
         }
-        return [...expandedExisting, ...additions];
-    })();
-    const renamed = 用实名替换随行占位(response, withGroup, playerName);
+    }
     return changed || renamed !== socialList ? renamed : socialList;
 };
 
@@ -939,7 +896,7 @@ const 应用女性关系目标主要角色兜底 = (
     return changed ? nextList : socialList;
 };
 
-const 死亡事实肯定正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|陨落|灰飞烟灭|魂飞魄散|形神俱灭|神魂俱灭|化为飞灰|尸骨无存|当场(?:死|亡|身亡|毙命)|再无(?:气息|生机)|命丧|头颅落地|心脉(?:断绝|俱断)|被[^。！？\n\r]{0,24}(?:杀死|轰杀|打到陨落|打成飞灰|碾碎|湮灭)|杀死(?:了)?)/;
+const 死亡事实肯定正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|陨落|灰飞烟灭|魂飞魄散|形神俱灭|神魂俱灭|化为飞灰|尸骨无存|尸体|遗体|残尸|当场(?:死|亡|身亡|毙命)|再无(?:气息|生机)|命丧|头颅落地|心脉(?:断绝|俱断)|被[^。！？\n\r]{0,24}(?:杀死|轰杀|打到陨落|打成飞灰|碾碎|湮灭)|杀死(?:了)?|一分为二|切成两截|断成两截)/;
 const 死亡事实否定正则 = /(未死|没死|没有死|并未死|尚未死|不曾死|差点|险些|几乎|差一点|差些|昏死|假死|装死|濒死|垂死|重伤|保住(?:了)?性命|留有一线生机|逃过一劫|要死了|爽死了|舒服死了|羞死了|吓死了|笑死了|累死了|疼死了)/;
 const 死亡状态正则 = /(死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|已故|陨落|灰飞烟灭|魂飞魄散|形神俱灭|神魂俱灭|化为飞灰|尸骨无存)/;
 
@@ -957,9 +914,9 @@ const 提取死亡事实相关NPC索引 = (deathSentence: string, socialList: an
     const scoreCandidate = (item: { npc: any; index: number; names: string[] }) => {
         const nameScores = item.names.map((name) => {
             const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const 被动死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,12}被[^。！？\\n\\r]{0,36}(?:杀死|斩杀|击杀|害死|毙命|贯穿|斩落|刺死|砍死|轰杀|打到陨落|打成飞灰|碾碎|湮灭)`).test(deathSentence);
-            const 主体死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,24}(?:死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|陨落|灰飞烟灭|魂飞魄散|形神俱灭|神魂俱灭|化为飞灰|尸骨无存|再无(?:气息|生机)|心脉(?:断绝|俱断))`).test(deathSentence);
-            const 宾语死亡 = new RegExp(`(?:杀死|斩杀|击杀|害死|刺死|砍死|轰杀|打到陨落|打成飞灰|碾碎|湮灭)(?:了)?[^。！？\\n\\r]{0,12}${escapedName}`).test(deathSentence);
+            const 被动死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,20}(?:被[^。！？\\n\\r]{0,36})?(?:杀死|斩杀|击杀|害死|毙命|贯穿|斩落|刺死|砍死|轰杀|打到陨落|打成飞灰|碾碎|湮灭|切成两截|断成两截|一分为二)`).test(deathSentence);
+            const 主体死亡 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,36}(?:死亡|已死|身亡|阵亡|战死|气绝|断气|毙命|殒命|咽气|陨落|灰飞烟灭|魂飞魄散|形神俱灭|神魂俱灭|化为飞灰|尸骨无存|尸体|遗体|残尸|再无(?:气息|生机)|心脉(?:断绝|俱断)|一分为二|切成两截|断成两截)`).test(deathSentence);
+            const 宾语死亡 = new RegExp(`(?:杀死|斩杀|击杀|害死|刺死|砍死|轰杀|打到陨落|打成飞灰|碾碎|湮灭|切成两截|断成两截|一分为二)(?:了)?[^。！？\\n\\r]{0,12}${escapedName}`).test(deathSentence);
             const 疑似施害者 = new RegExp(`${escapedName}[^。！？\\n\\r]{0,12}(?:杀死|斩杀|击杀|害死|刺死|砍死|轰杀|打到陨落|打成飞灰|碾碎|湮灭)`).test(deathSentence);
             return {
                 name,

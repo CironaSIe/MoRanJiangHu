@@ -123,7 +123,8 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '主要角色必填字段', path: ['npc', 'requiredMainCharacterFields'], type: 'list' },
             { label: '性癖兜底规则', path: ['npc', 'sexualityFallback'], type: 'textarea' },
             { label: '敏感点兜底规则', path: ['npc', 'sensitivityFallback'], type: 'textarea' },
-            { label: 'NPC 自动生图风格', path: ['npc', 'autoImageStyle'], type: 'textarea' }
+            { label: 'NPC 自动生图风格', path: ['npc', 'autoImageStyle'], type: 'textarea' },
+            { label: 'NPC 男女比例（男:女）', path: ['npc', 'genderRatio'], type: 'text' }
         ]
     },
     {

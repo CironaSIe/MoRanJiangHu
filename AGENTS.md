@@ -94,6 +94,7 @@
 - Commit only safe templates such as `.env.production.example` and `.dev.vars.example`.
 - Frontend build-time variables use the `VITE_` prefix and can be embedded into built assets, so only put public client IDs or public API base URLs there.
 - Cloudflare runtime secrets should be set with `npm run cf:secrets:bulk -- .env.production` or individual `wrangler secret put ...` commands.
+- Whenever environment variables are added, removed, or changed, refresh the local `.env.production`, re-encrypt it, and resync the encrypted bundle to object storage.
 - `wrangler.jsonc` should contain bindings and non-sensitive vars such as R2 bindings, key prefixes, static asset bindings, and public repository defaults; do not put runtime secrets in `wrangler.jsonc`.
 - Current required Cloudflare secrets include `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_NATIVE_CLIENT_ID`, `GITHUB_NATIVE_CLIENT_SECRET`, `FANDOM_PRESET_GITHUB_TOKEN`, and `IMAGE_HOST_TOKEN`.
 - Current public frontend build variables include `VITE_GITHUB_CLIENT_ID`, `VITE_GITHUB_NATIVE_CLIENT_ID`, and `VITE_SYNC_API_BASE_URL`.

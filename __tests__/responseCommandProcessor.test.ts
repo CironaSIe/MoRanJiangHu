@@ -234,7 +234,7 @@ describe('responseCommandProcessor team companion fallback', () => {
         expect(result.社交.find((npc: any) => npc.姓名 === '李四')?.是否在场).toBe(true);
     });
 
-    it('expands explicitly accompanying unnamed disciples into individual teammates', () => {
+    it('does not expand unnamed accompanying groups into long-term teammates', () => {
         const state = 构建基础状态();
 
         const result = 执行响应命令处理({
@@ -245,9 +245,8 @@ describe('responseCommandProcessor team companion fallback', () => {
         } as any, state, deps, undefined, { applyState: false });
 
         const companions = result.社交.filter((npc: any) => npc.是否队友 === true);
-        expect(companions).toHaveLength(10);
-        expect(companions.every((npc: any) => /^随行者\d+$/u.test(npc.姓名))).toBe(true);
-        expect(result.社交.some((npc: any) => npc.身份 === '随行队伍')).toBe(false);
+        expect(companions).toHaveLength(0);
+        expect(result.社交.some((npc: any) => /^随行者\d+$/u.test(npc.姓名))).toBe(false);
     });
 
     it('renames an unnamed follower placeholder when the story later reveals their name', () => {
@@ -260,15 +259,15 @@ describe('responseCommandProcessor team companion fallback', () => {
         const result = 执行响应命令处理({
             logs: [
                 { sender: '顾清河', text: '我来开路。' },
-                { sender: '旁白', text: '顾清河仍随队听令，与另一名同门一同行动。' }
+                { sender: '旁白', text: '顾清河明确跟随杨培强同行，与另一名同门一同行动。' }
             ],
             tavern_commands: []
         } as any, state, deps, undefined, { applyState: false });
 
         const companions = result.社交.filter((npc: any) => npc.是否队友 === true);
-        expect(companions).toHaveLength(3);
+        expect(companions).toHaveLength(2);
         expect(companions.some((npc: any) => npc.姓名 === '顾清河')).toBe(true);
-        expect(companions.filter((npc: any) => /^随行者\d+$/.test(npc.姓名))).toHaveLength(2);
+        expect(companions.filter((npc: any) => /^随行者\d+$/.test(npc.姓名))).toHaveLength(1);
     });
 
     it('does not rename follower placeholders with hostile dialogue senders', () => {
@@ -288,6 +287,30 @@ describe('responseCommandProcessor team companion fallback', () => {
 
         expect(result.社交.find((npc: any) => npc.id === 'npc_enemy_guard')?.是否队友).toBe(false);
         expect(result.社交.find((npc: any) => npc.id === 'npc_companion_old_1')?.是否队友).toBe(true);
+    });
+});
+
+describe('responseCommandProcessor corpse death fallback', () => {
+    it('marks a clearly bisected corpse as dead without requiring model-provided hp zero first', () => {
+        const state = 构建基础状态();
+        state.环境 = { 时间: '1:01:02:12:00' } as any;
+        state.社交 = 规范化社交列表([
+            { id: 'npc_stans', 姓名: '史宾斯', 性别: '男', 当前血量: 42, 最大血量: 80, 状态: '重伤', 是否在场: true, 是否队友: false }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '史宾斯被一分为二的尸体重重地砸在玻璃地板上，切口焦黑，再无任何生机。' }
+            ],
+            tavern_commands: [
+                { action: 'set', key: '社交[0].生死状态', value: '死亡' }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交[0].当前血量).toBe(0);
+        expect(result.社交[0].状态).toBe('死亡');
+        expect(result.社交[0].是否在场).toBe(false);
+        expect(result.社交[0].死亡描述).toContain('一分为二');
     });
 });
 
