@@ -27,14 +27,14 @@ export const 构建题材模式提示词 = (openingConfig?: OpeningConfig | null
     ].join('\n');
 };
 
-export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null): string => {
+export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null, openingExtraRequirement?: string): string => {
     if (!openingConfig) return '';
     if (openingConfig.配置约束启用 === false) return '';
     const 关系侧重 = Array.isArray(openingConfig.关系侧重) && openingConfig.关系侧重.length > 0
         ? openingConfig.关系侧重.join('、')
         : '无';
     const 开局文案 = 获取题材开局配置文案(openingConfig.题材模式);
-    return [
+    const blocks = [
         '【本次开局配置约束】',
         构建题材模式提示词(openingConfig),
         `- 关系侧重：${关系侧重}。生成初始社交网时，应优先让人物结构与关系情绪落在这些方向上。`,
@@ -47,7 +47,15 @@ export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null
             ? '- 开局成员名录：本次明确不生成同门/同道/队友名录变量；社交人物必须按剧情证据自然落位。'
             : `- 开局成员名录：允许生成与题材匹配的初始成员，界面语义为“${开局文案.memberTitle}”。`,
         '- 若开局偏好与建档、世界观存在冲突，以建档硬约束和 world_prompt 为上位，但仍应尽量保留关系侧重与切入偏好的方向。'
-    ].join('\n');
+    ];
+    if (openingExtraRequirement) {
+        blocks.push(
+            '',
+            '【开局额外约束】',
+            openingExtraRequirement
+        );
+    }
+    return blocks.join('\n');
 };
 
 export const 构建世界观同人融合提示词 = (openingConfig?: OpeningConfig | null): string => {
