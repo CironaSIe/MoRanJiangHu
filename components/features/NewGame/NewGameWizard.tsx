@@ -1631,7 +1631,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             })
             : true;
         if (!ok) return;
-        onComplete(effectiveWorldConfig, charData, effectiveOpeningConfig, 'all', true, effectiveOpeningExtraRequirement.trim(), activeModuleExtraRules || undefined);
+        onComplete(effectiveWorldConfig, charData, effectiveOpeningConfig, 'all', true, effectiveOpeningExtraRequirement.trim(), undefined, activeModuleExtraRules || undefined);
     };
 
     if (loading) {

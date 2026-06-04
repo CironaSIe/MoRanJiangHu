@@ -89,7 +89,6 @@ type 会话生命周期依赖 = {
     setShowSettings: (value: boolean) => void;
     设置历史记录: (value: any) => void;
     设置最近开局配置: (value: 最近开局配置结构 | null) => void;
-    设置游戏设置: (value: any) => void;
     清空重Roll快照: () => void;
     推入重Roll快照: (snapshot: 回合快照结构) => void;
     重置自动存档状态: () => void;
