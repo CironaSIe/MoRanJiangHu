@@ -22,6 +22,7 @@ interface Props {
     onLearnSkill?: (npc: NPC结构, skill: any) => void;
     onRecruitToSect?: (npc: NPC结构) => void;
     onStealFromNpc?: (npc: NPC结构, target?: string) => void;
+    onRetryImage?: (npcId: string) => void;
     playerSect?: any;
 }
 
@@ -47,14 +48,16 @@ const 计算社交排序权重 = (npc: NPC结构): number => {
     return 2;
 };
 
-type 社交筛选键 = 'all' | 'major' | 'present' | 'female' | 'male';
+type 社交筛选键 = 'all' | 'major' | 'present' | 'female' | 'male' | 'femboy' | 'futa';
 
 const 移动社交筛选项: Array<{ key: 社交筛选键; label: string }> = [
     { key: 'all', label: '全部' },
     { key: 'major', label: '主要' },
     { key: 'present', label: '在场' },
     { key: 'female', label: '女性' },
-    { key: 'male', label: '男性' }
+    { key: 'male', label: '男性' },
+    { key: 'femboy', label: '男娘' },
+    { key: 'futa', label: '扶她' }
 ];
 
 const MobileSocial: React.FC<Props> = ({
@@ -135,7 +138,11 @@ const MobileSocial: React.FC<Props> = ({
                     case 'female':
                         return npc.性别 === '女';
                     case 'male':
-                        return npc.性别 === '男';
+                        return npc.性别 === '男' || npc.性别 === '男性';
+                    case 'femboy':
+                        return npc.性别 === '男娘' || (String((npc as any)?.性别 || '').includes('男娘'));
+                    case 'futa':
+                        return npc.性别 === '扶她' || (String((npc as any)?.性别 || '').includes('扶她'));
                     case 'all':
                     default:
                         return true;
@@ -917,6 +924,15 @@ const MobileSocial: React.FC<Props> = ({
                                                             <div className="absolute inset-x-0 bottom-0 bg-black/70 py-1 text-center text-[10px] tracking-[0.25em] text-gray-200">
                                                                 已故
                                                             </div>
+                                                        )}
+                                                        {onRetryImage && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => { e.stopPropagation(); onRetryImage(currentNPC.id); }}
+                                                                className="absolute top-1 right-1 text-[9px] px-1.5 py-0.5 rounded border border-wuxia-gold/30 bg-black/60 text-wuxia-gold/80 hover:bg-wuxia-gold/20 hover:text-wuxia-gold transition-all z-10"
+                                                            >
+                                                                重绘
+                                                            </button>
                                                         )}
                                                     </>
                                                 ) : (
