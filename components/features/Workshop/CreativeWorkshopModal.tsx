@@ -87,13 +87,7 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '奖励物品池', path: ['items', 'rewardItemPool'], type: 'list' },
             { label: '禁用物品关键词', path: ['items', 'bannedItemKeywords'], type: 'list' },
             { label: '专属物品类型', path: ['items', 'exclusiveItemTypes'], type: 'list' },
-            { label: '启用食物', path: ['items', 'resourceToggles', 'food'], type: 'bool' },
-            { label: '启用饮水', path: ['items', 'resourceToggles', 'water'], type: 'bool' },
-            { label: '启用弹药', path: ['items', 'resourceToggles', 'ammo'], type: 'bool' },
-            { label: '启用药品', path: ['items', 'resourceToggles', 'medicine'], type: 'bool' },
-            { label: '启用燃油', path: ['items', 'resourceToggles', 'fuel'], type: 'bool' },
-            { label: '启用电池', path: ['items', 'resourceToggles', 'batteries'], type: 'bool' },
-            { label: '启用灵石', path: ['items', 'resourceToggles', 'spiritStones'], type: 'bool' }
+            { label: '活跃资源计数器', path: ['items', 'activeResources'], type: 'list' }
         ]
     },
     {

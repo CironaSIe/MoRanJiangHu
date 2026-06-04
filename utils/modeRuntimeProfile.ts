@@ -220,7 +220,8 @@ const 物品默认值 = (mode: 题材模式类型) => {
             rewardItemPool: ['净水', '抗生素', '弹药', '燃油', '电池', '维修工具', '营地信用'],
             bannedItemKeywords: ['破境丹', '回气丹', '凝元丹', '辟谷丹', '灵石', '法宝', '飞剑'],
             exclusiveItemTypes: ['食物', '饮水', '药品', '弹药', '工具', '燃油', '情报'],
-            resourceToggles: { food: true, water: true, ammo: true, medicine: true, fuel: true, batteries: true, spiritStones: false }
+            resourceToggles: { food: true, water: true, ammo: true, medicine: true, fuel: true, batteries: true, spiritStones: false },
+            activeResources: ['饱腹', '口渴']
         };
     }
     if (mode === '无限流') {
@@ -229,7 +230,8 @@ const 物品默认值 = (mode: 题材模式类型) => {
             rewardItemPool: ['奖励点', 'D级支线剧情', '急救包', '弹药', '防护服', '血统强化权限', '恐怖片情报'],
             bannedItemKeywords: ['银子', '铜钱', '金元宝', '门派贡献', '营地信用', '普通工资', '人民币结算'],
             exclusiveItemTypes: ['科技装备', '魔法物品', '血统强化', '技能卷轴', '补给', '情报', '支线凭证'],
-            resourceToggles: { food: true, water: true, ammo: true, medicine: true, fuel: true, batteries: true, spiritStones: true }
+            resourceToggles: { food: true, water: true, ammo: true, medicine: true, fuel: true, batteries: true, spiritStones: true },
+            activeResources: ['饱腹', '口渴', '灵石']
         };
     }
     if (mode === '现代都市') {
@@ -238,7 +240,8 @@ const 物品默认值 = (mode: 题材模式类型) => {
             rewardItemPool: ['现金', '转账', '合同资源', '客户线索', '技能培训', '人情债'],
             bannedItemKeywords: ['破境丹', '回气丹', '凝元丹', '辟谷丹', '灵石', '宗门法宝'],
             exclusiveItemTypes: ['电子设备', '证件', '合同', '工具', '药品', '生活用品'],
-            resourceToggles: { food: false, water: false, ammo: false, medicine: true, fuel: false, batteries: true, spiritStones: false }
+            resourceToggles: { food: false, water: false, ammo: false, medicine: true, fuel: false, batteries: true, spiritStones: false },
+            activeResources: []
         };
     }
     if (mode === '西方奇幻') {
@@ -247,7 +250,8 @@ const 物品默认值 = (mode: 题材模式类型) => {
             rewardItemPool: ['金币', '魔晶', '治疗药水', '法术卷轴', '附魔材料', '公会声望'],
             bannedItemKeywords: ['破境丹', '回气丹', '凝元丹', '辟谷丹', '灵石', '宗门法宝', '飞剑', '现代手机', '银行卡'],
             exclusiveItemTypes: ['武器', '防具', '药水', '卷轴', '魔晶', '附魔材料', '任务道具'],
-            resourceToggles: { food: false, water: false, ammo: false, medicine: true, fuel: false, batteries: false, spiritStones: false }
+            resourceToggles: { food: false, water: false, ammo: false, medicine: true, fuel: false, batteries: false, spiritStones: false },
+            activeResources: []
         };
     }
     const profile = 获取题材模式配置(mode);
@@ -270,7 +274,8 @@ const 物品默认值 = (mode: 题材模式类型) => {
             fuel: profile.group === 'urban_xianxia',
             batteries: profile.group === 'urban_xianxia',
             spiritStones: profile.group === 'xianxia' || profile.group === 'urban_xianxia'
-        }
+        },
+        activeResources: profile.group === 'xianxia' || profile.group === 'urban_xianxia' ? ['灵石'] : []
     };
 };
 
@@ -393,6 +398,13 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
     const baseMode = 规范化题材模式(raw?.identity?.baseMode || fallback.identity.baseMode);
     const official = 构建官方模式运行时配置基础(baseMode);
     const resource = raw?.items?.resourceToggles || {};
+    const 旧资源转列表 = (r: Record<string, boolean>): string[] => {
+        const list: string[] = [];
+        if (r.food) list.push('饱腹');
+        if (r.water) list.push('口渴');
+        if (r.spiritStones) list.push('灵石');
+        return list;
+    };
     return {
         identity: {
             modeId: 文本(raw?.identity?.modeId, official.identity.modeId),
@@ -445,7 +457,12 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
                 fuel: 布尔(resource.fuel, official.items.resourceToggles.fuel),
                 batteries: 布尔(resource.batteries, official.items.resourceToggles.batteries),
                 spiritStones: 布尔(resource.spiritStones, official.items.resourceToggles.spiritStones)
-            }
+            },
+            activeResources: 拆分模式配置短语(raw?.items?.activeResources).length
+                ? 拆分模式配置短语(raw.items.activeResources)
+                : raw?.items?.resourceToggles
+                    ? 旧资源转列表(raw.items.resourceToggles)
+                    : official.items.activeResources
         },
         map: {
             layerNames: 拆分模式配置短语(raw?.map?.layerNames).length ? 拆分模式配置短语(raw.map.layerNames) : official.map.layerNames,
@@ -603,7 +620,7 @@ export const 渲染模式运行时配置世界书内容 = (profile: ModeRuntimeP
     `经济系统：市场=${profile.economy.marketName}；行为=${profile.economy.marketVerb}；货币=${profile.economy.primaryCurrency}；换算=${profile.economy.exchangeRules}`,
     `组织系统：组织=${profile.organization.organizationName}；成员=${profile.organization.memberName}；贡献=${profile.organization.contributionName}；等级=${profile.organization.rankNames.join('、')}`,
     `能力系统：主轴=${profile.ability.primaryAxis}；阶段=${profile.ability.progressionNames.join('、')}；技艺=${profile.ability.skillPool.join('、')}；结算=${profile.ability.combatResolution}`,
-    `物品系统：初始池=${profile.items.initialItemPool.join('、')}；奖励池=${profile.items.rewardItemPool.join('、')}；禁用=${profile.items.bannedItemKeywords.join('、')}`,
+    `物品系统：初始池=${profile.items.initialItemPool.join('、')}；奖励池=${profile.items.rewardItemPool.join('、')}；禁用=${profile.items.bannedItemKeywords.join('、')}；资源计数器=${profile.items.activeResources.join('、') || '无'}`,
     `地图系统：地点=${profile.map.locationTypes.join('、')}；POI=${profile.map.poiTypes.join('、')}；禁用地点=${profile.map.bannedLocationKeywords.join('、')}`,
     `任务系统：主线=${profile.task.mainQuestStyle}；去重=${profile.task.sideQuestDedupeKeys.join('、')}；奖励发放=${profile.task.rewardDistributor}；可视化=${profile.task.rewardVisualizationTemplate}`,
     `NPC系统：身份池=${profile.npc.defaultIdentityPool.join('、')}；关系=${profile.npc.relationTemplates.join('、')}；主要角色必填=${profile.npc.requiredMainCharacterFields.join('、')}；男女比例=${typeof profile.npc.genderRatio === 'string' ? profile.npc.genderRatio : `男${profile.npc.genderRatio.男}%:女${profile.npc.genderRatio.女}%:男娘${profile.npc.genderRatio.男娘}%:扶她${profile.npc.genderRatio.扶她}%`}；生图=${profile.npc.autoImageStyle}`,

@@ -595,6 +595,8 @@ export interface ModeRuntimeProfile {
             batteries: boolean;
             spiritStones: boolean;
         };
+        /** 可扩展的活跃资源计数器列表（替代 resourceToggles），仅含高度同质化资源 */
+        activeResources: string[];
     };
     map: {
         layerNames: string[];
