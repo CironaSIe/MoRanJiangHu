@@ -661,7 +661,7 @@ export const 执行变量模型校准工作流 = async (
 
     const deathIssues = 检测NPC死亡判定风险命令(dedupedCommands, params.baseState.社交, params.parsedResponse);
     if (deathIssues.length > 0) {
-        const message = `变量生成试图把 NPC 判定为死亡/已故，但证据不足：${deathIssues.join('；')}。死亡判定必须同时满足：当前血量归零、正文明确死亡、明确死因；否则只能写重伤、濒死、失踪或状态未知。请重新生成变量命令。`;
+        const message = `变量生成试图把 NPC 判定为死亡/已故，但证据不足：${deathIssues.join('；')}。死亡判定必须同时写入：当前血量归零、死亡状态、死亡时间、死亡描述；否则只能写重伤、濒死、失踪或状态未知。请重新生成变量命令。`;
         const error = new Error(message);
         (error as any).parseDetail = message;
         throw error;

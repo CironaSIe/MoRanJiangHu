@@ -22,6 +22,8 @@ import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
 import { buildWorldMapLayersFromDraft } from '../../utils/newGameDiy';
 import { 构建默认技艺 } from '../../utils/skillDefaults';
 import { 获取题材模式配置 } from '../../utils/topicModeProfiles';
+import { 获取境界层级 } from '../../utils/realmConfig';
+import { 获取当前境界配置 } from './stateTransforms';
 
 export type 开场命令基态 = {
     角色: 角色数据结构;
@@ -927,21 +929,22 @@ const 创建默认同门名录 = (sectName: string, openingConfig?: OpeningConfi
                 : isFantasy
                     ? 按种子取项(['委托登记', '营地补给', '遗迹调查', '魔物警戒', '药剂整理', '路线护送'], seed, index)
                 : 按种子取项(['外务传令', '照看新弟子', '巡守山门', '整理典籍', '采办物资', '维持门规'], seed, index);
-        return {
-            id: `sect_member_opening_${生成稳定哈希(`${sectName}|${name}|${index}`).toString(36)}`,
-            姓名: name,
-            性别: 按性别比例取性别(genderRatio, seed, index),
-            年龄: identity.includes('执事') || identity.includes('掌事') ? 34 + (seed + index) % 18 : 16 + (seed + index) % 12,
-            境界: isApocalypse
-                ? 按种子取项(['普通幸存者', '老练幸存者', '一线搜救者', '营地骨干'], seed, index)
-                : isModern
-                    ? 按种子取项(['普通人', '熟练从业者', '项目骨干', '现实关系核心'], seed, index)
-                    : isFantasy
-                        ? 按种子取项(['见习冒险者', '初阶职业者', '公会骨干', '边境老手'], seed, index)
-                    : 是仙侠宗门题材(openingConfig)
-                        ? 按种子取项(['炼气中期', '炼气后期', '筑基初期', '炼气初期'], seed, index)
-                        : 按种子取项(['锻体境', '开脉境', '凝气境', '内息小成'], seed, index),
-            身份: identity,
+    const realmCfg = 获取当前境界配置();
+    const 取境界种子项 = (种子偏移: number) => {
+        const levels = realmCfg?.levelNames;
+        if (levels && levels.length >= 4) {
+            const indices = [0, Math.floor(levels.length * 0.15), Math.floor(levels.length * 0.3), Math.floor(levels.length * 0.05)];
+            return 按种子取项(indices.map(i => levels[Math.min(i, levels.length - 1)]), seed, 种子偏移);
+        }
+        return '初境';
+    };
+    return {
+        id: `sect_member_opening_${生成稳定哈希(`${sectName}|${name}|${index}`).toString(36)}`,
+        姓名: name,
+        性别: 按性别比例取性别(genderRatio, seed, index),
+        年龄: identity.includes('执事') || identity.includes('掌事') ? 34 + (seed + index) % 18 : 16 + (seed + index) % 12,
+        境界: 取境界种子项(index),
+        身份: identity,
             简介: `${sectName}${identity}，负责${duty}。`
         };
     });
@@ -1464,48 +1467,7 @@ export const 创建开场空白战斗 = (): 战斗状态结构 => ({
 
 const 读取敌方境界阶位 = (enemy: any): number => {
     const text = [enemy?.境界, enemy?.简介, enemy?.名字].map((value) => 取文本(value)).join(' ');
-    const compact = text.replace(/\s+/g, '');
-    const 四段境界名称 = ['开脉', '聚息', '归元', '御劲', '化罡'];
-    const realmBase: Record<string, number> = { 开脉: 0, 聚息: 4, 归元: 8, 御劲: 12, 化罡: 16 };
-    const stageTextMap: Record<string, number> = {
-        初期: 1,
-        前期: 1,
-        中期: 2,
-        后期: 3,
-        圆满: 4,
-        一: 1,
-        二: 2,
-        两: 2,
-        三: 3,
-        四: 4,
-        '1': 1,
-        '2': 2,
-        '3': 3,
-        '4': 4
-    };
-    const stageMatch = compact.match(new RegExp(`(${四段境界名称.join('|')})境?(初期|前期|中期|后期|圆满|第?[一二两三四1-4](?:重|层))`));
-    if (stageMatch) {
-        const stageRaw = stageMatch[2].replace(/^第/, '').replace(/[重层]$/, '');
-        return Math.max(1, (realmBase[stageMatch[1]] || 0) + (stageTextMap[stageRaw] || 1));
-    }
-    let rank = 1;
-    [
-        [/凡人|普通|未入道|无修为/, 1],
-        [/炼体|锻体|开脉|通脉/, 1],
-        [/聚息|聚气|凝气/, 5],
-        [/筑基|归元/, 9],
-        [/御劲|凝真|玄照/, 13],
-        [/化罡|金丹|玄丹/, 17],
-        [/通玄|元婴/, 21],
-        [/神照|化神/, 27],
-        [/返真|炼虚/, 33],
-        [/合体/, 38],
-        [/大乘|渡劫/, 24]
-    ].forEach(([pattern, value]) => {
-        if ((pattern as RegExp).test(text)) rank = Math.max(rank, value as number);
-    });
-    if (/后期|圆满|巅峰/.test(text)) rank += 1;
-    return Math.max(1, rank);
+    return 获取境界层级(text, 获取当前境界配置());
 };
 
 const 规范化敌方基础属性 = (rawEnemy: any) => {

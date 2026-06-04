@@ -170,6 +170,47 @@ describe('responseCommandProcessor dialogue social sync', () => {
         expect(result.社交.map((npc: any) => npc.姓名)).not.toContain('仲婴筝');
         expect(result.社交).toHaveLength(0);
     });
+
+    it('rejects panel names such as team when AI social update commands misclassify them as NPCs', () => {
+        const state = 构建基础状态();
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '系统更新队伍数据，当前没有新的实名同伴加入。' }
+            ],
+            tavern_commands: [
+                {
+                    action: 'push',
+                    key: '社交',
+                    value: {
+                        id: 'npc_team_panel_noise',
+                        姓名: '队伍',
+                        性别: '未知',
+                        身份: '队伍',
+                        是否在场: true,
+                        是否队友: true,
+                        关系状态: '队友',
+                        记忆: []
+                    }
+                },
+                {
+                    action: 'push',
+                    key: '社交',
+                    value: {
+                        id: 'npc_social_panel_noise',
+                        姓名: '社交数据',
+                        性别: '未知',
+                        身份: '社交',
+                        是否在场: true,
+                        记忆: []
+                    }
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交.map((npc: any) => npc.姓名)).not.toContain('队伍');
+        expect(result.社交.map((npc: any) => npc.姓名)).not.toContain('社交数据');
+        expect(result.社交).toHaveLength(0);
+    });
 });
 
 describe('responseCommandProcessor current scene presence sync', () => {
