@@ -1112,6 +1112,55 @@ const 净化社交生理命令 = (
     return null;
 };
 
+const 净化角色天赋背景命令 = (
+    cmd: any,
+    currentChar: any
+): any | null => {
+    const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '');
+    if (!normalizedKey.startsWith('gameState.角色.天赋列表')
+        && !normalizedKey.startsWith('gameState.角色.出身背景')) return cmd;
+    const action = (cmd?.action || 'set') as string;
+    if (action !== 'set') return cmd;
+    if (normalizedKey === 'gameState.角色.天赋列表') {
+        const existingList = Array.isArray(currentChar?.天赋列表) ? currentChar.天赋列表 : [];
+        const newValue = cmd?.value;
+        if (!Array.isArray(newValue)) return cmd;
+        const merged = newValue.map((item: any) => {
+            if (!item || typeof item !== 'object') return item;
+            const name = typeof item?.名称 === 'string' ? item.名称.trim() : '';
+            if (!name) return item;
+            const match = existingList.find((e: any) => e?.名称 === name);
+            if (!match) return item;
+            return {
+                ...match,
+                ...Object.fromEntries(
+                    Object.entries(item).filter(([k, v]) => {
+                        if (k === '名称') return true;
+                        return v !== undefined && v !== null && v !== '';
+                    })
+                )
+            };
+        });
+        return { ...cmd, value: merged };
+    }
+    if (normalizedKey === 'gameState.角色.出身背景') {
+        const existing = currentChar?.出身背景 || {};
+        const newValue = cmd?.value;
+        if (!newValue || typeof newValue !== 'object' || Array.isArray(newValue)) return cmd;
+        const merged = {
+            ...existing,
+            ...Object.fromEntries(
+                Object.entries(newValue).filter(([k, v]) => {
+                    if (k === '名称') return true;
+                    return v !== undefined && v !== null && v !== '';
+                })
+            )
+        };
+        return { ...cmd, value: merged };
+    }
+    return cmd;
+};
+
 const 规范化命令姓名 = (value: unknown): string => (
     typeof value === 'string'
         ? value.trim().replace(/[\s\u3000]+/g, '')
@@ -1203,7 +1252,10 @@ export const 执行响应命令处理 = (
                 净化社交姓名命令(
                     sanitizeInventoryCommand(
                         净化社交生理命令(
-                            净化角色装备命令(cmd, charBuffer?.装备 || {}, responseFactText),
+                            净化角色天赋背景命令(
+                                净化角色装备命令(cmd, charBuffer?.装备 || {}, responseFactText),
+                                charBuffer
+                            ),
                             responseFactText
                         ),
                         charBuffer,
