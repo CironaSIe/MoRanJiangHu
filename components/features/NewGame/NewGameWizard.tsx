@@ -282,7 +282,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         const 描述 = raw?.描述?.trim() || '';
         const 效果 = raw?.效果?.trim() || '';
         if (!名称 || !描述 || !效果) return null;
-        return { 名称, 描述, 效果 };
+        return { 名称, 描述, 效果, 初始物品: raw.初始物品 };
     };
     const 合并去重天赋 = (rawList: 天赋结构[]): 天赋结构[] => {
         const map = new Map<string, 天赋结构>();
@@ -1552,6 +1552,15 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         const effectiveOpeningConfig = preset
             ? 规范化可选开局配置(preset.openingConfig)
             : 构建有效开局配置();
+        if (selectedBackground?.初始物品?.length && effectiveOpeningConfig?.modeRuntimeProfile) {
+            effectiveOpeningConfig.modeRuntimeProfile = {
+                ...effectiveOpeningConfig.modeRuntimeProfile,
+                items: {
+                    ...effectiveOpeningConfig.modeRuntimeProfile.items,
+                    initialItemPool: selectedBackground.初始物品
+                }
+            };
+        }
         const effectiveName = preset?.character.姓名 ?? charName;
         const effectiveGender = preset?.character.性别 ?? charGender;
         const effectiveRoleReplaceRules = 获取同人角色替换规则列表(effectiveOpeningConfig, effectiveName);

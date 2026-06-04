@@ -149,6 +149,7 @@ import { countOpenAIChatMessagesTokens, countOpenAITextTokens } from '../utils/t
 import { 执行游戏后台重计算 } from '../utils/gameHeavyWorkerClient';
 import { 保存NPC变量本地备份, 自动备份NPC变量 } from '../services/npcVariableBackup';
 import { 合并保留既有NPC列表 } from '../utils/npcRetentionGuard';
+import { 设置默认技艺运行时配置 } from './useGame/stateTransforms';
 
 const 加载图片AI服务 = () => import('../services/ai/image/runtime');
 const 加载NPC生图工作流 = () => import('./useGame/npcImageWorkflow');
@@ -496,6 +497,12 @@ export const useGame = () => {
     useEffect(() => {
         imageManagerConfigRef.current = 规范化图片管理设置(imageManagerConfig);
     }, [imageManagerConfig]);
+
+    useEffect(() => {
+        if (开局配置) {
+            设置默认技艺运行时配置(开局配置.题材模式, 开局配置.modeRuntimeProfile);
+        }
+    }, [开局配置]);
 
     useEffect(() => {
         刷新NPC记忆总结队列(Array.isArray(社交) ? 社交 : [], { 静默: NPC记忆总结阶段 === 'processing' || NPC记忆总结阶段 === 'review' });

@@ -3856,8 +3856,9 @@ const App: React.FC = () => {
                                      onLearnSkill={handleLearnNpcSkill}
                                      onRecruitToSect={handleRecruitNpcToSect}
                                     onStealFromNpc={handleStealFromNpc}
-                                    playerSect={state.玩家门派}
-                                 />
+                                     onRetryImage={actions.retryNpcImageGeneration}
+                                     playerSect={state.玩家门派}
+                                  />
                             ) : (
                                 <SocialModal
                                     socialList={state.社交}

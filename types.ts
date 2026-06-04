@@ -99,4 +99,5 @@ export interface 背景结构 {
     名称: string;
     描述: string;
     效果: string;
+    初始物品?: string[];
 }
