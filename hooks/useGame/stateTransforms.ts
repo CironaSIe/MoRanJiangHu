@@ -47,6 +47,7 @@ export const 设置默认技艺运行时配置 = (mode: 题材模式类型, runt
     _当前题材模式 = mode;
     _当前运行时配置 = runtimeProfile ?? null;
 };
+
 const 规范化货币数值 = (value: unknown): number => {
     const n = Number(value);
     if (!Number.isFinite(n)) return 0;

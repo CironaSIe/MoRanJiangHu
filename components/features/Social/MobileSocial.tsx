@@ -75,6 +75,7 @@ const MobileSocial: React.FC<Props> = ({
     onLearnSkill,
     onRecruitToSect,
     onStealFromNpc,
+    onRetryImage,
     playerSect
 }) => {
     const sortedSocialList = React.useMemo(() => (
@@ -740,6 +741,15 @@ const MobileSocial: React.FC<Props> = ({
                                                 <div className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] tracking-widest text-gray-200">
                                                     已故
                                                 </div>
+                                            )}
+                                            {onRetryImage && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); onRetryImage(npc.id); }}
+                                                    className="absolute top-1 right-1 text-[9px] px-1.5 py-0.5 rounded border border-wuxia-gold/30 bg-black/60 text-wuxia-gold/80 hover:bg-wuxia-gold/20 hover:text-wuxia-gold transition-all z-10"
+                                                >
+                                                    重绘
+                                                </button>
                                             )}
                                         </div>
                                         {/* 名册卡右侧文案区：
