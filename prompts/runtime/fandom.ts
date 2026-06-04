@@ -508,6 +508,12 @@ const 构建境界文案规则提示词 = (): string => [
     '- 同段推进、破境、校准与展示时，优先参照【境界映射母板】、【终点文案】、【阶段推进表】与【大境突破表】，不要回写默认武侠术语。'
 ].join('\n');
 
+const 从境界配置构建映射母板 = (levelNames: string[]): 境界映射母板 => ({
+    strategy: '现体系回退',
+    mapping: levelNames.map((name, idx) => ({ level: idx + 1, label: name })),
+    source: 'default'
+});
+
 const 构建默认境界区块集合 = (schema: 境界映射母板): 境界区块集合 => {
     const 九阶命名与能力边界 = [默认累计境界九阶命名提示词, 默认累计境界能力边界提示词].join('\n');
     return {
@@ -744,18 +750,26 @@ export const 构建同人运行时提示词包 = (params: {
 }): 同人运行时提示词包 => {
     const fandom = 读取同人配置(params.openingConfig);
     const isXianxia = params.openingConfig?.题材模式 === '仙侠';
-    const realmSchema = isXianxia
-        ? 构建仙侠境界母板()
-        : 读取境界母板优先级({
-            realmPrompt: params.realmPrompt,
-            worldPrompt: params.worldPrompt
-        });
-    const realmBlocks = isXianxia
-        ? 构建仙侠境界区块集合()
-        : 读取境界区块优先级({
-            realmPrompt: params.realmPrompt,
-            worldPrompt: params.worldPrompt
-        }, realmSchema);
+    const workshopRealmConfig = params.openingConfig?.modeRuntimeProfile?.ability?.realmConfig;
+    const customLevelNames = workshopRealmConfig && Array.isArray(workshopRealmConfig.levelNames) && workshopRealmConfig.levelNames.length > 0
+        ? workshopRealmConfig.levelNames
+        : null;
+    const realmSchema: 境界映射母板 = customLevelNames
+        ? 从境界配置构建映射母板(customLevelNames)
+        : isXianxia
+            ? 构建仙侠境界母板()
+            : 读取境界母板优先级({
+                realmPrompt: params.realmPrompt,
+                worldPrompt: params.worldPrompt
+            });
+    const realmBlocks: 境界区块集合 = customLevelNames
+        ? 构建默认境界区块集合(realmSchema)
+        : isXianxia
+            ? 构建仙侠境界区块集合()
+            : 读取境界区块优先级({
+                realmPrompt: params.realmPrompt,
+                worldPrompt: params.worldPrompt
+            }, realmSchema);
     const realmPromptText = 构建境界区块文本(realmBlocks);
 
     if (!fandom) {

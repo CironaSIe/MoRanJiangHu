@@ -1,4 +1,6 @@
 import { 获取境界映射名称, 获取硬编码仙侠境界名称 } from '../prompts/runtime/fandom';
+import { 获取境界配置 } from './realmConfig';
+import type { 境界配置 } from './realmConfig';
 
 const 读取文本 = (value: unknown): string => (
     typeof value === 'string' ? value.trim() : ''
@@ -6,6 +8,36 @@ const 读取文本 = (value: unknown): string => (
 
 const 默认武侠境界词 = /开脉|聚息|归元|御劲|化罡|通玄|神照|返真|天人|未知|未明|未定|不详|境界值|境界层级/;
 const 仙侠境界词 = /凡人|未入道|炼气|筑基|金丹|元婴|化神|炼虚|合体/;
+
+const 获取境界前缀集合 = (cfg: 境界配置): Set<string> => {
+    const terms = new Set<string>();
+    (cfg.stageNames || []).forEach(s => terms.add(s));
+    cfg.levelNames.forEach(n => {
+        const stripped = n.replace(/[一二三四五六七八九十\d百千万零]+[层重阶]?$/, '')
+            .replace(/初期|中期|后期|圆满|巅峰|初阶|中阶|高阶$/, '');
+        if (stripped) terms.add(stripped);
+    });
+    ['未知', '未明', '未定', '不详', '境界值', '境界层级'].forEach(t => terms.add(t));
+    return terms;
+};
+
+const 动态境界正则缓存 = new Map<string, { known: RegExp; xianxia: RegExp }>();
+
+const 获取动态境界正则 = (options?: { openingConfig?: any }): { known: RegExp; xianxia: RegExp } => {
+    const mode = options?.openingConfig?.题材模式 as string || '';
+    const cached = 动态境界正则缓存.get(mode);
+    if (cached) return cached;
+    const cfg = 获取境界配置(mode || null, null);
+    const xianxiaCfg = 获取境界配置('仙侠', null);
+    const knownTerms = [...获取境界前缀集合(cfg)];
+    const xianxiaTerms = [...获取境界前缀集合(xianxiaCfg)];
+    const result = {
+        known: new RegExp(knownTerms.join('|'), 'i'),
+        xianxia: new RegExp(xianxiaTerms.join('|'), 'i')
+    };
+    动态境界正则缓存.set(mode, result);
+    return result;
+};
 
 const 提取境界映射 = (realmPrompt?: string): Array<{ level: number; label: string }> => {
     const text = 读取文本(realmPrompt);
@@ -54,10 +86,11 @@ export const 获取单位境界显示 = (
     const mappedRealm = 获取境界映射名称(unit?.境界层级, options);
     const hardcodedXianxia = 获取硬编码仙侠境界名称(unit?.境界层级);
     const shouldUseXianxia = options?.forceXianxia === true || 推断单位仙侠(unit);
-    if (shouldUseXianxia && hardcodedXianxia && (!raw || !仙侠境界词.test(raw) || 默认武侠境界词.test(raw))) {
+    const { known: currentKnownRegex, xianxia: currentXianxiaRegex } = 获取动态境界正则(options);
+    if (shouldUseXianxia && hardcodedXianxia && (!raw || !currentXianxiaRegex.test(raw) || currentKnownRegex.test(raw))) {
         return hardcodedXianxia;
     }
-    if (raw && !默认武侠境界词.test(raw)) return raw;
+    if (raw && !currentKnownRegex.test(raw)) return raw;
     return mappedRealm || raw || hardcodedXianxia || fallback;
 };
 

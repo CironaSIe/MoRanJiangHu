@@ -680,22 +680,22 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         setOpeningExtraRequirement(preset.openingExtraRequirement || '');
         if (!options?.保持当前步骤) setStep(1);
     };
-    const 当前性别模式: '男' | '女' | '自定义' = charGender.trim() === '男' || charGender.trim() === '女'
-        ? charGender.trim() as '男' | '女'
+    const 当前性别模式: '男' | '女' | '男娘' | '扶她' | '自定义' = ['男', '女', '男娘', '扶她'].includes(charGender.trim())
+        ? charGender.trim() as '男' | '女' | '男娘' | '扶她'
         : '自定义';
-    const 选择性别 = (next: '男' | '女' | '自定义') => {
+    const 选择性别 = (next: '男' | '女' | '男娘' | '扶她' | '自定义') => {
         if (next === '自定义') {
-            setCharGender(prev => (prev.trim() === '男' || prev.trim() === '女') ? '' : prev);
+            setCharGender(prev => (['男', '女', '男娘', '扶她'].includes(prev.trim()) ? '' : prev));
             return;
         }
         setCharGender(next);
     };
-    const 当前伙伴性别模式: '男' | '女' | '自定义' = partnerGender.trim() === '男' || partnerGender.trim() === '女'
-        ? partnerGender.trim() as '男' | '女'
+    const 当前伙伴性别模式: '男' | '女' | '男娘' | '扶她' | '自定义' = ['男', '女', '男娘', '扶她'].includes(partnerGender.trim())
+        ? partnerGender.trim() as '男' | '女' | '男娘' | '扶她'
         : '自定义';
-    const 选择伙伴性别 = (next: '男' | '女' | '自定义') => {
+    const 选择伙伴性别 = (next: '男' | '女' | '男娘' | '扶她' | '自定义') => {
         if (next === '自定义') {
-            setPartnerGender(prev => (prev.trim() === '男' || prev.trim() === '女') ? '' : prev);
+            setPartnerGender(prev => (['男', '女', '男娘', '扶她'].includes(prev.trim()) ? '' : prev));
             return;
         }
         setPartnerGender(next);
@@ -2319,10 +2319,12 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                         <div className="space-y-4">
                                              <div className="space-y-2">
                                                 <label className="text-sm text-wuxia-cyan font-bold">性别</label>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <button onClick={() => 选择性别('男')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '男' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男</button>
-                                                    <button onClick={() => 选择性别('女')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '女' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>女</button>
-                                                    <button onClick={() => 选择性别('自定义')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '自定义' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>自定义</button>
+                                                 <div className="grid grid-cols-5 gap-2">
+                                                     <button onClick={() => 选择性别('男')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '男' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男</button>
+                                                     <button onClick={() => 选择性别('女')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '女' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>女</button>
+                                                     <button onClick={() => 选择性别('男娘')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '男娘' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男娘</button>
+                                                     <button onClick={() => 选择性别('扶她')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '扶她' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>扶她</button>
+                                                     <button onClick={() => 选择性别('自定义')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '自定义' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>自定义</button>
                                                 </div>
                                                 {当前性别模式 === '自定义' && (
                                                     <input
@@ -2850,10 +2852,12 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm text-wuxia-cyan font-bold">性别</label>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <button onClick={() => 选择伙伴性别('男')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '男' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男</button>
-                                                <button onClick={() => 选择伙伴性别('女')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '女' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>女</button>
-                                                <button onClick={() => 选择伙伴性别('自定义')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '自定义' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>自定义</button>
+                                             <div className="grid grid-cols-5 gap-2">
+                                                 <button onClick={() => 选择伙伴性别('男')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '男' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男</button>
+                                                 <button onClick={() => 选择伙伴性别('女')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '女' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>女</button>
+                                                 <button onClick={() => 选择伙伴性别('男娘')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '男娘' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男娘</button>
+                                                 <button onClick={() => 选择伙伴性别('扶她')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '扶她' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>扶她</button>
+                                                 <button onClick={() => 选择伙伴性别('自定义')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '自定义' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>自定义</button>
                                             </div>
                                             {当前伙伴性别模式 === '自定义' && (
                                                 <input value={partnerGender} onChange={e => setPartnerGender(e.target.value)} placeholder="输入自定义性别称谓" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />

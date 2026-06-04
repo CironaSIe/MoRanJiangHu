@@ -562,8 +562,8 @@ const ImageManagerModal: React.FC<Props> = ({
                 const safeHistory = Array.isArray(history) ? history : [];
                 const resultList = (safeHistory.length > 0 ? safeHistory : fallbackRecent)
                     .filter((item) => item && typeof item === 'object');
-                const npcGender: NPC图片记录['NPC性别'] = npc?.性别 === '男' || npc?.性别 === '女'
-                    ? npc.性别
+                const npcGender: NPC图片记录['NPC性别'] = ['男', '女', '男娘', '扶她'].includes(String(npc?.性别))
+                    ? (npc.性别 as NPC图片记录['NPC性别'])
                     : undefined;
                 return resultList.map<NPC图片记录>((result) => ({
                     目标类型: 'npc' as const,
@@ -582,8 +582,8 @@ const ImageManagerModal: React.FC<Props> = ({
         const playerName = typeof playerCharacter?.姓名 === 'string' && playerCharacter.姓名.trim()
             ? playerCharacter.姓名.trim()
             : '主角';
-        const playerGender: NPC图片记录['NPC性别'] = playerCharacter?.性别 === '男' || playerCharacter?.性别 === '女'
-            ? playerCharacter.性别
+        const playerGender: NPC图片记录['NPC性别'] = ['男', '女', '男娘', '扶她'].includes(String(playerCharacter?.性别))
+            ? (playerCharacter.性别 as NPC图片记录['NPC性别'])
             : undefined;
         const playerRecords = (Array.isArray(playerHistory) ? playerHistory : [])
             .filter((item) => item && typeof item === 'object')
