@@ -74,19 +74,6 @@ export const 构建物品视觉描述 = (item: any): string => {
         return parts.join('\n');
     }
     const parts: string[] = [];
-    const structured = 查找结构化物品(
-        读取文本(item?.规范物品名称)
-        || 读取文本(item?.预设物品名称)
-        || 读取文本(item?.标准物品名称)
-        || 读取文本(item?.基础物品名称)
-        || 读取文本(item?.图片匹配名称)
-        || 读取文本(item?.名称)
-    );
-    if (structured?.生图描述) parts.push(structured.生图描述);
-    if (Array.isArray(structured?.视觉标签) && structured.视觉标签.length > 0) {
-        parts.push(`结构化材质与物品：${structured.视觉标签.join('，')}`);
-    }
-    const 描述 = 读取文本(item?.描述);
     if (描述 && !是否游戏机制文案(描述)) parts.push(描述);
     if (Array.isArray(item?.词条列表) && item.词条列表.length > 0) {
         const 词条文案 = item.词条列表

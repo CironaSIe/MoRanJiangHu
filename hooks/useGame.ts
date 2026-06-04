@@ -3422,7 +3422,7 @@ export const useGame = () => {
         setShowSettings,
         设置历史记录,
         设置最近开局配置,
-        设置游戏设置,
+        设置游戏设置: setGameConfig,
         清空重Roll快照,
         推入重Roll快照,
         重置自动存档状态,
