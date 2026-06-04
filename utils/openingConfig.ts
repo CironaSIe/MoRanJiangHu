@@ -12,13 +12,22 @@ import type {
 } from '../types';
 import { 获取题材模式配置, 获取题材模式选项, 规范化题材模式 } from './topicModeProfiles';
 import { 构建官方模式运行时配置, 规范化模式运行时配置 } from './modeRuntimeProfile';
+import {
+    创建主题默认属性分配,
+    创建主题默认初始伙伴配置,
+    创建主题默认开局配置,
+    获取创意工坊属性字段,
+    获取创意工坊新开局步骤列表
+} from './workshopEngine';
 
-export const 新开局步骤列表 = ['世界观', '天赋背景', '角色基础', '开局伙伴', '开局配置', '确认生成'] as const;
+export const 新开局步骤定义列表 = 获取创意工坊新开局步骤列表();
+export const 新开局步骤列表 = 新开局步骤定义列表.map((step) => step.label);
 
+export const 属性字段定义列表 = 获取创意工坊属性字段();
 export const 属性键列表 = ['力量', '敏捷', '体质', '根骨', '悟性', '福源'] as const;
-export const 默认属性值 = 3;
-export const 属性最小值 = 3;
-export const 属性最大值 = 10;
+export const 默认属性值 = 属性字段定义列表[0]?.defaultValue ?? 3;
+export const 属性最小值 = Math.min(...属性字段定义列表.map((field) => field.min));
+export const 属性最大值 = Math.max(...属性字段定义列表.map((field) => field.max));
 export type 属性分配结构 = Record<typeof 属性键列表[number], number>;
 
 export type 难度设定结构 = {
@@ -381,48 +390,13 @@ export const 同人融合强度选项: Array<{ value: 同人融合强度类型; 
 ];
 
 export const 默认开局配置 = (): OpeningConfig => ({
-    配置约束启用: true,
-    题材模式: '武侠',
-    modeRuntimeProfile: 构建官方模式运行时配置('武侠'),
-    初始关系模板: '师门牵引',
-    关系侧重: ['师门', '友情'],
-    开局切入偏好: '日常低压',
-    开局生成门派: true,
-    开局生成同门: true,
-    初始伙伴: 默认初始伙伴配置(),
-    同人融合: {
-        enabled: false,
-        作品名: '',
-        来源类型: '小说',
-        融合强度: '轻度映射',
-        保留原著角色: false,
-        启用角色替换: false,
-        替换目标角色名: '',
-        附加替换角色名列表: [],
-        附加角色替换规则列表: [],
-        启用附加小说: false,
-        附加小说数据集ID: ''
-    }
+    ...创建主题默认开局配置('武侠'),
+    modeRuntimeProfile: 构建官方模式运行时配置('武侠')
 });
 
 export const 默认初始伙伴配置 = (): 初始伙伴配置结构 => ({
-    enabled: true,
-    头像图片URL: '',
-    图片档案: undefined,
-    姓名: '',
-    性别: '女',
-    年龄: 18,
-    出生月: 1,
-    出生日: 1,
-    外貌: '眉眼清亮，衣着利落，随身带着惯用行囊。',
-    性格: '稳重可靠，重诺守信，遇事会主动提醒主角风险。',
-    属性: 创建默认属性分配(),
-    背景名称: '',
-    背景描述: '',
-    背景效果: '',
-    天赋列表: [],
-    关系: '自幼相识的同行伙伴',
-    备注: ''
+    ...创建主题默认初始伙伴配置(),
+    属性: 创建默认属性分配()
 });
 
 const 读取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
@@ -495,12 +469,7 @@ export const 获取难度总属性点 = (difficulty?: 游戏难度): number => (
 );
 
 export const 创建默认属性分配 = (): 属性分配结构 => ({
-    力量: 默认属性值,
-    敏捷: 默认属性值,
-    体质: 默认属性值,
-    根骨: 默认属性值,
-    悟性: 默认属性值,
-    福源: 默认属性值
+    ...创建主题默认属性分配()
 });
 
 export const 计算属性总点数 = (attributes: Partial<属性分配结构>): number => (

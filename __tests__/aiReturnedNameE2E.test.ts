@@ -16,6 +16,25 @@ const 读取端到端AI配置 = () => {
     return baseUrl && apiKey && model ? { baseUrl, apiKey, model } : null;
 };
 
+const 解析OpenAI聊天响应内容 = async (response: Response): Promise<string> => {
+    const contentType = response.headers.get('content-type') || '';
+    const rawText = await response.text();
+    if (contentType.includes('text/event-stream') || rawText.trimStart().startsWith('data:')) {
+        let accumulated = '';
+        for (const line of rawText.split(/\r?\n/u)) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data:')) continue;
+            const payload = trimmed.slice(5).trim();
+            if (!payload || payload === '[DONE]') continue;
+            const json = JSON.parse(payload);
+            accumulated += String(json?.choices?.[0]?.delta?.content || json?.choices?.[0]?.message?.content || '');
+        }
+        return accumulated;
+    }
+    const json = JSON.parse(rawText) as any;
+    return String(json?.choices?.[0]?.message?.content || json?.choices?.[0]?.delta?.content || '');
+};
+
 describe('AI returned female name e2e', () => {
     it('keeps an AI raw non-blacklisted female name without local name-pool rewriting', () => {
         const candidatePrompt = 构建女性姓名候选提示词({
@@ -173,8 +192,7 @@ describe('AI returned female name e2e', () => {
             })
         });
         expect(response.ok).toBe(true);
-        const json = await response.json() as any;
-        const rawContent = String(json?.choices?.[0]?.message?.content || '');
+        const rawContent = await 解析OpenAI聊天响应内容(response);
         const aiReturnedName = rawContent.trim().replace(/^["'“”‘’`\s]+|["'“”‘’`\s]+$/g, '').split(/[\s,，。；;：:\n\r]+/u).find(Boolean) || '';
         const commandResponse = {
             logs: [
