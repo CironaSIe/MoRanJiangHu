@@ -103,7 +103,7 @@ export const 从模式世界书提取提示词 = (books: 世界书结构[] | und
         .flatMap((book) => Array.isArray(book?.条目) ? book.条目 : [])
         .filter((entry) => entry && entry.启用 !== false && typeof entry.内容 === 'string' && entry.内容.trim());
     const worldLore = entries.filter((entry) => entry.类型 === 'world_lore').map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
-    const ability = entries.filter((entry) => /能力|境界|成长|战力/.test(entry.标题)).map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
+    const ability = entries.filter((entry) => /能力|境界|成长|战力|修为|功法|修炼|神通|法术|灵根|灵体|天赋|体质|技能|属性|等级|突破|丹药|法宝|灵宝|渡劫/.test(entry.标题)).map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
     const rules = entries.filter((entry) => !ability.includes(`【${entry.标题}】\n${entry.内容.trim()}`) && entry.类型 !== 'world_lore').map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
     return {
         manualWorldPrompt: worldLore.join('\n\n'),
