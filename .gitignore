@@ -81,6 +81,12 @@ lerna-debug.log*
 *.pem
 *.key
 
+# Local test and debug artifacts
+/.playwright-mcp/
+/test-results/
+/diff_output.txt
+/nul
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
