@@ -580,6 +580,14 @@ export interface ModeRuntimeProfile {
         skillPool: string[];
         skillGrowthVerb: string;
         combatResolution: string;
+        realmConfig?: {
+            levelNames: string[];
+            parseRules: Array<{ pattern: string; level: number }>;
+        };
+        resourceTypes?: string[];
+        defaultEquipment?: Record<string, string>;
+        defaultCurrency?: Record<string, number>;
+        kungfuTypes?: string[];
     };
     items: {
         initialItemPool: string[];

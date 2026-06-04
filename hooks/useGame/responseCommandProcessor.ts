@@ -1170,6 +1170,17 @@ const 规范化命令姓名 = (value: unknown): string => (
         : ''
 );
 
+const 社交新增保留栏目名 = new Set([
+    '队伍', '社交', '背包', '装备', '战斗', '世界', '地图', '门派', '任务', '约定', '剧情', '规划', '记忆',
+    '玩家', '角色', '主角', '同伴', '队友', '同行', '随行者', '关系', '人物', 'NPC'
+]);
+
+const 是否保留栏目式社交姓名 = (name: string): boolean => {
+    if (!name) return false;
+    if (社交新增保留栏目名.has(name)) return true;
+    return /^(?:队伍|社交|背包|装备|战斗|世界|地图|门派|任务|约定|剧情|规划|记忆)(?:数据|信息|列表|面板|状态|更新)?$/u.test(name);
+};
+
 const 提取社交姓名命令索引 = (rawKey: unknown): number | null => {
     const normalizedKey = normalizeStateCommandKey(typeof rawKey === 'string' ? rawKey : '');
     const match = normalizedKey.match(/^gameState\.社交\[(\d+)\]\.姓名$/);
@@ -1208,6 +1219,7 @@ const 净化新增社交命令 = (
 ): any | null => {
     const nextName = 提取新增社交命令姓名(cmd);
     if (!nextName) return cmd;
+    if (是否保留栏目式社交姓名(nextName)) return null;
     const nextKey = 归一化文本键(nextName);
     const existing = (Array.isArray(currentSocial) ? currentSocial : []).some((npc: any) => (
         [npc?.id, ...读取NPC名称列表(npc)]
