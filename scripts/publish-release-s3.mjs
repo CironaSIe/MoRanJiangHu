@@ -84,7 +84,7 @@ const manifest = {
     r2ApkUrl: providerApkUrls.r2,
     hi168ApkUrl: providerApkUrls.hi168,
     r2DirectApkUrl: `${r2PublicBaseUrl}/${encodeURIComponent(versionedFileName)}`,
-    hi168DirectApkUrl: publicUrl(versionedKey),
+    hi168DirectApkUrl: providerApkUrls.hi168,
     apkUrls: [
       `${websiteBaseUrl}/api/apk/latest.apk`,
       `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}`,

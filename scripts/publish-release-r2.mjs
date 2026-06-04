@@ -92,7 +92,7 @@ const manifest = {
     r2ApkUrl: providerApkUrls.r2,
     hi168ApkUrl: providerApkUrls.hi168,
     r2DirectApkUrl: r2VersionedApkUrl,
-    hi168DirectApkUrl: hi168VersionedApkUrl,
+    hi168DirectApkUrl: providerApkUrls.hi168,
     apkUrls: [
       legacyLatestApkUrl,
       versionedApkUrl,
