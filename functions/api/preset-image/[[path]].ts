@@ -1,11 +1,11 @@
 import {
     APK_CORS_HEADERS,
     buildSignedObjectUrl,
-    buildTextResponse,
     normalizeObjectKey
 } from '../apk/_shared';
 
 const PRESET_IMAGE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+const PRESET_IMAGE_ERROR_CACHE_CONTROL = 'public, max-age=60';
 const PRESET_IMAGE_PATTERN = /^s3_[0-9]+_[0-9a-z]+\.(png|jpe?g|webp|gif|bmp)$/i;
 
 const readPresetImageKey = (request: Request, params: any): string => {
@@ -22,8 +22,15 @@ const readPresetImageKey = (request: Request, params: any): string => {
     return normalizeObjectKey(decoded);
 };
 
-const toHeadResponse = (response: Response): Response => (
-    new Response(null, { status: response.status, statusText: response.statusText, headers: response.headers })
+const buildErrorResponse = (message: string, status = 400): Response => (
+    new Response(message, {
+        status,
+        headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': PRESET_IMAGE_ERROR_CACHE_CONTROL,
+            ...APK_CORS_HEADERS
+        }
+    })
 );
 
 const buildPresetImageResponse = async (
@@ -40,19 +47,21 @@ const buildPresetImageResponse = async (
             if (cached) {
                 const headers = new Headers(cached.headers);
                 headers.set('X-Moran-Preset-Image-Cache', 'hit');
-                return new Response(cached.body, { status: cached.status, statusText: cached.statusText, headers });
+                return method === 'HEAD'
+                    ? new Response(null, { status: cached.status, statusText: cached.statusText, headers })
+                    : new Response(cached.body, { status: cached.status, statusText: cached.statusText, headers });
             }
         }
 
-        const signedUrl = await buildSignedObjectUrl(env, key, 1800, method);
+        const signedUrl = await buildSignedObjectUrl(env, key, 1800, 'GET');
         const upstream = await fetch(signedUrl, {
-            method,
+            method: 'GET',
             headers: {
                 Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
             }
         });
         if (!upstream.ok) {
-            return buildTextResponse(`Preset image not found: ${upstream.status}`, upstream.status);
+            return buildErrorResponse(`Preset image not found: ${upstream.status}`, upstream.status);
         }
 
         const headers = new Headers();
@@ -78,9 +87,9 @@ const buildPresetImageResponse = async (
         if (cache && method === 'GET') {
             context.waitUntil?.(cache.put(cacheKey, response.clone()));
         }
-        return method === 'HEAD' ? toHeadResponse(response) : response;
+        return response;
     } catch (error: any) {
-        return buildTextResponse(error?.message || 'Preset image proxy failed', 502);
+        return buildErrorResponse(error?.message || 'Preset image proxy failed', 502);
     }
 };
 
