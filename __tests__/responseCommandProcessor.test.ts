@@ -291,7 +291,33 @@ describe('responseCommandProcessor team companion fallback', () => {
 });
 
 describe('responseCommandProcessor corpse death fallback', () => {
-    it('marks a clearly bisected corpse as dead without requiring model-provided hp zero first', () => {
+    it('marks a clearly bisected corpse as dead when AI provides death commands with cause', () => {
+        const state = 构建基础状态();
+        state.环境 = { 时间: '1:01:02:12:00' } as any;
+        state.社交 = 规范化社交列表([
+            { id: 'npc_stans', 姓名: '史宾斯', 性别: '男', 当前血量: 42, 最大血量: 80, 状态: '重伤', 是否在场: true, 是否队友: false }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '史宾斯被一分为二的尸体重重地砸在玻璃地板上，切口焦黑，再无任何生机。史宾斯当场死亡。' }
+            ],
+            tavern_commands: [
+                { action: 'set', key: '社交[0].当前血量', value: 0 },
+                { action: 'set', key: '社交[0].状态', value: '死亡' },
+                { action: 'set', key: '社交[0].生死状态', value: '死亡' },
+                { action: 'set', key: '社交[0].死亡时间', value: '1:01:02:12:00' },
+                { action: 'set', key: '社交[0].死亡描述', value: '被一分为二的尸体，切口焦黑，再无任何生机。' }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交[0].当前血量).toBe(0);
+        expect(result.社交[0].状态).toBe('死亡');
+        expect(result.社交[0].是否在场).toBe(false);
+        expect(result.社交[0].死亡描述).toContain('一分为二');
+    });
+
+    it('does not auto-detect death from story text without AI commands', () => {
         const state = 构建基础状态();
         state.环境 = { 时间: '1:01:02:12:00' } as any;
         state.社交 = 规范化社交列表([
@@ -302,15 +328,12 @@ describe('responseCommandProcessor corpse death fallback', () => {
             logs: [
                 { sender: '旁白', text: '史宾斯被一分为二的尸体重重地砸在玻璃地板上，切口焦黑，再无任何生机。' }
             ],
-            tavern_commands: [
-                { action: 'set', key: '社交[0].生死状态', value: '死亡' }
-            ]
+            tavern_commands: []
         } as any, state, deps, undefined, { applyState: false });
 
-        expect(result.社交[0].当前血量).toBe(0);
-        expect(result.社交[0].状态).toBe('死亡');
-        expect(result.社交[0].是否在场).toBe(false);
-        expect(result.社交[0].死亡描述).toContain('一分为二');
+        expect(result.社交[0].当前血量).toBe(42);
+        expect(result.社交[0].状态).toBe('重伤');
+        expect(result.社交[0].是否在场).toBe(true);
     });
 });
 
@@ -407,7 +430,42 @@ describe('responseCommandProcessor NPC death guard', () => {
         expect(npc.死亡描述).toBeUndefined();
     });
 
-    it('only marks a named NPC dead when the response contains a clear death sentence', () => {
+    it('only marks a named NPC dead when AI provides explicit death commands', () => {
+        const state = 构建基础状态();
+        state.环境 = { 时间: '五月初三 午时' } as any;
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_han_xiaoshuang',
+                姓名: '韩小霜',
+                性别: '女',
+                身份: '折柳山庄外门弟子',
+                是否在场: true,
+                当前血量: 31,
+                最大血量: 174
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '韩小霜被刺客一剑贯穿心口，当场身亡，众人只来得及收殓遗体。韩小霜已死。' }
+            ],
+            tavern_commands: [
+                { action: 'set', key: '社交[0].当前血量', value: 0 },
+                { action: 'set', key: '社交[0].状态', value: '死亡' },
+                { action: 'set', key: '社交[0].生死状态', value: '死亡' },
+                { action: 'set', key: '社交[0].死亡时间', value: '五月初三 午时' },
+                { action: 'set', key: '社交[0].死亡描述', value: '韩小霜被刺客一剑贯穿心口，当场身亡。' }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        const npc = result.社交[0] as any;
+        expect(npc.状态).toBe('死亡');
+        expect(npc.生死状态).toBe('死亡');
+        expect(npc.死亡时间).toBe('五月初三 午时');
+        expect(npc.死亡描述).toContain('韩小霜');
+    });
+
+    it('does not auto-detect death from story text without AI commands', () => {
         const state = 构建基础状态();
         state.环境 = { 时间: '五月初三 午时' } as any;
         state.社交 = 规范化社交列表([
@@ -430,12 +488,9 @@ describe('responseCommandProcessor NPC death guard', () => {
         } as any, state, deps, undefined, { applyState: false });
 
         const npc = result.社交[0] as any;
-        expect(npc.状态).toBe('死亡');
-        expect(npc.生死状态).toBe('死亡');
-        expect(npc.生命状态).toBe('死亡');
-        expect(npc.死亡时间).toBe('五月初三 午时');
-        expect(npc.死亡描述).toContain('韩小霜');
-        expect(npc.DEBUFF.some((item: any) => item.名称 === '死亡')).toBe(true);
+        expect(npc.当前血量).toBe(31);
+        expect(npc.状态).toBeUndefined();
+        expect(npc.是否在场).toBe(true);
     });
 
     it('does not mark a lover dead from erotic "要死了" dialogue', () => {
@@ -469,7 +524,7 @@ describe('responseCommandProcessor NPC death guard', () => {
         expect((npc.DEBUFF || []).some((item: any) => item?.名称 === '死亡')).toBe(false);
     });
 
-    it('marks a named enemy dead when the response says they were annihilated without the word death', () => {
+    it('marks a named enemy dead when AI provides death commands', () => {
         const state = 构建基础状态();
         state.环境 = { 时间: '五月初三 午时' } as any;
         state.社交 = 规范化社交列表([
@@ -486,17 +541,21 @@ describe('responseCommandProcessor NPC death guard', () => {
 
         const result = 执行响应命令处理({
             logs: [
-                { sender: '旁白', text: '血衣客被你打到陨落，肉身灰飞烟灭，连神魂也随风散尽。' }
+                { sender: '旁白', text: '血衣客被你打到陨落，肉身灰飞烟灭，连神魂也随风散尽。血衣客已死。' }
             ],
-            tavern_commands: []
+            tavern_commands: [
+                { action: 'set', key: '社交[0].当前血量', value: 0 },
+                { action: 'set', key: '社交[0].状态', value: '死亡' },
+                { action: 'set', key: '社交[0].生死状态', value: '死亡' },
+                { action: 'set', key: '社交[0].死亡时间', value: '五月初三 午时' },
+                { action: 'set', key: '社交[0].死亡描述', value: '血衣客被打到陨落，肉身灰飞烟灭，连神魂也随风散尽。' }
+            ]
         } as any, state, deps, undefined, { applyState: false });
 
         const npc = result.社交[0] as any;
         expect(npc.状态).toBe('死亡');
         expect(npc.生死状态).toBe('死亡');
-        expect(npc.生命状态).toBe('死亡');
         expect(npc.死亡描述).toContain('血衣客');
-        expect(npc.DEBUFF.some((item: any) => item.名称 === '死亡')).toBe(true);
     });
 
     it('blocks AI commands that create a death debuff from generic death-themed prose', () => {
@@ -907,7 +966,45 @@ describe('responseCommandProcessor NSFW female state fallback', () => {
 });
 
 describe('responseCommandProcessor NPC death fallback', () => {
-    it('sets named dead NPC health and death state when the story confirms death without commands', () => {
+    it('sets named dead NPC health and death state when AI provides death commands', () => {
+        const state = 构建基础状态();
+        state.环境 = { 时间: '四月初一 黄昏' } as any;
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_zhao_yunting',
+                姓名: '赵云廷',
+                性别: '男',
+                年龄: 28,
+                身份: '同门竞争者',
+                是否在场: true,
+                当前血量: 423,
+                最大血量: 423,
+                DEBUFF: []
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '赵云廷被杨培强一剑贯穿心脉，当场身亡。赵云廷已死。' }
+            ],
+            tavern_commands: [
+                { action: 'set', key: '社交[0].当前血量', value: 0 },
+                { action: 'set', key: '社交[0].状态', value: '死亡' },
+                { action: 'set', key: '社交[0].生死状态', value: '死亡' },
+                { action: 'set', key: '社交[0].死亡时间', value: '四月初一 黄昏' },
+                { action: 'set', key: '社交[0].死亡描述', value: '赵云廷被杨培强一剑贯穿心脉，当场身亡。' }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交[0].当前血量).toBe(0);
+        expect(result.社交[0].状态).toBe('死亡');
+        expect(result.社交[0].生死状态).toBe('死亡');
+        expect(result.社交[0].是否在场).toBe(false);
+        expect(result.社交[0].死亡时间).toBe('四月初一 黄昏');
+        expect(result.社交[0].死亡描述).toContain('赵云廷');
+    });
+
+    it('does not auto-detect death from story text without AI commands', () => {
         const state = 构建基础状态();
         state.环境 = { 时间: '四月初一 黄昏' } as any;
         state.社交 = 规范化社交列表([
@@ -931,13 +1028,10 @@ describe('responseCommandProcessor NPC death fallback', () => {
             tavern_commands: []
         } as any, state, deps, undefined, { applyState: false });
 
-        expect(result.社交[0].当前血量).toBe(0);
-        expect(result.社交[0].状态).toBe('死亡');
-        expect(result.社交[0].生死状态).toBe('死亡');
-        expect(result.社交[0].生命状态).toBe('死亡');
-        expect(result.社交[0].是否在场).toBe(false);
-        expect(result.社交[0].死亡时间).toBe('四月初一 黄昏');
-        expect(result.社交[0].DEBUFF.some((item: any) => item?.名称 === '死亡')).toBe(true);
+        expect(result.社交[0].当前血量).toBe(423);
+        expect(result.社交[0].状态).toBeUndefined();
+        expect(result.社交[0].是否在场).toBe(true);
+        expect(result.社交[0].DEBUFF.some((item: any) => item?.名称 === '死亡')).toBe(false);
     });
 
     it('does not mark death for negated or near-death wording', () => {
@@ -966,7 +1060,7 @@ describe('responseCommandProcessor NPC death fallback', () => {
         expect(result.社交[0].DEBUFF.some((item: any) => item?.名称 === '死亡')).toBe(false);
     });
 
-    it('chooses the victim instead of the attacker when both NPC names appear', () => {
+    it('chooses the victim instead of the attacker when AI provides death commands for victim', () => {
         const state = 构建基础状态();
         state.社交 = 规范化社交列表([
             {
@@ -991,14 +1085,21 @@ describe('responseCommandProcessor NPC death fallback', () => {
 
         const result = 执行响应命令处理({
             logs: [
-                { sender: '旁白', text: '林婉儿一剑杀死了赵云廷，血光溅在石阶上。' }
+                { sender: '旁白', text: '林婉儿一剑杀死了赵云廷，血光溅在石阶上。赵云廷已死。' }
             ],
-            tavern_commands: []
+            tavern_commands: [
+                { action: 'set', key: '社交[1].当前血量', value: 0 },
+                { action: 'set', key: '社交[1].状态', value: '死亡' },
+                { action: 'set', key: '社交[1].死亡时间', value: '四月初一 黄昏' },
+                { action: 'set', key: '社交[1].死亡描述', value: '被林婉儿一剑杀死。' }
+            ]
         } as any, state, deps, undefined, { applyState: false });
 
         expect(result.社交[0].当前血量).toBe(200);
         expect(result.社交[0].状态).toBeUndefined();
+        expect(result.社交[0].是否在场).toBe(true);
         expect(result.社交[1].当前血量).toBe(0);
         expect(result.社交[1].状态).toBe('死亡');
+        expect(result.社交[1].是否在场).toBe(false);
     });
 });

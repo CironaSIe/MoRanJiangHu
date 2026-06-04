@@ -3873,9 +3873,10 @@ const App: React.FC = () => {
                                      onDeleteNpc={actions.removeNpc}
                                      onLearnSkill={handleLearnNpcSkill}
                                      onRecruitToSect={handleRecruitNpcToSect}
-                                     onStealFromNpc={handleStealFromNpc}
-                                     playerSect={state.玩家门派}
-                                 />
+                                      onStealFromNpc={handleStealFromNpc}
+                                      onRetryImage={actions.retryNpcImageGeneration}
+                                      playerSect={state.玩家门派}
+                                  />
                             )}
                         </懒加载边界>
                     )}

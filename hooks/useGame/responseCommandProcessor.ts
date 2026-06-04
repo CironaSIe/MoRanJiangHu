@@ -244,6 +244,9 @@ const 随行者占位名正则 = /^随行者([1-9]\d*)$/;
 
 const NPC已死亡 = (npc: any): boolean => {
     const statusText = [
+        npc?.状态,
+        npc?.生死状态,
+        npc?.生命状态,
         npc?.死亡描述,
         ...(Array.isArray(npc?.DEBUFF) ? npc.DEBUFF.flatMap((item: any) => [item?.名称, item?.描述, item?.效果]) : [])
     ].filter(Boolean).join(' ');
@@ -1095,7 +1098,7 @@ const 是否社交生理高风险命令 = (cmd: any): boolean => {
     const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '');
     if (!normalizedKey.startsWith('gameState.社交[')) return false;
     const action = (cmd?.action || 'set') as string;
-    if (/\.初夜(?:夺取者|时间|描述)$/.test(normalizedKey)) return true;
+    if (/\.初夜(?:夺取者|时间|描述)$/.test(normalizedKey) && !/\.死亡时间$/.test(normalizedKey)) return true;
     if (/\.失贞档案(?:$|\.)/.test(normalizedKey) && action !== 'delete') return true;
     if (/\.首次亲密记录(?:$|\[)/.test(normalizedKey) && action !== 'delete') return true;
     if (/\.是否处女$/.test(normalizedKey) && action !== 'delete' && cmd?.value === false) return true;
@@ -1261,6 +1264,7 @@ export const 执行响应命令处理 = (
                         charBuffer,
                         responseFactText
                     ),
+                    socialBuffer
                 ),
                 socialBuffer,
                 responseFactText,
@@ -1341,7 +1345,7 @@ export const 执行响应命令处理 = (
             { 合并同名: false }
         );
         socialBuffer = deps.规范化社交列表(
-            应用死亡事实到NPC(response, socialBuffer, envBuffer),
+            清理无依据死亡状态(socialBuffer),
             { 合并同名: false }
         );
         socialBuffer = deps.规范化社交列表(
@@ -1422,8 +1426,7 @@ export const 执行响应命令处理 = (
                 response,
                 同步当前视角在场状态(
                     response,
-                    应用死亡事实到NPC(
-                        response,
+                    清理无依据死亡状态(
                         应用女性关系目标主要角色兜底(
                             response,
                             应用首次亲密事实到NPC(
@@ -1437,8 +1440,7 @@ export const 执行响应命令处理 = (
                                 envBuffer,
                                 charBuffer?.姓名
                             )
-                        ),
-                        envBuffer
+                        )
                     ),
                     charBuffer?.姓名
                 ),

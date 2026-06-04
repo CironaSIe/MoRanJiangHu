@@ -24,6 +24,7 @@ interface Props {
     onLearnSkill?: (npc: NPC结构, skill: any) => void;
     onRecruitToSect?: (npc: NPC结构) => void;
     onStealFromNpc?: (npc: NPC结构, target?: string) => void;
+    onRetryImage?: (npcId: string) => void;
     playerSect?: any;
 }
 
@@ -64,6 +65,7 @@ const SocialModal: React.FC<Props> = ({
     onLearnSkill,
     onRecruitToSect,
     onStealFromNpc,
+    onRetryImage,
     playerSect
 }) => {
     const sortedSocialList = React.useMemo(() => (
@@ -753,6 +755,15 @@ const SocialModal: React.FC<Props> = ({
                                                 </>
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center font-serif text-3xl text-wuxia-gold/30">{currentNPC.姓名[0]}</div>
+                                            )}
+                                            {onRetryImage && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); onRetryImage(currentNPC.id); }}
+                                                    className="absolute bottom-1 right-1 text-[10px] px-2 py-0.5 rounded border border-wuxia-gold/40 bg-wuxia-gold/10 text-wuxia-gold hover:bg-wuxia-gold/20 transition-all"
+                                                >
+                                                    重绘
+                                                </button>
                                             )}
                                         </div>
 
