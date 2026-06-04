@@ -40,6 +40,7 @@ import { 写作_要求 } from './writing/requirements';
 import { 写作_防止说话 } from './writing/noControl';
 import { 写作_风格 } from './writing/style';
 import { 写作_避免极端情绪 } from './writing/emotionGuard';
+import { 写作_防全知 } from './writing/antiOmniscient';
 
 export const 默认提示词: 提示词结构[] = [
     // Core
@@ -82,5 +83,6 @@ export const 默认提示词: 提示词结构[] = [
     写作_要求,
     写作_防止说话,
     写作_风格,
-    写作_避免极端情绪
+    写作_避免极端情绪,
+    写作_防全知
 ];
