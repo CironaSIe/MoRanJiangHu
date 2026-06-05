@@ -1,5 +1,5 @@
 import type { ModeRuntimeProfile, 题材模式类型, 性别比例配置 } from '../models/system';
-import { 获取题材模式配置, 规范化题材模式 } from './topicModeProfiles';
+import { 获取题材模式配置, 规范化题材模式 } from '../data/workshopThemes/topicModeThemeData';
 
 const 文本 = (value: unknown, fallback = ''): string => (
     typeof value === 'string' && value.trim() ? value.trim() : fallback

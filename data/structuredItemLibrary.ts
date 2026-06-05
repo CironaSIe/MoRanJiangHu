@@ -1,5 +1,6 @@
 import type { 物品品质, 物品类型 } from '../models/item';
 import type { 题材模式类型 } from '../models/system';
+import { 规范化题材模式 } from './workshopThemes/topicModeThemeData';
 
 export interface 结构化物品条目 {
     名称: string;
@@ -475,19 +476,6 @@ export const 题材模式预设物品名称清单: Record<题材模式类型, st
     末日丧尸: 去重名称(末日物品名称, ['智能手机', '急救包', '维修工具箱', '多功能工具钳', '备用电池组', '防护口罩', '运动鞋']),
     无限流: 去重名称(无限流物品名称, ['智能手机', '急救包', '防护服', '净水片', '护身符', '玉骨扇', '六欲琉璃炉', '魅心摄魂镜', '净欲明心镜', '治疗药水', '基础剑法残卷', '下品灵石', '手摇电筒', '防毒面具', '无线电台', '感染检测卡', '数据U盘']),
 };
-
-const 规范化题材模式 = (mode?: unknown): 题材模式类型 => (
-    mode === '仙侠'
-        || mode === '灵气复苏'
-        || mode === '西方奇幻'
-        || mode === '都市修仙'
-        || mode === '现代都市'
-        || mode === '末日丧尸'
-        || mode === '无限流'
-        || mode === '武侠'
-        ? mode
-        : '武侠'
-);
 
 export const 获取题材模式预设物品名称清单 = (mode?: unknown): string[] => (
     题材模式预设物品名称清单[规范化题材模式(mode)]

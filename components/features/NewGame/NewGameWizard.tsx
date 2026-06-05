@@ -23,7 +23,7 @@ import {
     创建平均属性分配,
     创建默认属性分配,
     创建随机属性分配,
-    新开局步骤列表,
+    新开局步骤定义列表,
     默认初始伙伴配置,
     默认开局配置,
     获取题材化难度设定,
@@ -33,7 +33,15 @@ import {
     规范化开局配置,
     规范化可选开局配置
 } from '../../../utils/openingConfig';
-import { 合并题材世界默认值, 获取题材模式配置, 题材模式顺序 } from '../../../utils/topicModeProfiles';
+import {
+    合并题材世界默认值,
+    创建主题默认世界配置,
+    获取创意工坊角色默认值,
+    获取创意工坊难度选项,
+    获取创意工坊世界规模选项,
+    获取题材模式配置,
+    题材模式顺序
+} from '../../../utils/workshopEngine';
 import { 构建官方模式运行时配置, 规范化模式运行时配置 } from '../../../utils/modeRuntimeProfile';
 import { 构建默认技艺 } from '../../../utils/skillDefaults';
 import { 默认境界母板提示词 } from '../../../prompts/runtime/fandom';
@@ -60,7 +68,13 @@ interface Props {
     requestConfirm?: (options: { title?: string; message: string; confirmText?: string; cancelText?: string; danger?: boolean }) => Promise<boolean>;
 }
 
-const STEPS = [...新开局步骤列表];
+const STEP_CONFIGS = [...新开局步骤定义列表];
+const STEPS = STEP_CONFIGS.map((item) => item.label);
+type 新开局步骤ID = typeof STEP_CONFIGS[number]['id'];
+const 查找新开局步骤索引 = (id: 新开局步骤ID): number => {
+    const index = STEP_CONFIGS.findIndex((item) => item.id === id);
+    return index >= 0 ? index : 0;
+};
 const 自定义天赋存储键 = 设置键.自定义天赋;
 const 自定义背景存储键 = 设置键.自定义背景;
 type 自定义开局预设元信息 = {
@@ -75,18 +89,8 @@ type 属性结构 = {
     悟性: number;
     福源: number;
 };
-const 难度下拉选项: Array<{ value: 游戏难度; label: string }> = [
-    { value: 'relaxed', label: '轻松 (剧情模式)' },
-    { value: 'easy', label: '简单 (初入江湖)' },
-    { value: 'normal', label: '正常 (标准体验)' },
-    { value: 'hard', label: '困难 (刀光剑影)' },
-    { value: 'extreme', label: '极限 (修罗炼狱)' }
-];
-const 世界版图下拉选项: Array<{ value: WorldGenConfig['worldSize']; label: string }> = [
-    { value: '弹丸之地', label: '弹丸之地 (一岛或一城)' },
-    { value: '九州宏大', label: '九州宏大 (万里河山)' },
-    { value: '无尽位面', label: '无尽位面 (多重世界)' }
-];
+const 难度下拉选项 = 获取创意工坊难度选项() as Array<{ value: 游戏难度; label: string }>;
+const 世界版图下拉选项 = 获取创意工坊世界规模选项() as Array<{ value: WorldGenConfig['worldSize']; label: string }>;
 const 创意工坊类型标签: Record<创意工坊模块类型, string> = {
     topic: '模式包',
     world_rules: '世界规则',
@@ -176,31 +180,21 @@ const 开关按钮: React.FC<{
 
 const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConfig, requestConfirm }) => {
     const [step, setStep] = useState(0);
+    const 角色默认值 = useMemo(() => 获取创意工坊角色默认值(), []);
 
     // --- State: World Config ---
-    const [worldConfig, setWorldConfig] = useState<WorldGenConfig>({
-        worldName: '太古界',
-        worldSize: '九州宏大',
-        dynastySetting: '群雄逐鹿，王朝末年',
-        sectDensity: '林立',
-        tianjiaoSetting: '大争之世，天骄并起',
-        worldExtraRequirement: '',
-        manualWorldPrompt: '',
-        manualRealmPrompt: '',
-        difficulty: 'normal' as 游戏难度, // Default difficulty
-        modeRuntimeProfile: 构建官方模式运行时配置('武侠')
-    });
+    const [worldConfig, setWorldConfig] = useState<WorldGenConfig>(() => 创建主题默认世界配置('武侠'));
 
     // --- State: Character Config ---
     const [charName, setCharName] = useState('');
-    const [charGender, setCharGender] = useState('男');
-    const [charAge, setCharAge] = useState(18);
-    const [charAppearance, setCharAppearance] = useState('黑发黑眸，面容清秀，衣着朴素利落。');
-    const [charPersonality, setCharPersonality] = useState('外冷内热，谨慎克制，遇事先观察再出手。');
+    const [charGender, setCharGender] = useState(角色默认值.gender);
+    const [charAge, setCharAge] = useState(角色默认值.age);
+    const [charAppearance, setCharAppearance] = useState(角色默认值.appearance);
+    const [charPersonality, setCharPersonality] = useState(角色默认值.personality);
     const [charAvatarUrl, setCharAvatarUrl] = useState('');
     const [charPortraitUrl, setCharPortraitUrl] = useState('');
-    const [birthMonth, setBirthMonth] = useState(1);
-    const [birthDay, setBirthDay] = useState(1);
+    const [birthMonth, setBirthMonth] = useState(角色默认值.birthMonth);
+    const [birthDay, setBirthDay] = useState(角色默认值.birthDay);
     const [monthOpen, setMonthOpen] = useState(false);
     const [dayOpen, setDayOpen] = useState(false);
     const monthRef = useRef<HTMLDivElement>(null);
@@ -1031,6 +1025,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 '- 背景和天赋必须能长期影响玩法，不要只写一句第一幕设定。',
                 '- 伙伴必须适合开局同行，并给出清楚关系，不要抢主角戏。',
                 `- 当前题材模式是“${当前题材配置.label}”，必须严格沿用对应世界观、身份背景、天赋、交易和地图口径。`,
+                ...当前题材配置.promptLines.map((line) => `- 题材核心边界：${line}`),
+                `- 开局边界：${当前题材配置.promptBoundary}`,
                 `- 货币/交易口径：${当前题材配置.currencyPrompt}`,
                 `- 统一换算口径：${当前题材配置.currencyExchangePrompt}`,
                 `- 地图/势力口径：${当前题材配置.mapPrompt}`,
