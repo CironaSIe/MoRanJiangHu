@@ -17,6 +17,8 @@
     "release:r2": "node scripts/publish-release-r2.mjs",
     "release:s3": "node scripts/publish-release-s3.mjs",
     "release:benchmark-apk": "node scripts/benchmark-apk-providers.mjs",
+    "signing:upload": "node scripts/sync-android-signing-bundle.mjs upload",
+    "signing:restore": "node scripts/sync-android-signing-bundle.mjs restore",
     "dev": "npm run release:sync && vite",
     "build": "npm run release:sync && vite build",
     "build:apk": "npm run release:sync && vite build --base=/",
