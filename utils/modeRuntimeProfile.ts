@@ -498,7 +498,9 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
             defaultTalents: 拆分模式配置短语(raw?.opening?.defaultTalents).length ? 拆分模式配置短语(raw.opening.defaultTalents) : official.opening.defaultTalents,
             companionTemplate: 文本(raw?.opening?.companionTemplate, official.opening.companionTemplate),
             cutInTemplates: 拆分模式配置短语(raw?.opening?.cutInTemplates).length ? 拆分模式配置短语(raw.opening.cutInTemplates) : official.opening.cutInTemplates,
-            initialQuestTemplates: 拆分模式配置短语(raw?.opening?.initialQuestTemplates).length ? 拆分模式配置短语(raw.opening.initialQuestTemplates) : official.opening.initialQuestTemplates
+            initialQuestTemplates: 拆分模式配置短语(raw?.opening?.initialQuestTemplates).length ? 拆分模式配置短语(raw.opening.initialQuestTemplates) : official.opening.initialQuestTemplates,
+            defaultEquipment: raw?.opening?.defaultEquipment ?? official.opening.defaultEquipment,
+            defaultCurrency: raw?.opening?.defaultCurrency ?? official.opening.defaultCurrency
         },
         validation: {
             bannedWords: 拆分模式配置短语(raw?.validation?.bannedWords).length ? 拆分模式配置短语(raw.validation.bannedWords) : official.validation.bannedWords,

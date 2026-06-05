@@ -643,22 +643,22 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
         setOpeningExtraRequirement(preset.openingExtraRequirement || '');
         if (!options?.保持当前步骤) setStep(1);
     };
-    const 当前性别模式: '男' | '女' | '自定义' = charGender.trim() === '男' || charGender.trim() === '女'
-        ? charGender.trim() as '男' | '女'
+    const 当前性别模式: '男' | '女' | '男娘' | '扶她' | '自定义' = ['男', '女', '男娘', '扶她'].includes(charGender.trim())
+        ? charGender.trim() as '男' | '女' | '男娘' | '扶她'
         : '自定义';
-    const 选择性别 = (next: '男' | '女' | '自定义') => {
+    const 选择性别 = (next: '男' | '女' | '男娘' | '扶她' | '自定义') => {
         if (next === '自定义') {
-            setCharGender(prev => (prev.trim() === '男' || prev.trim() === '女') ? '' : prev);
+            setCharGender(prev => (['男', '女', '男娘', '扶她'].includes(prev.trim()) ? '' : prev));
             return;
         }
         setCharGender(next);
     };
-    const 当前伙伴性别模式: '男' | '女' | '自定义' = partnerGender.trim() === '男' || partnerGender.trim() === '女'
-        ? partnerGender.trim() as '男' | '女'
+    const 当前伙伴性别模式: '男' | '女' | '男娘' | '扶她' | '自定义' = ['男', '女', '男娘', '扶她'].includes(partnerGender.trim())
+        ? partnerGender.trim() as '男' | '女' | '男娘' | '扶她'
         : '自定义';
-    const 选择伙伴性别 = (next: '男' | '女' | '自定义') => {
+    const 选择伙伴性别 = (next: '男' | '女' | '男娘' | '扶她' | '自定义') => {
         if (next === '自定义') {
-            setPartnerGender(prev => (prev.trim() === '男' || prev.trim() === '女') ? '' : prev);
+            setPartnerGender(prev => (['男', '女', '男娘', '扶她'].includes(prev.trim()) ? '' : prev));
             return;
         }
         setPartnerGender(next);
@@ -2131,11 +2131,13 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                     <OrnateBorder className="p-6">
                                         <div className="space-y-4">
                                              <div className="space-y-2">
-                                                <label className="text-sm text-wuxia-cyan font-bold">性别</label>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <button onClick={() => 选择性别('男')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '男' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男</button>
-                                                    <button onClick={() => 选择性别('女')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '女' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>女</button>
-                                                    <button onClick={() => 选择性别('自定义')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '自定义' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>自定义</button>
+                                            <label className="text-sm text-wuxia-cyan font-bold">性别</label>
+                                                 <div className="grid grid-cols-5 gap-2">
+                                                     <button onClick={() => 选择性别('男')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '男' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男</button>
+                                                     <button onClick={() => 选择性别('女')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '女' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>女</button>
+                                                     <button onClick={() => 选择性别('男娘')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '男娘' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男娘</button>
+                                                     <button onClick={() => 选择性别('扶她')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '扶她' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>扶她</button>
+                                                     <button onClick={() => 选择性别('自定义')} className={`p-3 rounded text-center transition-all ${当前性别模式 === '自定义' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>自定义</button>
                                                 </div>
                                                 {当前性别模式 === '自定义' && (
                                                     <input
@@ -2589,11 +2591,13 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                             <p className="text-[11px] text-gray-400 mt-2 leading-6">同伴会和主角一起进入初始社交档案，不再需要写进最后的额外要求。</p>
                                         </div>
                                         <input value={partnerName} onChange={e => setPartnerName(e.target.value)} placeholder="同伴姓名" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all font-serif tracking-wider" />
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <button onClick={() => 选择伙伴性别('男')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '男' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男</button>
-                                            <button onClick={() => 选择伙伴性别('女')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '女' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>女</button>
-                                            <button onClick={() => 选择伙伴性别('自定义')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '自定义' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>自定义</button>
-                                        </div>
+                                        <div className="grid grid-cols-5 gap-2">
+                                             <button onClick={() => 选择伙伴性别('男')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '男' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男</button>
+                                             <button onClick={() => 选择伙伴性别('女')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '女' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>女</button>
+                                             <button onClick={() => 选择伙伴性别('男娘')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '男娘' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>男娘</button>
+                                             <button onClick={() => 选择伙伴性别('扶她')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '扶她' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>扶她</button>
+                                             <button onClick={() => 选择伙伴性别('自定义')} className={`p-3 rounded text-center transition-all ${当前伙伴性别模式 === '自定义' ? 'bg-wuxia-gold/20 text-wuxia-gold border-wuxia-gold border' : 'bg-black/40 border border-transparent hover:border-gray-600'}`}>自定义</button>
+                                         </div>
                                         {当前伙伴性别模式 === '自定义' && (
                                             <input value={partnerGender} onChange={e => setPartnerGender(e.target.value)} placeholder="输入自定义性别称谓" className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all" />
                                         )}
@@ -2816,6 +2820,27 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                             }}
                                         />
                                     </div>
+                                </div>
+                                <div className="mt-4 flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
+                                    <div>
+                                        <div className="text-sm text-gray-200">女主剧情规划</div>
+                                        <div className="text-[11px] text-gray-500 mt-1">控制是否主动生成女主 NPC 和推进情感线；创意工坊可预设此项</div>
+                                    </div>
+                                    <select
+                                        value={openingConfig.启用女主剧情规划 === undefined ? '默认' : openingConfig.启用女主剧情规划 ? '启用' : '关闭'}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            setOpeningConfig((prev) => ({
+                                                ...prev,
+                                                启用女主剧情规划: v === '默认' ? undefined : v === '启用'
+                                            }));
+                                        }}
+                                        className="bg-black/40 border border-gray-700 text-xs text-gray-200 rounded-lg px-3 py-1.5 focus:border-wuxia-gold/50 focus:outline-none"
+                                    >
+                                        <option value="默认">默认</option>
+                                        <option value="启用">启用</option>
+                                        <option value="关闭">关闭</option>
+                                    </select>
                                 </div>
                             </OrnateBorder>
 

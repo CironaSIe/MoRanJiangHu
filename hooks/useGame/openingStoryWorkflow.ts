@@ -1578,7 +1578,9 @@ export const 执行开场剧情生成工作流 = async (
                     });
                 },
                 run: async () => {
-                    const heroineEnabled = openingGameConfig.启用女主剧情规划 === true;
+                    const heroineEnabled = options?.开局配置?.启用女主剧情规划 !== undefined
+                        ? options.开局配置.启用女主剧情规划 === true
+                        : openingGameConfig.启用女主剧情规划 === true;
                     const fandomEnabled = openingRuntimeFandomBundle.enabled;
                     const activeStoryPlan = fandomEnabled
                         ? deps.规范化同人剧情规划状态(simulatedOpeningState.同人剧情规划)

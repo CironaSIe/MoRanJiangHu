@@ -27,8 +27,8 @@ type 来源筛选 = 'all' | 'builtin' | 'cloud' | 'local';
 const 可展示工坊类型: 创意工坊模块类型[] = ['topic', 'comfy_workflow'];
 const 可展示工坊类型集合 = new Set<创意工坊模块类型>(可展示工坊类型);
 const 可展示工坊分区 = 创意工坊模块分区.filter((section) => 可展示工坊类型集合.has(section.id));
-type 运行时配置字段类型 = 'text' | 'textarea' | 'list' | 'bool' | 'baseMode' | 'currencyMode';
-type 运行时配置字段 = { label: string; path: string[]; type?: 运行时配置字段类型; placeholder?: string };
+type 运行时配置字段类型 = 'text' | 'textarea' | 'list' | 'record' | 'bool' | 'boolGroup' | 'baseMode' | 'currencyMode' | 'realmConfig';
+type 运行时配置字段 = { label: string; path: string[]; type?: 运行时配置字段类型; placeholder?: string; boolGroup?: { label: string; key: string }[] };
 type 运行时配置分区 = { title: string; fields: 运行时配置字段[] };
 
 const 运行时配置分区列表: 运行时配置分区[] = [
@@ -77,7 +77,9 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '属性点规则', path: ['ability', 'attributePointRules'], type: 'textarea' },
             { label: '技能池', path: ['ability', 'skillPool'], type: 'list' },
             { label: '技能成长词', path: ['ability', 'skillGrowthVerb'] },
-            { label: '战斗结算口径', path: ['ability', 'combatResolution'], type: 'textarea' }
+            { label: '战斗结算口径', path: ['ability', 'combatResolution'], type: 'textarea' },
+            { label: '功法类型', path: ['ability', 'kungfuTypes'], type: 'list' },
+            { label: '境界配置', path: ['ability', 'realmConfig'], type: 'realmConfig' }
         ]
     },
     {
@@ -87,7 +89,29 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '奖励物品池', path: ['items', 'rewardItemPool'], type: 'list' },
             { label: '禁用物品关键词', path: ['items', 'bannedItemKeywords'], type: 'list' },
             { label: '专属物品类型', path: ['items', 'exclusiveItemTypes'], type: 'list' },
-            { label: '活跃资源计数器', path: ['items', 'activeResources'], type: 'list' }
+            { label: '活跃资源计数器', path: ['items', 'activeResources'], type: 'list' },
+            { label: '资源类型', path: ['items', 'resourceTypes'], type: 'list' },
+            { label: '资源开关', path: ['items', 'resourceToggles'], type: 'boolGroup', boolGroup: [
+                { label: '食物', key: 'food' },
+                { label: '饮水', key: 'water' },
+                { label: '弹药', key: 'ammo' },
+                { label: '药品', key: 'medicine' },
+                { label: '燃料', key: 'fuel' },
+                { label: '电池', key: 'batteries' },
+                { label: '灵石', key: 'spiritStones' }
+            ] }
+        ]
+    },
+    {
+        title: '开场配置',
+        fields: [
+            { label: '默认开场背景', path: ['opening', 'defaultBackgrounds'], type: 'list' },
+            { label: '默认天赋', path: ['opening', 'defaultTalents'], type: 'list' },
+            { label: '初始伙伴模板', path: ['opening', 'companionTemplate'], type: 'textarea' },
+            { label: '切入模板', path: ['opening', 'cutInTemplates'], type: 'list' },
+            { label: '初始任务模板', path: ['opening', 'initialQuestTemplates'], type: 'list' },
+            { label: '默认装备模板', path: ['opening', 'defaultEquipment'], type: 'record', placeholder: '每行一个，格式：槽位=物品名，例如：武器=青锋剑' },
+            { label: '默认金钱模板', path: ['opening', 'defaultCurrency'], type: 'record', placeholder: '每行一个，格式：货币名=初始量，例如：铜钱=1000' }
         ]
     },
     {
@@ -255,6 +279,13 @@ const 读取运行时路径值 = (profile: ModeRuntimeProfile, path: string[]): 
 
 const 格式化运行时字段值 = (profile: ModeRuntimeProfile, field: 运行时配置字段): string => {
     const value = 读取运行时路径值(profile, field.path);
+    if (typeof value === 'undefined' || value === null) return '';
+    if (field.type === 'record') {
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            return Object.entries(value).map(([k, v]) => `${k}=${v}`).join('\n');
+        }
+        return String(value);
+    }
     if (Array.isArray(value)) return value.join('、');
     return typeof value === 'string' ? value : String(value ?? '');
 };
@@ -649,7 +680,14 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
         setContributionDraft((prev) => {
             const parsedValue = field.type === 'list'
                 ? 分割短语(String(value || ''))
-                : value;
+                : field.type === 'record'
+                    ? Object.fromEntries(
+                        String(value || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+                            const eqIdx = l.indexOf('=');
+                            return eqIdx === -1 ? [l, ''] : [l.slice(0, eqIdx).trim(), l.slice(eqIdx + 1).trim()];
+                        })
+                    )
+                    : value;
             const isBaseModeChange = field.path.join('.') === 'identity.baseMode' && 题材模式顺序.includes(parsedValue as 题材模式类型);
             if (isBaseModeChange) {
                 const nextMode = parsedValue as 题材模式类型;
@@ -901,6 +939,33 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                         <option value="apocalypse">末世物资</option>
                         <option value="infinite">主神奖励</option>
                     </select>
+                </label>
+            );
+        }
+        if (fieldType === 'boolGroup') {
+            const toggles = (typeof rawValue === 'object' && !Array.isArray(rawValue) ? rawValue : {}) as Record<string, boolean>;
+            return (
+                <label key={key} className="block text-xs text-gray-300 sm:col-span-2">
+                    <div className="mb-1 font-bold">{field.label}</div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                        {field.boolGroup?.map((opt) => (
+                            <label key={opt.key} className="flex items-center gap-1.5 text-gray-400">
+                                <input type="checkbox" checked={Boolean(toggles[opt.key])} readOnly disabled className="h-3 w-3 accent-wuxia-gold disabled:opacity-100" />
+                                {opt.label}
+                            </label>
+                        ))}
+                    </div>
+                </label>
+            );
+        }
+        if (fieldType === 'record' || fieldType === 'realmConfig') {
+            const displayValue = fieldType === 'realmConfig'
+                ? JSON.stringify(rawValue, null, 2)
+                : 格式化运行时字段值(profile, field);
+            return (
+                <label key={key} className="block text-xs text-gray-300 sm:col-span-2">
+                    {field.label}
+                    <textarea value={displayValue} readOnly className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none font-mono" />
                 </label>
             );
         }
@@ -1305,6 +1370,59 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                                                                 <option value="apocalypse">末世物资</option>
                                                                                 <option value="infinite">主神奖励</option>
                                                                             </select>
+                                                                        </label>
+                                                                    );
+                                                                }
+                                                                if (fieldType === 'boolGroup') {
+                                                                    const toggles = (typeof rawValue === 'object' && !Array.isArray(rawValue) ? rawValue : {}) as Record<string, boolean>;
+                                                                    return (
+                                                                        <label key={key} className="block text-xs text-gray-300 sm:col-span-2">
+                                                                            <div className="mb-1 font-bold">{field.label}</div>
+                                                                            <div className="grid grid-cols-2 gap-1.5">
+                                                                                {field.boolGroup?.map((opt) => (
+                                                                                    <label key={opt.key} className="flex items-center gap-1.5 text-gray-400">
+                                                                                        <input type="checkbox" checked={Boolean(toggles[opt.key])}
+                                                                                            onChange={(event) => 更新运行时配置字段(field, { ...toggles, [opt.key]: event.target.checked })}
+                                                                                            className="h-3 w-3 accent-wuxia-gold" />
+                                                                                        {opt.label}
+                                                                                    </label>
+                                                                                ))}
+                                                                            </div>
+                                                                        </label>
+                                                                    );
+                                                                }
+                                                                if (fieldType === 'record') {
+                                                                    const recordValue = 格式化运行时字段值(contributionDraft.modeRuntimeProfile, field);
+                                                                    return (
+                                                                        <label key={key} className="block text-xs text-gray-300 sm:col-span-2">
+                                                                            {field.label}
+                                                                            <textarea value={recordValue}
+                                                                                onChange={(event) => 更新运行时配置字段(field, event.target.value)}
+                                                                                placeholder={field.placeholder || '每行一个，格式：键=值'}
+                                                                                className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                                                        </label>
+                                                                    );
+                                                                }
+                                                                if (fieldType === 'realmConfig') {
+                                                                    const realmValue = (() => {
+                                                                        const v = 读取运行时路径值(contributionDraft.modeRuntimeProfile, field.path);
+                                                                        if (!v || typeof v !== 'object') return '';
+                                                                        return JSON.stringify(v, null, 2);
+                                                                    })();
+                                                                    return (
+                                                                        <label key={key} className="block text-xs text-gray-300 sm:col-span-2">
+                                                                            {field.label}
+                                                                            <textarea value={realmValue}
+                                                                                onChange={(event) => {
+                                                                                    try {
+                                                                                        const parsed = JSON.parse(event.target.value);
+                                                                                        更新运行时配置字段(field, parsed);
+                                                                                    } catch {
+                                                                                        // JSON parse error — skip update
+                                                                                    }
+                                                                                }}
+                                                                                placeholder='{"levelNames":[],"parseRules":[]}'
+                                                                                className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45 font-mono" />
                                                                         </label>
                                                                     );
                                                                 }

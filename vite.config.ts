@@ -303,35 +303,24 @@ export default defineConfig(({ mode }) => {
               return 'vendor';
             }
  
-            if (normalizedId.includes('/prompts/core/')) {
-              return 'prompts-core';
-            }
-
-            if (normalizedId.includes('/prompts/shared/')) {
-              return 'prompts-shared';
-            }
-
-            if (normalizedId.endsWith('/utils/promptFeatureToggles.ts')) {
-              return 'prompts-shared-utils';
-            }
-
             if (
               normalizedId.endsWith('/data/structuredItemLibrary.ts') ||
               normalizedId.endsWith('/data/presetItemImages.ts')
             ) {
               return 'item-library';
             }
- 
-            if (normalizedId.includes('/prompts/runtime/')) {
-              return 'prompts-runtime';
-            }
- 
-            if (normalizedId.includes('/prompts/stats/')) {
-              return 'prompts-stats';
-            }
- 
+
             if (normalizedId.includes('/prompts/')) {
-              return 'prompts-misc';
+              return 'prompts';
+            }
+
+            if (
+              normalizedId.endsWith('/utils/openingConfig.ts') ||
+              normalizedId.endsWith('/utils/topicModeProfiles.ts') ||
+              normalizedId.endsWith('/utils/modeRuntimeProfile.ts') ||
+              normalizedId.endsWith('/utils/promptFeatureToggles.ts')
+            ) {
+              return 'prompts';
             }
 
             if (

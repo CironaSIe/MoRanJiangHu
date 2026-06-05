@@ -92,12 +92,13 @@ export interface NPC图片记录 {
     目标类型: 'npc';
     NPC标识: string;
     NPC姓名: string;
-    NPC性别?: '男' | '女';
+    NPC性别?: '男' | '女' | '男娘' | '扶她';
+    NPC身份?: string;
     是否主要角色?: boolean;
-    结果: NPC生图结果;
-}
+     结果: NPC生图结果;
+ }
 
-export interface NPC图片档案 {
+ export interface NPC图片档案 {
     最近生图结果?: NPC生图结果;
     生图历史?: NPC生图结果[];
     已选头像图片ID?: string;
@@ -181,8 +182,7 @@ export interface NPC生图任务记录 {
     目标类型: 'npc';
     NPC标识: string;
     NPC姓名: string;
-    NPC性别?: '男' | '女';
-    NPC身份?: string;
+    NPC性别?: '男' | '女' | '男娘' | '扶她';
     是否主要角色?: boolean;
     来源: 生图任务来源类型;
     状态: 生图任务状态类型;

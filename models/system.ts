@@ -584,9 +584,6 @@ export interface ModeRuntimeProfile {
             levelNames: string[];
             parseRules: Array<{ pattern: string; level: number }>;
         };
-        resourceTypes?: string[];
-        defaultEquipment?: Record<string, string>;
-        defaultCurrency?: Record<string, number>;
         kungfuTypes?: string[];
     };
     items: {
@@ -605,6 +602,7 @@ export interface ModeRuntimeProfile {
         };
         /** 可扩展的活跃资源计数器列表（替代 resourceToggles），仅含高度同质化资源 */
         activeResources: string[];
+        resourceTypes?: string[];
     };
     map: {
         layerNames: string[];
@@ -641,6 +639,8 @@ export interface ModeRuntimeProfile {
         companionTemplate: string;
         cutInTemplates: string[];
         initialQuestTemplates: string[];
+        defaultEquipment?: Record<string, string>;
+        defaultCurrency?: Record<string, number>;
     };
     validation: {
         bannedWords: string[];
@@ -660,6 +660,7 @@ export interface OpeningConfig {
     开局生成同门: boolean;
     初始伙伴?: 初始伙伴配置结构;
     同人融合: 同人融合配置结构;
+    启用女主剧情规划?: boolean;
 }
 
 export interface WorldGenConfig {

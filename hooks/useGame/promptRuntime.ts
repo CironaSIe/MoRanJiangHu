@@ -148,7 +148,9 @@ const 选择剧情COT提示词ID = (
     config: 游戏设置结构,
     options?: { openingConfig?: OpeningConfig | null }
 ): string => {
-    const heroineEnabled = config?.启用女主剧情规划 === true;
+    const heroineEnabled = options?.openingConfig?.启用女主剧情规划 !== undefined
+        ? options.openingConfig.启用女主剧情规划 === true
+        : config?.启用女主剧情规划 === true;
     const ntlEnabled = heroineEnabled && config?.剧情风格 === 'NTL后宫';
     const fandomEnabled = 同人模式已启用(options?.openingConfig);
 

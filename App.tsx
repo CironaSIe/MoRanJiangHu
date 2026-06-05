@@ -268,6 +268,7 @@ const readDesktopDetailWidths = (): Record<string, number> => {
 
 type 可预加载组件<T extends React.ComponentType<any>> = React.LazyExoticComponent<T> & {
     preload?: () => Promise<unknown>;
+    importKey: string;
 };
 
 const 创建可预加载懒组件 = <T extends React.ComponentType<any>>(
@@ -277,6 +278,7 @@ const 创建可预加载懒组件 = <T extends React.ComponentType<any>>(
     const wrappedLoader = () => lazyImportWithReload(importKey, loader);
     const Component = React.lazy(wrappedLoader) as 可预加载组件<T>;
     Component.preload = wrappedLoader;
+    Component.importKey = importKey;
     return Component;
 };
 
@@ -2765,7 +2767,9 @@ const App: React.FC = () => {
                 <懒加载边界>
                     {isMobile ? (
                         <MobileNewGameWizard
-                            onComplete={actions.handleGenerateWorld}
+                            onComplete={(worldConfig, charData, openingConfig, mode, openingStreaming, openingExtraPrompt, activeModuleExtraRules) =>
+                                actions.handleGenerateWorld(worldConfig, charData, openingConfig, mode, openingStreaming, openingExtraPrompt, undefined, activeModuleExtraRules)
+                            }
                             onCancel={() => { state.setView('home'); }}
                             loading={state.loading}
                             apiConfig={state.apiConfig}
@@ -2773,7 +2777,9 @@ const App: React.FC = () => {
                         />
                     ) : (
                         <NewGameWizard
-                            onComplete={actions.handleGenerateWorld}
+                            onComplete={(worldConfig, charData, openingConfig, mode, openingStreaming, openingExtraPrompt, activeModuleExtraRules) =>
+                                actions.handleGenerateWorld(worldConfig, charData, openingConfig, mode, openingStreaming, openingExtraPrompt, undefined, activeModuleExtraRules)
+                            }
                             onCancel={() => { state.setView('home'); }}
                             loading={state.loading}
                             apiConfig={state.apiConfig}

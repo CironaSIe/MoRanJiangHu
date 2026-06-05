@@ -67,7 +67,7 @@ const 按模式获取默认境界配置 = (模式?: 题材模式类型 | null): 
             ],
         };
     }
-    if (group === 'urban' || group === 'modern') {
+    if (group === 'urban_xianxia' || group === 'modern') {
         return {
             levelNames: [
                 '普通人一阶', '普通人二阶', '普通人三阶', '普通人四阶',
@@ -93,7 +93,7 @@ const 按模式获取默认境界配置 = (模式?: 题材模式类型 | null): 
             ],
         };
     }
-    if (group === 'fantasy') {
+    if (group === 'western_fantasy') {
         return {
             levelNames: [
                 '见习一阶', '见习二阶', '见习三阶', '见习四阶',
