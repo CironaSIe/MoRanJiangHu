@@ -11,6 +11,20 @@ import {
     type 创意工坊主题配置,
     type 创意工坊选项定义
 } from '../data/workshopThemes/defaultWorkshopTheme';
+export {
+    合并题材世界默认值,
+    获取题材模式配置,
+    获取题材模式选项,
+    规范化题材模式,
+    题材是否仙侠,
+    题材是否现代,
+    题材模式配置表,
+    题材模式顺序
+} from '../data/workshopThemes/topicModeThemeData';
+export type {
+    题材模式配置,
+    题材模式分组
+} from '../data/workshopThemes/topicModeThemeData';
 import { 构建官方模式运行时配置 } from './modeRuntimeProfile';
 
 const 深拷贝 = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;

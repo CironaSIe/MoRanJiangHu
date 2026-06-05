@@ -34,12 +34,14 @@ import {
     规范化可选开局配置
 } from '../../../utils/openingConfig';
 import {
+    合并题材世界默认值,
     创建主题默认世界配置,
     获取创意工坊角色默认值,
     获取创意工坊难度选项,
-    获取创意工坊世界规模选项
+    获取创意工坊世界规模选项,
+    获取题材模式配置,
+    题材模式顺序
 } from '../../../utils/workshopEngine';
-import { 合并题材世界默认值, 获取题材模式配置, 题材模式顺序 } from '../../../utils/topicModeProfiles';
 import { 构建官方模式运行时配置, 规范化模式运行时配置 } from '../../../utils/modeRuntimeProfile';
 import { 构建默认技艺 } from '../../../utils/skillDefaults';
 import { 默认境界母板提示词 } from '../../../prompts/runtime/fandom';
@@ -1023,6 +1025,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 '- 背景和天赋必须能长期影响玩法，不要只写一句第一幕设定。',
                 '- 伙伴必须适合开局同行，并给出清楚关系，不要抢主角戏。',
                 `- 当前题材模式是“${当前题材配置.label}”，必须严格沿用对应世界观、身份背景、天赋、交易和地图口径。`,
+                ...当前题材配置.promptLines.map((line) => `- 题材核心边界：${line}`),
+                `- 开局边界：${当前题材配置.promptBoundary}`,
                 `- 货币/交易口径：${当前题材配置.currencyPrompt}`,
                 `- 统一换算口径：${当前题材配置.currencyExchangePrompt}`,
                 `- 地图/势力口径：${当前题材配置.mapPrompt}`,

@@ -247,7 +247,7 @@ export const 获取题材开局配置文案 = (mode?: 题材模式类型, runtim
                 家宅起手: { label: '避难点起手', hint: '优先落在家中、避难所、仓库、药房或临时安全屋。' },
                 门派起手: { label: '营地起手', hint: '优先落在幸存者营地、临时据点、军方残部或安全区边缘。' }
             },
-            promptBoundary: '末日丧尸开局不得生成古代门派、宗门、师门、同门、山门、藏经阁或门派贡献语感；兼容变量 `玩家门派` 只能承载营地、避难所、车队、军方残部、医疗点、黑市网络或幸存者小队。'
+            promptBoundary: profile.promptBoundary
         }, runtimeProfile);
     }
     if (profile.group === 'modern') {
@@ -266,7 +266,7 @@ export const 获取题材开局配置文案 = (mode?: 题材模式类型, runtim
                 家宅起手: { label: '住处起手', hint: '优先落在出租屋、家中、小区、店铺或办公室。' },
                 门派起手: { label: '组织起手', hint: '优先落在公司、学校、社区、项目组、门店或合作现场。' }
             },
-            promptBoundary: '现代都市开局不得生成古代门派、宗门、师门、同门、山门、藏经阁、门派贡献或江湖门派任务；兼容变量 `玩家门派` 只能承载公司、学校、社区、家庭、媒体、项目组、店铺、合作团队等现实社会结构。'
+            promptBoundary: profile.promptBoundary
         }, runtimeProfile);
     }
     if (profile.group === 'urban_xianxia') {
@@ -289,7 +289,7 @@ export const 获取题材开局配置文案 = (mode?: 题材模式类型, runtim
                 家宅起手: { label: '住处起手', hint: '优先落在住处、学校、医院、公司、店铺或家族据点。' },
                 门派起手: { label: profile.value === '灵气复苏' ? '机构起手' : '隐门起手', hint: profile.value === '灵气复苏' ? '优先落在研究机构、管控点、互助点或异常处理现场。' : '优先落在隐门据点、家族内场、暗市入口或修行圈碰头处。' }
             },
-            promptBoundary: '现代/都市修行题材不得把普通社会直接写成古代山门宗门；若生成组织，必须贴合研究机构、管控点、隐秘家族、暗市、公司学校或都市据点等现代场景。'
+            promptBoundary: profile.promptBoundary
         }, runtimeProfile);
     }
     if (profile.group === 'xianxia') {
@@ -308,7 +308,7 @@ export const 获取题材开局配置文案 = (mode?: 题材模式类型, runtim
                 家宅起手: { label: '洞府起手', hint: '优先落在洞府、院落、仙坊住处、家族旧宅等内场。' },
                 门派起手: { label: '宗门起手', hint: '优先落在山门、外门院、讲经堂、演法台或宗门任务现场。' }
             },
-            promptBoundary: '仙侠开局可以生成宗门、师长、同门、道友与坊市关系，但应使用修真/宗门语境，不要写成现代公司或末日营地。'
+            promptBoundary: profile.promptBoundary
         }, runtimeProfile);
     }
     if (profile.group === 'western_fantasy') {
@@ -327,7 +327,7 @@ export const 获取题材开局配置文案 = (mode?: 题材模式类型, runtim
                 家宅起手: { label: '酒馆起手', hint: '优先落在旅店、酒馆、公会宿舍、教会客房或学院宿舍。' },
                 门派起手: { label: '公会起手', hint: '优先落在冒险者公会、骑士团驻地、学院课堂或教会任务现场。' }
             },
-            promptBoundary: '西方奇幻开局不得生成东方宗门、师门、同门、山门、藏经阁、灵石、丹药或门派贡献；兼容变量 `玩家门派` 只能承载冒险者公会、骑士团、魔法学院、教会、佣兵团、商会或冒险队。'
+            promptBoundary: profile.promptBoundary
         }, runtimeProfile);
     }
     if (profile.group === 'infinite') {
@@ -346,7 +346,7 @@ export const 获取题材开局配置文案 = (mode?: 题材模式类型, runtim
                 家宅起手: { label: '队伍房间起手', hint: '优先落在队伍房间、主神广场、训练场或休整空间。' },
                 门派起手: { label: '轮回小队起手', hint: '优先落在轮回小队集合、主神光球说明规则或资深者带新人现场。' }
             },
-            promptBoundary: '无限流开局不得生成古代门派、宗门、师门、同门、山门、藏经阁、门派贡献或营地信用；兼容变量 `玩家门派` 只能承载轮回小队、队伍房间、主神空间、临时同盟或团战阵营。'
+            promptBoundary: profile.promptBoundary
         }, runtimeProfile);
     }
     return 应用运行时组织文案({
@@ -360,7 +360,7 @@ export const 获取题材开局配置文案 = (mode?: 题材模式类型, runtim
         organizationOffHint: '',
         relationLabels: {},
         cutInLabels: {},
-        promptBoundary: '武侠开局可以生成门派、师门、同门、帮会或江湖关系，但不要越界写成仙侠宗门飞升、现代公司制度或末日营地。'
+        promptBoundary: profile.promptBoundary
     }, runtimeProfile);
 };
 

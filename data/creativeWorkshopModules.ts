@@ -1,6 +1,6 @@
 import type { 开局预设方案结构 } from './newGamePresets';
 import type { ModeRuntimeProfile, 世界书结构, 世界书条目结构, 世界书类型, 世界书作用域 } from '../types';
-import { 题材模式配置表, 题材模式顺序 } from '../utils/topicModeProfiles';
+import { 题材模式配置表, 题材模式顺序 } from '../utils/workshopEngine';
 import { 构建官方模式运行时配置, 规范化模式运行时配置, 渲染模式运行时配置世界书内容 } from '../utils/modeRuntimeProfile';
 import { 默认ComfyUI工作流JSON, 默认NSFWComfyUI工作流JSON } from './defaultComfyWorkflow';
 import { 获取题材预设背景, 获取题材预设天赋 } from './presets';
@@ -300,19 +300,7 @@ const 构建世界规则模块 = (mode: keyof typeof 题材模式配置表): 创
 
 const 构建能力模块 = (mode: keyof typeof 题材模式配置表): 创意工坊模块条目 => {
     const profile = 题材模式配置表[mode];
-    const manualRealmPrompt = mode === '武侠'
-        ? '能力体系：外功、内功、轻功、招式、医毒、机关与兵器熟练度；高手仍受体力、伤势、距离、兵器和江湖规矩限制。'
-        : mode === '仙侠'
-        ? '境界体系：练气、筑基、金丹、元婴、化神。每个大境界分初期/中期/后期/圆满；突破需要资源、心境、功法契合与风险。'
-        : mode === '西方奇幻'
-        ? '能力体系：见习、初阶、中阶、高阶、大师、传奇；成长来自职业训练、魔力/神术掌控、装备、契约、公会声望和地下城经验，不写成修仙破境。'
-        : mode === '灵气复苏'
-        ? '能力体系：未觉醒、灵感初启、觉醒者、稳定者、领域雏形；现代科研、封控和副作用必须参与约束。'
-        : mode === '都市修仙'
-        ? '能力体系：炼体、引气、凝神、筑基、金丹；修行必须和现代身份、资源渠道、人脉风险并存。'
-        : mode === '现代都市'
-        ? '成长体系：职业技能、人脉信用、资产管理、心理韧性和社会资源；不要常态化超凡力量。'
-        : '能力体系：普通幸存者、熟练搜寻者、营地骨干、感染适应者、区域领袖；感染、伤病、弹药和信任限制成长速度。';
+    const manualRealmPrompt = profile.manualRealmPrompt;
     const actor = 题材默认角色[mode];
     const preset = 构建题材预设(`workshop_ability_${profile.value}`, `工坊·${profile.shortLabel}能力体系`, `${profile.label}能力边界包。`, mode, 构建角色(actor.姓名, actor.背景, actor.天赋));
     return {

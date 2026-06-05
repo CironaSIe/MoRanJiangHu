@@ -34,12 +34,14 @@ import {
     规范化可选开局配置
 } from '../../../../utils/openingConfig';
 import {
+    合并题材世界默认值,
     创建主题默认世界配置,
     获取创意工坊角色默认值,
     获取创意工坊难度选项,
-    获取创意工坊世界规模选项
+    获取创意工坊世界规模选项,
+    获取题材模式配置,
+    题材模式顺序
 } from '../../../../utils/workshopEngine';
-import { 合并题材世界默认值, 获取题材模式配置, 题材模式顺序 } from '../../../../utils/topicModeProfiles';
 import { 构建官方模式运行时配置, 规范化模式运行时配置 } from '../../../../utils/modeRuntimeProfile';
 import { 构建默认技艺 } from '../../../../utils/skillDefaults';
 import { 默认境界母板提示词 } from '../../../../prompts/runtime/fandom';
