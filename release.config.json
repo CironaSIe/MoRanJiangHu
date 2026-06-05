@@ -2,7 +2,7 @@
   "versionCode": 403,
   "versionName": "1.0.403",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-06-05T09:43:36+08:00",
+  "releasePublishedAt": "2026-06-05T12:23:32+08:00",
   "releaseNotes": [
     "优化创意工坊题材开局：新建存档会更严格沿用所选题材的世界观、能力体系、交易货币和地图口径。",
     "减少题材串味：西方奇幻、现代都市、末日丧尸、无限流等模式更不容易误生成武侠门派、仙侠宗门或不合题材的组织关系。",

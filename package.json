@@ -27,6 +27,7 @@
     "apk:sync": "npm run build:apk && npx cap sync android && node scripts/prune-apk-assets.mjs",
     "apk:debug": "npm run apk:sync && cd android && gradlew.bat assembleDebug",
     "apk:release": "npm run apk:sync && cd android && gradlew.bat assembleRelease",
+    "apk:signature": "node scripts/inspect-apk-signature.mjs",
     "stress:test": "node scripts/promptStressTest.js",
     "preset:images": "node scripts/generate-preset-item-images.mjs",
     "preset:feedback": "node scripts/sync-item-preset-feedback-data.mjs"
