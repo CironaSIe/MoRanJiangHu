@@ -7,6 +7,8 @@ export {
     generateNpcSecretPartImagePrompt,
     generateSceneImagePrompt,
     构建最终图片提示词,
+    全局无文字正向提示词,
+    全局无文字负面提示词,
     persistImageAssetLocally,
     修复部位特写底部缩略图栏,
     解析PNG文件元数据,

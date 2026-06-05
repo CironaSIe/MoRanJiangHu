@@ -374,7 +374,7 @@ export const 构建官方模式运行时配置 = (
             characterClothingEra: isInfinite ? '现代轮回者与任务世界混合装备' : isApocalypse ? '现代末日生存服饰' : isModern ? '当代城市服饰' : profile.group === 'xianxia' ? '古典修真服饰' : profile.group === 'western_fantasy' ? '中世纪西方奇幻服饰' : '武侠江湖服饰',
             sceneMaterials: isInfinite ? '主神空间冷白光、金属地面、队伍房间、训练场、电影任务世界道具、现代战术装备' : isApocalypse ? '现代废墟、混凝土、铁皮、塑料布、车辆、临时照明' : isModern ? '城市街区、玻璃、混凝土、电子设备、办公室、商场' : profile.group === 'western_fantasy' ? '石砌城堡、木梁酒馆、羊皮卷、皮革、锁甲、彩绘玻璃、森林、矿洞、地下城、遗迹' : '木石、布帛、山水、院落、兵器、古道',
             itemRealismPrompt: '物品必须按真实用途、材质、尺寸和磨损状态绘制，不要把普通物资画成法宝或装饰概念图。',
-            negativePrompt: isInfinite ? '禁止把团队商城画成古代拍卖行、宗门坊市、普通超市或金银钱庄。' : isModern ? '禁止古装、仙侠长袍、山门、丹炉、飞剑、宗门弟子。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
+            negativePrompt: isInfinite ? '禁止把主神商城或团队商城画成古代拍卖行、宗门坊市、普通超市或金银钱庄。' : isModern ? '禁止古装、仙侠长袍、山门、丹炉、飞剑、宗门弟子。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
             visualStyle: isInfinite ? '写实电影感，主神空间、任务世界和兑换道具边界明确' : isApocalypse ? '写实、压抑、物资细节明确' : isModern ? '写实、当代、职业和城市细节明确' : profile.group === 'western_fantasy' ? '写实西方奇幻，职业装备、材质和冒险氛围明确' : '写实国风，服饰和物件符合题材'
         },
         opening: {
@@ -599,7 +599,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             characterClothingEra: isInfinite ? '现代轮回者与任务世界混合装备' : isApocalypse ? '现代末日生存服饰' : isModern ? '当代城市服饰' : profile.group === 'xianxia' ? '古典修真服饰' : profile.group === 'western_fantasy' ? '中世纪西方奇幻服饰' : '武侠江湖服饰',
             sceneMaterials: isInfinite ? '主神空间冷白光、金属地面、队伍房间、训练场、电影任务世界道具、现代战术装备' : isApocalypse ? '现代废墟、混凝土、铁皮、塑料布、车辆、临时照明' : isModern ? '城市街区、玻璃、混凝土、电子设备、办公室、商场' : profile.group === 'western_fantasy' ? '石砌城堡、木梁酒馆、羊皮卷、皮革、锁甲、彩绘玻璃、森林、矿洞、地下城、遗迹' : '木石、布帛、山水、院落、兵器、古道',
             itemRealismPrompt: '物品必须按真实用途、材质、尺寸和磨损状态绘制，不要把普通物资画成法宝或装饰概念图。',
-            negativePrompt: isInfinite ? '禁止把团队商城画成古代拍卖行、宗门坊市、普通超市或金银钱庄。' : isModern ? '禁止古装、仙侠长袍、山门、丹炉、飞剑、宗门弟子。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
+            negativePrompt: isInfinite ? '禁止把主神商城或团队商城画成古代拍卖行、宗门坊市、普通超市或金银钱庄。' : isModern ? '禁止古装、仙侠长袍、山门、丹炉、飞剑、宗门弟子。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
             visualStyle: isInfinite ? '写实电影感，主神空间、任务世界和兑换道具边界明确' : isApocalypse ? '写实、压抑、物资细节明确' : isModern ? '写实、当代、职业和城市细节明确' : profile.group === 'western_fantasy' ? '写实西方奇幻，职业装备、材质和冒险氛围明确' : '写实国风，服饰和物件符合题材'
         },
         opening: {

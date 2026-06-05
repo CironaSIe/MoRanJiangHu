@@ -54,11 +54,10 @@ const 现代晋升梯队: RankStep[] = [
 
 const 无限流晋升梯队: RankStep[] = [
     { rank: '新人', lvl: 1, required: 0, discount: 0, perks: ['基础任务', '新人补给'] },
-    { rank: '正式成员', lvl: 2, required: 150, discount: 0.05, perks: ['支线任务权限', '团队商城九五折'] },
-    { rank: '骨干成员', lvl: 3, required: 500, discount: 0.1, perks: ['高级任务优先', '团队商城九折'] },
+    { rank: '正式队员', lvl: 2, required: 150, discount: 0.05, perks: ['团队任务权限', '团队商城九五折'] },
+    { rank: '资深者', lvl: 3, required: 500, discount: 0.1, perks: ['高危任务优先', '团队商城九折'] },
     { rank: '副队长', lvl: 4, required: 1200, discount: 0.15, perks: ['小队管理权限', '团队商城八五折'] },
-    { rank: '队长', lvl: 5, required: 3000, discount: 0.2, perks: ['小队决策权', '团队商城八折'] },
-    { rank: '核心轮回者', lvl: 6, required: 6000, discount: 0.28, perks: ['独立任务权限', '团队商城七二折'] }
+    { rank: '队长', lvl: 5, required: 3000, discount: 0.2, perks: ['小队决策权', '团队商城八折'] }
 ];
 
 const 获取组织显示文案 = (sectData: 详细门派结构) => {
@@ -86,7 +85,13 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
             learnedAction: '已解锁',
             canLearn: '可解锁',
             rankLadder: 无限流晋升梯队,
-            rankMap: {} as Record<string, string>
+            rankMap: {
+                正式成员: '正式队员',
+                骨干成员: '资深者',
+                核心轮回者: '队长',
+                新人队长: '新人'
+            } as Record<string, string>,
+            isInfinite: true
         };
     }
     if (isModern) {
@@ -108,7 +113,8 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
             learnedAction: '已学习',
             canLearn: '可学',
             rankLadder: 现代晋升梯队,
-            rankMap: {} as Record<string, string>
+            rankMap: {} as Record<string, string>,
+            isInfinite: false
         };
     }
     if (!isApocalypse) {
@@ -130,7 +136,8 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
             learnedAction: '已学习',
             canLearn: '可学',
             rankLadder: 古风晋升梯队,
-            rankMap: {} as Record<string, string>
+            rankMap: {} as Record<string, string>,
+            isInfinite: false
         };
     }
     return {
@@ -151,7 +158,8 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
         learnedAction: '已学习',
         canLearn: '可学',
         rankLadder: 末日晋升梯队,
-        rankMap: 末日旧职位映射
+        rankMap: 末日旧职位映射,
+        isInfinite: false
     };
 };
 
@@ -202,10 +210,16 @@ const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook
     const 累计贡献 = Math.max(sectData.玩家贡献 || 0, sectData.累计贡献 || 0);
     const 存档职位步骤 = 文案.rankLadder.find((item) => item.rank === 显示职位(sectData.玩家职位));
     const 贡献职位步骤 = [...文案.rankLadder].reverse().find((item) => 累计贡献 >= item.required);
-    const 当前职位步骤 = [存档职位步骤, 贡献职位步骤, 文案.rankLadder[0]]
-        .filter(Boolean)
-        .sort((left, right) => (right?.lvl || 0) - (left?.lvl || 0))[0] || 文案.rankLadder[0];
+    const 当前职位步骤 = 文案.isInfinite
+        ? (贡献职位步骤 || 文案.rankLadder[0])
+        : ([存档职位步骤, 贡献职位步骤, 文案.rankLadder[0]]
+            .filter(Boolean)
+            .sort((left, right) => (right?.lvl || 0) - (left?.lvl || 0))[0] || 文案.rankLadder[0]);
     const 当前职位名称 = 当前职位步骤?.rank || 显示职位(sectData.玩家职位);
+    const 原始职位名称 = String(sectData.玩家职位 || '').trim();
+    const 额外职务标签 = 文案.isInfinite && /队长/u.test(原始职位名称) && 当前职位名称 !== '队长'
+        ? 原始职位名称.replace(/^(新人|正式队员|正式成员|资深者|骨干成员)/u, '') || '临时队长'
+        : '';
     const 当前折扣 = 当前职位步骤?.discount || 0;
     const 计算折后贡献 = (price: number) => Math.max(1, Math.ceil(price * (1 - 当前折扣)));
     const 取职位等级 = (rank?: string) => {
@@ -215,6 +229,31 @@ const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook
     const 职位可达 = (requiredRank?: string) => (当前职位步骤?.lvl || 0) >= 取职位等级(requiredRank || 文案.rankLadder[0]?.rank);
     const 月俸可领取 = Boolean(sectData.月俸规则) && 本月月俸可领取(sectData, env);
     const 月俸数量 = 估算月俸数量(sectData);
+    const 实际轮回者人数 = Math.max(1, Array.isArray(sectData.重要成员) ? sectData.重要成员.length : 0);
+    const 展示人数 = 文案.isInfinite
+        ? (Number(sectData.弟子总数 || 0) > 12 ? 实际轮回者人数 : Math.max(实际轮回者人数, Number(sectData.弟子总数 || 0) || 0))
+        : (sectData.弟子总数 || 0);
+    const 展示等级 = 文案.isInfinite
+        ? (展示人数 >= 9 ? '精英轮回队' : 展示人数 >= 5 ? '稳定轮回队' : 展示人数 >= 3 ? '新人轮回队' : '临时轮回小队')
+        : (sectData.门派等级 || '待评定');
+    const 展示规模 = 文案.isInfinite
+        ? (展示人数 >= 9 ? '大型轮回队' : 展示人数 >= 5 ? '标准小队' : 展示人数 >= 3 ? '小型轮回小队' : '双人小队')
+        : (sectData.门派规模 || '待记录');
+    const 显示资料名 = (name?: string) => {
+        const raw = String(name || '').trim();
+        if (!raw || !文案.isInfinite && 文案.tabs.library === '藏经') return raw;
+        const orgName = String(sectData.名称 || '').trim();
+        const candidates = [
+            orgName,
+            orgName.replace(/(轮回小队|主神小队|队伍房间|团战小队|临时同盟|公司|项目组|事务所|社区中心|门店|合作团队|营地|避难所|车队|安全点|哨站|救援站)$/u, '')
+        ].filter(Boolean);
+        for (const prefix of candidates) {
+            if (raw.startsWith(prefix) && raw.length > prefix.length + 1) {
+                return raw.slice(prefix.length);
+            }
+        }
+        return raw;
+    };
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-3 md:hidden animate-fadeIn">
@@ -226,7 +265,9 @@ const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook
                         </div>
                         <div>
                             <div className="text-wuxia-gold font-serif font-bold text-base">{sectData.名称}</div>
-                            <div className="text-[9px] text-gray-500 font-mono">{当前职位名称}</div>
+                            <div className="text-[9px] text-gray-500 font-mono">
+                                {当前职位名称}{额外职务标签 ? ` · ${额外职务标签}` : ''}
+                            </div>
                         </div>
                     </div>
                     <button
@@ -285,9 +326,9 @@ const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook
                             <div className="bg-black/40 border border-gray-800 rounded-xl p-4">
                                 <div className="text-[10px] text-wuxia-gold/70 tracking-[0.3em] mb-3">{文案.organizationPower}</div>
                                 <div className="grid grid-cols-2 gap-2 text-[11px]">
-                                    <div className="rounded border border-cyan-400/20 bg-cyan-950/15 p-2 text-cyan-100">等级：{sectData.门派等级 || '待评定'}</div>
-                                    <div className="rounded border border-white/10 bg-black/25 p-2 text-gray-200">规模：{sectData.门派规模 || '待记录'}</div>
-                                    <div className="rounded border border-white/10 bg-black/25 p-2 text-gray-200">{文案.memberCount}：{sectData.弟子总数 || 0}</div>
+                                    <div className="rounded border border-cyan-400/20 bg-cyan-950/15 p-2 text-cyan-100">等级：{展示等级}</div>
+                                    <div className="rounded border border-white/10 bg-black/25 p-2 text-gray-200">规模：{展示规模}</div>
+                                    <div className="rounded border border-white/10 bg-black/25 p-2 text-gray-200">{文案.memberCount}：{展示人数}</div>
                                     <div className="rounded border border-wuxia-gold/20 bg-wuxia-gold/5 p-2 text-wuxia-gold">财富：{sectData.财富评级 || '待评估'}</div>
                                 </div>
                                 {sectData.月俸规则 && (
@@ -377,7 +418,7 @@ const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook
                                     <div key={book.id} className="bg-black/40 border border-gray-800 rounded-xl p-4 space-y-3">
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
-                                                <div className="text-sm text-gray-200 font-bold">{book.名称}</div>
+                                                <div className="text-sm text-gray-200 font-bold">{显示资料名(book.名称)}</div>
                                                 <div className="text-[10px] text-gray-500 mt-1">{book.类型} · {book.品阶}</div>
                                             </div>
                                             <span className={`text-[10px] px-2 py-0.5 rounded border ${alreadyLearned ? 'border-gray-600 text-gray-300' : canRead ? 'border-emerald-400/40 text-emerald-200' : 'border-gray-700 text-gray-400'}`}>

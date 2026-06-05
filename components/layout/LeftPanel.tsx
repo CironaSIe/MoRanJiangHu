@@ -5,6 +5,7 @@ import { 构建区域文字样式 } from '../../utils/visualSettings';
 import { 获取图片资源文本地址 } from '../../utils/imageAssets';
 import { 计算角色总气血 } from '../../utils/characterVitals';
 import { 获取货币显示模式, 获取货币单位标签 } from '../../utils/currencyDisplay';
+import { 获取题材资源文案 } from '../../utils/resourceLabels';
 
 interface Props {
     角色: 角色数据结构;
@@ -204,6 +205,7 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
         { name: '右腿', current: 角色.右腿当前血量, max: 角色.右腿最大血量, status: 角色.右腿状态 },
     ];
     const 总气血 = React.useMemo(() => 计算角色总气血(角色), [角色]);
+    const 资源文案 = 获取题材资源文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
     const 总气血变化 = React.useMemo(() => {
         const weighted = [
             ['角色.头部当前血量', 2.4],
@@ -324,10 +326,10 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
             </div>
 
             <div className="mb-2 shrink-0 flex flex-col gap-0.5">
-                <FlatBar label="总气血" current={总气血.当前} max={总气血.最大} type="hp" visualConfig={visualConfig} commandDelta={总气血变化} />
-                <FlatBar label="精力" current={角色.当前精力} max={角色.最大精力} type="stamina" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前精力')} />
+                <FlatBar label={`总${资源文案.气血}`} current={总气血.当前} max={总气血.最大} type="hp" visualConfig={visualConfig} commandDelta={总气血变化} />
+                <FlatBar label={资源文案.精力} current={角色.当前精力} max={角色.最大精力} type="stamina" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前精力')} />
                 {启用修炼体系 && (
-                    <FlatBar label="内力" current={角色.当前内力} max={角色.最大内力} type="inner" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前内力')} />
+                    <FlatBar label={资源文案.能量} current={角色.当前内力} max={角色.最大内力} type="inner" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前内力')} />
                 )}
                 {启用饱腹口渴系统 && (
                     <>

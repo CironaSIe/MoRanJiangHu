@@ -15,6 +15,7 @@ import { use图片资源回源预取 } from '../../../hooks/useImageAssetPrefetc
 import { 计算角色总气血 } from '../../../utils/characterVitals';
 import { 格式化角色金钱行, 获取货币显示模式 } from '../../../utils/currencyDisplay';
 import { 读取可分配属性点, type 可分配六维属性键 } from '../../../utils/characterAttributePoints';
+import { 获取题材资源文案 } from '../../../utils/resourceLabels';
 
 interface Props {
     character: 角色数据结构;
@@ -129,6 +130,7 @@ const MobileCharacter: React.FC<Props> = ({
 }) => {
     use图片资源回源预取(character);
     const 总气血 = useMemo(() => 计算角色总气血(character), [character]);
+    const 资源文案 = 获取题材资源文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
     const [activeView, setActiveView] = useState<MobileCharacterView>('profile');
     const [busyAction, setBusyAction] = useState('');
     const [generateOptions, setGenerateOptions] = useState<主角生图选项>({
@@ -564,10 +566,10 @@ const MobileCharacter: React.FC<Props> = ({
 
                             <div className="rounded-2xl border border-gray-800 bg-black/30 p-4 space-y-3">
                                 <div className="text-[10px] tracking-[0.3em] text-wuxia-gold/70">状态</div>
-                                <VitalBar label="总气血" current={总气血.当前} max={总气血.最大} color="bg-red-700" />
-                                <VitalBar label="精力" current={character.当前精力} max={character.最大精力} color="bg-teal-500" />
+                                <VitalBar label={`总${资源文案.气血}`} current={总气血.当前} max={总气血.最大} color="bg-red-700" />
+                                <VitalBar label={资源文案.精力} current={character.当前精力} max={character.最大精力} color="bg-teal-500" />
                                 {启用修炼体系 && (
-                                    <VitalBar label="内力" current={character.当前内力} max={character.最大内力} color="bg-indigo-500" />
+                                    <VitalBar label={资源文案.能量} current={character.当前内力} max={character.最大内力} color="bg-indigo-500" />
                                 )}
                                 {启用饱腹口渴系统 && (
                                     <>

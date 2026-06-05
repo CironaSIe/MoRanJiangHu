@@ -1,16 +1,82 @@
 import React, { useMemo } from 'react';
-import { 角色数据结构, 视觉设置结构 } from '../../../types';
+import { OpeningConfig, 角色数据结构, 视觉设置结构 } from '../../../types';
 import { 构建区域文字样式 } from '../../../utils/visualSettings';
 import { 格式化月日, 计算角色总气血 } from '../../../utils/characterVitals';
 import { 读取可分配属性点, type 可分配六维属性键 } from '../../../utils/characterAttributePoints';
+import { 获取题材资源文案 } from '../../../utils/resourceLabels';
 interface Props {
     character: 角色数据结构;
     visualConfig?: 视觉设置结构;
+    openingConfig?: OpeningConfig;
     onAllocateAttributePoint?: (key: 可分配六维属性键) => void;
 }
 
-const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig, onAllocateAttributePoint }) => {
+const 获取档案题材文案 = (openingConfig?: OpeningConfig) => {
+    const mode = openingConfig?.题材模式;
+    if (mode === '无限流') {
+        return {
+            档案题头: '主神空间档案',
+            编号: '档案编号',
+            信息: '轮回者信息',
+            背景: '入队背景',
+            生辰: '登记日',
+            性格: '性格侧写',
+            外貌: '外观记录',
+            出身: '背景备注',
+            天赋: '能力倾向',
+            六维: '基础六维',
+            部位: '身体状态'
+        };
+    }
+    if (mode === '末日丧尸') {
+        return {
+            档案题头: '幸存者档案',
+            编号: '档案编号',
+            信息: '幸存者信息',
+            背景: '灾前背景',
+            生辰: '出生日期',
+            性格: '性格侧写',
+            外貌: '外观记录',
+            出身: '背景备注',
+            天赋: '生存倾向',
+            六维: '基础六维',
+            部位: '身体状态'
+        };
+    }
+    if (mode === '现代都市' || mode === '灵气复苏' || mode === '都市修仙') {
+        return {
+            档案题头: '角色档案',
+            编号: '档案编号',
+            信息: '人物信息',
+            背景: '身份背景',
+            生辰: '出生日期',
+            性格: '性格侧写',
+            外貌: '外观记录',
+            出身: '背景备注',
+            天赋: '天赋记录',
+            六维: '基础六维',
+            部位: '身体状态'
+        };
+    }
+    return {
+        档案题头: mode === '仙侠' ? '修行身份文牒' : mode === '西方奇幻' ? '冒险者档案' : '江湖身份文牒',
+        编号: '身份编号',
+        信息: '人物信息',
+        背景: '背景',
+        生辰: '生辰',
+        性格: '性格',
+        外貌: mode === '西方奇幻' ? '外观记录' : '外貌描摹',
+        出身: mode === '西方奇幻' ? '背景备注' : '出身批注',
+        天赋: mode === '西方奇幻' ? '天赋记录' : '天赋卷宗',
+        六维: '基础六维',
+        部位: mode === '西方奇幻' ? '身体状态' : '部位状态'
+    };
+};
+
+const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig, openingConfig, onAllocateAttributePoint }) => {
     const 天赋列表 = Array.isArray(character.天赋列表) ? character.天赋列表 : [];
+    const 文案 = 获取档案题材文案(openingConfig);
+    const 资源文案 = 获取题材资源文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
     const areaStyle = 构建区域文字样式(visualConfig, '角色档案');
     const profileFontStyle = {
         fontFamily: areaStyle.fontFamily,
@@ -77,14 +143,14 @@ const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig, onAllo
     return (
         <div className="character-profile-card w-full max-w-5xl overflow-hidden rounded-2xl border border-[#c7a56a]/55 bg-[#fffaf0] text-[#4f2d16] shadow-[0_18px_50px_rgba(92,57,24,0.16)]" style={profileFontStyle}>
             <div className="relative border-b border-[#c7a56a]/45 bg-[linear-gradient(180deg,rgba(196,157,92,0.2),rgba(255,250,240,0))] px-6 py-5 md:px-8 md:py-6">
-                <div className="text-[10px] uppercase tracking-[0.45em] text-[#9b5a22]">江湖身份文牒</div>
-                <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                    <div>
+                <div className="text-[10px] uppercase tracking-[0.45em] text-[#9b5a22]">{文案.档案题头}</div>
+                <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <div className="min-w-0 pr-0 md:pr-4">
                         <h3 className="text-2xl font-bold tracking-[0.2em] text-[#7a3f12] md:text-3xl" style={{ fontFamily: areaStyle.fontFamily, fontStyle: areaStyle.fontStyle }}>{character.姓名}</h3>
                         <p className="mt-1 text-sm text-[#5f3a1e] md:text-base">{character.称号 || '无称号'} · {character.境界}</p>
                     </div>
-                    <div className="inline-flex items-center gap-2 self-start rounded-sm border border-[#df8f7d]/45 bg-[#fff4eb] px-3 py-1.5 text-xs tracking-[0.18em] text-[#b42318] md:self-auto">
-                        <span>身份编号</span>
+                    <div className="relative z-10 inline-flex max-w-full flex-wrap items-center gap-2 self-start rounded-sm border border-[#df8f7d]/45 bg-[#fff4eb] px-3 py-1.5 text-xs tracking-[0.12em] text-[#b42318] md:self-auto">
+                        <span>{文案.编号}</span>
                         <span className="font-mono text-[#7a3f12]">{character.姓名}-{character.年龄}</span>
                     </div>
                 </div>
@@ -94,10 +160,10 @@ const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig, onAllo
             <div className="grid gap-4 p-5 md:p-6 xl:grid-cols-[1.15fr_0.85fr]">
                 <div className="space-y-4">
                     <div className="border border-[#c7a56a]/35 bg-[#fffdf6] p-4">
-                        <div className="mb-3 text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]">人物信息</div>
+                        <div className="mb-3 text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]">{文案.信息}</div>
                         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                             <div className="border border-[#d8c4a2] bg-[#fffaf0] px-3 py-2">
-                                <div className="text-[10px] tracking-[0.25em] text-[#8a5a2f]">背景</div>
+                                <div className="text-[10px] tracking-[0.25em] text-[#8a5a2f]">{文案.背景}</div>
                                 <div className="mt-1 text-[#7a3f12]">{character.出身背景?.名称 || '无'}</div>
                             </div>
                             <div className="border border-[#d8c4a2] bg-[#fffaf0] px-3 py-2">
@@ -105,15 +171,15 @@ const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig, onAllo
                                 <div className="mt-1">{character.年龄} 岁</div>
                             </div>
                             <div className="border border-[#d8c4a2] bg-[#fffaf0] px-3 py-2">
-                                <div className="text-[10px] tracking-[0.25em] text-[#8a5a2f]">生辰</div>
+                                <div className="text-[10px] tracking-[0.25em] text-[#8a5a2f]">{文案.生辰}</div>
                                 <div className="mt-1">{格式化月日(character.出生日期) || '未知'}</div>
                             </div>
                             <div className="border border-[#d8c4a2] bg-[#fffaf0] px-3 py-2">
-                                <div className="text-[10px] tracking-[0.25em] text-[#8a5a2f]">总气血</div>
+                                <div className="text-[10px] tracking-[0.25em] text-[#8a5a2f]">总{资源文案.气血}</div>
                                 <div className={`mt-1 font-mono ${总气血.已死亡 ? 'text-[#b42318]' : 'text-[#7a3f12]'}`}>{总气血.当前}/{总气血.最大}</div>
                             </div>
                             <div className="border border-[#d8c4a2] bg-[#fffaf0] px-3 py-2 sm:col-span-2">
-                                <div className="text-[10px] tracking-[0.25em] text-[#8a5a2f]">性格</div>
+                                <div className="text-[10px] tracking-[0.25em] text-[#8a5a2f]">{文案.性格}</div>
                                 <div className="mt-1">{character.性格 || '暂无性格记录'}</div>
                             </div>
                         </div>
@@ -140,12 +206,12 @@ const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig, onAllo
                     )}
 
                     <div className="border border-[#c7a56a]/35 bg-[#fffdf6] p-4">
-                        <div className="mb-3 text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]">外貌描摹</div>
+                        <div className="mb-3 text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]">{文案.外貌}</div>
                         <p className="text-sm leading-7 text-[#4f2d16]">{character.外貌 || '暂无外貌记录。'}</p>
                     </div>
 
                     <div className="border border-[#c7a56a]/35 bg-[#fffdf6] p-4">
-                        <div className="mb-3 text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]">出身批注</div>
+                        <div className="mb-3 text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]">{文案.出身}</div>
                         <p className="text-sm leading-7 text-[#4f2d16]">{character.出身背景?.描述 || '暂无背景描述。'}</p>
                         {character.出身背景?.效果 && <div className="mt-3 border-l-2 border-[#c7a56a] pl-3 text-xs leading-6 text-[#7a3f12]">{character.出身背景.效果}</div>}
                     </div>
@@ -154,7 +220,7 @@ const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig, onAllo
                 <div className="space-y-4">
                     <div className="border border-[#df8f7d]/45 bg-[#fff6f1] p-4">
                         <div className="mb-3 flex items-center justify-between gap-2">
-                            <div className="text-[10px] uppercase tracking-[0.35em] text-[#b42318]">天赋卷宗</div>
+                            <div className="text-[10px] uppercase tracking-[0.35em] text-[#b42318]">{文案.天赋}</div>
                             <div className="text-[10px] text-[#8a5a2f]">共 {天赋列表.length} 项</div>
                         </div>
                         <div className="space-y-3">
@@ -177,7 +243,7 @@ const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig, onAllo
 
                     <div className="border border-[#c7a56a]/35 bg-[#fffdf6] p-4">
                         <div className="mb-3 flex items-center justify-between gap-2">
-                            <div className="text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]" title="悬浮每个六维格可查看具体影响">基础六维</div>
+                            <div className="text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]" title="悬浮每个六维格可查看具体影响">{文案.六维}</div>
                             {可用属性点 > 0 && (
                                 <div className="rounded-sm border border-[#c7a56a]/55 bg-[#fff4df] px-2 py-1 text-[10px] font-semibold tracking-[0.16em] text-[#7a3f12]">
                                     可分配 {可用属性点}
@@ -207,8 +273,8 @@ const CharacterProfileCard: React.FC<Props> = ({ character, visualConfig, onAllo
 
                     <div className="border border-[#c7a56a]/35 bg-[#fffdf6] p-4">
                         <div className="mb-3 flex items-center justify-between gap-2">
-                            <div className="text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]">部位状态</div>
-                            <div className={`text-[10px] ${总气血.已死亡 ? 'text-[#b42318]' : 'text-[#8a5a2f]'}`}>总气血 {总气血.当前}/{总气血.最大}</div>
+                            <div className="text-[10px] uppercase tracking-[0.35em] text-[#9b5a22]">{文案.部位}</div>
+                            <div className={`text-[10px] ${总气血.已死亡 ? 'text-[#b42318]' : 'text-[#8a5a2f]'}`}>总{资源文案.气血} {总气血.当前}/{总气血.最大}</div>
                         </div>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             {部位状态列表.map((part) => {

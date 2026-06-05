@@ -1604,6 +1604,7 @@ export const useGame = () => {
     const NPC符合自动生图条件 = (npc: any): boolean => {
         const config = 读取文生图功能配置();
         if (!config.总开关 || !config.NPC开关) return false;
+        if (npc?.是否玩家本人 === true || npc?.来源 === '玩家门派.重要成员.玩家本人') return false;
         if (npc?.自动生图禁用 === true) return false;
         if (config.性别筛选 !== '全部') {
             const gender = typeof npc?.性别 === 'string' ? npc.性别.trim() : '';
@@ -2591,6 +2592,7 @@ export const useGame = () => {
             是否在场: typeof member?.是否在场 === 'boolean' ? member.是否在场 : false,
             是否队友: false,
             是否主要角色: false,
+            是否玩家本人: member?.是否玩家本人 === true,
             好感度: Number.isFinite(Number(member?.好感度)) ? Number(member.好感度) : 0,
             关系状态: formatRelation(member?.关系状态),
             简介: typeof member?.简介 === 'string' && member.简介.trim()
@@ -2608,6 +2610,7 @@ export const useGame = () => {
         const normalizedKey = (value: unknown) => (typeof value === 'string' ? value.trim().replace(/\s+/g, '').toLowerCase() : '');
         const known = new Set(currentSocial.flatMap((npc: any) => [npc?.id, npc?.ID, npc?.姓名, npc?.名称].map(normalizedKey)).filter(Boolean));
         const missing = members
+            .filter((member: any) => member?.是否玩家本人 !== true)
             .map((member: any, index: number) => 构建门派同门社交档案(member, index))
             .filter((npc: any) => {
                 const keys = [npc?.id, npc?.姓名].map(normalizedKey).filter(Boolean);

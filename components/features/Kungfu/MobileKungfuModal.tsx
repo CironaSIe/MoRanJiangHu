@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { 功法结构 } from '../../../models/kungfu';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
+import { 获取题材界面文案 } from '../../../utils/resourceLabels';
+import type { 题材模式类型 } from '../../../models/system';
 
 interface Props {
     skills: 功法结构[];
@@ -8,13 +10,29 @@ interface Props {
     topicMode?: string;
 }
 
-const 获取移动功法文案 = (topicMode?: string) => ({
-    title: topicMode === '末日丧尸' ? '技能手册' : topicMode === '现代都市' ? '能力档案' : '武学秘籍',
-    learned: topicMode === '末日丧尸' ? '已掌握技能' : topicMode === '现代都市' ? '已掌握能力' : '已学功法',
-    empty: topicMode === '末日丧尸' ? '暂无技能记录' : topicMode === '现代都市' ? '暂无能力记录' : '暂无功法',
-    choose: topicMode === '末日丧尸' ? '请选择技能' : topicMode === '现代都市' ? '请选择能力' : '请选择功法',
-    unit: topicMode === '末日丧尸' || topicMode === '现代都市' ? '级' : '重'
-});
+const 获取移动功法文案 = (topicMode?: string) => {
+    const labels = 获取题材界面文案(topicMode as 题材模式类型 | undefined).标题;
+    return {
+        title: labels.能力,
+        learned: `已掌握${labels.能力}`,
+        empty: labels.能力空状态,
+        choose: labels.能力详情提示标题,
+        unit: labels.能力等级单位,
+        params: labels.能力参数标题,
+        baseValue: labels.能力基础数值,
+        energyFactor: labels.能力能量系数,
+        castTime: labels.能力施展耗时,
+        cooldown: labels.能力冷却时间,
+        cost: labels.能力消耗,
+        target: labels.能力范围,
+        progress: labels.能力熟练标题,
+        breakthrough: labels.能力提升条件,
+        limit: labels.能力门槛,
+        direction: labels.能力大成方向,
+        maxed: labels.能力圆满,
+        effects: labels.能力附带效果
+    };
+};
 
 const MobileKungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
     const 文案 = 获取移动功法文案(topicMode);
@@ -92,20 +110,20 @@ const MobileKungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                             </div>
 
                             <div className="bg-black/40 border border-gray-800 rounded-xl p-4 space-y-2">
-                                <div className="text-[10px] text-gray-500 tracking-[0.2em]">战斗参数</div>
+                                <div className="text-[10px] text-gray-500 tracking-[0.2em]">{文案.params}</div>
                                 <div className="grid grid-cols-2 gap-2 text-[11px]">
-                                    <div className="border border-gray-800 rounded p-2 text-gray-300">基础伤害: {current.基础伤害}</div>
-                                    <div className="border border-gray-800 rounded p-2 text-gray-300">内力系数: x{current.内力系数}</div>
-                                    <div className="border border-gray-800 rounded p-2 text-gray-300">施展耗时: {current.施展耗时}</div>
-                                    <div className="border border-gray-800 rounded p-2 text-gray-300">冷却时间: {current.冷却时间}</div>
-                                    <div className="border border-gray-800 rounded p-2 text-gray-300">消耗: {current.消耗数值}{current.消耗类型}</div>
-                                    <div className="border border-gray-800 rounded p-2 text-gray-300">目标: {current.目标类型}({current.最大目标数})</div>
+                                    <div className="border border-gray-800 rounded p-2 text-gray-300">{文案.baseValue}: {current.基础伤害}</div>
+                                    <div className="border border-gray-800 rounded p-2 text-gray-300">{文案.energyFactor}: x{current.内力系数}</div>
+                                    <div className="border border-gray-800 rounded p-2 text-gray-300">{文案.castTime}: {current.施展耗时}</div>
+                                    <div className="border border-gray-800 rounded p-2 text-gray-300">{文案.cooldown}: {current.冷却时间}</div>
+                                    <div className="border border-gray-800 rounded p-2 text-gray-300">{文案.cost}: {current.消耗数值}{current.消耗类型}</div>
+                                    <div className="border border-gray-800 rounded p-2 text-gray-300">{文案.target}: {current.目标类型}({current.最大目标数})</div>
                                 </div>
                             </div>
 
                             <div className="bg-black/40 border border-gray-800 rounded-xl p-4">
                                 <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                                    <span>修炼进度</span>
+                                    <span>{文案.progress}</span>
                                     <span className="font-mono text-gray-300">{current.当前熟练度}/{current.升级经验}</span>
                                 </div>
                                 <div className="h-2 bg-gray-900 border border-gray-800 rounded-full overflow-hidden">
@@ -115,16 +133,16 @@ const MobileKungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                     />
                                 </div>
                                 <div className="grid grid-cols-1 gap-2 mt-3 text-[11px]">
-                                    <div className="border border-gray-800 rounded p-2 text-gray-300">突破条件: {current.突破条件 || '无'}</div>
-                                    <div className="border border-gray-800 rounded p-2 text-gray-300">境界限制: {current.境界限制 || '无'}</div>
-                                    <div className="border border-gray-800 rounded p-2 text-gray-300">大成方向: {current.大成方向 || '暂无'}</div>
-                                    <div className="border border-gray-800 rounded p-2 text-gray-300">圆满效果: {current.圆满效果 || '暂无'}</div>
+                                    <div className="border border-gray-800 rounded p-2 text-gray-300">{文案.breakthrough}: {current.突破条件 || '无'}</div>
+                                    <div className="border border-gray-800 rounded p-2 text-gray-300">{文案.limit}: {current.境界限制 || '无'}</div>
+                                    <div className="border border-gray-800 rounded p-2 text-gray-300">{文案.direction}: {current.大成方向 || '暂无'}</div>
+                                    <div className="border border-gray-800 rounded p-2 text-gray-300">{文案.maxed}: {current.圆满效果 || '暂无'}</div>
                                 </div>
                             </div>
 
                             {effects.length > 0 && (
                                 <div className="bg-black/40 border border-gray-800 rounded-xl p-4">
-                                    <div className="text-[10px] text-gray-500 tracking-[0.2em] mb-2">附带效果</div>
+                                    <div className="text-[10px] text-gray-500 tracking-[0.2em] mb-2">{文案.effects}</div>
                                     <div className="space-y-2">
                                         {effects.map((e, i) => (
                                             <div key={i} className="border border-gray-800 rounded p-2 text-[11px]">

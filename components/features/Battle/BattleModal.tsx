@@ -4,6 +4,7 @@ import { IconSwords, IconYinYang } from '../../ui/Icons';
 import { 生成战斗可视化数据, 逻辑判断知识库 } from '../../../utils/rulebook';
 import { 计算角色总气血 } from '../../../utils/characterVitals';
 import { 构建境界速查摘要, 获取单位境界显示, 推断单位仙侠 } from '../../../utils/realmDisplay';
+import { 获取题材资源文案 } from '../../../utils/resourceLabels';
 import BattleRoundAnimation from './BattleRoundAnimation';
 
 interface Props {
@@ -292,8 +293,9 @@ const 战斗单位详情卡: React.FC<{
     side: 'ally' | 'enemy';
     metrics: ReturnType<typeof 计算战斗指标>;
     targetName: string;
+    resourceLabels: ReturnType<typeof 获取题材资源文案>;
     emphasized?: boolean;
-}> = ({ unit, name, realm, row, side, metrics, targetName, emphasized = false }) => {
+}> = ({ unit, name, realm, row, side, metrics, targetName, resourceLabels, emphasized = false }) => {
     const isEnemy = side === 'enemy';
     const borderClass = isEnemy
         ? 'border-red-400/15 bg-black/30'
@@ -331,9 +333,9 @@ const 战斗单位详情卡: React.FC<{
                 <div className="text-[10px] text-gray-500">{realm || '未明'}</div>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
-                <div title={单位属性说明.气血} className="cursor-help rounded border border-red-500/20 bg-red-950/20 px-2 py-1 text-red-100">气血 <b>{资源数字(hpCurrent, hpMax)}</b></div>
-                <div title={单位属性说明.精力} className="cursor-help rounded border border-cyan-500/20 bg-cyan-950/20 px-2 py-1 text-cyan-100">精力 <b>{资源数字(unit?.当前精力, unit?.最大精力)}</b></div>
-                <div title={单位属性说明.内力} className="cursor-help rounded border border-indigo-500/20 bg-indigo-950/20 px-2 py-1 text-indigo-100">内力 <b>{资源数字(unit?.当前内力, unit?.最大内力)}</b></div>
+                <div title={单位属性说明.气血} className="cursor-help rounded border border-red-500/20 bg-red-950/20 px-2 py-1 text-red-100">{resourceLabels.气血} <b>{资源数字(hpCurrent, hpMax)}</b></div>
+                <div title={单位属性说明.精力} className="cursor-help rounded border border-cyan-500/20 bg-cyan-950/20 px-2 py-1 text-cyan-100">{resourceLabels.精力} <b>{资源数字(unit?.当前精力, unit?.最大精力)}</b></div>
+                <div title={单位属性说明.内力} className="cursor-help rounded border border-indigo-500/20 bg-indigo-950/20 px-2 py-1 text-indigo-100">{resourceLabels.能量} <b>{资源数字(unit?.当前内力, unit?.最大内力)}</b></div>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-gray-200">
                 {statItems.map(([label, value]) => (
@@ -359,6 +361,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
     const 存活敌人数 = 敌方列表.filter((enemy) => (enemy?.当前血量 || 0) > 0).length;
     const 可视化 = 生成战斗可视化数据(character, battle, contextText);
     const 主角总气血 = React.useMemo(() => 计算角色总气血(character), [character]);
+    const 资源文案 = 获取题材资源文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
 
     const 部位列表 = [
         ['头部', character.头部当前血量, character.头部最大血量, character.头部状态],
@@ -382,9 +385,14 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
     const 玩家总血量当前 = 部位列表.reduce((sum, [, cur]) => sum + Math.max(0, Number(cur) || 0), 0);
     const 境界值 = Math.max(1, Number(character.境界层级) || 1);
     const realmDisplayOptions = React.useMemo(() => ({ realmPrompt, openingConfig }), [realmPrompt, openingConfig]);
-    const 玩家是仙侠 = openingConfig?.题材模式 === '仙侠' || 推断单位仙侠(character);
+    const 当前题材 = openingConfig?.题材模式;
+    const 玩家是仙侠 = 当前题材 === '仙侠' || 当前题材 === '都市修仙' || (!当前题材 && 推断单位仙侠(character));
     const 玩家境界展示 = 获取单位境界显示(character, `境界值 ${境界值}`, { ...realmDisplayOptions, forceXianxia: 玩家是仙侠 });
     const 境界速查提示 = React.useMemo(() => 构建境界速查摘要(realmPrompt, openingConfig), [realmPrompt, openingConfig]);
+    const 能量当前词 = `当前${资源文案.能量}`;
+    const 能量系数词 = `${资源文案.能量}系数`;
+    const 精力比例词 = `${资源文案.精力}比例`;
+    const 气血比例词 = `${资源文案.气血}比例`;
     const 玩家战斗指标 = 计算战斗指标({
         ...character,
         当前血量: 玩家总血量当前,
@@ -578,9 +586,9 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                             <div className="mb-3 text-xs font-bold tracking-[0.22em] text-gray-300">计算规则</div>
                             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                                 {[
-                                    ['攻势', `基础攻势 = 攻击力 + 力量*1.2 + 当前内力*0.08 + 境界层级*3 + 精力比例*10 - 毒性影响*0.35；近战伤害 = 攻势；远程物理伤害 = 攻势*远程系数*高低差倍率；法术伤害 = 当前施展法术基础伤害 + 加成属性*加成系数 + 当前内力*内力系数 + 基准法术压力*0.35；若本回合未指定法术，默认取已学功法中最高伤害法术`],
-                                    ['守势', '近战物理守势 = 防御力 + 体质*0.7 + 根骨*0.5 + 装备物防*0.9 + 招架 + 气血比例*8 - 毒性*0.25；远程物理守势 = 防御力*0.85 + 体质*0.45 + 装备物防*0.75 + 掩体 + 气血比例*6 - 毒性*0.2；法术守势 = 根骨*0.9 + 当前内力*0.08 + 装备内防 + 境界层级*2 + 气血比例*5 - 毒性*0.15'],
-                                    ['身法', '身法 = 敏捷*1.2 + 精力比例*16 + 装备身法 - 毒性影响*0.45；移动消耗 = 平面距离 + 上坡高度*1.6 - 下坡高度*0.45；一回合可先前进、行动、再后撤，只要总消耗 <= 身法'],
+                                    ['攻势', `基础攻势 = 攻击力 + 力量*1.2 + ${能量当前词}*0.08 + 境界层级*3 + ${精力比例词}*10 - 毒性影响*0.35；近战伤害 = 攻势；远程物理伤害 = 攻势*远程系数*高低差倍率；法术伤害 = 当前施展能力基础伤害 + 加成属性*加成系数 + ${能量当前词}*${能量系数词} + 基准能力压力*0.35；若本回合未指定能力，默认取已学能力中最高伤害项`],
+                                    ['守势', `近战物理守势 = 防御力 + 体质*0.7 + 根骨*0.5 + 装备物防*0.9 + 招架 + ${气血比例词}*8 - 毒性*0.25；远程物理守势 = 防御力*0.85 + 体质*0.45 + 装备物防*0.75 + 掩体 + ${气血比例词}*6 - 毒性*0.2；能力守势 = 根骨*0.9 + ${能量当前词}*0.08 + 装备能力防护 + 境界层级*2 + ${气血比例词}*5 - 毒性*0.15`],
+                                    ['身法', `身法 = 敏捷*1.2 + ${精力比例词}*16 + 装备身法 - 毒性影响*0.45；移动消耗 = 平面距离 + 上坡高度*1.6 - 下坡高度*0.45；一回合可先前进、行动、再后撤，只要总消耗 <= 身法`],
                                     ['脱战/突后', `逃跑脱战：若 追杀者身法 - 逃跑者身法 < 双方距离，则脱战；突后排：${突后风险}`],
                                 ].map(([name, formula]) => (
                                     <div key={name} className="rounded border border-white/8 bg-black/25 px-3 py-2 text-xs">
@@ -611,6 +619,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                                         side="ally"
                                         metrics={玩家战斗指标}
                                         targetName={首个存活敌方?.名字 || '无'}
+                                        resourceLabels={资源文案}
                                         emphasized
                                     />
                                     {队友列表.map((npc, index) => {
@@ -625,6 +634,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                                             side="ally"
                                             metrics={指标}
                                             targetName={首个存活敌方?.名字 || '无'}
+                                            resourceLabels={资源文案}
                                         />
                                     );})}
                                 </div>
@@ -647,6 +657,7 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                                             side="enemy"
                                             metrics={npc指标}
                                             targetName={敌方默认目标}
+                                            resourceLabels={资源文案}
                                         />
                                     );}) : <div className="rounded border border-dashed border-red-400/20 p-6 text-center text-sm text-red-100/45">暂无敌方</div>}
                                 </div>
@@ -706,10 +717,10 @@ const BattleModal: React.FC<Props> = ({ character, battle, teammates = [], conte
                                             </div>
 
                                             <div className="mt-5 space-y-2.5 relative z-10">
-                                                <资源条 label="气血" current={hpCur} max={hpMax} tone="red" />
-                                                <资源条 label="精力" current={spCur} max={spMax} tone="cyan" />
+                                                <资源条 label={资源文案.气血} current={hpCur} max={hpMax} tone="red" />
+                                                <资源条 label={资源文案.精力} current={spCur} max={spMax} tone="cyan" />
                                                 {(enemy?.最大内力 !== undefined || enemy?.当前内力 !== undefined) && (
-                                                    <资源条 label="内力" current={qiCur} max={qiMax} tone="indigo" />
+                                                    <资源条 label={资源文案.能量} current={qiCur} max={qiMax} tone="indigo" />
                                                 )}
                                             </div>
 

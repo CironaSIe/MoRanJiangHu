@@ -57,6 +57,24 @@ const 读取有效词条列表 = (item: any): any[] => {
     });
 };
 
+const ItemIconImage: React.FC<{
+    src: string;
+    alt: string;
+    fallback: React.ReactNode;
+}> = ({ src, alt, fallback }) => {
+    const [failed, setFailed] = useState(false);
+    if (!src || failed) return <>{fallback}</>;
+    return (
+        <img
+            src={src}
+            alt={alt}
+            className="h-full w-full rounded-lg object-cover"
+            loading="lazy"
+            onError={() => setFailed(true)}
+        />
+    );
+};
+
 const EquipmentModal: React.FC<Props> = ({ character, openingConfig, onClose, onCharacterChange }) => {
     const [selectedItem, setSelectedItem] = useState<游戏物品 | null>(null);
     const [actionMessage, setActionMessage] = useState('');
@@ -162,7 +180,11 @@ const EquipmentModal: React.FC<Props> = ({ character, openingConfig, onClose, on
                 {/* Icon Box */}
                 <div className={`w-9 h-9 md:w-12 md:h-12 shrink-0 rounded-lg md:rounded-xl flex items-center justify-center border ${item ? 'bg-black/50 border-white/10 shadow-lg text-wuxia-gold/90' : 'bg-black/60 border-gray-700/60 text-gray-400'}`}>
                     {itemIconImage ? (
-                        <img src={itemIconImage} alt={item?.名称 || slot.label} className="h-full w-full rounded-lg object-cover" loading="lazy" />
+                        <ItemIconImage
+                            src={itemIconImage}
+                            alt={item?.名称 || slot.label}
+                            fallback={<span className="scale-90 opacity-85 transition-opacity duration-300 group-hover:scale-110 group-hover:opacity-100 md:scale-100">{slot.icon}</span>}
+                        />
                     ) : (
                         <span className="scale-90 opacity-85 transition-opacity duration-300 group-hover:scale-110 group-hover:opacity-100 md:scale-100">{slot.icon}</span>
                     )}

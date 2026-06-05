@@ -3,6 +3,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import SectModal from '../components/features/Sect/SectModal';
 import MobileSect from '../components/features/Sect/MobileSect';
+import TeamModal from '../components/features/Team/TeamModal';
+import MobileTeamModal from '../components/features/Team/MobileTeamModal';
 import { 创建空门派状态, 创建开场基础状态, 创建开场命令基态, 规范化门派状态, 是否无门派标识, 保护开局生成门派状态 } from '../hooks/useGame/storyState';
 import { 开局变量生成附加提示词, 构建开局变量生成审计重点 } from '../prompts/runtime/openingVariableGenerationInit';
 
@@ -42,6 +44,28 @@ describe('门派状态规范化', () => {
         expect(normalized.重要成员).toEqual([]);
         expect(normalized.任务列表).toEqual([]);
         expect(是否无门派标识(normalized.ID)).toBe(false);
+    });
+
+    it('兼容小写和模式化组织字段，避免轮回小队读成无组织', () => {
+        const normalized = 规范化门派状态({
+            id: 'team-7',
+            名称: '第七轮回小队',
+            类型: '轮回小队',
+            描述: '轮回者内部协作组织。',
+            职位: '新人队长',
+            资源: { 奖励点: 320, 物资: 350, 建设: 180 },
+            商城: [{ 名称: '止血喷雾', 类型: '消耗品', 价格: 50 }],
+            成员列表: [{ id: 'npc-ye-qing', 姓名: '叶青', 性别: '女', 身份: '正式队友' }]
+        });
+
+        expect(normalized.ID).toBe('team-7');
+        expect(normalized.名称).toBe('第七轮回小队');
+        expect(normalized.组织语义).toBe('轮回小队');
+        expect(normalized.玩家职位).toBe('新人队长');
+        expect(normalized.门派资金).toBe(320);
+        expect(normalized.重要成员).toHaveLength(1);
+        expect(normalized.重要成员[0]?.姓名).toBe('叶青');
+        expect(normalized.兑换列表.some((item: any) => item?.名称 === '止血喷雾')).toBe(true);
     });
 
     it('家族门派不再本地套用固定同门姓氏', () => {
@@ -131,11 +155,39 @@ describe('门派状态规范化', () => {
         expect(openingBase.玩家门派.重要成员.length).toBeGreaterThanOrEqual(6);
         expect(openingBase.玩家门派.任务列表).toEqual([]);
         expect(openingBase.任务列表.some((task: any) => task.类型 === '主线')).toBe(true);
-        expect(openingBase.任务列表.some((task: any) => task.类型 === '门派')).toBe(true);
+        expect(openingBase.任务列表.some((task: any) => task.类型 === '门派' || task.类型 === '支线')).toBe(false);
         expect(JSON.stringify(openingBase.玩家门派)).not.toMatch(/待AI|请由AI|开局模板/);
-        expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/待AI|请由AI|开局模板/);
+        expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/待AI|请由AI|开局模板|后山栈道|旧账未清|门中历练/);
         expect(openingBase.角色.所属门派ID).toBe(openingBase.玩家门派.ID);
         expect(openingBase.角色.门派职位).toBe('杂役弟子');
+    });
+
+    it('无限流开局不再生成模板支线和大型轮回队', () => {
+        const openingBase = 创建开场基础状态(
+            {
+                姓名: '张楚岚',
+                出身背景: { 名称: '轮回新人' },
+                所属门派ID: 'none',
+                门派职位: '无',
+                门派贡献: 0
+            } as any,
+            {} as any,
+            {
+                题材模式: '无限流',
+                开局生成门派: true,
+                开局生成同门: true
+            } as any
+        );
+
+        expect(openingBase.玩家门派.组织语义).toBe('轮回小队');
+        expect(openingBase.玩家门派.玩家职位).toBe('新人');
+        expect(openingBase.玩家门派.弟子总数).toBe(2);
+        expect(openingBase.玩家门派.重要成员).toHaveLength(2);
+        expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).toContain('精神力扫描');
+        expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).not.toMatch(/临时同盟精神力扫描|轮回小队精神力扫描|主神小队精神力扫描/);
+        expect(openingBase.任务列表).toHaveLength(1);
+        expect(openingBase.任务列表[0]?.标题).toBe('存活至天亮');
+        expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/确认第一项主线任务|后山栈道|旧账未清|门中历练|支线剧情 x1|D级支线剧情/);
     });
 
     it('末日丧尸开局生成的是营地和幸存者成员而不是门派模板', () => {
@@ -299,6 +351,80 @@ describe('门派状态规范化', () => {
 
         expect(desktopHtml).toMatch(/身份[\s\S]{0,300}营地管理人员/);
         expect(mobileHtml).toMatch(/铁栅安全点[\s\S]{0,300}营地管理人员/);
+    });
+
+    it('无限流面板用贡献决定进阶，不把新人队长显示成高阶身份', () => {
+        const sectData: any = {
+            ID: 'team_zero',
+            名称: '零号临时同盟',
+            组织语义: '轮回小队',
+            简介: '在主神空间中临时组建的求生小队。',
+            门规: ['活下去'],
+            门派资金: 0,
+            门派物资: 0,
+            建设度: 0,
+            门派等级: '精英轮回队',
+            门派规模: '大型轮回队',
+            弟子总数: 123,
+            财富评级: '兑换储备稳定',
+            月俸规则: { 基础俸禄: 120, 贡献系数: 0.08, 规模系数: 1.25, 发放说明: '' },
+            玩家职位: '新人队长',
+            玩家贡献: 0,
+            累计贡献: 0,
+            任务列表: [],
+            兑换列表: [],
+            藏经阁列表: [],
+            重要成员: [
+                { id: 'player', 姓名: '张楚岚', 性别: '男', 年龄: 22, 身份: '新人队长', 境界: '新人', 简介: '玩家本人。' },
+                { id: 'npc-feng', 姓名: '冯宝宝', 性别: '女', 年龄: 20, 身份: '正式队友', 境界: '新人', 简介: '队友。' }
+            ]
+        };
+
+        const desktopHtml = renderToStaticMarkup(React.createElement(SectModal, {
+            sectData,
+            onClose: () => undefined
+        }));
+        const mobileHtml = renderToStaticMarkup(React.createElement(MobileSect, {
+            sectData,
+            onClose: () => undefined
+        }));
+
+        expect(desktopHtml).toMatch(/身份[\s\S]{0,300}新人[\s\S]{0,80}队长/);
+        expect(desktopHtml).toContain('临时轮回小队');
+        expect(desktopHtml).toContain('双人小队');
+        expect(desktopHtml).not.toContain('核心轮回者');
+        expect(desktopHtml).not.toContain('123');
+        expect(mobileHtml).toContain('新人 · 队长');
+        expect(mobileHtml).toContain('双人小队');
+        expect(mobileHtml).not.toContain('核心轮回者');
+        expect(mobileHtml).not.toContain('123');
+    });
+
+    it('队伍界面不会把玩家本人重复列为队友', () => {
+        const character: any = { 姓名: '张楚岚', 境界: '新人', 当前精力: 10, 最大精力: 10, 当前内力: 0, 最大内力: 0 };
+        const teammates: any[] = [
+            { id: 'self', 姓名: '张楚岚', 是否队友: true, 是否玩家本人: true, 性别: '男', 身份: '队长' },
+            { id: 'self-dup', 姓名: '张楚岚', 是否队友: true, 性别: '男', 身份: '队长' },
+            { id: 'npc-bao', 姓名: '冯宝宝', 是否队友: true, 性别: '女', 身份: '正式队友' }
+        ];
+
+        const desktopHtml = renderToStaticMarkup(React.createElement(TeamModal, {
+            character,
+            teammates,
+            openingConfig: { 题材模式: '无限流' } as any,
+            onClose: () => undefined
+        }));
+        const mobileHtml = renderToStaticMarkup(React.createElement(MobileTeamModal, {
+            character,
+            teammates,
+            openingConfig: { 题材模式: '无限流' } as any,
+            onClose: () => undefined
+        }));
+
+        expect(desktopHtml).toContain('小队成员 (2)');
+        expect((desktopHtml.match(/冯宝宝/g) || []).length).toBe(1);
+        expect(mobileHtml).toContain('1 人');
+        expect((mobileHtml.match(/冯宝宝/g) || []).length).toBe(1);
     });
 
     it('开局门派会按当前门派生成入门功法，不再固定为青云剑法', () => {

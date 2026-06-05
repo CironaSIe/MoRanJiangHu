@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { 标准化功法列表, 规范化社交列表 } from '../hooks/useGame/stateTransforms';
 import { 执行正文润色 } from '../hooks/useGame/bodyPolish';
 import * as textAIService from '../services/ai/text';
+import { 获取题材模式配置 } from '../utils/topicModeProfiles';
+import { 获取题材界面文案 } from '../utils/resourceLabels';
+import { 创建开场基础状态 } from '../hooks/useGame/storyState';
 
 vi.mock('../services/ai/text', () => ({
     generatePolishedBody: vi.fn(),
@@ -148,5 +151,92 @@ describe('正文优化重试', () => {
         expect(result.applied).toBe(true);
         expect(result.response.body_optimized).toBe(true);
         expect(result.rawText).toBe('second');
+    });
+});
+
+describe('无限流商城文案边界', () => {
+    it('外部市场入口叫主神商城，团队内部兑换叫团队商城', () => {
+        const profile = 获取题材模式配置('无限流');
+        const labels = 获取题材界面文案('无限流');
+
+        expect(profile.auctionName).toBe('主神商城');
+        expect(labels.菜单.auctionHouse).toBe('主神商城');
+        expect(labels.组织.商城).toBe('团队商城');
+    });
+
+    it('侧栏和弹窗标题使用无限流口径', () => {
+        const labels = 获取题材界面文案('无限流');
+
+        expect(labels.标题.系统菜单题头).toBe('主控');
+        expect(labels.标题.地图).toBe('任务地图');
+        expect(labels.标题.任务).toBe('主神任务');
+        expect(labels.标题.能力).toBe('能力档案');
+        expect(labels.标题.任务发布字段).toBe('主神发布');
+    });
+
+    it('无限流开局默认任务和能力不会退回武侠模板', () => {
+        const base = 创建开场基础状态(
+            {
+                姓名: '陈默',
+                境界: '新人轮回者',
+                当前精力: 20,
+                最大精力: 20,
+                当前内力: 0,
+                最大内力: 0,
+                功法列表: [
+                    {
+                        ID: 'bad_wuxia_skill',
+                        名称: '基础剑法残卷',
+                        类型: '外功',
+                        品质: '凡品',
+                        描述: '旧江湖剑法。',
+                        来源: '藏经阁',
+                        当前重数: 1,
+                        最高重数: 3,
+                        当前熟练度: 0,
+                        升级经验: 100,
+                        突破条件: '勤修',
+                        境界限制: '无',
+                        大成方向: '剑法',
+                        圆满效果: '提升内力',
+                        武器限制: [],
+                        消耗类型: '内力',
+                        消耗数值: 0,
+                        施展耗时: '1息',
+                        冷却时间: '0息',
+                        基础伤害: 0,
+                        加成属性: '力量',
+                        加成系数: 0,
+                        内力系数: 1,
+                        伤害类型: '物理',
+                        目标类型: '自身',
+                        最大目标数: 1,
+                        重数描述映射: [],
+                        附带效果: [],
+                        被动修正: [],
+                        境界特效: []
+                    }
+                ]
+            } as any,
+            {} as any,
+            {
+                题材模式: '无限流',
+                开局生成门派: true,
+                开局生成同门: false
+            } as any
+        );
+
+        const skillText = JSON.stringify(base.角色.功法列表 || []);
+        const taskText = JSON.stringify(base.任务列表 || []);
+
+        expect(skillText).toContain('精神力扫描');
+        expect(skillText).not.toContain('基础剑法残卷');
+        expect(skillText).not.toContain('藏经阁');
+        expect(taskText).toContain('主神');
+        expect(taskText).toContain('存活至天亮');
+        expect(taskText).not.toContain('初入江湖');
+        expect(taskText).not.toContain('门派贡献');
+        expect(taskText).not.toContain('D级支线剧情');
+        expect(taskText).not.toContain('确认第一项主线任务');
     });
 });

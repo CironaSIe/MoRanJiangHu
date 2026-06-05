@@ -44,6 +44,48 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         expect(logs.some((item: any) => item.sender === '俞月荷' && item.text.includes('动作能不能轻一点'))).toBe(true);
     });
 
+    it('protects line breaks inside quoted dialogue before detecting character bubbles', () => {
+        const logs = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: [
+                '叶青压低声音说道：“先别兑换，',
+                '确认任务世界和限制条件。',
+                '如果主神限制热武器，我们就换侦查能力。”'
+            ].join('\n')
+        }] as any);
+
+        expect(logs).toEqual([
+            {
+                sender: '叶青',
+                text: '先别兑换，确认任务世界和限制条件。如果主神限制热武器，我们就换侦查能力。'
+            }
+        ]);
+    });
+
+    it('merges adjacent log entries when an opening quote was split across logs', () => {
+        const logs = 规范化可渲染对白日志([
+            { sender: '旁白', text: '叶青压低声音说道：“先别兑换，' },
+            { sender: '旁白', text: '确认任务世界和限制条件。”她看向主神光球。' }
+        ] as any);
+
+        expect(logs).toEqual([
+            { sender: '叶青', text: '先别兑换，确认任务世界和限制条件。' },
+            { sender: '旁白', text: '她看向主神光球。' }
+        ]);
+    });
+
+    it('does not include action tails in inferred speaker names', () => {
+        const logs = 规范化可渲染对白日志([
+            { sender: '旁白', text: '叶青点点头说道：“我去检查补给箱，' },
+            { sender: '旁白', text: '看看有没有止血喷雾。”白光重新稳定。' }
+        ] as any);
+
+        expect(logs).toEqual([
+            { sender: '叶青', text: '我去检查补给箱，看看有没有止血喷雾。' },
+            { sender: '旁白', text: '白光重新稳定。' }
+        ]);
+    });
+
     it('splits bracket speaker lines from narration into character bubbles', () => {
         const logs = 规范化可渲染对白日志([{
             sender: '旁白',
@@ -75,6 +117,32 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
             { sender: '旁白', text: '门外有人走来。' },
             { sender: '林婉儿', text: '我也看到这个bug了，有些角色说话的时候对话框就没了。' },
             { sender: '旁白', text: '她抬头看你。' }
+        ]);
+    });
+
+    it('splits xml-style character tags into character bubbles', () => {
+        const logs = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: '主神光球闪烁了一下。<林岚>先别兑换，确认任务世界和限制条件。</林岚><叶青>我去检查补给箱。</叶青>白光重新稳定。'
+        }] as any);
+
+        expect(logs).toEqual([
+            { sender: '旁白', text: '主神光球闪烁了一下。' },
+            { sender: '林岚', text: '先别兑换，确认任务世界和限制条件。' },
+            { sender: '叶青', text: '我去检查补给箱。' },
+            { sender: '旁白', text: '白光重新稳定。' }
+        ]);
+    });
+
+    it('splits escaped xml-style character tags from saved or streamed text', () => {
+        const logs = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: '队伍频道亮起：&lt;秦映雪&gt;别急着开门，先看门缝下面有没有影子。&lt;/秦映雪&gt;'
+        }] as any);
+
+        expect(logs).toEqual([
+            { sender: '旁白', text: '队伍频道亮起：' },
+            { sender: '秦映雪', text: '别急着开门，先看门缝下面有没有影子。' }
         ]);
     });
 

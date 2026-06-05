@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { 功法结构 } from '../../../models/kungfu';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
 import { IconLock, IconScroll, IconSparkles, IconYinYang } from '../../ui/Icons';
+import { 获取题材界面文案 } from '../../../utils/resourceLabels';
+import type { 题材模式类型 } from '../../../models/system';
 
 interface Props {
     skills: 功法结构[];
@@ -10,37 +12,66 @@ interface Props {
 }
 
 const 获取功法文案 = (topicMode?: string) => {
-    const apocalypse = topicMode === '末日丧尸';
-    const modern = topicMode === '现代都市';
+    const labels = 获取题材界面文案(topicMode as 题材模式类型 | undefined).标题;
     return {
-        title: apocalypse ? '技能手册' : modern ? '能力档案' : '武学典籍',
-        subtitle: apocalypse ? 'SURVIVAL SKILLS' : modern ? 'CAPABILITIES' : 'MARTIAL ARTS',
-        all: apocalypse ? '全部手册' : modern ? '全部能力' : '览尽群书',
-        empty: apocalypse ? '暂无技能记录' : modern ? '暂无能力记录' : '腹中空空，暂无墨水',
-        detailHintTitle: apocalypse ? '选择左侧技能查看详情' : modern ? '选择左侧能力查看详情' : '随意翻阅，悟道长生',
-        detailHint: apocalypse ? '训练、岗位经验和求生手册会显示在这里' : modern ? '工作能力、训练记录和专业技能会显示在这里' : '请在左侧寻阅经典卷宗',
-        source: apocalypse || modern ? '来源' : '传自',
-        fallbackSource: apocalypse ? '训练记录' : modern ? '实践经验' : '未知高人',
-        descriptionFallback: apocalypse ? '这项技能来自实际求生经验，可用于营地行动、搜救、维修或自保。' : modern ? '这项能力来自实践积累，可用于外勤、协作、沟通或专业任务。' : '此功法精妙绝伦，非恒心者不能大成。',
-        masteryTitle: apocalypse ? '技能熟练度' : modern ? '能力熟练度' : '修炼造诣',
-        levelText: apocalypse || modern ? '当前等级' : '当前境界',
-        levelUnit: apocalypse || modern ? '级' : '重',
-        masteryLabel: apocalypse ? '训练熟练度' : modern ? '实践熟练度' : '武道熟练度',
-        limit: apocalypse ? '训练要求' : modern ? '使用门槛' : '天资所限',
-        limitFallback: apocalypse ? '基础成员均可训练' : modern ? '暂无明确门槛' : '有教无类，并无门槛',
-        breakthrough: apocalypse ? '进阶条件' : modern ? '提升条件' : '破境机缘',
-        breakthroughFallback: apocalypse ? '通过实战、演练或岗位任务提升' : modern ? '通过项目、练习或协作反馈提升' : '水到渠成，顺其自然',
-        truth: apocalypse ? '技能参数' : modern ? '能力参数' : '武道真意',
-        category: apocalypse ? '技能类别' : modern ? '能力类别' : '类别',
-        maxed: apocalypse ? '技能满级' : modern ? '能力满级' : '功法圆满'
+        title: labels.能力,
+        subtitle: labels.能力副题,
+        all: labels.能力全部,
+        empty: labels.能力空状态,
+        detailHintTitle: labels.能力详情提示标题,
+        detailHint: labels.能力详情提示,
+        source: labels.能力来源,
+        fallbackSource: labels.能力默认来源,
+        descriptionFallback: labels.能力描述兜底,
+        masteryTitle: labels.能力熟练标题,
+        levelText: labels.能力当前等级,
+        levelUnit: labels.能力等级单位,
+        masteryLabel: labels.能力熟练标签,
+        limit: labels.能力门槛,
+        limitFallback: labels.能力门槛兜底,
+        breakthrough: labels.能力提升条件,
+        breakthroughFallback: labels.能力提升兜底,
+        truth: labels.能力参数标题,
+        category: labels.能力类别,
+        maxed: labels.能力圆满,
+        baseValue: labels.能力基础数值,
+        bonusValue: labels.能力加成数值,
+        energyFactor: labels.能力能量系数,
+        castTime: labels.能力施展耗时,
+        cooldown: labels.能力冷却时间,
+        cost: labels.能力消耗,
+        range: labels.能力范围,
+        effects: labels.能力附带效果,
+        passive: labels.能力被动修正,
+        stages: labels.能力层级总纲,
+        stageFormat: labels.能力层级格式,
+        special: labels.能力特效标题,
+        unlockUnit: labels.能力解锁单位,
+        masteryDirection: labels.能力大成方向
     };
 };
 
 const 格式化武学类别 = (type: unknown, topicMode?: string): string => {
     const text = typeof type === 'string' ? type.trim() : '';
     if (!text) return '未分类';
+    if (topicMode === '无限流') {
+        const labels: Record<string, string> = { 招式: '主动能力', 内功: '精神训练', 外功: '体能强化', 轻功: '机动能力', 被动: '被动能力', 功法: '综合强化', 心法: '心理锚定', 身法: '机动能力', 术法: '超能力', 神通: '血统能力' };
+        return labels[text] || text;
+    }
+    if (topicMode === '西方奇幻') {
+        const labels: Record<string, string> = { 招式: '战技', 内功: '魔力训练', 外功: '防护训练', 轻功: '机动专长', 被动: '被动专长', 功法: '综合能力', 心法: '冥想法', 身法: '机动专长', 术法: '法术', 神通: '传奇能力' };
+        return labels[text] || text;
+    }
+    if (topicMode === '仙侠') {
+        const labels: Record<string, string> = { 招式: '术式', 内功: '心法', 外功: '炼体法', 轻功: '遁法', 被动: '道基被动', 功法: '法门', 心法: '心法', 身法: '遁法', 术法: '术法', 神通: '神通' };
+        return labels[text] || text;
+    }
     if (topicMode === '末日丧尸') {
         const labels: Record<string, string> = { 招式: '战斗技巧', 内功: '体能训练', 外功: '防护训练', 轻功: '移动技巧', 被动: '生存经验', 功法: '综合训练', 心法: '心理调节', 身法: '移动技巧' };
+        return labels[text] || text;
+    }
+    if (topicMode === '现代都市' || topicMode === '灵气复苏' || topicMode === '都市修仙') {
+        const labels: Record<string, string> = { 招式: '行动能力', 内功: '专注训练', 外功: '体能训练', 轻功: '机动能力', 被动: '被动能力', 功法: '综合能力', 心法: '心理训练', 身法: '机动能力', 术法: '特殊能力', 神通: '高阶能力' };
         return labels[text] || text;
     }
     const labels: Record<string, string> = {
@@ -180,7 +211,7 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                                 </div>
                                             </div>
                                             <div className="shrink-0 flex flex-col items-end">
-                                                <div className="text-[10px] text-wuxia-gold/60 font-serif tracking-widest mb-1">造诣</div>
+                                                <div className="text-[10px] text-wuxia-gold/60 font-serif tracking-widest mb-1">{文案.masteryTitle}</div>
                                                 <div className="flex items-baseline gap-0.5 text-wuxia-gold font-mono">
                                                     <span className="text-xl leading-none font-bold">{skill.当前重数}</span>
                                                     <span className="text-xs text-gray-500">{文案.levelUnit}</span>
@@ -310,37 +341,37 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                         <StatBox 
-                                            label="基础伤害" value={currentSkill.基础伤害 || 0} sub={currentSkill.伤害类型 || '无属性'} 
+                                            label={文案.baseValue} value={currentSkill.基础伤害 || 0} sub={currentSkill.伤害类型 || '无属性'} 
                                             icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
                                         />
                                         <StatBox 
-                                            label="属性加成" value={`x${currentSkill.加成系数 || 0}`} sub={currentSkill.加成属性 || '无加成'} 
+                                            label={文案.bonusValue} value={`x${currentSkill.加成系数 || 0}`} sub={currentSkill.加成属性 || '无加成'} 
                                             icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>}
                                         />
                                         <StatBox 
-                                            label="内力振幅" value={`x${currentSkill.内力系数 || 0}`} sub="内劲加成"
+                                            label={文案.energyFactor} value={`x${currentSkill.内力系数 || 0}`} sub={currentSkill.消耗类型 || '能量'}
                                             icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" /></svg>}
                                         />
                                         
                                         <div className="col-span-2 grid grid-rows-2 gap-3">
                                             <div className="bg-black/40 border border-gray-800 rounded-lg flex items-center px-4 hover:border-wuxia-gold/30 transition-colors">
                                                 <div className="w-16 shrink-0 border-r border-gray-800 flex flex-col py-1.5">
-                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest font-serif mb-0.5">施展</span>
-                                                    <span className="font-mono text-gray-300 font-bold">{currentSkill.施展耗时 || 1} <span className="font-serif text-xs font-normal">息</span></span>
+                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest font-serif mb-0.5">{文案.castTime}</span>
+                                                    <span className="font-mono text-gray-300 font-bold">{currentSkill.施展耗时 || 1}</span>
                                                 </div>
                                                 <div className="w-16 shrink-0 border-r border-gray-800 flex flex-col py-1.5 ml-4 pl-4">
-                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest font-serif mb-0.5">调息</span>
-                                                    <span className="font-mono text-gray-300 font-bold">{currentSkill.冷却时间 || 0} <span className="font-serif text-xs font-normal">息</span></span>
+                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest font-serif mb-0.5">{文案.cooldown}</span>
+                                                    <span className="font-mono text-gray-300 font-bold">{currentSkill.冷却时间 || 0}</span>
                                                 </div>
                                                 <div className="flex-1 flex justify-end gap-2 items-center min-w-0">
                                                     <span className="font-serif text-red-400 font-bold bg-red-950/30 px-2 py-0.5 rounded border border-red-900/40 truncate">
-                                                        耗 {currentSkill.消耗数值 || 0} {currentSkill.消耗类型 || '精力'}
+                                                        {文案.cost} {currentSkill.消耗数值 || 0} {currentSkill.消耗类型 || '精力'}
                                                     </span>
                                                 </div>
                                             </div>
                                             <div className="bg-black/40 border border-gray-800 rounded-lg flex items-center justify-between px-4 hover:border-wuxia-gold/30 transition-colors">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest font-serif">招式范围</span>
+                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest font-serif">{文案.range}</span>
                                                 </div>
                                                 <span className="text-gray-300 font-serif text-sm bg-black/50 px-3 py-1 rounded shadow-inner border border-white/5">
                                                     {currentSkill.目标类型 || '单体'} · 最多 <span className="text-wuxia-gold font-mono font-bold mx-1">{currentSkill.最大目标数 || 1}</span> 目标
@@ -357,7 +388,7 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                             <div>
                                                 <div className="flex items-center gap-2 mb-4 border-b border-cyan-900/30 pb-2">
                                                     <span className="w-1 h-3 bg-cyan-600/70 rounded-full"></span>
-                                                    <div className="text-sm text-cyan-400/90 font-serif tracking-widest font-bold">玄妙流转：附带效果</div>
+                                                    <div className="text-sm text-cyan-400/90 font-serif tracking-widest font-bold">{文案.effects}</div>
                                                 </div>
                                                 <div className="space-y-3">
                                                     {currentSkill.附带效果.map((eff, i) => (
@@ -378,7 +409,7 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                                                     <span className="text-cyan-100 font-bold">{eff.生效间隔}息</span>
                                                                 </div>
                                                                 <div className="flex flex-col items-center flex-1">
-                                                                    <span className="mb-0.5 text-cyan-500/50 font-serif">威能参数</span>
+                                                                    <span className="mb-0.5 text-cyan-500/50 font-serif">参数</span>
                                                                     <span className="text-cyan-400 font-bold text-sm bg-cyan-900/30 px-2 rounded">{eff.数值参数 || 0}</span>
                                                                 </div>
                                                             </div>
@@ -392,7 +423,7 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                             <div>
                                                 <div className="flex items-center gap-2 mb-4 border-b border-emerald-900/30 pb-2">
                                                     <span className="w-1 h-3 bg-emerald-600/70 rounded-full"></span>
-                                                    <div className="text-sm text-emerald-400/90 font-serif tracking-widest font-bold">潜移默化：被动修正</div>
+                                                    <div className="text-sm text-emerald-400/90 font-serif tracking-widest font-bold">{文案.passive}</div>
                                                 </div>
                                                 <div className="bg-gradient-to-br from-black/40 to-black/80 border border-emerald-900/20 p-4 rounded-xl shadow-inner divide-y divide-emerald-900/20">
                                                     {currentSkill.被动修正.map((mod, i) => (
@@ -417,7 +448,7 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                             <div>
                                                 <div className="flex items-center gap-2 mb-4 border-b border-wuxia-gold/20 pb-2">
                                                     <span className="w-1.5 h-1.5 rotate-45 bg-amber-500/70"></span>
-                                                    <div className="text-sm text-wuxia-gold/90 font-serif tracking-widest font-bold">循序渐进：重数总纲</div>
+                                                    <div className="text-sm text-wuxia-gold/90 font-serif tracking-widest font-bold">{文案.stages}</div>
                                                 </div>
                                                 <div className="space-y-3 relative left-2 border-l-2 border-gray-800 ml-2 pl-4">
                                                     {currentSkill.重数描述映射
@@ -438,7 +469,7 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                                                     <div className={`absolute -left-[23px] top-5 w-3 h-3 rounded-full border-2 ${isReached ? 'bg-wuxia-gold border-amber-200 shadow-[0_0_8px_rgba(212,175,55,1)]' : 'bg-gray-800 border-gray-600'}`}></div>
                                                                     
                                                                     <div className={`text-[10px] font-serif tracking-widest mb-1.5 ${isReached ? 'text-wuxia-gold' : 'text-gray-500'}`}>
-                                                                        第 {stage.重数} 重境界
+                                                                        {文案.stageFormat.replace('{level}', String(stage.重数))}
                                                                     </div>
                                                                     <div className={`text-sm font-serif leading-relaxed ${isReached ? 'text-gray-200' : 'text-gray-600'}`}>
                                                                         {stage.描述}
@@ -455,7 +486,7 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                             <div>
                                                 <div className="flex items-center gap-2 mb-4 border-b border-purple-900/30 pb-2">
                                                     <span className="w-1.5 h-1.5 rotate-45 bg-purple-500/70"></span>
-                                                    <div className="text-sm text-purple-400/90 font-serif tracking-widest font-bold">武破虚空：境界特效</div>
+                                                    <div className="text-sm text-purple-400/90 font-serif tracking-widest font-bold">{文案.special}</div>
                                                 </div>
                                                 <div className="space-y-3">
                                                     {currentSkill.境界特效.map((eff, i) => {
@@ -471,7 +502,7 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                                             >
                                                                 <div className={`shrink-0 w-16 flex flex-col items-center justify-center border-r pr-4 ${isUnlocked ? 'border-purple-900/50' : 'border-gray-800'}`}>
                                                                     <div className={`text-2xl font-mono font-black ${isUnlocked ? 'text-purple-400 drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]' : 'text-gray-600'}`}>{eff.解锁重数}</div>
-                                                                    <div className="text-[9px] font-serif uppercase tracking-widest text-gray-500 mt-1">重解锁</div>
+                                                                    <div className="text-[9px] font-serif uppercase tracking-widest text-gray-500 mt-1">{文案.unlockUnit}</div>
                                                                 </div>
                                                                 <div className={`text-sm font-serif leading-relaxed flex items-center ${isUnlocked ? 'text-purple-100' : 'text-gray-500'}`}>
                                                                     {eff.描述}
@@ -490,7 +521,7 @@ const KungfuModal: React.FC<Props> = ({ skills, onClose, topicMode }) => {
                                                         <div className="absolute right-0 top-0 text-amber-500 opacity-5 text-6xl group-hover:opacity-10 transition-opacity font-serif transform translate-x-4 -translate-y-2 pointer-events-none">悟</div>
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500/50"></span>
-                                                            <div className="text-[10px] text-amber-500/70 font-serif tracking-widest uppercase font-bold">大成妙悟</div>
+                                                            <div className="text-[10px] text-amber-500/70 font-serif tracking-widest uppercase font-bold">{文案.masteryDirection}</div>
                                                         </div>
                                                         <div className="text-sm font-serif text-amber-100/90 leading-relaxed px-3 border-l-2 border-amber-900/40 italic">
                                                             {currentSkill.大成方向}

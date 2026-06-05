@@ -5,7 +5,7 @@ import { 获取文生图接口配置, 接口配置是否可用 } from '../../uti
 import { 合并物品图片档案 } from '../../utils/itemImage';
 import { 默认NSFWComfyUI工作流JSON } from '../../data/defaultComfyWorkflow';
 import { 查找结构化物品 } from '../../data/structuredItemLibrary';
-import { generateImageByPrompt, persistImageAssetLocally } from './image';
+import { generateImageByPrompt, persistImageAssetLocally, 全局无文字正向提示词 } from './image';
 
 type 物品生图来源位置 = '背包' | '拍卖行';
 
@@ -57,6 +57,8 @@ const 构建物品生图接口配置 = (imageApi: 当前可用接口结构 | nul
 const 游戏机制关键词 = /兑换|强化|支线剧情|奖励点|属性|技能|等级|经验|伤害|生命值|法力值|冷却|暴击|命中|闪避|抗性|穿透|吸血|回蓝|buff|debuff|增益|减益|附加|提升|降低|增加|减少|触发|释放|消耗|恢复|回复|持续|回合|概率|倍率|加成/i;
 
 const 是否游戏机制文案 = (text: string): boolean => 游戏机制关键词.test(text);
+export const 物品无文字正向约束 = `${全局无文字正向提示词}, blank unmarked object surface, plain empty panels, clean material texture where markings would appear`;
+
 export const 构建物品视觉描述 = (item: any): string => {
     const structured = 查找结构化物品(
         读取文本(item?.规范物品名称)
@@ -549,7 +551,7 @@ export const 构建物品负面提示词 = (item: any): string => {
         isLivingMount ? 'toy horse, plastic horse, resin figurine, statue, sculpture, ceramic, porcelain, model horse, miniature, collectible figurine, carousel horse, rocking horse, fake animal, mannequin, doll, glossy plastic, product prop, studio toy photography' : '',
         isLivingMount ? '' : 'toy, plastic figurine, resin model, statue, sculpture, mannequin',
         isFan ? 'sword, saber, knife, dagger, blade, spear, spearhead, arrowhead, metal cutting edge, sharpened weapon, polearm, staff weapon' : '',
-        'text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, logo, watermark, signature, title, poster text',
+        'text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, readable inscription, pseudo text, fake text, gibberish text, Chinese characters, English letters, carved words, engraved words, engraved Chinese characters, vertical calligraphy, calligraphy, glyphs, runes, ideograms, seal, stamp, logo, watermark, signature, title, poster text, text on object surface',
         'game controller, gamepad, joystick, console controller, d-pad, analog stick, buttons, electronic device, gadget, plastic controller, remote control, keyboard, mouse',
         isModernFirearm ? 'spear, polearm, lance, staff, sword, saber, knife, medieval weapon, fantasy weapon, wooden shaft, spearhead, bow, crossbow, shield, helmet, armor suit' : 'modern weapon, firearm, gun, rifle, pistol, shotgun, assault rifle, sniper rifle, machine gun, firearm stock, trigger guard, gun barrel, magazine, bullet, ammunition, grenade, rocket launcher, cannon, sci-fi weapon, futuristic weapon, tactical gear, plastic gun, mechanical firearm',
         isCrossbow ? 'spear, polearm, lance, staff, baton, walking stick, sword, saber, knife, shield, rifle, pistol, firearm, gun barrel, magazine, armor suit, helmet' : '',
@@ -667,6 +669,7 @@ export const 生成物品图标 = async (
     const enrichedItemIsClothShoe = 物品是否布鞋(enrichedItem);
     const enrichedItemIsBandageDressing = 物品是否绷带敷料(enrichedItem);
     const enrichedItemIsAncientMedicine = 物品是否古代药物(enrichedItem);
+    const noTextGuard = 物品无文字正向约束;
     const prompt = 构建物品图提示词(enrichedItem, {
         画风: style,
         渲染风格: renderStyle,
@@ -679,7 +682,7 @@ export const 生成物品图标 = async (
     const rawResult = await generateImageByPrompt(finalPrompt, imageApi, options?.signal, {
         构图: '物品图标',
         尺寸: size,
-        附加正向提示词: enrichedItemIsLivingMount
+        附加正向提示词: `${enrichedItemIsLivingMount
             ? 'real living animal, alive mount, full body animal portrait, natural fur, organic anatomy, standing on real ground, no toy, no statue'
             : enrichedItemIsModernFirearm
             ? 'single physical modern firearm prop, receiver, barrel, magazine, stock, grip and trigger guard clearly visible, not a spear, photorealistic product photo, neutral matte studio background'
@@ -697,7 +700,7 @@ export const 生成物品图标 = async (
             ? 'ancient Chinese medicine prop, folded paper medicine packet, ceramic medicine vial, herbal powder or pills, pre-modern wuxia era, single physical object, photorealistic product photo, neutral matte studio background'
             : renderStyle === '写实道具'
             ? `single physical ${enrichedItemIsModernFirearm || enrichedItemIsTacticalVest ? 'modern survival' : 'wuxia'} inventory item, photorealistic product photo, centered product composition, neutral matte studio background, clean silhouette, realistic material${enrichedItemIsSoftGarment ? ', soft fabric garment, cloth folds, flexible drape' : ''}`
-            : 'single physical object, centered composition, clean silhouette, plain asset presentation',
+            : 'single physical object, centered composition, clean silhouette, plain asset presentation'}; ${noTextGuard}`,
         附加负面提示词: 构建物品负面提示词(enrichedItem),
     });
     const localResult = await persistImageAssetLocally(rawResult);

@@ -1,6 +1,7 @@
 import React from 'react';
 import { 世界数据结构 } from '../../../models/world';
 import { 环境信息结构 } from '../../../models/environment';
+import type { 题材界面文案 } from '../../../utils/resourceLabels';
 import LocationBrowser from './LocationBrowser';
 
 interface Props {
@@ -14,9 +15,10 @@ interface Props {
     onRegenerateMap?: () => Promise<boolean>;
     onInsertCommand?: (text: string) => void;
     rawResponse?: string;
+    uiLabels?: 题材界面文案;
 }
 
-const MapModal: React.FC<Props> = ({ world, env, onClose, onRegenerateMap, onInsertCommand, rawResponse, socialList }) => (
+const MapModal: React.FC<Props> = ({ world, env, onClose, onRegenerateMap, onInsertCommand, rawResponse, socialList, playerName, uiLabels }) => (
     <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/95 p-2 backdrop-blur-sm animate-fadeIn">
         <div className="relative flex h-[95vh] max-h-[95vh] w-full max-w-[min(1680px,calc(100vw-16px))] flex-col overflow-hidden rounded-2xl border border-wuxia-gold/20 bg-ink-black/95 shadow-[0_0_80px_rgba(0,0,0,0.9)]">
             <div className="pointer-events-none absolute inset-0 z-0">
@@ -29,9 +31,9 @@ const MapModal: React.FC<Props> = ({ world, env, onClose, onRegenerateMap, onIns
                     <div className="flex min-w-0 items-center gap-3">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-wuxia-gold/35 bg-wuxia-gold/10 text-lg font-bold text-wuxia-gold">图</span>
                         <div className="min-w-0">
-                            <h3 className="truncate font-serif text-xl font-bold tracking-[0.18em] text-wuxia-gold">江湖舆图</h3>
+                            <h3 className="truncate font-serif text-xl font-bold tracking-[0.18em] text-wuxia-gold">{uiLabels?.标题?.地图 || '江湖舆图'}</h3>
                             <div className="mt-1 truncate text-[11px] tracking-widest text-gray-400">
-                                {env?.大地点 || '未知'} / {env?.中地点 || '未知'} / {env?.小地点 || '未知'} / {env?.具体地点 || '未知'}
+                                {env?.大地点 || '未知'} / {env?.中地点 || '未知'} / {env?.小地点 || '未知'} / {env?.具体地点 || uiLabels?.标题?.地图未知地点 || '未知'}
                             </div>
                         </div>
                     </div>
@@ -55,6 +57,7 @@ const MapModal: React.FC<Props> = ({ world, env, onClose, onRegenerateMap, onIns
                     onInsertCommand={onInsertCommand}
                     rawResponse={rawResponse}
                     socialList={socialList}
+                    playerName={playerName}
                 />
             </div>
         </div>

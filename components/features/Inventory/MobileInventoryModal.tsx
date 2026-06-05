@@ -71,6 +71,27 @@ const renderItemIcon = (type: string, className: string) => {
     }
 };
 
+const ItemIconImage: React.FC<{
+    src: string;
+    alt: string;
+    fallback: React.ReactNode;
+    className?: string;
+    onClick?: React.MouseEventHandler<HTMLImageElement>;
+}> = ({ src, alt, fallback, className = 'h-full w-full object-cover', onClick }) => {
+    const [failed, setFailed] = useState(false);
+    if (!src || failed) return <>{fallback}</>;
+    return (
+        <img
+            src={src}
+            alt={alt}
+            className={className}
+            loading="lazy"
+            onError={() => setFailed(true)}
+            onClick={onClick}
+        />
+    );
+};
+
 const MobileDetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupTitle, entry }) => (
     <div className="group relative rounded border border-gray-700 bg-black/25 px-2.5 py-2 focus-within:border-wuxia-gold/60">
         <div className="flex items-start justify-between gap-2">
@@ -290,11 +311,10 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
                             >
                                 <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-gray-800 bg-black/60">
                                     {itemIconImage ? (
-                                        <img
+                                        <ItemIconImage
                                             src={itemIconImage}
                                             alt={name}
-                                            className="h-full w-full object-cover"
-                                            loading="lazy"
+                                            fallback={renderItemIcon(getSafeText(item?.类型), `w-6 h-6 opacity-80 ${styles.text}`)}
                                             onClick={(event) => {
                                                 event.stopPropagation();
                                                 setImageViewer({ src: itemIconImage, alt: name });
@@ -339,7 +359,11 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
                                         className="h-8 w-8 shrink-0 overflow-hidden rounded border border-gray-700"
                                         aria-label={`放大查看${getSafeText(selectedItem?.名称, '物品图标')}`}
                                     >
-                                        <img src={获取物品已选图标地址(selectedItem)} alt={getSafeText(selectedItem?.名称, '物品图标')} className="h-full w-full object-cover" />
+                                        <ItemIconImage
+                                            src={获取物品已选图标地址(selectedItem)}
+                                            alt={getSafeText(selectedItem?.名称, '物品图标')}
+                                            fallback={renderItemIcon(getSafeText(selectedItem?.类型), 'w-5 h-5 opacity-80 text-gray-300')}
+                                        />
                                     </button>
                                 ) : null}
                                 <div className="min-w-0 truncate text-sm text-gray-100">

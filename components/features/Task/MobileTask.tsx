@@ -1,21 +1,31 @@
 import React, { useState } from 'react';
 import { 任务分类列表, 任务结构, 任务类型 } from '../../../models/task';
 import { 规范化任务列表自动结算 } from '../../../utils/taskCompat';
+import type { 题材界面文案 } from '../../../utils/resourceLabels';
 
 interface Props {
     tasks: 任务结构[];
     onDeleteTask?: (taskIndex: number) => void;
     onClose: () => void;
     playerSect?: any;
+    uiLabels?: 题材界面文案;
+    topicMode?: string;
 }
 
-const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }) => {
+const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect, uiLabels, topicMode }) => {
     const [filter, setFilter] = useState<任务类型 | '全部'>('全部');
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const safeTasks = 规范化任务列表自动结算(Array.isArray(tasks) ? tasks : []) as 任务结构[];
-    const isApocalypseSect = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(JSON.stringify(playerSect || {}));
+    const 文案 = uiLabels?.标题;
+    const sectText = JSON.stringify(playerSect || {});
+    const isInfiniteSect = topicMode === '无限流' || /无限流|轮回|主神空间|主神|奖励点|支线剧情|恐怖片|小队/u.test(sectText);
+    const isApocalypseSect = !isInfiniteSect && /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(sectText);
     const sectName = String(playerSect?.名称 || '').trim();
-    const displayType = (type: string) => isApocalypseSect && type === '门派' ? '营地' : type;
+    const displayType = (type: string) => {
+        if (isInfiniteSect && (type === '门派' || type === '营地')) return '团队';
+        if (isApocalypseSect && type === '门派') return '营地';
+        return type;
+    };
     const getTaskLabels = (task: any): string[] => {
         const labels = [
             task?.类型,
@@ -23,6 +33,8 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect 
             ...(Array.isArray(task?.任务标签) ? task.任务标签 : [])
         ].map((item) => String(item || '').trim()).filter(Boolean);
         const text = [task?.标题, task?.描述, task?.发布人, task?.发布地点, task?.剧情暗线].filter(Boolean).join(' ');
+        if (isInfiniteSect && /主神|任务世界|恐怖片|奖励点|支线剧情|回归|倒计时/u.test(text)) labels.push('主神');
+        if (isInfiniteSect && (task?.类型 === '门派' || text.includes(sectName) || /轮回小队|团队|主神空间/u.test(text))) labels.push('团队');
         if (isApocalypseSect && (task?.类型 === '门派' || text.includes(sectName) || /营地|据点|避难所|安全点|车队/u.test(text))) {
             labels.push('营地');
         }
@@ -65,7 +77,7 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect 
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-3 md:hidden animate-fadeIn">
             <div className="bg-ink-black/95 border border-wuxia-gold/30 w-full max-w-[620px] h-[86vh] flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.8)] relative overflow-hidden rounded-2xl">
                 <div className="h-12 shrink-0 border-b border-gray-800/60 bg-black/40 flex items-center justify-between px-4">
-                    <h3 className="text-wuxia-gold font-serif font-bold text-base tracking-[0.3em]">江湖传书</h3>
+                    <h3 className="text-wuxia-gold font-serif font-bold text-base tracking-[0.3em]">{文案?.任务 || '江湖传书'}</h3>
                     <button
                         onClick={onClose}
                         className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 border border-gray-700 text-gray-400 hover:text-wuxia-red hover:border-wuxia-red transition-all"
@@ -100,7 +112,7 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect 
                             <div className="flex items-start justify-between gap-3">
                                 <div>
                                     <div className="text-lg text-wuxia-gold font-serif font-bold">{currentTask.标题}</div>
-                                    <div className="text-[10px] text-gray-500 mt-1">发布人 {currentTask.发布人} · {currentTask.发布地点}</div>
+                                    <div className="text-[10px] text-gray-500 mt-1">{文案?.任务发布字段 || '发布人'} {currentTask.发布人} · {currentTask.发布地点}</div>
                                 </div>
                                 <div className="flex items-start gap-2">
                                     {onDeleteTask && currentTaskOriginalIndex >= 0 && (
@@ -115,14 +127,14 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect 
                                             }}
                                             className="px-2 py-1 rounded border border-red-900/50 bg-red-950/20 text-[10px] text-red-300"
                                         >
-                                            删除
+                                            {文案?.删除任务 || '删除'}
                                         </button>
                                     )}
                                     <div className={`text-[11px] ${getStatusColor(currentTask.当前状态)}`}>{currentTask.当前状态}</div>
                                 </div>
                             </div>
                             <div className="text-[10px] text-gray-500">
-                                推荐境界 <span className="text-wuxia-cyan">{currentTask.推荐境界}</span>
+                                {文案?.任务推荐字段 || '推荐境界'} <span className="text-wuxia-cyan">{currentTask.推荐境界}</span>
                             </div>
                             <p className="text-sm text-gray-300 font-serif leading-relaxed">“{currentTask.描述}”</p>
                             <div className="flex gap-2 flex-wrap">
@@ -132,12 +144,12 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect 
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center text-gray-600 text-sm">暂无选中任务</div>
+                        <div className="text-center text-gray-600 text-sm">{文案?.任务选择提示 || '暂无选中任务'}</div>
                     )}
 
                     {currentTask && (
                         <div className="bg-black/40 border border-gray-800 rounded-xl p-4 space-y-3">
-                            <div className="text-[10px] text-gray-500 uppercase tracking-widest">当前目标</div>
+                            <div className="text-[10px] text-gray-500 uppercase tracking-widest">{文案?.任务目标标题 || '当前目标'}</div>
                             {currentObjectives.map((obj, i) => (
                                 <div key={i} className="flex items-center gap-3">
                                     <div className={`w-5 h-5 rounded-full flex items-center justify-center border ${
@@ -195,7 +207,7 @@ const MobileTask: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect 
                             );
                         })}
                         {filteredTaskEntries.length === 0 && (
-                            <div className="text-center text-gray-600 text-xs py-10">暂无此类任务</div>
+                            <div className="text-center text-gray-600 text-xs py-10">{文案?.任务空状态 || '暂无此类任务'}</div>
                         )}
                     </div>
                 </div>

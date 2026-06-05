@@ -1115,6 +1115,29 @@ export const 执行开场剧情生成工作流 = async (
             return simulatedOpeningState;
         };
         let 主角开局生图已触发 = false;
+        let 开局NPC生图已触发签名 = '';
+        const 构建开局NPC生图签名 = (npcList: any[]): string => (
+            (Array.isArray(npcList) ? npcList : [])
+                .map((npc: any, index: number) => {
+                    const id = typeof npc?.id === 'string' ? npc.id.trim() : '';
+                    const name = typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '';
+                    return id || name || `index:${index}`;
+                })
+                .filter(Boolean)
+                .join('|')
+        );
+        const 尽早触发开局NPC生图 = (sourceState: any = simulatedOpeningState) => {
+            const npcList = Array.isArray(sourceState?.社交) ? sourceState.社交 : [];
+            if (npcList.length === 0) return;
+            const signature = 构建开局NPC生图签名(npcList);
+            if (!signature || 开局NPC生图已触发签名 === signature) return;
+            开局NPC生图已触发签名 = signature;
+            try {
+                deps.触发新增NPC自动生图(npcList);
+            } catch (error) {
+                console.warn('开局 NPC 生图提前触发失败，已保持开局流程继续', error);
+            }
+        };
         const 尽早触发主角开局生图 = () => {
             if (主角开局生图已触发) return;
             主角开局生图已触发 = true;
@@ -1354,6 +1377,7 @@ export const 执行开场剧情生成工作流 = async (
                         rawText: typeof openingVariableResult?.rawText === 'string' ? openingVariableResult.rawText : '',
                         commandTexts: 构建带索引命令文本(variableCommands, openingVariableStartIndex)
                     });
+                    尽早触发开局NPC生图(simulatedOpeningState);
                     尽早触发主角开局生图();
                 }
             }
@@ -1956,7 +1980,7 @@ export const 执行开场剧情生成工作流 = async (
             ? openingStateAfterCommands.社交
             : openingNewNpcList;
         if (openingNpcImageTargets.length > 0) {
-            deps.触发新增NPC自动生图(openingNpcImageTargets);
+            尽早触发开局NPC生图({ 社交: openingNpcImageTargets });
         }
 
         if (openingBodyText.trim()) {

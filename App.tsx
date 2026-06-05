@@ -53,7 +53,6 @@ const ITEM_AUTO_IMAGE_AFTER_CHARACTER_SCENE_IDLE_DELAY = 2500;
 const ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL = 10 * 60 * 1000;
 const ITEM_AUTO_IMAGE_BACKEND_FAILURE_COOLDOWN_MS = 15 * 60 * 1000;
 const DIAGNOSTIC_ERROR_TOAST_COOLDOWN_MS = 90 * 1000;
-const IMAGE_TASK_BUSY_STATES = new Set(['queued', 'running']);
 const getDesktopDetailDefaultWidth = (_panelId: string | null): number => {
     return DESKTOP_DETAIL_MAX_WIDTH;
 };
@@ -543,6 +542,8 @@ const App: React.FC = () => {
     const autoItemImageRecentSuccessRef = React.useRef<Map<string, 物品自动生图近期结果>>(new Map());
     const autoItemImageFailedAtRef = React.useRef<Map<string, number>>(new Map());
     const autoItemImageBackendCooldownUntilRef = React.useRef(0);
+    const autoItemImageWakeTimerRef = React.useRef<number | null>(null);
+    const [autoItemImageWakeTick, setAutoItemImageWakeTick] = React.useState(0);
     const auctionSettlementHandledRef = React.useRef<Set<string>>(new Set());
     const 最近运行报错提示IDRef = React.useRef('');
     const 最近运行报错提示时间Ref = React.useRef(0);
@@ -557,6 +558,23 @@ const App: React.FC = () => {
     const currentRealmPrompt = React.useMemo(() => (
         (state.prompts || []).find((prompt) => prompt?.id === 'core_realm')?.内容 || ''
     ), [state.prompts]);
+    const 唤醒物品自动生图扫描 = React.useCallback((delayMs = 0) => {
+        if (typeof window === 'undefined') return;
+        if (autoItemImageWakeTimerRef.current !== null) {
+            window.clearTimeout(autoItemImageWakeTimerRef.current);
+            autoItemImageWakeTimerRef.current = null;
+        }
+        autoItemImageWakeTimerRef.current = window.setTimeout(() => {
+            autoItemImageWakeTimerRef.current = null;
+            setAutoItemImageWakeTick((value) => (value + 1) % 1_000_000);
+        }, Math.max(0, delayMs));
+    }, []);
+    React.useEffect(() => () => {
+        if (autoItemImageWakeTimerRef.current !== null) {
+            window.clearTimeout(autoItemImageWakeTimerRef.current);
+            autoItemImageWakeTimerRef.current = null;
+        }
+    }, []);
     const runAppUpdateCheck = React.useCallback(async (options?: { silentNoUpdate?: boolean; auto?: boolean }) => {
         try {
             await checkForAppUpdate(options);
@@ -1258,21 +1276,15 @@ const App: React.FC = () => {
         if (state.view !== 'game' || !feature?.文生图功能启用 || !feature?.物品生图启用) return;
         const imageApi = 获取文生图接口配置(state.apiConfig);
         if (!接口配置是否可用(imageApi)) return;
-        const characterAndSceneTasks = [
-            ...(Array.isArray(meta.imageGenerationQueue) ? meta.imageGenerationQueue : []),
-            ...(Array.isArray(meta.sceneImageQueue) ? meta.sceneImageQueue : [])
-        ];
-        const hasCharacterOrSceneImageWork = characterAndSceneTasks.some((task: any) => (
-            IMAGE_TASK_BUSY_STATES.has(String(task?.状态 || ''))
-        ));
-        if (hasCharacterOrSceneImageWork) return;
-        
         // 限制物品生图并发数量，避免一次性提交所有任务
         const MAX_CONCURRENT_ITEM_IMAGE_TASKS = 1;
         if (autoItemImageRunningRef.current.size >= MAX_CONCURRENT_ITEM_IMAGE_TASKS) return;
 
         const now = Date.now();
-        if (autoItemImageBackendCooldownUntilRef.current > now) return;
+        if (autoItemImageBackendCooldownUntilRef.current > now) {
+            唤醒物品自动生图扫描(autoItemImageBackendCooldownUntilRef.current - now + 250);
+            return;
+        }
         autoItemImageRecentSuccessRef.current.forEach((value, key) => {
             if (now - value.completedAt > ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL) {
                 autoItemImageRecentSuccessRef.current.delete(key);
@@ -1315,7 +1327,18 @@ const App: React.FC = () => {
             const failedAt = autoItemImageFailedAtRef.current.get(entry.key) || 0;
             return now - failedAt > ITEM_AUTO_IMAGE_RETRY_INTERVAL;
         });
-        if (!candidate) return;
+        if (!candidate) {
+            const retryDelays = candidates
+                .map((entry) => {
+                    const failedAt = autoItemImageFailedAtRef.current.get(entry.key) || 0;
+                    return failedAt ? (failedAt + ITEM_AUTO_IMAGE_RETRY_INTERVAL) - now : 0;
+                })
+                .filter((delay) => delay > 0);
+            if (retryDelays.length > 0) {
+                唤醒物品自动生图扫描(Math.min(...retryDelays) + 250);
+            }
+            return;
+        }
 
         autoItemImageScheduledRef.current.add(candidate.key);
         let cancelled = false;
@@ -1463,6 +1486,7 @@ const App: React.FC = () => {
                 });
             } finally {
                 autoItemImageRunningRef.current.delete(candidate.key);
+                唤醒物品自动生图扫描(250);
             }
         })();
         }, ITEM_AUTO_IMAGE_AFTER_CHARACTER_SCENE_IDLE_DELAY);
@@ -1471,7 +1495,7 @@ const App: React.FC = () => {
             autoItemImageScheduledRef.current.delete(candidate.key);
             window.clearTimeout(idleTimer);
         };
-    }, [state.view, state.apiConfig, state.角色, setters, actions, meta.imageGenerationQueue, meta.sceneImageQueue, auctionHouseState, auctionHouseScope]);
+    }, [state.view, state.apiConfig, state.角色, setters, actions, auctionHouseState, auctionHouseScope, autoItemImageWakeTick, 唤醒物品自动生图扫描]);
 
     const 题材界面文案 = React.useMemo(
         () => 获取题材界面文案(state.开局配置?.题材模式, state.开局配置?.modeRuntimeProfile),
@@ -3961,6 +3985,7 @@ const App: React.FC = () => {
                                     env={state.环境}
                                     socialList={state.社交}
                                     playerName={safeCharacter?.姓名 || ''}
+                                    uiLabels={题材界面文案}
                                     debugEnabled={(state.gameConfig as any)?.启用研发诊断模式 === true}
                                     onOpenPerson={openNpcDetailFromRecord}
                                     onRegenerateMap={handleRegenerateMap}
@@ -3974,6 +3999,7 @@ const App: React.FC = () => {
                                     env={state.环境}
                                     socialList={state.社交}
                                     playerName={safeCharacter?.姓名 || ''}
+                                    uiLabels={题材界面文案}
                                     debugEnabled={(state.gameConfig as any)?.启用研发诊断模式 === true}
                                     onOpenPerson={openNpcDetailFromRecord}
                                     onRegenerateMap={handleRegenerateMap}
@@ -4018,6 +4044,8 @@ const App: React.FC = () => {
                                     tasks={state.任务列表}
                                     onDeleteTask={actions.removeTask}
                                     playerSect={state.玩家门派}
+                                    topicMode={state.开局配置?.题材模式}
+                                    uiLabels={题材界面文案}
                                     onClose={() => setters.setShowTask(false)}
                                 />
                             ) : (
@@ -4025,6 +4053,8 @@ const App: React.FC = () => {
                                     tasks={state.任务列表}
                                     onDeleteTask={actions.removeTask}
                                     playerSect={state.玩家门派}
+                                    topicMode={state.开局配置?.题材模式}
+                                    uiLabels={题材界面文案}
                                     onClose={() => setters.setShowTask(false)}
                                 />
                             )}

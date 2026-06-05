@@ -43,6 +43,20 @@ describe('xianxia hardcoded realm system', () => {
         expect(获取单位境界显示({ 境界层级: 17, 当前灵力: 1 }, '未知境界', { forceXianxia: true })).toBe('金丹初期');
     });
 
+    it('does not force xianxia realm labels in explicit infinite-flow saves', () => {
+        const openingConfig = { 题材模式: '无限流' } as any;
+        expect(获取单位境界显示(
+            { 境界: '轮回新人', 境界层级: 1, 当前灵力: 20, 最大灵力: 20, 当前神识: 12, 最大神识: 12 },
+            '未知境界',
+            { openingConfig, forceXianxia: true }
+        )).toBe('轮回新人');
+        expect(获取单位境界显示(
+            { 境界层级: 1, 当前灵力: 20, 最大灵力: 20 },
+            '未知境界',
+            { openingConfig, forceXianxia: true }
+        )).not.toBe('炼气一层');
+    });
+
     it('can read a custom realm prompt by level when the stored realm text is missing', () => {
         const realmPrompt = [
             '【境界映射母板】',

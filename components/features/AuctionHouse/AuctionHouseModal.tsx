@@ -48,6 +48,24 @@ const 格式化时间 = (value?: number) => {
     return new Date(value).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 };
 
+const ItemIconImage: React.FC<{
+    src: string;
+    alt: string;
+    fallback: React.ReactNode;
+}> = ({ src, alt, fallback }) => {
+    const [failed, setFailed] = React.useState(false);
+    if (!src || failed) return <>{fallback}</>;
+    return (
+        <img
+            src={src}
+            alt={alt}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onError={() => setFailed(true)}
+        />
+    );
+};
+
 const AuctionHouseModal: React.FC<Props> = ({
     character,
     auctionState,
@@ -410,7 +428,11 @@ const AuctionHouseModal: React.FC<Props> = ({
                                                     className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} overflow-hidden rounded-lg border border-wuxia-gold/15 bg-black/35 flex items-center justify-center transition-colors hover:border-wuxia-gold/55 focus:border-wuxia-gold/70`}
                                                 >
                                                     {itemIconImage ? (
-                                                        <img src={itemIconImage} alt={entry.物品?.名称 || '物品图标'} className="h-full w-full object-cover" />
+                                                        <ItemIconImage
+                                                            src={itemIconImage}
+                                                            alt={entry.物品?.名称 || '物品图标'}
+                                                            fallback={<span className="text-xs text-wuxia-gold/65">{entry.物品?.类型 || '物'}</span>}
+                                                        />
                                                     ) : isGenerating ? (
                                                         <span className="text-xs text-sky-200">生成中</span>
                                                     ) : (

@@ -11,11 +11,26 @@ interface Props {
 }
 
 const TeamModal: React.FC<Props> = ({ character, teammates, openingConfig, onClose }) => {
-    const activeTeammates = teammates.filter(n => n.是否队友 === true);
+    const activeTeammates = React.useMemo(() => {
+        const playerName = String(character?.姓名 || '').trim();
+        const seen = new Set<string>();
+        return (Array.isArray(teammates) ? teammates : [])
+            .filter(n => n?.是否队友 === true)
+            .filter(n => n?.是否玩家本人 !== true)
+            .filter(n => String(n?.姓名 || '').trim() !== playerName)
+            .filter(n => {
+                const key = String(n?.id || n?.姓名 || '').trim();
+                if (!key) return true;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+    }, [character?.姓名, teammates]);
     const 资源文案 = 获取题材资源文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
     const 界面文案 = 获取题材界面文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
-    // 默认选中第一个队友
-    const [selectedTab, setSelectedTab] = useState<string>(activeTeammates.length > 0 ? activeTeammates[0].id : '');
+    const playerTabId = '__player__';
+    // 默认选中主角，队友仍按 NPC 列表展示。
+    const [selectedTab, setSelectedTab] = useState<string>(playerTabId);
 
     const 规范化资源展示 = (current: unknown, max: unknown) => {
         const cur = Number(current);
@@ -81,7 +96,127 @@ const TeamModal: React.FC<Props> = ({ character, teammates, openingConfig, onClo
         </div>
     );
 
-    // Player detail removed
+    const renderPlayerDetail = () => {
+        const hp = 规范化资源展示(
+            资源文案.气血当前字段.map(key => (character as any)?.[key]).find(value => Number.isFinite(Number(value))),
+            资源文案.气血最大字段.map(key => (character as any)?.[key]).find(value => Number.isFinite(Number(value)))
+        );
+        const sp = 规范化资源展示(
+            资源文案.精力当前字段.map(key => (character as any)?.[key]).find(value => Number.isFinite(Number(value))),
+            资源文案.精力最大字段.map(key => (character as any)?.[key]).find(value => Number.isFinite(Number(value)))
+        );
+        const qi = 规范化资源展示(
+            资源文案.能量当前字段.map(key => (character as any)?.[key]).find(value => Number.isFinite(Number(value))),
+            资源文案.能量最大字段.map(key => (character as any)?.[key]).find(value => Number.isFinite(Number(value)))
+        );
+        const 基础属性 = [
+            ['力', 读取数值((character as any).力量)],
+            ['敏', 读取数值((character as any).敏捷)],
+            ['体', 读取数值((character as any).体质)],
+            ['根', 读取数值((character as any).根骨)],
+            ['悟', 读取数值((character as any).悟性)],
+            ['福', 读取数值((character as any).福源)],
+            ['境层', 读取数值((character as any).境界层级, 1)],
+            ['攻', 读取数值((character as any).攻击力)],
+            ['防', 读取数值((character as any).防御力)]
+        ];
+        const hpPct = Math.max(0, Math.min(100, (hp.current / hp.max) * 100));
+        const spPct = Math.max(0, Math.min(100, (sp.current / sp.max) * 100));
+        const qiPct = Math.max(0, Math.min(100, (qi.current / qi.max) * 100));
+
+        return (
+            <div className="flex h-full flex-col animate-fadeIn relative z-10">
+                <div className="mb-6 flex items-start justify-between border-b border-wuxia-gold/10 pb-6">
+                    <div className="flex items-center gap-5">
+                        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-wuxia-gold/40 bg-wuxia-gold/10 text-3xl font-bold text-wuxia-gold shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+                            {(character.姓名 || '主')[0]}
+                        </div>
+                        <div>
+                            <div className="mb-2 flex items-center gap-3">
+                                <span className="text-3xl font-bold tracking-wider text-gray-100 drop-shadow-md">{character.姓名 || '主角'}</span>
+                                <span className="rounded-full border border-wuxia-gold/30 bg-wuxia-gold/15 px-3 py-1 text-xs text-wuxia-gold">队长</span>
+                                <span className="rounded border border-wuxia-gold/30 bg-wuxia-gold/20 px-2 py-0.5 text-[10px] text-wuxia-gold">{character.境界 || '境界不明'}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 font-mono">{character.称号 || character.出身背景?.名称 || 界面文案.标题.队员未变化}</div>
+                        </div>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 gap-6 overflow-y-auto custom-scrollbar pb-6 md:grid-cols-2">
+                    <div className="space-y-6">
+                        <div className="rounded-2xl border border-wuxia-gold/10 bg-gradient-to-br from-black/60 to-black/30 p-5 shadow-inner">
+                            <div className="mb-4 flex items-center gap-2 border-b border-wuxia-gold/10 pb-2">
+                                <IconHeart size={14} className="text-wuxia-gold/60" />
+                                <div className="text-sm font-bold tracking-widest text-wuxia-gold/80">{资源文案.分组标题}</div>
+                            </div>
+                            <div className="space-y-4">
+                                {[
+                                    [资源文案.气血, hp.current, hp.max, hpPct, 'from-red-600 to-red-400'],
+                                    [资源文案.精力, sp.current, sp.max, spPct, 'from-teal-600 to-teal-400'],
+                                    [资源文案.能量, qi.current, qi.max, qiPct, 'from-indigo-600 to-indigo-400']
+                                ].map(([label, cur, max, pct, color]) => (
+                                    <div key={String(label)}>
+                                        <div className="mb-1 flex justify-between text-xs font-mono">
+                                            <span className="font-serif tracking-widest text-wuxia-gold/80">{label}</span>
+                                            <span className="text-gray-300">{cur} / {max}</span>
+                                        </div>
+                                        <div className="h-1.5 overflow-hidden rounded-full border border-white/5 bg-black">
+                                            <div className={`h-full bg-gradient-to-r ${color}`} style={{ width: `${pct}%` }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="rounded-2xl border border-wuxia-gold/10 bg-gradient-to-br from-black/60 to-black/30 p-5 shadow-inner">
+                            <div className="mb-4 flex items-center gap-2 border-b border-wuxia-gold/10 pb-2">
+                                <IconSwords size={14} className="text-wuxia-gold/60" />
+                                <div className="text-sm font-bold tracking-widest text-wuxia-gold/80">{界面文案.标题.基础属性}</div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                {基础属性.map(([label, value]) => (
+                                    <div key={label} className="flex flex-col items-center justify-center rounded-xl border border-wuxia-gold/10 bg-black/50 p-3">
+                                        <span className="mb-1 text-xs tracking-widest text-wuxia-gold/50">{label}</span>
+                                        <span className="font-mono text-xl font-bold text-gray-100">{value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="space-y-6">
+                        <div className="rounded-2xl border border-wuxia-gold/10 bg-black/40 p-5">
+                            <div className="mb-4 flex items-center gap-2 border-b border-wuxia-gold/10 pb-2">
+                                <span className="h-1.5 w-1.5 rotate-45 bg-wuxia-gold/50" />
+                                <div className="text-sm font-bold tracking-widest text-wuxia-gold/80">{界面文案.标题.武器装备}</div>
+                            </div>
+                            <div className="px-1">
+                                <EquipItem label="主手兵刃" value={(character as any).装备?.武器 || (character as any).装备?.主武器} />
+                                <EquipItem label="防护衣甲" value={(character as any).装备?.防具 || (character as any).装备?.服装} />
+                                <EquipItem label="随身配饰" value={(character as any).装备?.饰品} />
+                            </div>
+                        </div>
+                        <div className="rounded-2xl border border-wuxia-gold/10 bg-black/40 p-5">
+                            <div className="mb-4 flex items-center gap-2 border-b border-wuxia-gold/10 pb-2">
+                                <span className="h-1.5 w-1.5 rotate-45 bg-gray-500" />
+                                <div className="text-sm font-bold tracking-widest text-gray-400">{界面文案.标题.随身物品}</div>
+                            </div>
+                            <div className="flex flex-wrap gap-2.5">
+                                {Array.isArray((character as any).物品列表) && (character as any).物品列表.length > 0 ? (
+                                    (character as any).物品列表.slice(0, 18).map((item: any, i: number) => (
+                                        <span key={`${item?.ID || item?.名称 || i}`} className="rounded border border-gray-700 bg-black/60 px-3 py-1.5 text-xs text-gray-300">
+                                            {typeof item === 'string' ? item : item?.名称 || '未命名物品'}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <div className="w-full rounded-xl border-2 border-dashed border-gray-800 py-6 text-center">
+                                        <span className="text-xs italic tracking-widest text-gray-600">{界面文案.标题.随身物品空状态}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     const renderTeammateDetail = (npc: NPC结构) => {
         const hp = 规范化资源展示(
@@ -301,7 +436,24 @@ const TeamModal: React.FC<Props> = ({ character, teammates, openingConfig, onClo
                         </div>
                         
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
-                            {/* 队长选项被移除 */}
+                            <button
+                                type="button"
+                                onClick={() => setSelectedTab(playerTabId)}
+                                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 relative overflow-hidden group ${
+                                    selectedTab === playerTabId
+                                        ? 'border-wuxia-gold/40 bg-gradient-to-r from-wuxia-gold/10 to-transparent shadow-[0_0_15px_rgba(212,175,55,0.1)]'
+                                        : 'border-transparent bg-black/20 hover:bg-white/5 hover:border-white/10'
+                                }`}
+                            >
+                                {selectedTab === playerTabId && <div className="absolute left-0 top-0 bottom-0 w-1 bg-wuxia-gold shadow-[0_0_10px_rgba(212,175,55,0.8)]"></div>}
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-wuxia-gold/50 bg-black/60 text-sm font-bold text-wuxia-gold">
+                                    {(character.姓名 || '主')[0]}
+                                </div>
+                                <div className="min-w-0 flex-1 text-left">
+                                    <div className={`truncate font-bold ${selectedTab === playerTabId ? 'text-wuxia-gold' : 'text-gray-200'}`}>{character.姓名 || '主角'}</div>
+                                    <div className="mt-0.5 truncate text-[10px] tracking-widest text-gray-500">队长 · {character.境界 || '境界不明'}</div>
+                                </div>
+                            </button>
 
                             {/* 队员列表 */}
                             {activeTeammates.map(npc => (
@@ -342,6 +494,7 @@ const TeamModal: React.FC<Props> = ({ character, teammates, openingConfig, onClo
                         
                         <div className="h-full relative z-10 w-full max-w-4xl mx-auto">
                             {(() => {
+                                if (selectedTab === playerTabId) return renderPlayerDetail();
                                 const selectedNpc = activeTeammates.find(n => n.id === selectedTab);
                                 if (!selectedNpc) return (
                                     <div className="flex flex-col items-center justify-center h-full text-wuxia-gold/40 font-serif">

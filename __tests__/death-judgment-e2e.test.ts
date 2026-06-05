@@ -122,7 +122,7 @@ describe('死亡判定端到端测试', () => {
         expect(monster?.当前血量).toBe(0);
     });
 
-    it('AI直接调用测试：发送战斗消息验证死亡判定', { timeout: 30000 }, async () => {
+    it('AI直接调用测试：发送战斗消息验证死亡判定', { timeout: 90000 }, async () => {
         if (!aiConfig) {
             console.log('跳过：未配置 MORAN_E2E_AI_BASE_URL/MORAN_E2E_AI_API_KEY/MORAN_E2E_AI_MODEL');
             return;

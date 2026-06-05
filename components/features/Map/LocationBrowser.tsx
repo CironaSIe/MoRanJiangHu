@@ -11,6 +11,7 @@ interface Props {
     compact?: boolean;
     rawResponse?: string;
     socialList?: any[];
+    playerName?: string;
     onInsertCommand?: (text: string) => void;
 }
 
@@ -84,7 +85,7 @@ const LocationTreeItem: React.FC<{
     );
 };
 
-const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact = false, rawResponse = '', socialList = [], onInsertCommand }) => {
+const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact = false, rawResponse = '', socialList = [], playerName = '', onInsertCommand }) => {
     const tree = useMemo(() => 构建地点树(world, env), [world, env]);
     const [selectedNode, setSelectedNode] = useState<地点树节点 | null>(() => 获取索引选中节点(tree.当前节点, tree.节点映射));
     const [regenerating, setRegenerating] = useState(false);
@@ -144,6 +145,26 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
             });
         });
     }, [selectedNode, socialList, breadcrumb, env, tree.当前节点]);
+
+    const selectedNodePeople = useMemo(() => {
+        const people = [...selectedNodeNpcs];
+        const safePlayerName = playerName.trim();
+        if (!safePlayerName || !selectedNode) return people;
+        const currentName = tree.当前节点?.名称 || '';
+        const selectedNames = new Set<string>([
+            selectedNode.名称,
+            ...selectedNode.子节点.map((node) => node.名称),
+            ...breadcrumb.map((node) => node.名称)
+        ].filter(Boolean));
+        const envNames = [env?.具体地点, env?.小地点, env?.中地点, env?.大地点].map((name) => String(name || '').trim()).filter(Boolean);
+        const locationMatches = selectedNames.has(currentName)
+            || envNames.some((name) => selectedNames.has(name))
+            || breadcrumb.some((node) => node.ID === tree.当前节点?.ID)
+            || selectedNode.ID === tree.当前节点?.父级ID;
+        if (!locationMatches) return people;
+        if (people.some((person: any) => String(person?.姓名 || person?.名称 || '').trim() === safePlayerName)) return people;
+        return [{ 姓名: safePlayerName, 名称: safePlayerName, 是否玩家本人: true }, ...people];
+    }, [selectedNodeNpcs, playerName, selectedNode, tree.当前节点, breadcrumb, env]);
 
     const rightPanelWidth = compact ? 'min-h-0' : 'w-[320px]';
 
@@ -214,7 +235,7 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                         viewLocationName={currentViewNode?.名称 || ''}
                         viewPathNames={breadcrumb.map((node) => node.名称)}
                         viewDescription={currentViewNode?.描述 || ''}
-                        viewNodeNpcs={selectedNodeNpcs}
+                        viewNodeNpcs={selectedNodePeople}
                     />
                 </div>
             </div>
@@ -301,13 +322,13 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                                         </button>
                                     </div>
                                 )}
-                                {selectedNodeNpcs.length > 0 && (
+                                {selectedNodePeople.length > 0 && (
                                     <div className="mt-2 pt-2 border-t border-white/5">
                                         <div className="text-[10px] text-gray-500 mb-1.5">在场角色</div>
                                         <div className="flex flex-wrap gap-1">
-                                            {selectedNodeNpcs.map((npc: any, i: number) => {
+                                            {selectedNodePeople.map((npc: any, i: number) => {
                                                 const npcColors = ['#d49090','#90b4d4','#90d490','#d4c490','#b490d4','#90d4c4'];
-                                                const c = npcColors[Math.abs((npc?.姓名 || npc?.名称 || '').length) % npcColors.length];
+                                                const c = npc?.是否玩家本人 ? '#f0d76a' : npcColors[Math.abs((npc?.姓名 || npc?.名称 || '').length) % npcColors.length];
                                                 return (
                                                     <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-bold"
                                                         style={{ background: c, color: '#2a1000' }}>

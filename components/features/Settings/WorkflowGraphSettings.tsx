@@ -655,41 +655,41 @@ const WorkflowGraphSettings: React.FC<{
                     panelClassName="text-[10px]"
                     optionClassName="px-2 py-1.5 text-[10px] leading-4"
                 />
-                <div className="flex gap-1">
-                    <div className="min-w-0 flex-1">
-                        <InlineSelect
-                            value={modelValue}
-                            options={modelOptions.map((model) => ({ value: model, label: model }))}
-                            onChange={(model) => {
-                                if (cfg.kind === 'main') {
-                                    updateMainModel(model);
-                                } else {
-                                    updatePlaceholderStage(stage, { [cfg.modelKey!]: model } as Partial<功能模型占位配置结构>);
-                                }
-                            }}
-                            disabled={modelOptions.length === 0 || !onSave}
-                            placeholder="选择模型"
-                            buttonClassName="h-7 min-h-0 rounded-sm border-gray-700 bg-black/35 px-2 py-1 text-[9px] leading-4"
-                            panelClassName="text-[10px]"
-                            optionClassName="px-2 py-1.5 text-[10px] leading-4"
-                        />
-                    </div>
+                <div className="relative z-20 space-y-1.5">
+                    <InlineSelect
+                        value={modelValue}
+                        options={modelOptions.map((model) => ({ value: model, label: model }))}
+                        onChange={(model) => {
+                            if (cfg.kind === 'main') {
+                                updateMainModel(model);
+                            } else {
+                                updatePlaceholderStage(stage, { [cfg.modelKey!]: model } as Partial<功能模型占位配置结构>);
+                            }
+                        }}
+                        disabled={modelOptions.length === 0 || !onSave}
+                        placeholder="选择模型"
+                        buttonClassName="h-7 min-h-0 rounded-sm border-gray-700 bg-black/35 px-2 py-1 text-[9px] leading-4"
+                        panelClassName="text-[10px]"
+                        optionClassName="px-2 py-1.5 text-[10px] leading-4"
+                    />
+                    <div className="grid grid-cols-2 gap-1.5">
                     <button
                         type="button"
                         onClick={() => fetchModelsForStage(stage)}
-                        className="h-[28px] w-10 shrink-0 rounded-sm border border-wuxia-cyan/45 bg-wuxia-cyan/10 px-2 text-center text-[10px] font-bold text-wuxia-cyan shadow-sm transition hover:border-wuxia-cyan hover:bg-wuxia-cyan/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="h-[28px] min-w-0 rounded-sm border border-wuxia-cyan/45 bg-wuxia-cyan/10 px-1.5 text-center text-[10px] font-bold leading-none text-wuxia-cyan shadow-sm transition hover:border-wuxia-cyan hover:bg-wuxia-cyan/20 disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={!onSave || loadingStageId === stage.id}
                     >
-                        {loadingStageId === stage.id ? '...' : '刷'}
+                        {loadingStageId === stage.id ? '...' : '刷新模型'}
                     </button>
                     <button
                         type="button"
                         onClick={() => testStageConnection(stage)}
-                        className="h-[28px] w-10 shrink-0 rounded-sm border border-emerald-400/45 bg-emerald-500/10 px-2 text-center text-[10px] font-bold text-emerald-200 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="h-[28px] min-w-0 rounded-sm border border-emerald-400/45 bg-emerald-500/10 px-1.5 text-center text-[10px] font-bold leading-none text-emerald-200 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={testingStageId === stage.id || !modelValue}
                     >
-                        {testingStageId === stage.id ? '...' : '测'}
+                        {testingStageId === stage.id ? '...' : '测试连接'}
                     </button>
+                    </div>
                 </div>
                 {stageMessages[stage.id] && <div className="text-[10px] leading-4 text-wuxia-cyan">{stageMessages[stage.id]}</div>}
             </div>

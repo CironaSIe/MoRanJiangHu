@@ -102,6 +102,8 @@ const RightPanel: React.FC<Props> = ({
 
     const menuLabel = uiLabels?.菜单;
     const titleLabel = uiLabels?.标题;
+    const systemHeaderTitle = titleLabel?.系统菜单题头 || '天机';
+    const systemHeaderSubtitle = titleLabel?.系统菜单副题 || 'System Menu';
     const menuItems = [
         { label: menuLabel?.battle || '战斗', action: onOpenBattle, color: 'primary' as const, changeKeys: ['战斗'] },
         { label: menuLabel?.equipment || '装备', action: onOpenEquipment, color: 'primary' as const, changeKeys: ['装备'] },
@@ -153,8 +155,8 @@ const RightPanel: React.FC<Props> = ({
                 </div>
             ) : (
                 <div className="right-panel-system-header mb-3 text-center border-b border-gray-800 pb-3 relative h-[62px] flex flex-col justify-center shrink-0">
-                    <h1 className="font-black tracking-[0.28em] opacity-90 drop-shadow-md text-wuxia-gold" style={{ fontSize: scaleFont(1.62, 21) }}>天机</h1>
-                    <div className="text-gray-600 tracking-[0.14em] mt-0.5 uppercase" style={{ fontSize: scaleFont(0.86, 11), lineHeight: 1.1 }}>System Menu</div>
+                    <h1 className="font-black tracking-[0.28em] opacity-90 drop-shadow-md text-wuxia-gold" style={{ fontSize: scaleFont(1.62, 21) }}>{systemHeaderTitle}</h1>
+                    <div className="text-gray-600 tracking-[0.14em] mt-0.5 uppercase" style={{ fontSize: scaleFont(0.86, 11), lineHeight: 1.1 }}>{systemHeaderSubtitle}</div>
                     <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-wuxia-gold/50 to-transparent"></div>
                 </div>
             )}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { 获取物品已选图标地址 } from '../utils/itemImage';
-import { 构建物品图提示词, 构建物品负面提示词, 构建物品视觉描述 } from '../services/ai/itemImageGeneration';
+import { 构建最终图片提示词, 全局无文字正向提示词, 全局无文字负面提示词 } from '../services/ai/image';
+import { 构建物品图提示词, 构建物品负面提示词, 构建物品视觉描述, 物品无文字正向约束 } from '../services/ai/itemImageGeneration';
 
 describe('item image preset fallback', () => {
     const expectHostedPreset = (url: string | undefined) => {
@@ -401,5 +402,49 @@ describe('item image prompt classification', () => {
         expect(prompt).toContain('strict wearable tactical vest item');
         expect(negativePrompt).toContain('shield only');
         expect(negativePrompt).toContain('medieval shield');
+    });
+
+    it('strongly forbids readable or pseudo-readable text on generated item images', () => {
+        const item = {
+            名称: '主神任务通行牌',
+            类型: '任务道具',
+            品质: '良品',
+            描述: '主神空间发放的临时通行牌。'
+        };
+        const negativePrompt = 构建物品负面提示词(item);
+
+        expect(物品无文字正向约束).toContain('blank unlabeled surfaces');
+        expect(物品无文字正向约束).toContain('blank unmarked object surface');
+        expect(物品无文字正向约束).toContain('clean material texture');
+        expect(物品无文字正向约束).not.toMatch(/\bno\s+(?:readable\s+)?text\b/i);
+        expect(物品无文字正向约束).not.toMatch(/\bno\s+(?:pseudo\s+text|labels?|logos?|inscriptions?)\b/i);
+        expect(negativePrompt).toContain('readable inscription');
+        expect(negativePrompt).toContain('pseudo text');
+        expect(negativePrompt).toContain('Chinese characters');
+        expect(negativePrompt).toContain('engraved words');
+        expect(negativePrompt).toContain('ideograms');
+    });
+
+    it('keeps global no-text protection even when base negative prompt is skipped', () => {
+        const bundle = 构建最终图片提示词('single access token prop', {
+            图片后端类型: 'comfyui',
+            baseUrl: 'https://example.com',
+            apiKey: '',
+            model: 'mock'
+        } as any, {
+            构图: '场景',
+            附加负面提示词: '',
+            附加正向提示词: ''
+        });
+
+        expect(全局无文字正向提示词).toContain('label-free visual design');
+        expect(全局无文字负面提示词).toContain('readable inscription');
+        expect(全局无文字负面提示词).toContain('pseudo text');
+        expect(bundle.最终正向提示词).toContain('blank unlabeled surfaces');
+        expect(bundle.最终负向提示词).toContain('text');
+        expect(bundle.最终负向提示词).toContain('watermark');
+        expect(bundle.最终负向提示词).toContain('logo');
+        expect(bundle.最终负向提示词).toContain('Chinese characters');
+        expect(bundle.最终负向提示词).toContain('pseudo text');
     });
 });

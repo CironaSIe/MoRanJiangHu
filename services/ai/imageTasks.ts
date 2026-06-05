@@ -110,8 +110,9 @@ class ComfyUI后端不可用错误 extends Error {
     }
 }
 
-const 自动去水印负面提示词 = 'text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, watermark, signature, username, logo, artist name, web address, url, copyright, subtitle, subtitles, title, poster text, comic text, manga text, dialogue text, speech bubble, dialogue box, word balloon, UI overlay, interface text, date stamp, QR code, barcode, poster layout, magazine cover, comic page, comic panel, manga panel, callout, text box, white oval bubble, black outline bubble, overlay, title card, credits, framed text, floating label, name tag';
-const 全局无文字正向提示词 = 'plain single image, clean composition, uncluttered visual presentation, natural subject focus, clear silhouette';
+export const 全局无文字负面提示词 = 'text, typography, letters, words, numbers, caption, label, labels, plaque, sign, inscription, readable inscription, pseudo text, fake text, gibberish text, Chinese characters, English letters, carved words, engraved words, engraved Chinese characters, vertical calligraphy, calligraphy, glyphs, runes, ideograms, seal, stamp, watermark, signature, username, logo, artist name, web address, url, copyright, subtitle, subtitles, title, poster text, comic text, manga text, dialogue text, speech bubble, dialogue box, word balloon, UI overlay, interface text, date stamp, QR code, barcode, poster layout, magazine cover, comic page, comic panel, manga panel, callout, text box, white oval bubble, black outline bubble, overlay, title card, credits, framed text, floating label, name tag, brand mark, emblem';
+export const 全局无文字正向提示词 = 'plain single image, clean composition, uncluttered visual presentation, natural subject focus, clear silhouette, blank unlabeled surfaces, label-free visual design, logo-free visual design, inscription-free object surfaces';
+const 自动去水印负面提示词 = 全局无文字负面提示词;
 const 默认中国人物正向提示词 = 'Chinese person, East Asian facial features, Chinese facial structure, black or dark brown hair, dark brown eyes';
 const 默认中国人物负向提示词 = 'Caucasian face, European face, Western face, blonde hair, blue eyes, foreigner, white person, Nordic features';
 const 部位特写单图正向提示词 = 'single image, one frame, one subject only, extreme close-up macro crop, target fills the frame, plain blurred background, cohesive macro composition';
@@ -1744,6 +1745,7 @@ export const 构建最终图片提示词 = (
         && !提示词明确外国人(`${原始前置正向提示词}, ${主体正向提示词}`);
     const 前置正向提示词 = 合并正向提示词片段(
         原始前置正向提示词,
+        全局无文字正向提示词,
         需要默认中国人物 ? 默认中国人物正向提示词 : ''
     );
     const 后置正向提示词 = 构建后置正向提示词({

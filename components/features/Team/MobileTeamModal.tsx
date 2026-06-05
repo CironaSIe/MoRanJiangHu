@@ -41,7 +41,21 @@ const 读取资源值 = (source: unknown, keys: string[]) => {
 };
 
 const MobileTeamModal: React.FC<Props> = ({ character, teammates, openingConfig, onClose }) => {
-    const activeTeammates = (Array.isArray(teammates) ? teammates : []).filter((n) => n.是否队友 === true);
+    const activeTeammates = React.useMemo(() => {
+        const playerName = String(character?.姓名 || '').trim();
+        const seen = new Set<string>();
+        return (Array.isArray(teammates) ? teammates : [])
+            .filter((n) => n?.是否队友 === true)
+            .filter((n) => n?.是否玩家本人 !== true)
+            .filter((n) => String(n?.姓名 || '').trim() !== playerName)
+            .filter((n) => {
+                const key = String(n?.id || n?.姓名 || '').trim();
+                if (!key) return true;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+    }, [character?.姓名, teammates]);
     const 资源文案 = 获取题材资源文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
     const 界面文案 = 获取题材界面文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
 

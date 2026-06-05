@@ -2,21 +2,31 @@ import React, { useState } from 'react';
 import { 任务分类列表, 任务结构, 任务类型 } from '../../../models/task';
 import { IconBackpack, IconTarget, IconCoins, IconScroll } from '../../ui/Icons';
 import { 规范化任务列表自动结算 } from '../../../utils/taskCompat';
+import type { 题材界面文案 } from '../../../utils/resourceLabels';
 
 interface Props {
     tasks: 任务结构[];
     onDeleteTask?: (taskIndex: number) => void;
     onClose: () => void;
     playerSect?: any;
+    uiLabels?: 题材界面文案;
+    topicMode?: string;
 }
 
-const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }) => {
+const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect, uiLabels, topicMode }) => {
     const [filter, setFilter] = useState<任务类型 | '全部'>('全部');
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const safeTasks = 规范化任务列表自动结算(Array.isArray(tasks) ? tasks : []) as 任务结构[];
-    const isApocalypseSect = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(JSON.stringify(playerSect || {}));
+    const 文案 = uiLabels?.标题;
+    const sectText = JSON.stringify(playerSect || {});
+    const isInfiniteSect = topicMode === '无限流' || /无限流|轮回|主神空间|主神|奖励点|支线剧情|恐怖片|小队/u.test(sectText);
+    const isApocalypseSect = !isInfiniteSect && /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(sectText);
     const sectName = String(playerSect?.名称 || '').trim();
-    const displayType = (type: string) => isApocalypseSect && type === '门派' ? '营地' : type;
+    const displayType = (type: string) => {
+        if (isInfiniteSect && (type === '门派' || type === '营地')) return '团队';
+        if (isApocalypseSect && type === '门派') return '营地';
+        return type;
+    };
     const getTaskLabels = (task: any): string[] => {
         const labels = [
             task?.类型,
@@ -24,6 +34,12 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }
             ...(Array.isArray(task?.任务标签) ? task.任务标签 : [])
         ].map((item) => String(item || '').trim()).filter(Boolean);
         const text = [task?.标题, task?.描述, task?.发布人, task?.发布地点, task?.剧情暗线].filter(Boolean).join(' ');
+        if (isInfiniteSect && /主神|任务世界|恐怖片|奖励点|支线剧情|回归|倒计时/u.test(text)) {
+            labels.push('主神');
+        }
+        if (isInfiniteSect && (task?.类型 === '门派' || text.includes(sectName) || /轮回小队|团队|主神空间/u.test(text))) {
+            labels.push('团队');
+        }
         if (isApocalypseSect && (task?.类型 === '门派' || text.includes(sectName) || /营地|据点|避难所|安全点|车队/u.test(text))) {
             labels.push('营地');
         }
@@ -78,8 +94,8 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }
                     <div className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse shadow-[0_0_14px_rgba(220,38,38,1)]"></div>
                         <h3 className="text-wuxia-gold font-serif font-bold text-xl tracking-[0.4em] drop-shadow-md">
-                            江湖传书
-                            <span className="text-[10px] text-wuxia-gold/50 ml-2 font-mono tracking-widest border border-wuxia-gold/20 px-2 py-0.5 rounded-full">MISSIONS & LETTERS</span>
+                            {文案?.任务 || '江湖传书'}
+                            <span className="text-[10px] text-wuxia-gold/50 ml-2 font-mono tracking-widest border border-wuxia-gold/20 px-2 py-0.5 rounded-full">{文案?.任务副题 || 'MISSIONS & LETTERS'}</span>
                         </h3>
                     </div>
 
@@ -174,7 +190,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }
                             {filteredTaskEntries.length === 0 && (
                                 <div className="text-center text-wuxia-gold/40 font-serif text-lg py-20 tracking-widest border border-dashed border-wuxia-gold/10 rounded-xl bg-black/20 m-2 flex flex-col items-center">
                                     <IconBackpack size={48} className="mb-4 opacity-50" />
-                                    天下太平，并无琐事
+                                    {文案?.任务空状态 || '天下太平，并无琐事'}
                                 </div>
                             )}
                         </div>
@@ -207,16 +223,16 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }
                                     
                                     <div className="flex flex-wrap gap-4 text-sm font-serif mt-6">
                                         <div className="flex bg-black/40 border border-gray-800 rounded shadow-inner overflow-hidden">
-                                            <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">{isApocalypseSect ? '营地委托' : '飞鸽传书'}</div>
+                                            <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">{文案?.任务发布字段 || (isApocalypseSect ? '营地委托' : '飞鸽传书')}</div>
                                             <div className="px-3 py-1.5 text-gray-200">{currentTask.发布人}</div>
                                         </div>
                                         <div className="flex bg-black/40 border border-gray-800 rounded shadow-inner overflow-hidden">
-                                            <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">事发之地</div>
+                                            <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">{文案?.任务地点字段 || '事发之地'}</div>
                                             <div className="px-3 py-1.5 text-gray-200">{currentTask.发布地点}</div>
                                         </div>
                                         <div className="flex bg-black/40 border border-gray-800 rounded shadow-inner overflow-hidden">
-                                            <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">建议修为</div>
-                                            <div className="px-3 py-1.5 text-amber-200">{currentTask.推荐境界 || '随缘而去'}</div>
+                                            <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">{文案?.任务推荐字段 || '建议修为'}</div>
+                                            <div className="px-3 py-1.5 text-amber-200">{currentTask.推荐境界 || (isInfiniteSect ? '按任务风险' : '随缘而去')}</div>
                                         </div>
                                         
                                         <div className="flex-1 text-right">
@@ -232,7 +248,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }
                                                     }}
                                                     className="px-4 py-1.5 rounded border border-red-900/50 bg-red-950/20 text-xs text-red-400 font-serif tracking-widest hover:border-red-500 hover:text-red-300 hover:bg-red-900/40 transition-colors shadow-sm"
                                                 >
-                                                    撕毁传书
+                                                    {文案?.删除任务 || '撕毁传书'}
                                                 </button>
                                             )}
                                         </div>
@@ -244,7 +260,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }
                                     <div className="absolute -left-3 -top-3 text-3xl text-wuxia-gold/30 font-serif pointer-events-none">❝</div>
                                     <h4 className="flex items-center gap-2 text-wuxia-gold/60 font-serif text-sm tracking-widest font-bold mb-4 border-b border-wuxia-gold/10 pb-2">
                                         <span className="w-1.5 h-1.5 rotate-45 bg-wuxia-gold/50"></span>
-                                        细则始末
+                                        {文案?.任务详情标题 || '细则始末'}
                                     </h4>
                                     <p className="text-gray-300 font-serif leading-loose text-base tracking-wide indent-8 px-2 relative z-10">
                                         {currentTask.描述}
@@ -256,7 +272,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }
                                 <div className="bg-gradient-to-br from-black/60 to-black/30 p-6 rounded-2xl border border-gray-800 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                                     <h4 className="flex items-center gap-2 text-gray-400 font-serif text-sm tracking-widest font-bold mb-5 border-b border-gray-800 pb-2">
                                         <IconTarget size={20} className="text-wuxia-gold/80" />
-                                        前路指引
+                                        {文案?.任务目标标题 || '前路指引'}
                                         <div className="h-px bg-gradient-to-r from-gray-800 to-transparent flex-1 ml-4"></div>
                                     </h4>
                                     <div className="space-y-4 px-2">
@@ -302,7 +318,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }
                                 <div className="bg-black/40 p-6 rounded-2xl border border-wuxia-gold/10">
                                     <h4 className="flex items-center gap-2 text-wuxia-gold/80 font-serif text-sm tracking-widest font-bold mb-4 border-b border-wuxia-gold/10 pb-2">
                                         <IconCoins size={20} />
-                                        论功行赏
+                                        {文案?.任务奖励标题 || '论功行赏'}
                                         <div className="h-px bg-gradient-to-r from-wuxia-gold/20 to-transparent flex-1 ml-4"></div>
                                     </h4>
                                     <div className="flex flex-wrap gap-3 px-2">
@@ -338,7 +354,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect }
                             <div className="flex flex-col items-center justify-center h-full text-wuxia-gold/30 font-serif gap-6 relative z-10">
                                 <IconScroll size={120} className="opacity-20 drop-shadow-2xl" />
                                 <span className="text-2xl tracking-[0.3em] font-bold">天下风云，尽在此案</span>
-                                <span className="text-sm text-gray-500 tracking-widest">请在左侧拣选密函卷宗</span>
+                                <span className="text-sm text-gray-500 tracking-widest">{文案?.任务选择提示 || '请在左侧拣选密函卷宗'}</span>
                             </div>
                         )}
                     </div>

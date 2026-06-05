@@ -8,6 +8,7 @@ const 读取文本 = (value: unknown): string => (
 
 const 默认武侠境界词 = /开脉|聚息|归元|御劲|化罡|通玄|神照|返真|天人|未知|未明|未定|不详|境界值|境界层级/;
 const 仙侠境界词 = /凡人|未入道|炼气|筑基|金丹|元婴|化神|炼虚|合体/;
+const 境界占位词 = /^(?:未知|未明|未定|不详|未知境界|未明境界|未定境界|境界值\s*\d*|境界层级\s*\d*)$/;
 
 const 获取境界前缀集合 = (cfg: 境界配置): Set<string> => {
     const terms = new Set<string>();
@@ -85,11 +86,19 @@ export const 获取单位境界显示 = (
     const raw = 读取文本(unit?.境界);
     const mappedRealm = 获取境界映射名称(unit?.境界层级, options);
     const hardcodedXianxia = 获取硬编码仙侠境界名称(unit?.境界层级);
-    const shouldUseXianxia = options?.forceXianxia === true || 推断单位仙侠(unit);
+    const explicitMode = 读取文本(options?.openingConfig?.题材模式);
+    const level = Math.max(1, Number(unit?.境界层级) || 0);
+    const topicMappedRealm = explicitMode && explicitMode !== '仙侠'
+        ? 获取境界配置(explicitMode as any, options?.openingConfig?.modeRuntimeProfile || null).levelNames[level - 1] || ''
+        : '';
+    const allowXianxiaInference = !explicitMode || explicitMode === '仙侠' || explicitMode === '都市修仙';
+    const shouldUseXianxia = allowXianxiaInference && (options?.forceXianxia === true || 推断单位仙侠(unit));
     const { known: currentKnownRegex, xianxia: currentXianxiaRegex } = 获取动态境界正则(options);
     if (shouldUseXianxia && hardcodedXianxia && (!raw || !currentXianxiaRegex.test(raw) || currentKnownRegex.test(raw))) {
         return hardcodedXianxia;
     }
+    if (explicitMode && explicitMode !== '仙侠' && raw && !境界占位词.test(raw)) return raw;
+    if (topicMappedRealm) return topicMappedRealm;
     if (raw && !currentKnownRegex.test(raw)) return raw;
     return mappedRealm || raw || hardcodedXianxia || fallback;
 };

@@ -113,10 +113,7 @@ const DetailCard: React.FC<{
             <div
                 className={`relative w-64 md:w-80 bg-black/90 backdrop-blur-md border border-wuxia-gold/30 rounded-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden group ${panelClassName || ''}`}
                 onClick={(event) => event.stopPropagation()}
-                onTouchStart={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }}
+                onTouchStart={(event) => event.stopPropagation()}
                 onTouchEnd={(event) => event.stopPropagation()}
             >
                 {/* Reference style elements */}

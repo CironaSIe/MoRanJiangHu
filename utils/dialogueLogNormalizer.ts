@@ -12,6 +12,7 @@ const 开头引号正则 = /^[“"「『]/;
 const 结尾引号正则 = /[”"」』]$/;
 const 说话尾迹正则 = /(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/;
 const 语气修饰尾迹正则 = /(?:轻声|低声|沉声|冷声|温声|柔声|厉声|朗声|小声|淡淡|缓缓|忽然|忽地|笑着|苦笑着|皱眉|抬眼|侧首|回头|点头|摇头|叹息|压低声音)\s*$/;
+const 动作修饰尾迹正则 = /(?:点点头|摇摇头|点点|摇摇|皱了皱眉|皱了皱|皱眉|抬头|低头|回头|转头|转身|侧首|抬眼|垂眼|看着|望着|盯着|瞥向|注视|沉默片刻|轻咳一声|冷笑一声|苦笑一声|笑了笑|叹了口气|压低声音|放低声音)\s*$/;
 const 泛称说话人正则 = /^(?:他|她|它|你|我|这人|那人|有人|众人|众弟子|众门人|众侍从|众士卒|众人齐声|众弟子齐声|众门人齐声|众侍从齐声|众士卒齐声|对方|男子|女子|少年|少女|老人|老者|汉子|侍女|侍从|弟子|门人|店小二)$/;
 const 非单一说话人正则 = /^(?:旁白|判定|NSFW判定|系统|众人|众弟子|众门人|众侍从|众士卒|众人齐声|众弟子齐声|众门人齐声|众侍从齐声|众士卒齐声|所有人|全场|人群|群声|齐声|同门|弟子们|门人们)$/;
 const 语气词说话人正则 = /^(?:轻声|低声|沉声|冷声|温声|柔声|厉声|朗声|小声|淡淡|缓缓|忽然|忽地|笑着|苦笑着)$/;
@@ -37,12 +38,13 @@ const 清理说话人 = (value: string): string => {
         text = text
             .replace(说话尾迹正则, '')
             .replace(语气修饰尾迹正则, '')
+            .replace(动作修饰尾迹正则, '')
             .trim();
     }
     text = text
         .replace(/^(?:那|这)(?=[\u4e00-\u9fff]{2,})/, '')
         .replace(/正$/, '')
-        .replace(/[的盯看望瞥注]$/, '')
+        .replace(/[的盯看望瞥注点摇]$/, '')
         .trim();
     if (!text || text.length > 12) return '';
     if (/[：:，,。！？!?；;\n]/.test(text)) return '';
@@ -253,6 +255,12 @@ const 裸冒号非对白标签集合 = new Set([
     '难度', '胜方', '败方', '差值', '伤害值', '消耗', '剩余', '后果', '发现度',
     '基础', '环境', '状态', '幸运', '装备', '结果', '奖励', '获得', '失去'
 ]);
+const XML对白标签名黑名单 = new Set([
+    '正文', 'thinking', 'think', 'judge', '变量规划', '剧情规划', '行动选项', '动态世界',
+    't_input', 't_var_plan', 't_plan', 't_state', 't_branch', 't_precheck', 't_logcheck',
+    't_var', 't_npc', 't_cmd', 't_audit', 't_fix', 't_mem', 't_opts'
+]);
+const XML对白标签正则 = /(?:<|&lt;)\s*([A-Za-z0-9_\u4e00-\u9fff·]{1,16})\s*(?:>|&gt;)([\s\S]{1,1800}?)(?:<|&lt;)\s*\/\s*\1\s*(?:>|&gt;)/g;
 const 可疑方括号无引号旁白标签正则 = /(?:的|了|着|过|他|她|它|你|我|这|那|带来|摇|低头|抬头|转身|眼力|细雨|雨声|风声|灯光|夜色|青石|空气)/;
 const 口语起始正则 = /^(?:我|我们|咱|咱们|你|你们|这事|那就|既然|今天|明天|昨天|前天|刚才|之前|现在|眼下|先|别|不要|必须|可以|应该|不是|恐怕|看来|听我|放心|等等|走|快|慢着|且慢|好|嗯|不行|没错|自然|当然|只要)/;
 const 叙事动作特征正则 = /(?:走到|来到|回到|站在|坐在|望向|看向|拿起|放下|推开|打开|穿过|掠过|落在|映在|吹过|响起|传来|升起|落下|归鞘|倒了|喝了|吃了|伸手|抬手|皱眉|点头|摇头|叹息|沉默|停下|转身)/;
@@ -281,6 +289,119 @@ const 是否像无标签口语 = (line: string): boolean => {
     if (!口语证据正则.test(text)) return false;
     if (叙事动作特征正则.test(text) && !/[我你咱]/.test(text)) return false;
     return 口语起始正则.test(text) || /[？?！!]$/.test(text) || /(?:吧|吗|呢|啊|罢|了)$/.test(text);
+};
+
+const 取引号闭合符 = (char: string): string => {
+    if (char === '“') return '”';
+    if (char === '「') return '」';
+    if (char === '『') return '』';
+    if (char === '"') return '"';
+    return '';
+};
+
+const 是否英文数字 = (char: string): boolean => /[A-Za-z0-9]/.test(char);
+
+const 上一个非空字符 = (text: string): string => {
+    for (let index = text.length - 1; index >= 0; index -= 1) {
+        const char = text[index];
+        if (!/\s/.test(char)) return char;
+    }
+    return '';
+};
+
+const 下一个非空字符 = (text: string, startIndex: number): string => {
+    for (let index = startIndex; index < text.length; index += 1) {
+        const char = text[index];
+        if (!/\s/.test(char)) return char;
+    }
+    return '';
+};
+
+const 引号未闭合 = (text: string): boolean => {
+    const stack: string[] = [];
+    const source = text || '';
+    for (let index = 0; index < source.length; index += 1) {
+        const char = source[index];
+        const expectedClose = stack[stack.length - 1];
+        if (expectedClose && char === expectedClose) {
+            stack.pop();
+            continue;
+        }
+        if (char === '"' && source[index - 1] === '\\') continue;
+        const close = 取引号闭合符(char);
+        if (close) {
+            if (char === '"' && expectedClose === '"') stack.pop();
+            else stack.push(close);
+        }
+    }
+    return stack.length > 0;
+};
+
+const 压平引号内换行 = (text: string): string => {
+    const source = (text || '').replace(/\r\n/g, '\n');
+    const stack: string[] = [];
+    let output = '';
+    for (let index = 0; index < source.length; index += 1) {
+        const char = source[index];
+        const expectedClose = stack[stack.length - 1];
+        if (expectedClose && char === expectedClose) {
+            stack.pop();
+            output += char;
+            continue;
+        }
+        if (char === '"' && source[index - 1] === '\\') {
+            output += char;
+            continue;
+        }
+        const close = 取引号闭合符(char);
+        if (close) {
+            if (char === '"' && expectedClose === '"') stack.pop();
+            else stack.push(close);
+            output += char;
+            continue;
+        }
+        if (stack.length > 0 && char === '\n') {
+            const previous = 上一个非空字符(output);
+            const next = 下一个非空字符(source, index + 1);
+            if (是否英文数字(previous) && 是否英文数字(next) && !/\s$/.test(output)) output += ' ';
+            continue;
+        }
+        output += char;
+    }
+    return output;
+};
+
+const 保护引号换行日志 = (logs: GameLog[] | undefined): GameLog[] => {
+    const sourceLogs = Array.isArray(logs) ? logs : [];
+    const result: GameLog[] = [];
+    let pending: GameLog | null = null;
+
+    sourceLogs.forEach((item) => {
+        const rawSender = (item?.sender || '旁白').trim() || '旁白';
+        const rawText = typeof item?.text === 'string' ? item.text : String(item?.text ?? '');
+        const text = 压平引号内换行(rawText);
+        if (!text.trim()) return;
+
+        if (pending) {
+            const joiner = pending.text && text ? '' : '';
+            pending.text = 压平引号内换行(`${pending.text}${joiner}${text}`);
+            if (!引号未闭合(pending.text)) {
+                result.push(pending);
+                pending = null;
+            }
+            return;
+        }
+
+        if (引号未闭合(text)) {
+            pending = { sender: rawSender, text };
+            return;
+        }
+
+        result.push({ sender: rawSender, text });
+    });
+
+    if (pending) result.push(pending);
+    return result;
 };
 
 const 拆分旁白夹杂无标签对白 = (log: GameLog): GameLog[] => {
@@ -349,8 +470,54 @@ const 拆分旁白夹杂无标签对白 = (log: GameLog): GameLog[] => {
     return result.length > 1 ? 合并相邻同发送者(result) : [log];
 };
 
+const 解码轻量HTML实体 = (value: string): string => (
+    (value || '')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+);
+
+const 是否可渲染XML对白标签 = (rawName: string, speech: string): string => {
+    const name = (rawName || '').trim();
+    if (!name || XML对白标签名黑名单.has(name) || 裸冒号非对白标签集合.has(name)) return '';
+    const speaker = 清理说话人(name);
+    if (!speaker || 非单一说话人正则.test(speaker) || 泛称说话人正则.test(speaker)) return '';
+    const text = 解码轻量HTML实体(speech).trim();
+    if (!text || 是否Judge残留文本(text) || 拟声词正则.test(text)) return '';
+    return speaker;
+};
+
+const 拆分XML标签对白 = (log: GameLog): GameLog[] => {
+    const source = typeof log?.text === 'string' ? log.text : '';
+    if (!source || !/(?:<|&lt;)\s*[A-Za-z0-9_\u4e00-\u9fff·]{1,16}\s*(?:>|&gt;)/.test(source)) return [log];
+
+    const parts: GameLog[] = [];
+    let cursor = 0;
+    let matched = false;
+    let match: RegExpExecArray | null = null;
+    XML对白标签正则.lastIndex = 0;
+
+    while ((match = XML对白标签正则.exec(source)) !== null) {
+        const rawName = match[1] || '';
+        const rawSpeech = match[2] || '';
+        const speaker = 是否可渲染XML对白标签(rawName, rawSpeech);
+        if (!speaker) continue;
+
+        const before = source.slice(cursor, match.index).trim();
+        if (before) parts.push({ sender: '旁白', text: 解码轻量HTML实体(before) });
+        parts.push({ sender: speaker, text: 解码轻量HTML实体(rawSpeech).trim() });
+        cursor = XML对白标签正则.lastIndex;
+        matched = true;
+    }
+
+    if (!matched) return [log];
+    const after = source.slice(cursor).trim();
+    if (after) parts.push({ sender: '旁白', text: 解码轻量HTML实体(after) });
+    return 合并相邻同发送者(parts);
+};
+
 export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): GameLog[] => {
-    const normalized = (Array.isArray(logs) ? logs : []).flatMap((item) => {
+    const normalized = 保护引号换行日志(logs).flatMap((item) => {
         const rawSender = (item?.sender || '旁白').trim() || '旁白';
         const rawText = typeof item?.text === 'string' ? item.text.trim() : String(item?.text ?? '').trim();
         const text = 拆分过长旁白段落(rawSender === '旁白' ? '旁白' : 清理说话人(rawSender) || '旁白', rawText);
@@ -362,7 +529,8 @@ export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): Gam
         const sender = 清理说话人(rawSender) || '旁白';
         if (!text) return [];
         if (sender === '旁白') {
-            return 拆分旁白夹杂对白({ sender, text }, [])
+            return 拆分XML标签对白({ sender, text })
+                .flatMap((part) => part.sender === '旁白' ? 拆分旁白夹杂对白(part, []) : [part])
                 .flatMap((part) => part.sender === '旁白' ? 拆分旁白夹杂无标签对白(part) : [part]);
         }
         if (sender === '奖励') return [{ sender, text }];
@@ -445,7 +613,7 @@ export const 规范化对白日志 = (
     options?: NormalizeOptions
 ): GameLog[] => {
     const knownSpeakers = Array.from(new Set((options?.knownSpeakers || []).map(item => (item || '').trim()).filter(Boolean)));
-    const normalized = (Array.isArray(logs) ? logs : [])
+    const normalized = 保护引号换行日志(logs)
         .flatMap((item) => {
             const rawSender = (item?.sender || '旁白').trim() || '旁白';
             const text = 拆分过长旁白段落(rawSender, typeof item?.text === 'string' ? item.text : String(item?.text ?? ''));

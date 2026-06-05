@@ -247,6 +247,27 @@ const InventoryModal: React.FC<Props> = ({ character, openingConfig, onClose, on
     }
 };
 
+const ItemIconImage: React.FC<{
+    src: string;
+    alt: string;
+    fallback: React.ReactNode;
+    className?: string;
+    onClick?: React.MouseEventHandler<HTMLImageElement>;
+}> = ({ src, alt, fallback, className = 'h-full w-full object-cover', onClick }) => {
+    const [failed, setFailed] = useState(false);
+    if (!src || failed) return <>{fallback}</>;
+    return (
+        <img
+            src={src}
+            alt={alt}
+            className={className}
+            loading="lazy"
+            onError={() => setFailed(true)}
+            onClick={onClick}
+        />
+    );
+};
+
 const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupTitle, entry }) => (
     <div className="min-w-0 rounded-lg border border-white/12 bg-black/35 px-2.5 py-2 transition hover:border-wuxia-gold/45 hover:bg-wuxia-gold/5">
         <div className="flex min-w-0 items-start justify-between gap-2">
@@ -511,11 +532,10 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
                                                 <div className="absolute inset-x-2 top-2 bottom-10 flex items-center justify-center overflow-hidden rounded-md border border-white/10 bg-black/30 shadow-inner transition-transform duration-300 group-hover:-translate-y-0.5">
                                                     <div className={`flex h-full w-full items-center justify-center overflow-hidden ${styles.text}`}>
                                                         {itemIconImage ? (
-                                                            <img
+                                                            <ItemIconImage
                                                                 src={itemIconImage}
                                                                 alt={name}
-                                                                className="h-full w-full object-cover"
-                                                                loading="lazy"
+                                                                fallback={renderItemIcon(getSafeText(item?.类型), 'h-8 w-8 opacity-90 drop-shadow-md group-hover:opacity-100')}
                                                                 onClick={(event) => {
                                                                     event.stopPropagation();
                                                                     setImageViewer({ src: itemIconImage, alt: name });
@@ -563,7 +583,11 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
                                                     className="h-full w-full overflow-hidden rounded-xl"
                                                     aria-label={`放大查看${getSafeText(selectedItem?.名称, '物品图标')}`}
                                                 >
-                                                    <img src={selectedIconImage} alt={getSafeText(selectedItem?.名称, '物品图标')} className="h-full w-full object-cover" />
+                                                    <ItemIconImage
+                                                        src={selectedIconImage}
+                                                        alt={getSafeText(selectedItem?.名称, '物品图标')}
+                                                        fallback={renderItemIcon(getSafeText(selectedItem?.类型), `h-6 w-6 drop-shadow-md ${getRarityStyles(getSafeText(selectedItem?.品质)).text}`)}
+                                                    />
                                                 </button>
                                             ) : (
                                                 renderItemIcon(getSafeText(selectedItem?.类型), `h-6 w-6 drop-shadow-md ${getRarityStyles(getSafeText(selectedItem?.品质)).text}`)

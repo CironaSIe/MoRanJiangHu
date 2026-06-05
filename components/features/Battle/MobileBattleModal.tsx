@@ -2,6 +2,7 @@ import React from 'react';
 import { 角色数据结构, 战斗状态结构 } from '../../../types';
 import { 生成战斗可视化数据, 逻辑判断知识库 } from '../../../utils/rulebook';
 import { 获取单位境界显示, 推断单位仙侠 } from '../../../utils/realmDisplay';
+import { 获取题材资源文案 } from '../../../utils/resourceLabels';
 import BattleRoundAnimation from './BattleRoundAnimation';
 
 interface Props {
@@ -44,6 +45,7 @@ const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '
     const 敌方列表 = (Array.isArray(battle?.敌方) ? battle.敌方 : []) as 扩展敌方[];
     const 存活敌人数 = 敌方列表.filter((enemy) => (enemy?.当前血量 || 0) > 0).length;
     const 可视化 = 生成战斗可视化数据(character, battle, contextText);
+    const 资源文案 = 获取题材资源文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
 
     const 部位当前 = [
         character.头部当前血量,
@@ -67,7 +69,8 @@ const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '
     const 玩家总血量上限 = 部位上限.reduce((sum, n) => sum + Math.max(0, Number(n) || 0), 0);
     const 境界值 = Math.max(1, Number(character.境界层级) || 1);
     const realmDisplayOptions = React.useMemo(() => ({ realmPrompt, openingConfig }), [realmPrompt, openingConfig]);
-    const 玩家是仙侠 = openingConfig?.题材模式 === '仙侠' || 推断单位仙侠(character);
+    const 当前题材 = openingConfig?.题材模式;
+    const 玩家是仙侠 = 当前题材 === '仙侠' || 当前题材 === '都市修仙' || (!当前题材 && 推断单位仙侠(character));
     const 玩家境界展示 = 获取单位境界显示(character, `境界值 ${境界值}`, { ...realmDisplayOptions, forceXianxia: 玩家是仙侠 });
  
     return (
@@ -104,9 +107,9 @@ const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '
                             <div className="text-[10px] text-wuxia-gold/80">{玩家境界展示 || '未定境界'}</div>
                         </div>
                         <div className="space-y-2">
-                            <条形值 label="总气血" current={玩家总血量当前} max={玩家总血量上限} color="bg-gradient-to-r from-red-700 to-red-400" />
-                            <条形值 label="精力" current={character.当前精力} max={character.最大精力} color="bg-gradient-to-r from-cyan-700 to-cyan-400" />
-                            <条形值 label="内力" current={character.当前内力} max={character.最大内力} color="bg-gradient-to-r from-indigo-700 to-indigo-400" />
+                            <条形值 label={`总${资源文案.气血}`} current={玩家总血量当前} max={玩家总血量上限} color="bg-gradient-to-r from-red-700 to-red-400" />
+                            <条形值 label={资源文案.精力} current={character.当前精力} max={character.最大精力} color="bg-gradient-to-r from-cyan-700 to-cyan-400" />
+                            <条形值 label={资源文案.能量} current={character.当前内力} max={character.最大内力} color="bg-gradient-to-r from-indigo-700 to-indigo-400" />
                         </div>
                         <div className="mt-3 grid grid-cols-4 gap-1.5 text-[10px]">
                             <div className="rounded border border-red-500/20 bg-red-950/20 p-1.5 text-center"><div className="text-red-200">攻</div><div className="font-mono text-red-100">{可视化.玩家.攻势}</div></div>
@@ -166,10 +169,10 @@ const MobileBattleModal: React.FC<Props> = ({ character, battle, contextText = '
                                                 </div>
                                             </div>
                                             <div className="mt-2 space-y-2">
-                                                <条形值 label="气血" current={hpCur} max={hpMax} color="bg-gradient-to-r from-red-700 to-red-400" />
-                                                <条形值 label="精力" current={spCur} max={spMax} color="bg-gradient-to-r from-cyan-700 to-cyan-400" />
+                                                <条形值 label={资源文案.气血} current={hpCur} max={hpMax} color="bg-gradient-to-r from-red-700 to-red-400" />
+                                                <条形值 label={资源文案.精力} current={spCur} max={spMax} color="bg-gradient-to-r from-cyan-700 to-cyan-400" />
                                                 {(enemy?.最大内力 !== undefined || enemy?.当前内力 !== undefined) && (
-                                                    <条形值 label="内力" current={qiCur} max={qiMax} color="bg-gradient-to-r from-indigo-700 to-indigo-400" />
+                                                    <条形值 label={资源文案.能量} current={qiCur} max={qiMax} color="bg-gradient-to-r from-indigo-700 to-indigo-400" />
                                                 )}
                                             </div>
                                             <div className="mt-2 text-[10px] text-gray-500">
