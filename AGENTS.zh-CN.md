@@ -637,6 +637,7 @@
 - 预设物品图应上传到 hi168 S3 对象存储，不再使用 111666 或 nodeimage。
 - S3 上传路径：`MoRanJiangHu/preset-items/<物品名>.png`；使用稳定物品名，之后替换图片时可直接覆盖同名对象，不需要重新部署代码。
 - 公开 URL 格式：`https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/<URL编码后的物品名>.png`
+- 预设图反馈页缩略图路径使用 `MoRanJiangHu/preset-items/thumbs/<物品名>.webp`；卡片网格加载 `thumbSrc`，放大预览和正式注册表继续使用原始 PNG `src`。
 - 预设图上传时使用至少 24 小时的浏览器/CDN 缓存，目前为 `Cache-Control: public, max-age=86400, stale-while-revalidate=604800`；覆盖同名对象后，如果用户仍看到旧图，需要刷新/清理图片缓存。
 - 不要再把旧的 hi168 根级对象直链作为预设图注册表 URL，例如 `https://s3.hi168.com/hi168-19275-07130td3/s3_*.png` 或 `.jpg`。这些直链在本项目里没有对外公开，常见结果是 HTTP 403；应重新生成或重新上传到 `MoRanJiangHu/preset-items/`。
 - hi168 S3 不需要 Referer 头（不像 111666 有防盗链），图片在任何上下文都能可靠加载。

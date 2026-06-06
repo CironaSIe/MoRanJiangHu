@@ -32,7 +32,8 @@
     "apk:signature": "node scripts/inspect-apk-signature.mjs",
     "stress:test": "node scripts/promptStressTest.js",
     "preset:images": "node scripts/generate-preset-item-images.mjs",
-    "preset:feedback": "node scripts/sync-item-preset-feedback-data.mjs"
+    "preset:feedback": "node scripts/sync-item-preset-feedback-data.mjs",
+    "preset:thumbs": "node scripts/generate-preset-thumbnails.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",

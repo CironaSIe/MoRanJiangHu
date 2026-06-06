@@ -644,6 +644,7 @@ If the task is "confirm this UI works" and the opening flow depends on external 
 - Preset item images should be uploaded to hi168 S3 object storage, not 111666 or nodeimage.
 - S3 upload path: `MoRanJiangHu/preset-items/<item-name>.png`; use the stable item name so future replacements can overwrite the same object without redeploying code.
 - Public URL format: `https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/<urlencoded-item-name>.png`
+- Preset feedback thumbnails use `MoRanJiangHu/preset-items/thumbs/<item-name>.webp`; card grids should load `thumbSrc`, while enlarged previews and registry entries should keep using the original PNG `src`.
 - Set preset image uploads to at least 24-hour browser/CDN cache, currently `Cache-Control: public, max-age=86400, stale-while-revalidate=604800`; after overwriting an object, refresh/purge the image cache if the old image is still visible.
 - Do not use old root-level hi168 object URLs such as `https://s3.hi168.com/hi168-19275-07130td3/s3_*.png` or `.jpg` for preset registry entries. In this project those direct links are not publicly open and commonly return HTTP 403, so regenerate or reupload them under `MoRanJiangHu/preset-items/`.
 - hi168 S3 does not require Referer headers (unlike 111666 which has anti-hotlink), so images load reliably in all contexts.

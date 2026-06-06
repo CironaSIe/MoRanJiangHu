@@ -343,15 +343,28 @@ function closeViewer() {
   viewer.setAttribute('aria-hidden', 'true');
   viewerImg.removeAttribute('src');
 }
-const maxConcurrentImageLoads = Number.POSITIVE_INFINITY;
+const maxConcurrentImageLoads = 24;
 let activeImageLoads = 0;
 const imageLoadQueue = [];
 const queuedImages = new WeakSet();
 const loadedImageUrls = new Set();
 const pendingImageLoads = new Map();
 const presetCardCache = new Map();
+const imageObserver = 'IntersectionObserver' in window
+  ? new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const img = entry.target;
+        imageObserver.unobserve(img);
+        enqueueImageLoad(img, img.__presetImgbox, img.__presetItem, 0);
+      }
+    }, { rootMargin: '360px 0px', threshold: 0.01 })
+  : null;
 function imageUrlForAttempt(url, attempt) {
   return url;
+}
+function cardImageSrc(item) {
+  return item.thumbSrc || item.src;
 }
 function setImageStatus(imgbox, className, text) {
   if (!imgbox) return;
@@ -360,8 +373,9 @@ function setImageStatus(imgbox, className, text) {
 }
 function enqueueImageLoad(img, imgbox, item, attempt = 0) {
   if (!img || !imgbox || !item || img.dataset.loaded === '1') return;
-  if (loadedImageUrls.has(item.src)) {
-    img.src = item.src;
+  const src = cardImageSrc(item);
+  if (loadedImageUrls.has(src)) {
+    img.src = src;
     img.dataset.loaded = '1';
     setImageStatus(imgbox, '', '');
     return;
@@ -369,7 +383,13 @@ function enqueueImageLoad(img, imgbox, item, attempt = 0) {
   if (queuedImages.has(img) && img.dataset.attempt === String(attempt)) return;
   img.dataset.attempt = String(attempt);
   queuedImages.add(img);
-  imageLoadQueue.push({ img, imgbox, item, attempt });
+  const rect = img.getBoundingClientRect();
+  const isViewportPriority = rect.bottom > -80 && rect.top < window.innerHeight + 80;
+  if (isViewportPriority) {
+    imageLoadQueue.unshift({ img, imgbox, item, attempt });
+  } else {
+    imageLoadQueue.push({ img, imgbox, item, attempt });
+  }
   pumpImageLoadQueue();
 }
 function loadPresetImageWithRetry(url, attempt = 0) {
@@ -426,30 +446,41 @@ function pumpImageLoadQueue() {
     queuedImages.delete(img);
     activeImageLoads += 1;
     setImageStatus(imgbox, 'loading', attempt > 0 ? `图片重试中（${attempt}/4）` : '图片加载中');
-    if (!img.getAttribute('src')) {
-      img.src = item.src;
-    }
-    loadPresetImageOnce(item.src).then((loadedUrl) => {
+    img.onload = () => {
       activeImageLoads = Math.max(0, activeImageLoads - 1);
       if (img.isConnected) {
-        img.src = loadedUrl;
         img.dataset.loaded = '1';
+        loadedImageUrls.add(cardImageSrc(item));
         setImageStatus(imgbox, '', '');
       }
       pumpImageLoadQueue();
-    }).catch(() => {
+    };
+    img.onerror = () => {
       activeImageLoads = Math.max(0, activeImageLoads - 1);
-      if (img.isConnected) {
+      if (img.isConnected && attempt < 4) {
         img.removeAttribute('src');
+        window.setTimeout(() => enqueueImageLoad(img, imgbox, item, attempt + 1), Math.min(12000, 1200 * (2 ** attempt)));
+      } else if (img.isConnected) {
         setImageStatus(imgbox, 'fail', '图片加载失败，滚动停留后可刷新重试');
         if (!imgbox.querySelector('.badge')) imgbox.appendChild(el('span', 'badge', item.source));
       }
       pumpImageLoadQueue();
-    });
+    };
+    const src = cardImageSrc(item);
+    if (img.getAttribute('src') !== src) {
+      img.src = src;
+    } else if (img.complete && img.naturalWidth > 0) {
+      img.onload();
+    }
   }
 }
 function watchPresetImage(img, imgbox, item) {
   img.__presetItem = item;
+  img.__presetImgbox = imgbox;
+  if (imageObserver) {
+    imageObserver.observe(img);
+    return;
+  }
   enqueueImageLoad(img, imgbox, item, 0);
 }
 function currentProblemItems() {
@@ -565,7 +596,7 @@ function getPresetCard(item, key, mark) {
   cached.button.textContent = mark.problem ? '已标问题' : '标为有问题';
   if (cached.img.getAttribute('src') && cached.img.complete && cached.img.naturalWidth > 0) {
     cached.img.dataset.loaded = '1';
-    loadedImageUrls.add(item.src);
+    loadedImageUrls.add(cardImageSrc(item));
     setImageStatus(cached.imgbox, '', '');
   }
   return cached.card;

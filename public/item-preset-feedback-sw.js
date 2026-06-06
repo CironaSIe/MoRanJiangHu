@@ -1,4 +1,4 @@
-const CACHE_VERSION = '2026-06-06-v1';
+const CACHE_VERSION = '2026-06-06-v2';
 const CACHE_NAME = `msjh-item-preset-feedback-${CACHE_VERSION}`;
 const META_CACHE_NAME = `msjh-item-preset-feedback-meta-${CACHE_VERSION}`;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;

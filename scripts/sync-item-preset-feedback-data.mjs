@@ -6,6 +6,9 @@ const sourcePath = path.join(root, 'data', 'presetItemImages.ts');
 const structuredLibraryPath = path.join(root, 'data', 'structuredItemLibrary.ts');
 const topicModeDataPath = path.join(root, 'data', 'workshopThemes', 'topicModeThemeData.ts');
 const outputPath = path.join(root, 'public', 'assets', 'item-preset-feedback-data.json');
+const s3Endpoint = (process.env.MORAN_OSS_ENDPOINT || 'https://s3.hi168.com').replace(/\/+$/, '');
+const s3Bucket = process.env.MORAN_OSS_BUCKET || 'hi168-19275-07130td3';
+const s3Prefix = (process.env.MORAN_OSS_PRESET_PREFIX || 'MoRanJiangHu/preset-items').replace(/^\/+|\/+$/g, '');
 
 const source = fs.readFileSync(sourcePath, 'utf8');
 const structuredLibrary = fs.readFileSync(structuredLibraryPath, 'utf8');
@@ -84,6 +87,19 @@ function categoriesForItem(item) {
   return topicModes.filter((mode) => categories.has(mode));
 }
 
+function encodeS3Key(key) {
+  return key.replace(/^\/+/, '').replace(/\/+/g, '/').split('/').map(part => encodeURIComponent(part)).join('/');
+}
+
+function safeObjectName(name) {
+  return String(name || 'item').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'item';
+}
+
+function thumbnailUrlForName(name) {
+  const key = `${s3Prefix}/thumbs/${safeObjectName(name)}.webp`;
+  return `${s3Endpoint}/${encodeURIComponent(s3Bucket)}/${encodeS3Key(key)}`;
+}
+
 const items = [];
 const seen = new Set();
 for (const match of source.matchAll(itemPattern)) {
@@ -95,6 +111,7 @@ for (const match of source.matchAll(itemPattern)) {
     type,
     quality,
     src,
+    thumbSrc: thumbnailUrlForName(name),
     source: /^https?:\/\//i.test(src) ? '远程图' : '本地',
   };
   for (const category of categoriesForItem(item)) {
