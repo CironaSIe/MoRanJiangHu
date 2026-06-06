@@ -607,6 +607,18 @@ async function loadData() {
   rebuildTypeOptions();
   render();
 }
+async function setupPresetFeedbackCache() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.register('/item-preset-feedback-sw.js');
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller && registration.active) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  } catch (error) {
+    console.warn('Preset feedback cache worker registration failed', error);
+  }
+}
 function setCategory(category) {
   const availableCategories = new Set(items.map(item => item.category || '武侠'));
   if (!availableCategories.has(category)) return;
@@ -741,7 +753,7 @@ viewer.onclick = (event) => {
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeViewer();
 });
-loadData().catch(error => {
+setupPresetFeedbackCache().then(loadData, loadData).catch(error => {
   stat.textContent = error.message || '载入失败';
   showToast(stat.textContent);
 });
