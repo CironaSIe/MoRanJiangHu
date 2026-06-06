@@ -1,5 +1,4 @@
 /assets/item-preset-feedback-data.json
-  Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
 /assets/*
