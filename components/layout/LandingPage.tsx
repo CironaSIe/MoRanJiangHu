@@ -382,7 +382,7 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                         return (
                             <div
                                 key={`presence-hover-column-${item.hour}-${index}`}
-                                className="landing-presence-hover-column absolute top-0 cursor-pointer bg-transparent"
+                                className="landing-presence-hover-column absolute top-0 z-[5] cursor-pointer bg-transparent"
                                 style={{
                                     left: Math.max(0, x - hoverColumnWidth / 2),
                                     width: hoverColumnWidth,
@@ -391,6 +391,30 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                                 role="img"
                                 aria-label={`在线人数 ${item.count}`}
                                 tabIndex={0}
+                                onPointerEnter={() => setHoveredIndex(index)}
+                                onPointerMove={() => setHoveredIndex(index)}
+                                onFocus={() => setHoveredIndex(index)}
+                                onBlur={() => setHoveredIndex(null)}
+                            />
+                        );
+                    })}
+                    {points.map((item, index) => {
+                        const { x, y } = pointPosition(item, index);
+                        return (
+                            <div
+                                key={`presence-hover-point-${item.hour}-${index}`}
+                                className="landing-presence-hover-point absolute z-10 cursor-pointer rounded-full bg-transparent"
+                                style={{
+                                    left: x - 14,
+                                    top: y - 14,
+                                    width: 28,
+                                    height: 28
+                                }}
+                                role="img"
+                                aria-label={`在线人数 ${item.count}`}
+                                tabIndex={0}
+                                onMouseEnter={() => setHoveredIndex(index)}
+                                onMouseMove={() => setHoveredIndex(index)}
                                 onPointerEnter={() => setHoveredIndex(index)}
                                 onPointerMove={() => setHoveredIndex(index)}
                                 onFocus={() => setHoveredIndex(index)}

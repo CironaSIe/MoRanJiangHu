@@ -28,6 +28,7 @@ import { isNativeCapacitorEnvironment } from './utils/nativeRuntime';
 import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImportWithReload';
 import { 小说拆分后台调度服务 } from './services/novelDecompositionScheduler';
 import { checkForAppUpdate, downloadLatestApkPackage, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
+import { APK仅手动更新已启用 } from './utils/appUpdatePreferences';
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 获取货币显示模式 } from './utils/currencyDisplay';
@@ -578,6 +579,9 @@ const App: React.FC = () => {
         }
     }, []);
     const runAppUpdateCheck = React.useCallback(async (options?: { silentNoUpdate?: boolean; auto?: boolean }) => {
+        if (options?.auto && APK仅手动更新已启用(state.gameConfig)) {
+            return;
+        }
         try {
             await checkForAppUpdate(options);
         } catch (error) {
@@ -588,7 +592,7 @@ const App: React.FC = () => {
             }
             window.alert(message);
         }
-    }, []);
+    }, [state.gameConfig]);
 
     React.useEffect(() => subscribeAppUpdateProgress(setAppUpdateProgress), []);
     React.useEffect(() => startOnlinePresenceHeartbeat(), []);
@@ -855,6 +859,7 @@ const App: React.FC = () => {
     }, [runAppUpdateCheck]);
     React.useEffect(() => {
         if (!isNativeCapacitorEnvironment()) return;
+        if (APK仅手动更新已启用(state.gameConfig)) return;
 
         let disposed = false;
         let listenerHandle: { remove: () => Promise<void> } | null = null;
@@ -886,9 +891,13 @@ const App: React.FC = () => {
                 void listenerHandle.remove();
             }
         };
-    }, []);
+    }, [runAppUpdateCheck, state.gameConfig]);
     React.useEffect(() => {
         if (typeof window === 'undefined') return;
+        if (APK仅手动更新已启用(state.gameConfig)) {
+            setSuppressReleaseNotesForToday(false);
+            return;
+        }
 
         const today = new Date().toISOString().slice(0, 10);
         let suppressedDate = '';
@@ -912,7 +921,7 @@ const App: React.FC = () => {
 
         releaseNotesAutoOpenedRef.current = true;
         setShowReleaseNotes(true);
-    }, [state.view]);
+    }, [state.view, state.gameConfig]);
     const confirmResolverRef = React.useRef<((value: boolean) => void) | null>(null);
     const 最近小说分解报错提示IDRef = React.useRef('');
     const [confirmState, setConfirmState] = React.useState<(ConfirmOptions & { open: boolean })>({
