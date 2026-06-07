@@ -8,7 +8,8 @@ const CORS_HEADERS = {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 };
 
-const MAX_BODY_BYTES = 512 * 1024;
+const MAX_BODY_BYTES = 2 * 1024 * 1024;
+const MAX_DEBUG_CONTEXT_CHARS = 900 * 1024;
 const RETENTION_DAYS = 30;
 const DAILY_REPORT_LIMIT = 10;
 const TRUSTED_AUTO_REPORT_LIMIT = 100;
@@ -28,6 +29,7 @@ type DiagnosticReportDocument = {
     client?: unknown;
     summary?: unknown;
     logs?: unknown[];
+    debugContext?: unknown;
 };
 
 const buildJsonResponse = (payload: unknown, status = 200): Response => {
@@ -160,6 +162,25 @@ const sanitizeLogs = (logs: unknown): unknown[] => {
     });
 };
 
+const sanitizeDebugContext = (value: unknown): unknown => {
+    if (!value || typeof value !== 'object') return undefined;
+    try {
+        const text = JSON.stringify(value);
+        if (text.length <= MAX_DEBUG_CONTEXT_CHARS) return value;
+        return {
+            truncated: true,
+            originalChars: text.length,
+            note: 'debugContext exceeded server budget and was truncated',
+            preview: text.slice(0, MAX_DEBUG_CONTEXT_CHARS)
+        };
+    } catch {
+        return {
+            truncated: true,
+            note: 'debugContext could not be serialized'
+        };
+    }
+};
+
 const isAutoUploadReport = (body: any): boolean => body?.summary && typeof body.summary === 'object' && body.summary.autoUpload === true;
 
 const buildReportDocument = (env: any, body: any): DiagnosticReportDocument => {
@@ -174,7 +195,8 @@ const buildReportDocument = (env: any, body: any): DiagnosticReportDocument => {
         app: body?.app && typeof body.app === 'object' ? body.app : {},
         client: body?.client && typeof body.client === 'object' ? body.client : {},
         summary: body?.summary && typeof body.summary === 'object' ? body.summary : {},
-        logs: sanitizeLogs(body?.logs)
+        logs: sanitizeLogs(body?.logs),
+        debugContext: sanitizeDebugContext(body?.debugContext)
     };
 };
 

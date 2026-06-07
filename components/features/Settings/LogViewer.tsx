@@ -100,9 +100,9 @@ const LogViewer: React.FC = () => {
         setReporting(true);
         setReportMessage('');
         try {
-            const result = await submitDiagnosticReport(filteredLogs);
+            const result = await submitDiagnosticReport(logs);
             setQuota(getDiagnosticReportQuota());
-            setReportMessage(`上报成功，诊断编号：${result.id}。今日还可上报 ${result.remainingToday} 次，日志将在 ${formatTime(result.expiresAt)} 后自动过期。`);
+            setReportMessage(`上报成功，诊断编号：${result.id}。已包含全部日志、解析失败原文与最近存档快照；今日还可上报 ${result.remainingToday} 次。`);
             await navigator.clipboard?.writeText(result.id).catch(() => undefined);
         } catch (error: any) {
             setQuota(getDiagnosticReportQuota());
@@ -121,7 +121,7 @@ const LogViewer: React.FC = () => {
                         {filteredLogs.length}/{logs.length}
                     </div>
                     <div className="hidden md:block text-[11px] text-gray-500 mt-1">
-                        捕获最近 {logs.length} 条浏览器与应用运行记录，用于排查黑屏、模型异常、存档和发布问题。
+                        捕获最近 {logs.length} 条浏览器与应用运行记录；上报会包含全部日志、解析失败原文与最近存档快照。
                     </div>
                 </div>
                 <div className="grid grid-cols-4 gap-1.5 md:flex md:flex-wrap md:gap-2">
@@ -139,7 +139,7 @@ const LogViewer: React.FC = () => {
                     </button>
                     <button
                         onClick={handleSubmitReport}
-                        disabled={reporting || filteredLogs.length === 0 || quota.remaining <= 0}
+                        disabled={reporting || logs.length === 0 || quota.remaining <= 0}
                         className="log-viewer-action log-viewer-action-report px-2 md:px-3 py-1.5 md:py-2 text-[11px] md:text-xs rounded-md border border-emerald-500/45 text-emerald-200 bg-emerald-950/25 hover:border-emerald-300/60 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {reporting ? '上报中' : '上报'}
@@ -155,7 +155,7 @@ const LogViewer: React.FC = () => {
 
             <div className="shrink-0 mb-2 md:mb-3 rounded-md border border-emerald-500/20 bg-emerald-950/10 px-2.5 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs leading-4 md:leading-5 text-emerald-100/85">
                 <span>今日上报 {quota.used}/{quota.limit}，剩余 {quota.remaining} 次。</span>
-                <span className="hidden md:inline"> 上报内容会保存到云端诊断桶，保留 1 个月后过期。</span>
+                <span className="hidden md:inline"> 上报不受当前筛选影响，并会保存到云端诊断桶 1 个月后过期。</span>
                 {reportMessage && <div className="mt-1 text-wuxia-gold line-clamp-2 md:line-clamp-none">{reportMessage}</div>}
             </div>
 

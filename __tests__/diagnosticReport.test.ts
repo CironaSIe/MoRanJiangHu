@@ -7,6 +7,11 @@ vi.mock('../services/appUpdate', () => ({
     }))
 }));
 
+vi.mock('../services/dbService', () => ({
+    读取存档列表: vi.fn(async () => []),
+    计算存档摘要短哈希: vi.fn(() => 'hash-test')
+}));
+
 const createLocalStorageMock = () => {
     const store = new Map<string, string>();
     return {
@@ -90,5 +95,116 @@ describe('diagnosticReport', () => {
         expect(fetchMock).toHaveBeenCalledTimes(2);
         expect(String(fetchMock.mock.calls[0][0])).toContain('msjh.bacon159.pp.ua/api/diagnostics/report');
         expect(String(fetchMock.mock.calls[1][0])).toContain('msjh.bacon.de5.net/api/diagnostics/report');
+    });
+
+    it('uploads full debug context with parse failure raw text and sanitized save snapshot', async () => {
+        const rawAiText = '<log>开场第一句</log>\n<行动选项>缺失结束标签';
+        const secretValue = 'sk-test-should-not-leak';
+        const imageDataUrl = `data:image/png;base64,${'a'.repeat(1600)}`;
+        const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+            ok: true,
+            id: 'diag_debug',
+            createdAt: '2026-05-17T09:00:00+08:00',
+            expiresAt: '2026-06-17T09:00:00+08:00',
+            remainingToday: 9
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const dbService = await import('../services/dbService');
+        vi.mocked(dbService.读取存档列表).mockResolvedValue([{
+            id: 7,
+            类型: 'auto',
+            时间戳: Date.parse('2026-05-17T08:55:00+08:00'),
+            元数据: {
+                现实保存时间ISO: '2026-05-17T00:55:00.000Z'
+            },
+            角色数据: {
+                姓名: '测试侠客',
+                APIKey: secretValue,
+                portraitDataUrl: imageDataUrl
+            },
+            环境信息: {
+                时间: '元年:01:01:08:00',
+                大地点: '中原',
+                中地点: '洛阳',
+                小地点: '客栈',
+                具体地点: '二楼'
+            },
+            历史记录: [{
+                role: 'assistant',
+                content: '上一轮剧情',
+                timestamp: Date.parse('2026-05-17T08:54:00+08:00'),
+                rawJson: `${rawAiText}\n${'后续内容'.repeat(200)}`
+            }],
+            世界: {
+                clientSecret: secretValue
+            },
+            游戏设置: {
+                启用标签检测完整性: true
+            }
+        } as any]);
+
+        const { recordAiParseFailureDiagnostic } = await import('../services/diagnosticContext');
+        recordAiParseFailureDiagnostic({
+            stage: 'opening_story',
+            error: {
+                message: '标签不完整',
+                parseDetail: '缺少 </行动选项>',
+                rawText: rawAiText
+            },
+            apiConfig: {
+                model: 'test-model',
+                供应商: 'test-provider',
+                baseUrl: 'https://example.com/v1',
+                apiKey: secretValue
+            },
+            rawText: rawAiText,
+            streaming: true,
+            validateTagCompleteness: true,
+            enableTagRepair: true,
+            requireActionOptionsTag: true,
+            inputTokens: 123,
+            outputTokens: 45,
+            gameTime: '元年:01:01:08:00'
+        });
+
+        const { submitDiagnosticReport } = await import('../services/diagnosticReport');
+        await submitDiagnosticReport([{
+            id: 'log_info_only',
+            level: 'info',
+            message: '流式连接正常',
+            createdAt: '2026-05-17T09:00:00+08:00'
+        } as any]);
+
+        const requestBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body || '{}'));
+        expect(requestBody.logs).toHaveLength(1);
+        expect(requestBody.debugContext?.recentAiParseFailures?.[0]).toMatchObject({
+            stage: 'opening_story',
+            rawText: rawAiText,
+            rawTextLength: rawAiText.length,
+            model: 'test-model',
+            supplier: 'test-provider',
+            baseUrlHost: 'example.com',
+            validateTagCompleteness: true,
+            requireActionOptionsTag: true,
+            gameTime: '元年:01:01:08:00'
+        });
+        expect(requestBody.debugContext?.saveSnapshot?.saves?.[0]?.summary).toMatchObject({
+            id: 7,
+            type: 'auto',
+            characterName: '测试侠客',
+            gameTime: '元年:01:01:08:00',
+            location: '中原 / 洛阳 / 客栈 / 二楼',
+            historyCount: 1
+        });
+        expect(requestBody.debugContext?.recentAiParseFailures?.[0]?.rawText).toBe(rawAiText);
+        expect(requestBody.debugContext?.saveSnapshot?.saves?.[0]?.historyTail?.[0]?.rawJson).toContain(rawAiText);
+        expect(JSON.stringify(requestBody)).not.toContain(secretValue);
+        expect(JSON.stringify(requestBody)).not.toContain(imageDataUrl);
+        expect(JSON.stringify(requestBody)).toContain('[已脱敏敏感字段]');
+        expect(JSON.stringify(requestBody)).toContain('[已脱敏图片dataURL');
     });
 });

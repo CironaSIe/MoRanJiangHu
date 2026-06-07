@@ -3,6 +3,7 @@ import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 import { getDiagnosticLogs, type DiagnosticLogEntry } from './diagnosticLog';
 import { recordDiagnosticLog } from './diagnosticLog';
 import { getCurrentAppRelease } from './appUpdate';
+import { buildDiagnosticDebugContext } from './diagnosticContext';
 
 const DAILY_LIMIT = 10;
 const RATE_LIMIT_STORAGE_KEY = 'moranjianghu.diagnosticReportRateLimit';
@@ -197,7 +198,8 @@ const buildReportPayload = async (
             countByLevel: countByLevel(logs),
             latestError: logs.find((entry) => entry.level === 'error') || null
         },
-        logs: logs.slice(0, 200)
+        logs: logs.slice(0, 200),
+        debugContext: await buildDiagnosticDebugContext()
     };
 };
 

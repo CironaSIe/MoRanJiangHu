@@ -1,4 +1,6 @@
 import * as textAIService from '../../services/ai/text';
+import { recordAiParseFailureDiagnostic } from '../../services/diagnosticContext';
+import { recordDiagnosticLog } from '../../services/diagnosticLog';
 import type { GameResponse, OpeningConfig, 聊天记录结构, 记忆系统结构, 角色数据结构, 剧情系统结构, 剧情规划结构, 女主剧情规划结构, 同人剧情规划结构, 同人女主剧情规划结构, 世界书结构, 内置提示词条目结构 } from '../../types';
 import { 获取主剧情接口配置, 获取剧情回忆接口配置, 获取文章优化接口配置, 获取变量计算接口配置, 获取世界演变接口配置, 获取规划分析接口配置, 获取地图自动更新接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
@@ -97,6 +99,16 @@ const 队列命令展示数量上限 = 120;
 const 队列命令展示单行上限 = 1800;
 const 主剧情首次响应超时毫秒 = 90_000;
 const 主剧情流式空闲超时毫秒 = 30_000;
+
+const 读取接口主机 = (baseUrl?: string): string => {
+    const raw = typeof baseUrl === 'string' ? baseUrl.trim() : '';
+    if (!raw) return '';
+    try {
+        return new URL(raw).host;
+    } catch {
+        return raw.replace(/^https?:\/\//i, '').split('/')[0] || raw.slice(0, 120);
+    }
+};
 
 export const 统计正文字符数 = (response: GameResponse): number => (
     (Array.isArray(response.logs) ? response.logs : [])
@@ -1061,8 +1073,22 @@ export const 执行主剧情发送工作流 = async (
             worldbooks: currentState.世界书列表
         });
         const inputTokens = deps.估算消息Token(orderedMessages, activeApi?.model);
+        recordDiagnosticLog('info', ['主剧情请求开始', {
+            stage: 'main_story',
+            model: activeApi?.model || '',
+            supplier: activeApi?.供应商 || '',
+            baseUrlHost: 读取接口主机(activeApi?.baseUrl),
+            streaming: isStreaming,
+            maxTokens: activeApi?.maxTokens,
+            inputTokens,
+            messageCount: orderedMessages.length,
+            validateTagCompleteness: runtimeGameConfig.启用标签检测完整性 === true,
+            enableTagRepair: runtimeGameConfig.启用标签修复 !== false,
+            requireActionOptionsTag: runtimeGameConfig.启用行动选项 !== false,
+            autoRetryEnabled: deps.游戏设置启用自动重试(runtimeGameConfig)
+        }]);
 
-        const aiResult = await deps.执行带自动重试的生成请求({
+        const aiResult = await deps.执行带自动重试的生成请求<textAIService.StoryResponseResult>({
             enabled: deps.游戏设置启用自动重试(runtimeGameConfig),
             onRetry: (attempt, maxAttempts, reason) => {
                 if (isStreaming) {
@@ -1155,6 +1181,17 @@ export const 执行主剧情发送工作流 = async (
                 return storyResult;
             }
         });
+        recordDiagnosticLog('info', ['主剧情解析成功', {
+            stage: 'main_story',
+            rawTextLength: typeof aiResult.rawText === 'string' ? aiResult.rawText.length : 0,
+            logsCount: Array.isArray(aiResult.response?.logs) ? aiResult.response.logs.length : 0,
+            commandCount: Array.isArray(aiResult.response?.tavern_commands) ? aiResult.response.tavern_commands.length : 0,
+            hasShortTerm: typeof aiResult.response?.shortTerm === 'string' && aiResult.response.shortTerm.trim().length > 0,
+            hasVariablePlan: typeof aiResult.response?.t_var_plan === 'string' && aiResult.response.t_var_plan.trim().length > 0,
+            hasStoryPlan: typeof aiResult.response?.t_plan === 'string' && aiResult.response.t_plan.trim().length > 0,
+            actionOptionsCount: Array.isArray(aiResult.response?.action_options) ? aiResult.response.action_options.length : 0,
+            outputTokens: deps.估算AI输出Token(deps.获取原始AI消息(aiResult.rawText), activeApi?.model)
+        }]);
 
         const worldEvolutionFeatureEnabled = currentState.apiConfig?.功能模型占位?.世界演变功能启用 !== false;
         const planningFeatureEnabled = currentState.apiConfig?.功能模型占位?.规划分析功能启用 !== false;
@@ -2167,6 +2204,26 @@ export const 执行主剧情发送工作流 = async (
             deps.应用并同步记忆系统(memBeforeSend);
             const parseErrorRaw = deps.提取解析失败原始信息(error);
             const parseErrorRawText = typeof error?.rawText === 'string' ? error.rawText : '';
+            const parseFailureGameConfig = 规范化游戏设置(currentState.gameConfig);
+            const parseFailureApi = 获取主剧情接口配置(currentState.apiConfig);
+            recordAiParseFailureDiagnostic({
+                stage: 'main_story',
+                error,
+                rawText: parseErrorRawText,
+                apiConfig: parseFailureApi,
+                streaming: isStreaming,
+                validateTagCompleteness: parseFailureGameConfig.启用标签检测完整性 === true,
+                enableTagRepair: parseFailureGameConfig.启用标签修复 !== false,
+                requireActionOptionsTag: parseFailureGameConfig.启用行动选项 !== false,
+                inputTokens: deps.估算消息Token(
+                    Array.isArray(currentState.历史记录)
+                        ? currentState.历史记录.map((item: any) => ({ role: item?.role, content: item?.content || item?.rawJson || '' }))
+                        : [],
+                    parseFailureApi?.model
+                ),
+                outputTokens: deps.估算AI输出Token(parseErrorRawText, parseFailureApi?.model),
+                gameTime: currentGameTime
+            });
             if (deps.游戏设置启用自动重试(规范化游戏设置(currentState.gameConfig))) {
                 deps.设置历史记录([...updatedDisplayHistory, {
                     role: 'system',
