@@ -72,6 +72,56 @@ describe('responseCommandProcessor dialogue social sync', () => {
         expect(result.社交[0].自动补全头像).toBe(true);
     });
 
+    it('adds a child NPC when an adult pregnant character gives birth', () => {
+        const state = 构建基础状态();
+        state.环境 = { 时间: '1:02:01:00:00' } as any;
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_mother_birth',
+                姓名: '沈青棠',
+                性别: '女',
+                年龄: 24,
+                境界: '炼气一层',
+                身份: '青云门弟子',
+                是否在场: true,
+                是否队友: false,
+                是否主要角色: true,
+                好感度: 80,
+                关系状态: '伴侣',
+                简介: '已有妊娠档案的成年角色。',
+                记忆: [],
+                子宫: {
+                    状态: '妊娠一月',
+                    宫口状态: '妊娠期闭合',
+                    内射记录: [],
+                    妊娠: {
+                        状态: '妊娠一月',
+                        受孕时间: '1:01:01:00:00',
+                        预计生产时间: '1:11:01:00:00',
+                        父亲姓名: '杨培强',
+                        已生产: false
+                    }
+                }
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            body: '沈青棠借时间加速秘法催生，提前生产并诞下一名孩子。',
+            logs: [
+                { sender: '旁白', text: '沈青棠借时间加速秘法催生，提前生产并诞下一名孩子。' }
+            ],
+            tavern_commands: []
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交).toHaveLength(2);
+        expect(result.社交[0].子宫.状态).toBe('产后恢复');
+        expect(result.社交[0].子宫.妊娠.已生产).toBe(true);
+        expect(result.社交[1]).toMatchObject({
+            年龄: 0,
+            关系状态: '子嗣'
+        });
+    });
+
     it('keeps existing NPCs when AI commands try to delete a social slot', () => {
         const state = 构建基础状态();
         state.社交 = 规范化社交列表([
@@ -808,7 +858,11 @@ describe('responseCommandProcessor NSFW female state fallback', () => {
         expect(result.社交[0].子宫.内射记录).toHaveLength(1);
         expect(result.社交[0].子宫.内射记录[0]).toMatchObject({
             日期: '三月十五日 夜',
-            怀孕判定日: '待判定'
+            怀孕判定日: '三月十五日 夜',
+            次数: 1,
+            是否生理期: false,
+            受孕概率: 0,
+            判定结果: '未判定'
         });
         expect(result.社交[0].子宫.内射记录[0].描述).toContain('体内射精事件');
         expect(result.社交[0].是否处女).toBe(false);

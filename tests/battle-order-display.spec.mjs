@@ -15,6 +15,17 @@ const closeReleaseNotesIfOpen = async (page) => {
     }
 };
 
+const closeBlockingOverlaysIfOpen = async (page) => {
+    await closeReleaseNotesIfOpen(page);
+    const lineageModalTitle = page.getByText('旧存档正在转换为新谱系', { exact: false }).first();
+    await lineageModalTitle.waitFor({ state: 'visible', timeout: 2500 }).catch(() => {});
+    if (await lineageModalTitle.isVisible().catch(() => false)) {
+        const closeButton = page.getByRole('button', { name: /^关闭$/ }).first();
+        await closeButton.click({ timeout: 3000, force: true });
+        await lineageModalTitle.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    }
+};
+
 const clickByTexts = async (page, texts) => {
     for (const text of texts) {
         const button = page.getByRole('button', { name: new RegExp(text) }).first();
@@ -117,6 +128,7 @@ const injectSaveAndReload = async (page) => {
         });
     }, makeBattleSave());
     await page.reload({ waitUntil: 'networkidle' });
+    await closeBlockingOverlaysIfOpen(page);
 };
 
 test('战斗面板展示按身法排序的具体行动顺序', async ({ page }) => {
@@ -127,6 +139,7 @@ test('战斗面板展示按身法排序的具体行动顺序', async ({ page }) 
     });
 
     await injectSaveAndReload(page);
+    await expect.poll(() => clickByTexts(page, ['本地游玩'])).toBe(true);
     await expect.poll(() => clickByTexts(page, ['重入江湖', '读取进度', '继续游戏', '读取', '载入'])).toBe(true);
     await loadSingleSaveSeries(page);
     await page.waitForTimeout(2500);

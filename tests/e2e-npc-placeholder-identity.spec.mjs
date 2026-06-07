@@ -15,6 +15,17 @@ const closeReleaseNotesIfOpen = async (page) => {
     }
 };
 
+const closeBlockingOverlaysIfOpen = async (page) => {
+    await closeReleaseNotesIfOpen(page);
+    const lineageModalTitle = page.getByText('旧存档正在转换为新谱系', { exact: false }).first();
+    await lineageModalTitle.waitFor({ state: 'visible', timeout: 2500 }).catch(() => {});
+    if (await lineageModalTitle.isVisible().catch(() => false)) {
+        const closeButton = page.getByRole('button', { name: /^关闭$/ }).first();
+        await closeButton.click({ timeout: 3000, force: true });
+        await lineageModalTitle.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    }
+};
+
 const clickByTexts = async (page, texts) => {
     for (const text of texts) {
         const button = page.getByRole('button', { name: new RegExp(text) }).first();
@@ -167,6 +178,7 @@ const injectSaveAndReload = async (page) => {
         });
     }, makePlaceholderNpcSave());
     await page.reload({ waitUntil: 'networkidle' });
+    await closeBlockingOverlaysIfOpen(page);
 };
 
 test('占位名 NPC 后续得名后在真实社交面板中保持单一档案', async ({ page }) => {
@@ -177,12 +189,13 @@ test('占位名 NPC 后续得名后在真实社交面板中保持单一档案', 
     });
 
     await injectSaveAndReload(page);
-    await clickByTexts(page, ['重入江湖', '读取进度', '继续游戏', '读取', '载入']);
+    await expect.poll(() => clickByTexts(page, ['本地游玩'])).toBe(true);
+    await expect.poll(() => clickByTexts(page, ['重入江湖', '读取进度', '继续游戏', '读取', '载入'])).toBe(true);
     await loadSingleSaveSeries(page);
     await page.waitForTimeout(1800);
-    await clickByTexts(page, ['社交']);
+    await expect.poll(() => clickByTexts(page, ['江湖谱', '社交'])).toBe(true);
 
-    await expect(page.getByText('江湖谱')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.social-roster-card__name').first()).toBeVisible({ timeout: 10000 });
     const rosterNames = await page.locator('.social-roster-card__name').allInnerTexts();
 
     expect(rosterNames).toContain('林婉儿');

@@ -164,7 +164,13 @@ test('release smoke: new save can start with configured AI endpoint', async ({ p
   await expect.poll(async () => {
     const bodyText = await page.locator('body').innerText().catch(() => '');
     const saveCount = await readSaveCount(page).catch(() => 0);
-    return saveCount > 0 || bodyText.includes('背包') || bodyText.includes('社交') || bodyText.includes('输入你的行动');
+    return saveCount > 0
+      || bodyText.includes('背包')
+      || bodyText.includes('社交')
+      || bodyText.includes('江湖行囊')
+      || bodyText.includes('江湖谱')
+      || bodyText.includes('保存进度')
+      || bodyText.includes('输入你的行动');
   }, {
     timeout: 180000,
     intervals: [2000, 5000, 10000],

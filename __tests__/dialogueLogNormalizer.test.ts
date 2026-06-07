@@ -36,7 +36,7 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         expect(logs[0].text).toContain('\n\n');
     });
 
-    it('splits explicit quoted speech from narration into character bubbles', () => {
+    it('keeps narrated quoted speech as narration instead of guessing character bubbles', () => {
         const logs = 规范化可渲染对白日志([{
             sender: '旁白',
             text: '杨培强停下手里的动作。一个清冷的女声从侧后方传来。俞月荷正站在门边，低声说道：“你动作能不能轻一点？如果里面装的是玻璃安瓿瓶，你刚才那一下，至少报废了我们半个月的口粮。”'
@@ -44,16 +44,12 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         expect(logs).toEqual([
             {
                 sender: '旁白',
-                text: '杨培强停下手里的动作。一个清冷的女声从侧后方传来。俞月荷正站在门边'
-            },
-            {
-                sender: '俞月荷',
-                text: '你动作能不能轻一点？如果里面装的是玻璃安瓿瓶，你刚才那一下，至少报废了我们半个月的口粮。'
+                text: '杨培强停下手里的动作。一个清冷的女声从侧后方传来。俞月荷正站在门边，低声说道：“你动作能不能轻一点？如果里面装的是玻璃安瓿瓶，你刚才那一下，至少报废了我们半个月的口粮。”'
             }
         ]);
     });
 
-    it('protects line breaks inside quoted character speech before splitting', () => {
+    it('protects line breaks inside quoted narration without assigning a speaker', () => {
         const logs = 规范化可渲染对白日志([{
             sender: '旁白',
             text: [
@@ -65,33 +61,31 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
 
         expect(logs).toEqual([
             {
-                sender: '叶青',
-                text: '先别兑换，确认任务世界和限制条件。如果主神限制热武器，我们就换侦查能力。'
+                sender: '旁白',
+                text: '叶青压低声音说道：“先别兑换，确认任务世界和限制条件。如果主神限制热武器，我们就换侦查能力。”'
             }
         ]);
     });
 
-    it('merges adjacent split quote entries before recovering the character bubble', () => {
+    it('merges adjacent split quote entries without recovering a character bubble', () => {
         const logs = 规范化可渲染对白日志([
             { sender: '旁白', text: '叶青压低声音说道：“先别兑换，' },
             { sender: '旁白', text: '确认任务世界和限制条件。”她看向主神光球。' }
         ] as any);
 
         expect(logs).toEqual([
-            { sender: '叶青', text: '先别兑换，确认任务世界和限制条件。' },
-            { sender: '旁白', text: '她看向主神光球。' }
+            { sender: '旁白', text: '叶青压低声音说道：“先别兑换，确认任务世界和限制条件。”她看向主神光球。' }
         ]);
     });
 
-    it('keeps trailing narration after recovering a quoted character bubble', () => {
+    it('keeps trailing narration together when quoted narration is not explicitly tagged', () => {
         const logs = 规范化可渲染对白日志([
             { sender: '旁白', text: '叶青点点头说道：“我去检查补给箱，' },
             { sender: '旁白', text: '看看有没有止血喷雾。”白光重新稳定。' }
         ] as any);
 
         expect(logs).toEqual([
-            { sender: '叶青', text: '我去检查补给箱，看看有没有止血喷雾。' },
-            { sender: '旁白', text: '白光重新稳定。' }
+            { sender: '旁白', text: '叶青点点头说道：“我去检查补给箱，看看有没有止血喷雾。”白光重新稳定。' }
         ]);
     });
 
@@ -283,7 +277,7 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         }]);
     });
 
-    it('recovers quoted oral speech after voice and gaze cues as character bubbles', () => {
+    it('keeps quoted oral speech after voice and gaze cues as narration unless explicitly tagged', () => {
         const logs = 规范化可渲染对白日志([{
             sender: '旁白',
             text: [
@@ -293,28 +287,30 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
             ].join('\n\n')
         }] as any);
 
-        expect(logs).toEqual([
-            {
-                sender: '旁白',
-                text: '秦映雪的声音里透着一股被废土现实反复踩踏后的沙哑与无奈，'
-            },
-            {
-                sender: '秦映雪',
-                text: '制式消音器？那玩意儿早在两年前的防线溃败里就打光了。现在整个废土行省，能拿出成套消音装备的，除了核心区的猎鹰连，就只有那些垄断了黑市的大商队。\n这是维修工秦砚舟上个月捣鼓出来的土法子。用绝缘胶布死死缠在枪管上，里面塞满破布和钢丝球。能压住前两发的枪口焰和部分噪音，但第三发开始，里面的破布就会被高温点燃，甚至可能导致炸膛。'
-            },
-            {
-                sender: '旁白',
-                text: '秦映雪盯着你，眼神冷厉，'
-            },
-            {
-                sender: '秦映雪',
-                text: '如果你觉得这玩意儿比你的短刀更靠谱，你可以拿走。但我个人的建议是，不到万不得已，不要开枪。'
-            },
-            {
-                sender: '旁白',
-                text: '你的刀，才是最安静的消音器。'
-            }
-        ]);
+        expect(logs).toHaveLength(1);
+        expect(logs[0].sender).toBe('旁白');
+        expect(logs[0].text).toContain('秦映雪的声音里透着');
+        expect(logs[0].text).toContain('“制式消音器？');
+        expect(logs[0].text).toContain('“如果你觉得这玩意儿比你的短刀更靠谱');
+        expect(logs[0].text).toContain('你的刀，才是最安静的消音器。');
+    });
+
+    it('does not infer a speaker from narrative adverbs before inner quoted thoughts', () => {
+        const logs = 规范化可渲染对白日志([{
+            sender: '旁白',
+            text: [
+                '她低下头，红宝石般的眼眸透过兜帽的阴影，死死盯着脚下那块青石。',
+                '',
+                '“只要走上去……就有白面馒头吃。”'
+            ].join('\n')
+        }] as any);
+
+        expect(logs).toHaveLength(1);
+        expect(logs[0]).toEqual({
+            sender: '旁白',
+            text: '她低下头，红宝石般的眼眸透过兜帽的阴影，死死盯着脚下那块青石。\n“只要走上去……就有白面馒头吃。”'
+        });
+        expect(logs.some(item => item.sender === '死死' || item.sender === '死')).toBe(false);
     });
 
     it('keeps quoted oral speech without a concrete speaker cue as narration', () => {

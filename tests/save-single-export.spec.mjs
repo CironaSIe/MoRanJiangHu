@@ -15,6 +15,17 @@ const closeReleaseNotesIfOpen = async (page) => {
     }
 };
 
+const closeBlockingOverlaysIfOpen = async (page) => {
+    await closeReleaseNotesIfOpen(page);
+    const lineageModalTitle = page.getByText('旧存档正在转换为新谱系', { exact: false }).first();
+    await lineageModalTitle.waitFor({ state: 'visible', timeout: 2500 }).catch(() => {});
+    if (await lineageModalTitle.isVisible().catch(() => false)) {
+        const closeButton = page.getByRole('button', { name: /^关闭$/ }).first();
+        await closeButton.click({ timeout: 3000, force: true });
+        await lineageModalTitle.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+    }
+};
+
 const clickByTexts = async (page, texts) => {
     for (const text of texts) {
         const button = page.getByRole('button', { name: new RegExp(text) }).first();
@@ -110,6 +121,7 @@ const injectSavesAndReload = async (page) => {
         makeSave(9002, '单档导出乙', 1713686400000),
     ].map((save) => ({ save, summary: makeSummary(save) })));
     await page.reload({ waitUntil: 'networkidle' });
+    await closeBlockingOverlaysIfOpen(page);
 };
 
 test('可以只导出选中的单个存档', async ({ page }) => {
@@ -120,6 +132,7 @@ test('可以只导出选中的单个存档', async ({ page }) => {
     });
 
     await injectSavesAndReload(page);
+    await expect.poll(() => clickByTexts(page, ['本地游玩'])).toBe(true);
     await expect.poll(() => clickByTexts(page, ['重入江湖', '读取进度', '继续游戏', '读取', '载入'])).toBe(true);
 
     const targetCard = page.getByText('单档导出甲').locator('xpath=ancestor::div[contains(@class,"cursor-pointer")][1]');

@@ -7,7 +7,6 @@ type NormalizeOptions = {
     knownSpeakers?: string[];
 };
 
-const 引号对白正则 = /[“"「『]([\s\S]{1,1200}?)[”"」』]/g;
 const 开头引号正则 = /^[“"「『]/;
 const 结尾引号正则 = /[”"」』]$/;
 const 说话尾迹正则 = /(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/;
@@ -22,8 +21,6 @@ const Judge标签残留正则 = /(?:<|&lt;)\s*\/?\s*judge\s*(?:>|&gt;)/i;
 const Judge数值残留正则 = /^判定值\s*[+\-]?\d+(?:\.\d+)?\s*\/\s*难度\s*[+\-]?\d+(?:\.\d+)?/m;
 const 完整判定文本特征正则 = /判定值|结果\s*[=:：]|[｜|]/;
 const 指节泛白套话正则 = /(?:[左右双两]?(?:手|手指|指尖|手背|拳头)?[^。！？!?；;\n]{0,12})?指节(?:处|间|上)?[^。！？!?；;\n]{0,18}(?:泛|透|发|浮|呈|显|露|沁|泛起|透出|发出)[^。！？!?；;\n]{0,12}(?:白|苍白|灰白|惨白|青白|失血色|没有血色)[^。！？!?；;\n]{0,12}/gu;
-
-const 转义正则文本 = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const 读取日志原始片段 = (log?: Partial<GameLog> | null): string => (
     typeof log?.rawText === 'string' ? log.rawText.trim() : ''
@@ -98,103 +95,6 @@ const 拆分过长旁白段落 = (sender: string, value: string): string => {
     return paragraphs.length > 1 ? paragraphs.join('\n\n') : text;
 };
 
-const 取最近句段 = (text: string): string => {
-    const source = (text || '').slice(-96);
-    const parts = source.split(/[。！？!?；;\n]/);
-    return (parts[parts.length - 1] || source).trim();
-};
-
-const 推断说话人 = (prefix: string, knownSpeakers: string[]): string => {
-    const recent = 取最近句段(prefix);
-    const normalizedKnown = knownSpeakers
-        .map(item => (item || '').trim())
-        .filter(item => item.length > 0)
-        .sort((a, b) => b.length - a.length);
-
-    let matchedName = '';
-    let matchedIndex = -1;
-    for (const speaker of normalizedKnown) {
-        const index = recent.lastIndexOf(speaker);
-        if (index >= 0 && index >= matchedIndex) {
-            matchedName = speaker;
-            matchedIndex = index;
-        }
-    }
-    if (matchedName) return matchedName;
-
-    const withoutTailCue = recent.replace(/[^，,。！？!?；;\n]{0,12}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/, '');
-    const possibleActionSegments = withoutTailCue.split(/[，,、\s]/).map(item => item.trim()).filter(Boolean).reverse();
-    for (const segment of possibleActionSegments) {
-        const actionNameMatch = segment.match(/^([\u4e00-\u9fff]{2,4})(?=正(?:在)?|已|也|还|仍|负手|收剑|抬|回|点|看|盯|望|站|坐|走|停|俯|侧|拱|抱|伸|皱|沉|笑|低|上前|退|转|放|握|按|举|落|扬|垂|敛|挑|拔|收|推|扶|拂|掠|倚|跪|躬|作|朝|向|对|把|将|眼神|声音|语气)/);
-        const actionName = 清理说话人(actionNameMatch?.[1] || '');
-        if (actionName) return actionName;
-    }
-
-    const voiceCueMatch = recent.match(/(?:^|[，,、\s])([\u4e00-\u9fff]{2,4})(?:的)?(?:声音|语气|嗓音|声线|眼神|目光|视线)[^。！？!?；;\n]{0,50}$/);
-    const voiceCueSpeaker = 清理说话人(voiceCueMatch?.[1] || '');
-    if (voiceCueSpeaker) return voiceCueSpeaker;
-
-    const explicitMatch = recent.match(/([A-Za-z0-9_\u4e00-\u9fff·]{1,14})[^，,。！？!?；;\n]{0,10}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/);
-    const cleaned = 清理说话人(explicitMatch?.[1] || '');
-    if (cleaned) return cleaned;
-
-    const namedCueMatch = recent.match(/([\u4e00-\u9fff]{2,4})[^。！？!?；;\n]{0,40}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/);
-    const namedCueSpeaker = 清理说话人(namedCueMatch?.[1] || '');
-    if (namedCueSpeaker) return namedCueSpeaker;
-
-    const genericMatch = recent.match(/(?:^|[，,、\s])((?:他|她|你|我|有人|众人|对方|男子|女子|少年|少女|老人|老者|汉子|侍女|侍从|弟子|门人|店小二))[^，,。！？!?；;\n]{0,10}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/);
-    return 清理说话人(genericMatch?.[1] || '');
-};
-
-const 推断后置信息说话人 = (suffix: string, knownSpeakers: string[]): string => {
-    const source = (suffix || '').slice(0, 120);
-    const normalizedKnown = knownSpeakers
-        .map(item => (item || '').trim())
-        .filter(Boolean)
-        .sort((a, b) => b.length - a.length);
-    for (const speaker of normalizedKnown) {
-        const escaped = 转义正则文本(speaker);
-        if (new RegExp(`^\\s*${escaped}[\\s\\S]{0,60}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道|盯着|看着|望着|瞥向|注视|眼神|目光|视线|声音|语气)`).test(source)) {
-            return speaker;
-        }
-    }
-    const match = source.match(/^\s*([\u4e00-\u9fff]{2,4})[^。！？!?；;\n]{0,60}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道|盯着|看着|望着|瞥向|注视|眼神|目光|视线|声音|语气)/);
-    return 清理说话人(match?.[1] || '');
-};
-
-const 是否像说话引导 = (prefix: string, speaker: string): boolean => {
-    const recent = 取最近句段(prefix);
-    if (说话尾迹正则.test(recent)) return true;
-    if (!speaker) return false;
-    const escaped = 转义正则文本(speaker);
-    if (new RegExp(`${escaped}[\\s\\S]{0,60}(?:声音|语气|嗓音|声线|眼神|目光|视线|盯着|看着|望着|瞥向|注视|冷厉|压低|沉下|放缓)`).test(recent)) return true;
-    return new RegExp(`${escaped}[\\s\\S]{0,18}(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\\s*[：:]?\\s*$`).test(recent);
-};
-
-const 移除尾部说话引导 = (text: string, speaker: string): string => {
-    const source = text || '';
-    const punctuationIndex = Math.max(
-        source.lastIndexOf('。'),
-        source.lastIndexOf('！'),
-        source.lastIndexOf('？'),
-        source.lastIndexOf('!'),
-        source.lastIndexOf('?'),
-        source.lastIndexOf('；'),
-        source.lastIndexOf(';'),
-        source.lastIndexOf('，'),
-        source.lastIndexOf(','),
-        source.lastIndexOf('、'),
-        source.lastIndexOf('\n')
-    );
-    const tail = source.slice(punctuationIndex + 1).trim();
-    if (说话尾迹正则.test(tail)) {
-        return (punctuationIndex >= 0 ? source.slice(0, punctuationIndex) : '').trim();
-    }
-    return source
-        .replace(/(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/, '')
-        .trim();
-};
-
 const 合并相邻同发送者 = (logs: GameLog[]): GameLog[] => {
     const merged: GameLog[] = [];
     logs.forEach((item) => {
@@ -262,14 +162,6 @@ const 是否Judge残留文本 = (text: string): boolean => {
     const source = (text || '').trim();
     if (!source) return false;
     return Judge标签残留正则.test(source) || Judge数值残留正则.test(source);
-};
-
-const 是否像引号对白内容 = (text: string): boolean => {
-    const source = (text || '').trim();
-    if (!source || source.length < 2 || source.length > 1200) return false;
-    if (是否Judge残留文本(source) || 拟声词正则.test(source)) return false;
-    if (/^[\u4e00-\u9fffA-Za-z0-9·\s_-]{1,16}$/.test(source) && !/[我你咱？！!?]/.test(source)) return false;
-    return /[我你咱]|[？?！!]|(?:吧|吗|呢|啊|呀|嘛|呗|啦|喂|哼|嗯|唔|哦|行|好|滚|停|走|快|慢着|且慢|别|不要|可以|应该|必须|如果|这是|这个|那个|第一|第二|第三)/.test(source);
 };
 
 const 人物动作动词正则 = /^(?:将|把|给|向|对|朝|走|站|坐|停|回|转|看|望|抬|低|点|摇|皱|叹|笑|冷笑|苦笑|轻笑|沉|伸|握|按|收|拔|举|放|推|扶|拂|敛|挑|倒|取|递|开口|提醒|解释|说道|说|道|问|答)/;
@@ -606,8 +498,7 @@ export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): Gam
         if (!text) return [];
         if (sender === '旁白') {
             return 拆分旁白中的显式方括号对白(附加原始片段({ sender, text }, rawSource))
-                .flatMap(item => item.sender === '旁白' ? 拆分旁白夹杂无标签对白(item) : [item])
-                .flatMap(item => item.sender === '旁白' ? 拆分旁白夹杂对白(item, []) : [item]);
+                .flatMap(item => item.sender === '旁白' ? 拆分旁白夹杂无标签对白(item) : [item]);
         }
         if (sender === '奖励') return [附加原始片段({ sender, text }, rawSource)];
         if (/^(【)?(?:判定|NSFW判定|先机|瞄准|接战|对撞|对抗|防御|化解|伤害|态势|反击|反馈|消耗|洞察|衰退)(】)?$/.test(sender)) {
@@ -641,50 +532,6 @@ export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): Gam
         return [附加原始片段({ sender: '旁白', text }, rawSource)];
     });
     return 合并相邻同发送者(normalized);
-};
-
-const 拆分旁白夹杂对白 = (log: GameLog, knownSpeakers: string[]): GameLog[] => {
-    const source = typeof log?.text === 'string' ? log.text : '';
-    if (!source || !/[“"「『]/.test(source)) return [log];
-    const rawSource = 读取日志原始片段(log);
-
-    const parts: GameLog[] = [];
-    let cursor = 0;
-    let lastSpeaker = '';
-    let match: RegExpExecArray | null = null;
-    引号对白正则.lastIndex = 0;
-
-    while ((match = 引号对白正则.exec(source)) !== null) {
-        const quoteStart = match.index;
-        const quoteEnd = 引号对白正则.lastIndex;
-        const speech = (match[1] || '').trim();
-        const prefix = source.slice(0, quoteStart);
-        let speaker = 推断说话人(prefix, knownSpeakers);
-        let inferredFromSuffix = false;
-        if (!speaker) {
-            speaker = 推断后置信息说话人(source.slice(quoteEnd), knownSpeakers);
-            inferredFromSuffix = Boolean(speaker);
-        }
-        if (!speaker && lastSpeaker && 是否像引号对白内容(speech)) {
-            speaker = lastSpeaker;
-        }
-
-        const hasLeadingCue = 是否像说话引导(prefix, speaker);
-        const hasReliableSpeakerCue = hasLeadingCue || inferredFromSuffix || (!!lastSpeaker && speaker === lastSpeaker);
-        if (!speech || !speaker || (!hasReliableSpeakerCue && !是否像引号对白内容(speech))) continue;
-        if (!inferredFromSuffix && speaker !== lastSpeaker && !hasLeadingCue) continue;
-
-        const before = 移除尾部说话引导(source.slice(cursor, quoteStart), speaker);
-        if (before.trim()) parts.push(附加原始片段({ sender: '旁白', text: before.trim() }, rawSource));
-        parts.push(附加原始片段({ sender: speaker, text: speech }, rawSource));
-        lastSpeaker = speaker;
-        cursor = quoteEnd;
-    }
-
-    if (parts.length === 0) return [log];
-    const after = source.slice(cursor).trim();
-    if (after) parts.push(附加原始片段({ sender: '旁白', text: after }, rawSource));
-    return 合并相邻同发送者(parts);
 };
 
 export const 规范化对白日志 = (

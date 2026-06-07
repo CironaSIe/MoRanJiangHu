@@ -18,6 +18,7 @@ import { sanitizeInventoryCommand } from './inventoryCommandGuard';
 import { 姓名含已知中文姓氏 } from '../../utils/chineseName';
 import { 合并保留既有NPC列表, 命令存在社交删除风险 } from '../../utils/npcRetentionGuard';
 import { 提取NPC死亡风险命令索引, 状态效果是死亡判定 } from '../../utils/npcDeathGuard';
+import { 构建体内射精记录, 推进社交孕产状态, 规范化孕产时间 } from '../../utils/reproduction';
 
 const 占位开局时间 = '1:01:01:00:00';
 
@@ -689,9 +690,10 @@ const 更新小穴经历状态描述 = (rawValue: unknown): string | undefined =
 };
 
 const 生成临时内射记录日期 = (envLike: any): string => (
-    typeof envLike?.时间 === 'string' && envLike.时间.trim()
-        ? envLike.时间.trim()
-        : new Date().toISOString()
+    规范化孕产时间(envLike)
+    || 规范化孕产时间(envLike?.时间)
+    || (typeof envLike?.时间 === 'string' && envLike.时间.trim() ? envLike.时间.trim() : '')
+    || new Date().toISOString()
 );
 
 const 应用生理事实到女性NPC = (
@@ -723,11 +725,14 @@ const 应用生理事实到女性NPC = (
             ? currentRecords
             : [
                 ...currentRecords,
-                {
+                构建体内射精记录({
+                    npc,
+                    子宫: currentWomb,
                     日期: eventDate,
                     描述: description,
-                    怀孕判定日: '待判定'
-                }
+                    父亲姓名: playerName || '主角',
+                    事件文本: responseFactText
+                })
             ];
         const nextVulvaDescription = hasFirstSexFact ? 更新小穴经历状态描述(npc.小穴描述) : undefined;
         const shouldRecordFirstNight = hasFirstSexFact && (npc.是否处女 === true || typeof npc.是否处女 !== 'boolean' || !npc.初夜夺取者);
@@ -1119,16 +1124,28 @@ const 是否社交生理高风险命令 = (cmd: any): boolean => {
     if (/\.失贞档案(?:$|\.)/.test(normalizedKey) && action !== 'delete') return true;
     if (/\.首次亲密记录(?:$|\[)/.test(normalizedKey) && action !== 'delete') return true;
     if (/\.是否处女$/.test(normalizedKey) && action !== 'delete' && cmd?.value === false) return true;
-    if (/\.子宫\.内射记录(?:$|\[)/.test(normalizedKey) && action !== 'delete') return true;
+    if (/\.子宫(?:$|\.)/.test(normalizedKey) && action !== 'delete') return true;
     return false;
 };
+
+const 是否明确孕产事实 = (text: string): boolean => (
+    句子存在肯定事实(
+        text,
+        /生理期|经期|月事|行经|癸水|天癸|排卵期|受孕期|受孕|怀孕|有孕|妊娠|孕|胎儿|胎动|临盆|生产|分娩|诞下|产下|产子|产女|生下|出生|降生|催生|催产|提前生育|提前生产|时间加速|岁月加速|光阴加速|时光加速|加速秘法/u
+    )
+);
 
 const 净化社交生理命令 = (
     cmd: any,
     responseFactText: string
 ): any | null => {
     if (!是否社交生理高风险命令(cmd)) return cmd;
-    if (是否明确体内射精事实(responseFactText) || 是否明确初次关系事实(responseFactText) || 是否明确非阴道首次亲密事实(responseFactText)) return cmd;
+    if (
+        是否明确体内射精事实(responseFactText)
+        || 是否明确初次关系事实(responseFactText)
+        || 是否明确非阴道首次亲密事实(responseFactText)
+        || 是否明确孕产事实(responseFactText)
+    ) return cmd;
     return null;
 };
 
@@ -1393,6 +1410,14 @@ export const 执行响应命令处理 = (
         if (retention.恢复数量 > 0) {
             socialBuffer = deps.规范化社交列表(retention.列表, { 合并同名: false });
         }
+        socialBuffer = deps.规范化社交列表(
+            推进社交孕产状态(socialBuffer, {
+                当前时间: envBuffer,
+                事件文本: responseFactText,
+                父亲姓名: charBuffer?.姓名
+            }),
+            { 合并同名: false }
+        );
         storyBuffer = deps.规范化剧情状态(storyBuffer);
 
         let finalState: 响应命令处理状态 = {
@@ -1480,9 +1505,17 @@ export const 执行响应命令处理 = (
         { 合并同名: false }
     );
     const socialRetention = 合并保留既有NPC列表(socialBeforeCommands, normalizedSocialBase);
-    const normalizedSocial = socialRetention.恢复数量 > 0
+    let normalizedSocial = socialRetention.恢复数量 > 0
         ? deps.规范化社交列表(socialRetention.列表, { 合并同名: false })
         : normalizedSocialBase;
+    normalizedSocial = deps.规范化社交列表(
+        推进社交孕产状态(normalizedSocial, {
+            当前时间: normalizedEnv,
+            事件文本: responseFactText,
+            父亲姓名: charBuffer?.姓名
+        }),
+        { 合并同名: false }
+    );
 
     let finalState: 响应命令处理状态 = {
         角色: charBuffer,

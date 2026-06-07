@@ -29,13 +29,49 @@ export interface 子宫记录 {
     日期: string;      // 发生日期
     描述: string;      // 行为描述 (e.g. "于客栈中被内射...")
     怀孕判定日: string; // 预计进行受孕判定的日期
+    次数?: number;     // 同一事实内累计次数
+    是否生理期?: boolean;
+    受孕概率?: number;
+    父亲姓名?: string;
+    判定结果?: '未判定' | '待判定' | '已受孕' | '未受孕' | string;
+    受孕时间?: string;
+}
+
+export interface 生理周期档案 {
+    周期天数: number;
+    生理期天数: number;
+    基准日期?: string;
+    上次开始日期?: string;
+}
+
+export interface 妊娠档案 {
+    状态: string;
+    受孕时间?: string;
+    预计生产时间?: string;
+    父亲姓名?: string;
+    受孕概率?: number;
+    来源记录数?: number;
+    已生产?: boolean;
+    生产时间?: string;
+    子嗣ID?: string;
+    子嗣姓名?: string;
+}
+
+export interface 生产记录 {
+    生产时间: string;
+    子嗣ID?: string;
+    子嗣姓名?: string;
+    父亲姓名?: string;
 }
 
 // 新增：子宫档案
 export interface 子宫档案 {
     状态: string;       // "未受孕", "受孕中", "妊娠一月" 等
     宫口状态: string;   // "紧致", "微张", "松弛"
+    生理周期?: 生理周期档案;
     内射记录: 子宫记录[];
+    妊娠?: 妊娠档案;
+    产后记录?: 生产记录[];
 }
 
 export type 亲密行为类型 = '口交' | '肛交' | '阴道交' | '乳交' | '手交' | '足交' | '股交';
