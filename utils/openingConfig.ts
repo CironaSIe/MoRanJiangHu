@@ -583,6 +583,11 @@ export const 规范化初始伙伴配置 = (raw?: any): 初始伙伴配置结构
     };
 };
 
+export const 规范化初始伙伴列表 = (raw?: any, legacy?: any): 初始伙伴配置结构[] => {
+    const source = Array.isArray(raw) ? raw : (legacy ? [legacy] : []);
+    return source.map((item) => 规范化初始伙伴配置(item));
+};
+
 export const 规范化开局配置 = (raw?: any): OpeningConfig => {
     const fallback = 默认开局配置();
     const 题材模式 = 规范化题材模式(raw?.题材模式 || fallback.题材模式);
@@ -607,6 +612,9 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
     const 同人融合启用 = raw?.同人融合?.enabled === true;
     const 启用附加小说 = 同人融合启用 && raw?.同人融合?.启用附加小说 === true;
 
+    const 初始伙伴列表 = 规范化初始伙伴列表(raw?.初始伙伴列表, raw?.初始伙伴 ?? fallback.初始伙伴);
+    const 第一初始伙伴 = 初始伙伴列表[0] || 规范化初始伙伴配置(raw?.初始伙伴 ?? fallback.初始伙伴);
+
     return {
         配置约束启用: raw?.配置约束启用 !== false,
         题材模式,
@@ -622,7 +630,8 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
             ?? fallback.允许生成性别
         ),
         生成性别锁定: raw?.生成性别锁定 === true || raw?.modeRuntimeProfile?.opening?.lockGeneratedGenders === true,
-        初始伙伴: 规范化初始伙伴配置(raw?.初始伙伴 ?? fallback.初始伙伴),
+        初始伙伴列表,
+        初始伙伴: 第一初始伙伴,
         同人融合: {
             enabled: 同人融合启用,
             作品名: 读取文本(raw?.同人融合?.作品名),

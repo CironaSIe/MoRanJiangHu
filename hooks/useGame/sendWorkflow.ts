@@ -94,6 +94,37 @@ type 地图更新进度 = {
     modelName?: string;
 };
 
+export const 构建中断流式草稿历史 = (params: {
+    baseHistory: 聊天记录结构[];
+    draftText?: string;
+    draftTimestamp?: number;
+    gameTime?: string;
+    summary?: string;
+    detailPrefix?: string;
+}): 聊天记录结构[] | null => {
+    const draft = typeof params.draftText === 'string' ? params.draftText.trim() : '';
+    if (!draft) return null;
+    const summary = (params.summary || '主剧情生成中断').trim();
+    const detailPrefix = (params.detailPrefix || '本次主剧情后续处理失败').trim();
+    const timestamp = Number.isFinite(Number(params.draftTimestamp)) && Number(params.draftTimestamp) > 0
+        ? Number(params.draftTimestamp)
+        : Date.now();
+    return [
+        ...params.baseHistory,
+        {
+            role: 'assistant',
+            content: draft,
+            timestamp,
+            gameTime: params.gameTime
+        },
+        {
+            role: 'system',
+            content: `[系统提示]: ${detailPrefix}，已保留上方流式正文草稿，可复制或编辑后重解析。错误：${summary}`,
+            timestamp: Date.now()
+        }
+    ];
+};
+
 const 格式化命令展示路径 = (key: string): string => key.replace(/^gameState\./, '');
 const 队列命令展示数量上限 = 120;
 const 队列命令展示单行上限 = 1800;
@@ -1009,6 +1040,8 @@ export const 执行主剧情发送工作流 = async (
     };
 
     let 后台队列已启动 = false;
+    let streamMarker = 0;
+    let latestStreamDraftText = '';
 
     try {
         const recallContextActiveForMain = recallFeatureEnabled && Boolean(recallTag);
@@ -1038,7 +1071,6 @@ export const 执行主剧情发送工作流 = async (
             }
         );
 
-        let streamMarker = 0;
         if (isStreaming) {
             streamMarker = Date.now();
             deps.设置历史记录([
@@ -1141,6 +1173,7 @@ export const 执行主剧情发送工作流 = async (
                                 stream: true,
                                 onDelta: (_delta, accumulated) => {
                                     markStreamActivity?.();
+                                    latestStreamDraftText = accumulated;
                                     deps.设置历史记录(prev => prev.map(item => {
                                         if (
                                             item.timestamp === streamMarker
@@ -2223,10 +2256,21 @@ export const 执行主剧情发送工作流 = async (
         }
 
         if (error instanceof textAIService.StoryResponseParseError || error?.name === 'StoryResponseParseError') {
-            deps.设置历史记录(historyBeforeSend);
             deps.应用并同步记忆系统(memBeforeSend);
             const parseErrorRaw = deps.提取解析失败原始信息(error);
             const parseErrorRawText = typeof error?.rawText === 'string' ? error.rawText : '';
+            const preservedDraftHistory = 构建中断流式草稿历史({
+                baseHistory: updatedDisplayHistory,
+                draftText: latestStreamDraftText || parseErrorRawText,
+                draftTimestamp: streamMarker,
+                gameTime: currentGameTime,
+                summary: parseErrorRaw,
+                detailPrefix: '主剧情解析失败'
+            });
+            deps.设置历史记录(preservedDraftHistory || historyBeforeSend);
+            if (preservedDraftHistory) {
+                void deps.performAutoSave({ history: preservedDraftHistory, force: true });
+            }
             const parseFailureGameConfig = 规范化游戏设置(currentState.gameConfig);
             const parseFailureApi = 获取主剧情接口配置(currentState.apiConfig);
             recordAiParseFailureDiagnostic({
@@ -2248,11 +2292,13 @@ export const 执行主剧情发送工作流 = async (
                 gameTime: currentGameTime
             });
             if (deps.游戏设置启用自动重试(规范化游戏设置(currentState.gameConfig))) {
-                deps.设置历史记录([...updatedDisplayHistory, {
-                    role: 'system',
-                    content: `[系统错误]: ${parseErrorRaw}`,
-                    timestamp: Date.now()
-                }]);
+                if (!preservedDraftHistory) {
+                    deps.设置历史记录([...updatedDisplayHistory, {
+                        role: 'system',
+                        content: `[系统错误]: ${parseErrorRaw}`,
+                        timestamp: Date.now()
+                    }]);
+                }
                 return {
                     cancelled: true,
                     parseErrorMessage: parseErrorRaw,
@@ -2281,7 +2327,19 @@ export const 执行主剧情发送工作流 = async (
             content: `[系统错误]: ${summary}`,
             timestamp: Date.now()
         };
-        deps.设置历史记录([...updatedDisplayHistory, errorMsg]);
+        const preservedDraftHistory = 构建中断流式草稿历史({
+            baseHistory: updatedDisplayHistory,
+            draftText: latestStreamDraftText,
+            draftTimestamp: streamMarker,
+            gameTime: currentGameTime,
+            summary,
+            detailPrefix: '主剧情请求失败'
+        });
+        const nextHistory = preservedDraftHistory || [...updatedDisplayHistory, errorMsg];
+        deps.设置历史记录(nextHistory);
+        if (preservedDraftHistory) {
+            void deps.performAutoSave({ history: preservedDraftHistory, force: true });
+        }
         return {
             cancelled: true,
             errorDetail: detail,

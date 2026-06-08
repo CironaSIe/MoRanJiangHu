@@ -682,6 +682,7 @@ export interface OpeningConfig {
     开局生成同门: boolean;
     允许生成性别: 开局生成性别类型[];
     生成性别锁定?: boolean;
+    初始伙伴列表?: 初始伙伴配置结构[];
     初始伙伴?: 初始伙伴配置结构;
     同人融合: 同人融合配置结构;
     启用女主剧情规划?: boolean;

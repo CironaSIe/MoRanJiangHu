@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import GameButton from '../../../ui/GameButton';
-import { 接口设置结构, OpeningConfig, WorldGenConfig, 小说拆分数据集结构, 角色数据结构, 天赋结构, 背景结构, 游戏难度 } from '../../../../types';
+import { 接口设置结构, OpeningConfig, WorldGenConfig, 小说拆分数据集结构, 角色数据结构, 天赋结构, 背景结构, 游戏难度, 初始伙伴配置结构 } from '../../../../types';
 import { 预设天赋, 预设背景, 获取题材预设天赋, 获取题材预设背景 } from '../../../../data/presets';
 import type { 开局预设方案结构 } from '../../../../data/newGamePresets';
 import { 从模式世界书提取提示词, type 创意工坊模块条目, type 创意工坊模块类型 } from '../../../../data/creativeWorkshopModules';
@@ -215,6 +215,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
     const [partnerStats, setPartnerStats] = useState<属性结构>(创建默认属性分配);
     const [partnerBackground, setPartnerBackground] = useState<背景结构>(预设背景[0]);
     const [partnerTalents, setPartnerTalents] = useState<天赋结构[]>([]);
+    const [partnerList, setPartnerList] = useState<初始伙伴配置结构[]>(() => [默认初始伙伴配置()]);
+    const [activePartnerIndex, setActivePartnerIndex] = useState(0);
 
     // Talents & Background
     const [selectedBackground, setSelectedBackground] = useState<背景结构>(预设背景[0]);
@@ -439,6 +441,31 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
             ? { 最近生图结果: history[0], 生图历史: history, ...(avatar ? { 已选头像图片ID: `${prefix}_avatar` } : {}), ...(portrait ? { 已选立绘图片ID: `${prefix}_portrait` } : {}) }
             : undefined;
     };
+    const 从伙伴配置读取立绘URL = (partner: 初始伙伴配置结构): string => {
+        const history = Array.isArray(partner.图片档案?.生图历史) ? partner.图片档案.生图历史 : [];
+        return String(history.find((item: any) => item?.id === partner.图片档案?.已选立绘图片ID)?.图片URL || history.find((item: any) => item?.构图 === '立绘')?.图片URL || '');
+    };
+    const 载入伙伴配置到表单 = (partner: 初始伙伴配置结构) => {
+        setPartnerEnabled(partner.enabled !== false);
+        setPartnerName(partner.姓名);
+        setPartnerGender(partner.性别);
+        setPartnerAge(partner.年龄);
+        setPartnerBirthMonth(partner.出生月);
+        setPartnerBirthDay(partner.出生日);
+        setPartnerAppearance(partner.外貌);
+        setPartnerPersonality(partner.性格);
+        setPartnerAvatarUrl(partner.头像图片URL || '');
+        setPartnerPortraitUrl(从伙伴配置读取立绘URL(partner));
+        setPartnerRelation(partner.关系);
+        setPartnerNote(partner.备注);
+        setPartnerStats(partner.属性);
+        setPartnerBackground({
+            名称: partner.背景名称 || 预设背景[0].名称,
+            描述: partner.背景描述 || 预设背景[0].描述,
+            效果: partner.背景效果 || 预设背景[0].效果
+        });
+        setPartnerTalents(partner.天赋列表 as 天赋结构[]);
+    };
     const 构建角色数据 = (params?: {
         角色名?: string;
         性别?: string;
@@ -619,29 +646,15 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
         setSelectedBackground(nextBackground);
         setSelectedTalents(nextTalents);
         const normalizedOpeningConfig = 规范化可选开局配置(preset.openingConfig);
-        const normalizedPartner = normalizedOpeningConfig?.初始伙伴 || 默认初始伙伴配置();
+        const normalizedPartnerList = normalizedOpeningConfig?.初始伙伴列表?.length
+            ? normalizedOpeningConfig.初始伙伴列表
+            : [normalizedOpeningConfig?.初始伙伴 || 默认初始伙伴配置()];
+        const normalizedPartner = normalizedPartnerList[0] || 默认初始伙伴配置();
         setOpeningConfigEnabled(Boolean(normalizedOpeningConfig) && normalizedOpeningConfig?.配置约束启用 !== false);
         setOpeningConfig(normalizedOpeningConfig || 默认开局配置());
-        setPartnerEnabled(normalizedPartner.enabled !== false);
-        setPartnerName(normalizedPartner.姓名);
-        setPartnerGender(normalizedPartner.性别);
-        setPartnerAge(normalizedPartner.年龄);
-        setPartnerBirthMonth(normalizedPartner.出生月);
-        setPartnerBirthDay(normalizedPartner.出生日);
-        setPartnerAppearance(normalizedPartner.外貌);
-        setPartnerPersonality(normalizedPartner.性格);
-        setPartnerAvatarUrl(normalizedPartner.头像图片URL || '');
-        const partnerHistory = Array.isArray(normalizedPartner.图片档案?.生图历史) ? normalizedPartner.图片档案.生图历史 : [];
-        setPartnerPortraitUrl(String(partnerHistory.find((item: any) => item?.id === normalizedPartner.图片档案?.已选立绘图片ID)?.图片URL || partnerHistory.find((item: any) => item?.构图 === '立绘')?.图片URL || ''));
-        setPartnerRelation(normalizedPartner.关系);
-        setPartnerNote(normalizedPartner.备注);
-        setPartnerStats(normalizedPartner.属性);
-        setPartnerBackground({
-            名称: normalizedPartner.背景名称 || 预设背景[0].名称,
-            描述: normalizedPartner.背景描述 || 预设背景[0].描述,
-            效果: normalizedPartner.背景效果 || 预设背景[0].效果
-        });
-        setPartnerTalents(normalizedPartner.天赋列表 as 天赋结构[]);
+        setPartnerList(normalizedPartnerList);
+        setActivePartnerIndex(0);
+        载入伙伴配置到表单(normalizedPartner);
         setOpeningExtraRequirement(preset.openingExtraRequirement || '');
         if (!options?.保持当前步骤) setStep(1);
     };
@@ -1195,13 +1208,55 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
             备注: partnerNote.trim()
         };
     };
+    const 同步当前伙伴到列表 = (): 初始伙伴配置结构[] => {
+        const current = 构建伙伴开局配置();
+        const safeIndex = Math.max(0, Math.min(activePartnerIndex, Math.max(0, partnerList.length - 1)));
+        const next = partnerList.length > 0 ? [...partnerList] : [current];
+        next[safeIndex] = current;
+        setPartnerList(next);
+        return next;
+    };
+    const 获取当前伙伴列表快照 = (): 初始伙伴配置结构[] => {
+        const current = 构建伙伴开局配置();
+        const safeIndex = Math.max(0, Math.min(activePartnerIndex, Math.max(0, partnerList.length - 1)));
+        const next = partnerList.length > 0 ? [...partnerList] : [current];
+        next[safeIndex] = current;
+        return next;
+    };
+    const 切换当前伙伴 = (index: number) => {
+        const next = 同步当前伙伴到列表();
+        const safeIndex = Math.max(0, Math.min(index, next.length - 1));
+        setActivePartnerIndex(safeIndex);
+        载入伙伴配置到表单(next[safeIndex] || 默认初始伙伴配置());
+    };
+    const 新增开局伙伴 = () => {
+        const next = [...同步当前伙伴到列表(), 默认初始伙伴配置()];
+        const nextIndex = next.length - 1;
+        setPartnerList(next);
+        setActivePartnerIndex(nextIndex);
+        载入伙伴配置到表单(next[nextIndex]);
+        setPartnerEnabled(true);
+    };
+    const 删除当前伙伴 = () => {
+        const next = 同步当前伙伴到列表().filter((_, index) => index !== activePartnerIndex);
+        const fallbackList = next.length > 0 ? next : [默认初始伙伴配置()];
+        const nextIndex = Math.max(0, Math.min(activePartnerIndex, fallbackList.length - 1));
+        setPartnerList(fallbackList);
+        setActivePartnerIndex(nextIndex);
+        载入伙伴配置到表单(fallbackList[nextIndex]);
+    };
 
     const 构建有效开局配置 = (): OpeningConfig | undefined => {
         if (!openingConfigEnabled && !partnerEnabled && !openingConfig.题材模式) return undefined;
+        const nextPartnerList = 获取当前伙伴列表快照().map((partner) => ({
+            ...partner,
+            enabled: partnerEnabled && partner.enabled !== false
+        }));
         return 规范化开局配置({
             ...openingConfig,
             配置约束启用: openingConfigEnabled,
-            初始伙伴: 构建伙伴开局配置()
+            初始伙伴: nextPartnerList[0],
+            初始伙伴列表: nextPartnerList
         });
     };
 
@@ -2586,7 +2641,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                 <div className="flex items-center justify-between gap-4 rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
                                     <div>
                                         <div className="text-sm text-gray-200">启用开局伙伴</div>
-                                        <div className="text-[11px] text-gray-500 mt-1">开启后会把同伴作为第0回合已成立的主要 NPC 写入开局初始化。</div>
+                                        <div className="text-[11px] text-gray-500 mt-1">开启后会把伙伴列表作为第0回合已成立的主要 NPC 写入开局初始化；可继续添加，不设上限。</div>
                                     </div>
                                     <开关按钮
                                         checked={partnerEnabled}
@@ -2598,6 +2653,31 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
 
                             {partnerEnabled ? (
                                 <>
+                                    <OrnateBorder className="p-4 space-y-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <h3 className="text-lg font-serif font-bold text-wuxia-gold">伙伴列表</h3>
+                                                <p className="mt-1 text-[11px] text-gray-500">当前共 {Math.max(1, partnerList.length)} 名伙伴。切换前会自动保存当前编辑内容。</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button type="button" onClick={同步当前伙伴到列表} className="rounded-lg border border-wuxia-cyan/30 bg-wuxia-cyan/10 px-3 py-2 text-xs font-bold text-wuxia-cyan">保存当前</button>
+                                            <button type="button" onClick={新增开局伙伴} className="rounded-lg border border-wuxia-gold/35 bg-wuxia-gold/10 px-3 py-2 text-xs font-bold text-wuxia-gold">添加伙伴</button>
+                                            <button type="button" onClick={删除当前伙伴} className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-300">删除当前</button>
+                                        </div>
+                                        <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                                            {partnerList.map((partner, index) => {
+                                                const active = index === activePartnerIndex;
+                                                return (
+                                                    <button key={`${index}-${partner.姓名 || 'partner'}`} type="button" onClick={() => 切换当前伙伴(index)} className={`min-w-[140px] rounded-xl border px-3 py-3 text-left transition-all ${active ? 'border-wuxia-gold bg-wuxia-gold/10 text-wuxia-gold' : 'border-gray-800 bg-black/25 text-gray-300'}`}>
+                                                        <div className="text-[10px] text-gray-500">伙伴 {index + 1}</div>
+                                                        <div className="mt-1 truncate text-sm font-bold">{index === activePartnerIndex ? (partnerName.trim() || partner.姓名 || '未填写姓名') : (partner.姓名 || '未填写姓名')}</div>
+                                                        <div className="mt-1 truncate text-[11px] text-gray-500">{index === activePartnerIndex ? (partnerRelation.trim() || partner.关系 || '未填写关系') : (partner.关系 || '未填写关系')}</div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </OrnateBorder>
                                     <OrnateBorder className="p-4 space-y-4">
                                         <div className="border-b border-wuxia-gold/30 pb-3">
                                             <div className="text-[10px] uppercase tracking-[0.32em] text-wuxia-cyan/70 font-mono">Companion Profile</div>
@@ -2903,8 +2983,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                                     <p>性格: <span className="text-white">{charPersonality.trim() || '未填写'}</span></p>
                                     <p>身份: <span className="text-white">{selectedBackground.名称}</span></p>
                                     <p>天赋: <span className="text-white">{selectedTalents.map(t => t.名称).join(', ') || '无'}</span></p>
-                                    <p>开局伙伴: <span className="text-white">{partnerEnabled ? `${partnerName.trim() || '未填写姓名'} (${partnerGender.trim() || '未填写性别'}, ${partnerAge}岁)` : '关闭'}</span></p>
-                                    {partnerEnabled && <p>伙伴关系: <span className="text-white">{partnerRelation.trim() || '未填写'}</span></p>}
+                                    <p>开局伙伴: <span className="text-white">{partnerEnabled ? `${获取当前伙伴列表快照().length} 名` : '关闭'}</span></p>
+                                    {partnerEnabled && <p>伙伴名单: <span className="text-white">{获取当前伙伴列表快照().map((partner) => partner.姓名 || '未填写姓名').join('、')}</span></p>}
                                     <p>开局配置: <span className="text-white">{openingConfigEnabled ? '已启用' : '未启用'}</span></p>
                                     <p>题材模式: <span className="text-white">{openingConfig.题材模式}</span></p>
                                     <p>关系侧重: <span className="text-white">{openingConfigEnabled ? (openingConfig.关系侧重.join('、') || '无') : '未设置'}</span></p>
