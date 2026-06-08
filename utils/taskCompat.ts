@@ -69,6 +69,12 @@ const 是团队重复生存任务 = (task: any): boolean => (
     && /存活|天亮|24小时|二十四小时|主线任务/u.test(合并任务文本(task))
 );
 
+const 是同一生存倒计时任务 = (task: any): boolean => (
+    是无限流任务(task)
+    && /存活|活下去|撑过|天亮|24小时|二十四小时|第一夜|倒计时/u.test(合并任务文本(task))
+    && /主神|任务世界|恐怖片|副本|古宅|民宅|安全屋|第一夜|天亮/u.test(合并任务文本(task))
+);
+
 const 任务去重指纹 = (task: any): string => {
     const objectives = Array.isArray(task?.目标列表) ? task.目标列表.map((item: any) => item?.描述).join('|') : '';
     const base = [
@@ -130,6 +136,9 @@ export const 规范化任务列表自动结算 = (tasks: any[]): any[] => (
             .filter((task, index, list) => {
                 if (!是无限流任务(task)) return true;
                 if (是团队重复生存任务(task) && list.some(是主神主线生存任务)) return false;
+                if (是同一生存倒计时任务(task)) {
+                    return list.findIndex(是同一生存倒计时任务) === index;
+                }
                 const key = 任务去重指纹(task);
                 if (!key) return true;
                 return list.findIndex((item) => 任务去重指纹(item) === key) === index;

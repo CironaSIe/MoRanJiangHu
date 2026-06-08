@@ -65,7 +65,7 @@ describe('门派状态规范化', () => {
         expect(normalized.门派资金).toBe(320);
         expect(normalized.重要成员).toHaveLength(1);
         expect(normalized.重要成员[0]?.姓名).toBe('叶青');
-        expect(normalized.兑换列表.some((item: any) => item?.名称 === '止血喷雾')).toBe(true);
+        expect(normalized.兑换列表.some((item: any) => item?.物品名称 === '止血喷雾')).toBe(true);
     });
 
     it('家族门派不再本地套用固定同门姓氏', () => {
@@ -186,7 +186,7 @@ describe('门派状态规范化', () => {
         expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).toContain('精神力扫描');
         expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).not.toMatch(/临时同盟精神力扫描|轮回小队精神力扫描|主神小队精神力扫描/);
         expect(openingBase.任务列表).toHaveLength(1);
-        expect(openingBase.任务列表[0]?.标题).toBe('存活至天亮');
+        expect(openingBase.任务列表[0]?.标题).toBe('主神任务倒计时');
         expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/确认第一项主线任务|后山栈道|旧账未清|门中历练|支线剧情 x1|D级支线剧情/);
     });
 
@@ -214,7 +214,8 @@ describe('门派状态规范化', () => {
         expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).toMatch(/感染|搜救|枪械|训练|防护/);
         expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).not.toMatch(/剑法|心法|身法|藏经阁|聚宝阁|弟子|宗门|门派|吐纳|丹田/);
         expect(openingBase.角色.功法列表).toEqual([]);
-        expect(openingBase.玩家门派.兑换列表).toEqual([]);
+        expect(openingBase.玩家门派.兑换列表.length).toBeGreaterThan(0);
+        expect(JSON.stringify(openingBase.玩家门派.兑换列表)).toMatch(/净水片|急救包|维修工具包/);
         expect(openingBase.玩家门派.重要成员.some((member: any) => /营地|物资|巡逻|医护|维修|哨兵|搜救|同行者/.test(member.身份))).toBe(true);
         expect(openingBase.任务列表.some((task: any) => task.类型 === '主线')).toBe(true);
         expect(openingBase.任务列表[0].标题).toBe('守住第一夜');
@@ -247,7 +248,8 @@ describe('门派状态规范化', () => {
         expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).toMatch(/培训|协调|设备|外勤|应急|资料/);
         expect(JSON.stringify(openingBase.玩家门派.藏经阁列表)).not.toMatch(/剑法|心法|身法|藏经阁|聚宝阁|弟子|宗门|门派|吐纳|丹田/);
         expect(openingBase.角色.功法列表).toEqual([]);
-        expect(openingBase.玩家门派.兑换列表).toEqual([]);
+        expect(openingBase.玩家门派.兑换列表.length).toBeGreaterThan(0);
+        expect(JSON.stringify(openingBase.玩家门派.兑换列表)).toMatch(/外勤工具包|便携急救包|资料调阅权限/);
         expect(openingBase.玩家门派.重要成员.some((member: any) => /负责人|同事|行政|技术|外勤|合作伙伴|社区|实习/.test(member.身份))).toBe(true);
         expect(JSON.stringify(openingBase.任务列表)).not.toMatch(/门派任务|同门|弟子|藏经阁|山门/);
     });

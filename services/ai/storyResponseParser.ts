@@ -947,6 +947,7 @@ const 显式说话引号正则 = /([A-Za-z0-9_\u4e00-\u9fff·]{1,14})[^。！？
 const 裸引号整行正则 = /^[“"「『][^”"」』\n]{1,500}[”"」』][。！？!?…~～]*$/u;
 const 孤立标点行正则 = /^[。！？!?；;，,.、…]+$/u;
 const 指节泛白套话正则 = /(?:指节|指关节|指尖|手指|拳头)[^。！？!?；;\n]{0,32}(?:发白|泛白|泛起白|泛起苍白|泛起青白|苍白|惨白|青白|失血色|没有血色)|(?:发白|泛白|苍白|惨白|青白|失血色|没有血色)[^。！？!?；;\n]{0,16}(?:指节|指关节|指尖|手指|拳头)/u;
+const 正文异常英文夹杂正则 = /[\u4e00-\u9fff][ \t]*([A-Za-z]{2,24})[ \t]*(?=[\u4e00-\u9fff])/u;
 const 正文引号闭合表: Record<string, string> = {
     '“': '”',
     '「': '」',
@@ -1002,6 +1003,12 @@ const 提取显式说话引号人物名 = (line: string): string => {
     const sender = 规范化日志发送者(rawSpeaker);
     if (!是否可信正文标签发送者(sender, { allowUnknownName: true })) return '';
     return sender;
+};
+
+const 提取正文异常英文片段 = (line: string): string => {
+    const text = (line || '').trim();
+    const match = text.match(正文异常英文夹杂正则);
+    return match?.[1]?.trim() || '';
 };
 
 const 检测正文引号内换行问题 = (body: string): string | null => {
@@ -1066,6 +1073,10 @@ const 检测正文对白格式问题 = (body: string): string | null => {
             if (stalePhrase) {
                 return `正文第${index + 1}行包含高频套话「${stalePhrase}」，必须局部重写该句，避免“指节/指关节/手指/拳头泛白”类描写`;
             }
+            const pollutedWord = 提取正文异常英文片段(text);
+            if (pollutedWord) {
+                return `正文第${index + 1}行混入异常英文片段「${pollutedWord}」，必须局部重写该句并改回自然中文`;
+            }
             if (sender === '旁白') {
                 const quotedSpeaker = 提取显式说话引号人物名(text);
                 if (quotedSpeaker) return `疑似角色「${quotedSpeaker}」的对白写在【旁白】行内`;
@@ -1079,6 +1090,10 @@ const 检测正文对白格式问题 = (body: string): string | null => {
         const stalePhrase = line.match(指节泛白套话正则)?.[0]?.trim();
         if (stalePhrase) {
             return `正文第${index + 1}行包含高频套话「${stalePhrase}」，必须局部重写该句，避免“指节/指关节/手指/拳头泛白”类描写`;
+        }
+        const pollutedWord = 提取正文异常英文片段(line);
+        if (pollutedWord) {
+            return `正文第${index + 1}行混入异常英文片段「${pollutedWord}」，必须局部重写该句并改回自然中文`;
         }
 
         const squareSpeaker = line.match(方括号疑似说话人行正则);

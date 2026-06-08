@@ -49,9 +49,14 @@ const 运行时配置分区列表: 运行时配置分区[] = [
         title: '经济系统',
         fields: [
             { label: '货币显示', path: ['economy', 'currencyDisplayMode'], type: 'currencyMode' },
-            { label: '主要货币口径', path: ['economy', 'primaryCurrency'], type: 'textarea' },
+            { label: '上层货币名称', path: ['economy', 'currencyTiers', 'upperName'] },
+            { label: '中层货币名称', path: ['economy', 'currencyTiers', 'middleName'] },
+            { label: '底层货币名称', path: ['economy', 'currencyTiers', 'lowerName'] },
+            { label: '上转中汇率', path: ['economy', 'currencyTiers', 'upperToMiddleRate'] },
+            { label: '中转底汇率', path: ['economy', 'currencyTiers', 'middleToLowerRate'] },
+            { label: '题材货币说明', path: ['economy', 'primaryCurrency'], type: 'textarea' },
             { label: '底层记账单位', path: ['economy', 'accountingUnit'] },
-            { label: '换算规则', path: ['economy', 'exchangeRules'], type: 'textarea' },
+            { label: '旧兼容换算说明', path: ['economy', 'exchangeRules'], type: 'textarea' },
             { label: '市场名称', path: ['economy', 'marketName'] },
             { label: '市场动词', path: ['economy', 'marketVerb'] },
             { label: '允许物品类型', path: ['economy', 'allowedItemTypes'], type: 'list' },
@@ -123,7 +128,7 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '切入模板', path: ['opening', 'cutInTemplates'], type: 'list' },
             { label: '初始任务模板', path: ['opening', 'initialQuestTemplates'], type: 'list' },
             { label: '默认装备模板', path: ['opening', 'defaultEquipment'], type: 'record', placeholder: '每行一个，格式：槽位=物品名，例如：武器=青锋剑' },
-            { label: '默认金钱模板', path: ['opening', 'defaultCurrency'], type: 'record', placeholder: '每行一个，格式：货币名=初始量，例如：铜钱=1000' }
+            { label: '默认金钱模板', path: ['opening', 'defaultCurrency'], type: 'record', placeholder: '每行一个，格式：货币名=初始量，例如：底层货币=1000' }
         ]
     },
     {

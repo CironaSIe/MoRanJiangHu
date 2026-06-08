@@ -715,9 +715,17 @@ const 获取NPC头像地址 = (sender: string, socialList?: NPC结构[]): string
 const 是否主角称呼 = (sender: string, playerName?: string): boolean => {
     const normalized = 规范化称呼(sender);
     if (!normalized) return false;
-    if (normalized === '你' || normalized === '我') return true;
+    if (normalized === '你' || normalized === '我' || normalized === '主角') return true;
     if (playerName && normalized === playerName.trim()) return true;
     return false;
+};
+
+const 获取对白显示名称 = (sender: string, playerName?: string): string => {
+    const fallback = (sender || '').trim() || '旁白';
+    if (是否主角称呼(sender, playerName)) {
+        return (playerName || '').trim() || fallback;
+    }
+    return fallback;
 };
 
 type 玩家资料 = {
@@ -749,8 +757,9 @@ export const CharacterRenderer: React.FC<{
     use图片资源回源预取(playerProfile?.头像图片URL, socialList);
     const [avatarPreviewOpen, setAvatarPreviewOpen] = useState(false);
     const displayText = (text || '').replace(/\s*\n+\s*/g, ' ').replace(/[ \t]{2,}/g, ' ').trim();
+    const displaySender = 获取对白显示名称(sender, playerProfile?.姓名);
     const colors = ['bg-red-900', 'bg-blue-900', 'bg-emerald-900', 'bg-violet-900', 'bg-amber-900'];
-    const colorIdx = sender.charCodeAt(0) % colors.length;
+    const colorIdx = displaySender.charCodeAt(0) % colors.length;
     const bgClass = colors[colorIdx];
     const style = 构建区域文字样式(visualConfig, '角色对话');
     const usePlayerAvatar = 是否主角称呼(sender, playerProfile?.姓名);
@@ -783,18 +792,18 @@ export const CharacterRenderer: React.FC<{
                             type="button"
                             onClick={handleAvatarClick}
                             className="relative z-10 h-full w-full"
-                            aria-label={matchedNpc?.id ? `打开 ${sender} 人物详情` : `放大查看 ${sender} 头像`}
+                            aria-label={matchedNpc?.id ? `打开 ${displaySender} 人物详情` : `放大查看 ${displaySender} 头像`}
                         >
-                            <img src={avatarUrl} alt={`${sender} 头像`} className="w-full h-full object-cover" />
+                            <img src={avatarUrl} alt={`${displaySender} 头像`} className="w-full h-full object-cover" />
                         </button>
                     ) : (
-                        <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{sender[0]}</span>
+                        <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{displaySender[0]}</span>
                     )}
                     <div className="absolute inset-0 border border-inset border-white/5 pointer-events-none"></div>
                 </div>
                 <div className="chat-character-nameplate mt-1.5 sm:mt-2 bg-black/70 border border-wuxia-gold/30 px-2 sm:px-3 py-0.5 rounded shadow-[0_3px_8px_rgba(0,0,0,0.22)] z-20 max-w-[64px] sm:max-w-[90px] text-center backdrop-blur-sm relative">
                     <div className="chat-character-nameplate-dot absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-wuxia-gold/40 rounded-full"></div>
-                    <span className="chat-character-name tracking-wider truncate block" style={roleNameStyle}>{sender}</span>
+                    <span className="chat-character-name tracking-wider truncate block" style={roleNameStyle}>{displaySender}</span>
                 </div>
             </div>
             <div className="relative flex-1 mt-0.5 sm:mt-1 min-w-0">

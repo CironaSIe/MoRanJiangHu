@@ -168,7 +168,7 @@ describe('storyResponseParser', () => {
     it('rejects bare colon speaker lines during strict parsing', () => {
         expect(() => parseStoryRawText([
             '<正文>',
-            '林婉儿：我也看到这个bug了，有些角色说话的时候对话框就没了。',
+            '林婉儿：我也看到这个异常了，有些角色说话的时候对话框就没了。',
             '</正文>',
             '<短期记忆>林婉儿反馈部分角色对白缺少气泡。</短期记忆>'
         ].join('\n'), { validateDialogueFormat: true })).toThrow(/冒号格式/);

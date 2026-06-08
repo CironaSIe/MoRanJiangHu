@@ -31,7 +31,7 @@ import { checkForAppUpdate, downloadLatestApkPackage, subscribeAppUpdateProgress
 import { APK仅手动更新已启用 } from './utils/appUpdatePreferences';
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
-import { 获取货币显示模式 } from './utils/currencyDisplay';
+import { 获取货币显示模式, 规范化角色金钱 } from './utils/currencyDisplay';
 import { 获取题材界面文案 } from './utils/resourceLabels';
 import { 获取题材顶部时间显示格式 } from './utils/modeRuntimeProfile';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
@@ -503,7 +503,8 @@ const App: React.FC = () => {
         }
     });
     const auctionCurrencyOptions = React.useMemo(() => ({
-        货币模式: 获取货币显示模式(state.开局配置, state.角色)
+        货币模式: 获取货币显示模式(state.开局配置, state.角色),
+        runtimeProfile: state.开局配置?.modeRuntimeProfile || null
     }), [state.开局配置, state.角色]);
     const [showMobileMusic, setShowMobileMusic] = React.useState(false);
     const [chatContentHidden, setChatContentHidden] = React.useState(false);
@@ -898,6 +899,9 @@ const App: React.FC = () => {
             setSuppressReleaseNotesForToday(false);
             return;
         }
+        if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+            return;
+        }
 
         const today = new Date().toISOString().slice(0, 10);
         let suppressedDate = '';
@@ -1279,7 +1283,7 @@ const App: React.FC = () => {
             const shouldRoll = activeCount < 4 || Math.random() < 0.55;
             if (!shouldRoll) return prev;
             const next = 清理并补货(prev, {
-                允许系统补货: false,
+                允许系统补货: true,
                 最大系统补货数量: activeCount < 4 ? 2 : 1,
                 目标在售数量: 12,
                 题材模式: state.开局配置?.题材模式
@@ -1925,10 +1929,10 @@ const App: React.FC = () => {
                 累计贡献: currentTotalContribution + amount
             }
             : { ...sect, 上次俸禄月份: monthKey };
-        const currentMoney = state.角色?.金钱 || { 金元宝: 0, 银子: 0, 铜钱: 0 };
+        const currentMoney = 规范化角色金钱(state.角色?.金钱);
         const nextCharacter = stipendAsContribution
             ? state.角色
-            : { ...state.角色, 金钱: { ...currentMoney, 铜钱: Math.max(0, Number(currentMoney.铜钱 || 0)) + amount } };
+            : { ...state.角色, 金钱: 规范化角色金钱({ ...currentMoney, 底层货币: Math.max(0, Number(currentMoney.底层货币 || 0)) + amount }) };
         setters.setPlayerSect(nextSect);
         setters.setCharacter(nextCharacter);
         void actions.performAutoSave?.({ role: nextCharacter, sect: nextSect, force: true });
@@ -2000,7 +2004,7 @@ const App: React.FC = () => {
         setShowAuctionHouse(true);
     }, [closeAllPanels]);
     const handleSellBagItemToAuction = React.useCallback((itemId: string) => {
-        const result = 上架背包物品(state.角色, itemId, undefined, '铜钱', auctionHouseState.行情列表 || [], 1, auctionCurrencyOptions);
+        const result = 上架背包物品(state.角色, itemId, undefined, '底层货币', auctionHouseState.行情列表 || [], 1, auctionCurrencyOptions);
         if (!result.ok) {
             actions.pushNotification({ title: '寄售失败', message: result.message, tone: 'error' });
             return { ok: false as const, message: result.message };
@@ -2045,7 +2049,7 @@ const App: React.FC = () => {
         for (const item of miscItems) {
             const itemId = String(item?.ID || '');
             if (!itemId) continue;
-            const result = 上架背包物品(nextCharacter, itemId, undefined, '铜钱', auctionHouseState.行情列表 || [], Number.POSITIVE_INFINITY, auctionCurrencyOptions);
+            const result = 上架背包物品(nextCharacter, itemId, undefined, '底层货币', auctionHouseState.行情列表 || [], Number.POSITIVE_INFINITY, auctionCurrencyOptions);
             if (!result.ok) continue;
             nextCharacter = result.nextCharacter;
             newAuctions.push(result.auction);

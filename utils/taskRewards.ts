@@ -1,4 +1,5 @@
 import type { GameResponse } from '../types';
+import { 规范化角色金钱 } from './currencyDisplay';
 
 type RewardState = {
     角色: any;
@@ -65,7 +66,7 @@ export const 结算已完成任务奖励 = (
     };
     const role = state.角色 || {};
     const sect = state.玩家门派 || {};
-    role.金钱 = role.金钱 && typeof role.金钱 === 'object' ? role.金钱 : { 金元宝: 0, 银子: 0, 铜钱: 0 };
+    role.金钱 = 规范化角色金钱(role.金钱);
     role.物品列表 = Array.isArray(role.物品列表) ? role.物品列表 : [];
     role.技艺 = Array.isArray(role.技艺) ? role.技艺 : [];
 
@@ -104,18 +105,17 @@ export const 结算已完成任务奖励 = (
                 return;
             }
 
-            const moneyMatch = part.match(/(金元宝|元宝|银子|银两|铜钱|奖励点|D级支线剧情|C级支线剧情)\s*[+＋]\s*(\d+)/u);
+            const moneyMatch = part.match(/(上层货币|中层货币|底层货币|金元宝|元宝|银子|银两|铜钱|奖励点|D级支线剧情|C级支线剧情)\s*[+＋]\s*(\d+)/u);
             if (moneyMatch) {
-                const key = moneyMatch[1] === '元宝' || moneyMatch[1] === 'C级支线剧情'
-                    ? '金元宝'
-                    : moneyMatch[1] === '银两' || moneyMatch[1] === 'D级支线剧情'
-                        ? '银子'
-                        : moneyMatch[1] === '奖励点'
-                            ? '铜钱'
-                            : moneyMatch[1];
+                const key = moneyMatch[1] === '元宝' || moneyMatch[1] === 'C级支线剧情' || moneyMatch[1] === '金元宝'
+                    ? '上层货币'
+                    : moneyMatch[1] === '银两' || moneyMatch[1] === 'D级支线剧情' || moneyMatch[1] === '银子'
+                        ? '中层货币'
+                        : '底层货币';
                 const amount = Math.max(0, Math.trunc(Number(moneyMatch[2])));
                 if (amount > 0) {
                     role.金钱[key] = Math.max(0, 取数字(role.金钱[key])) + amount;
+                    role.金钱 = 规范化角色金钱(role.金钱);
                     rewardRecords.push(`${moneyMatch[1]} +${amount}`);
                     changed = true;
                 }

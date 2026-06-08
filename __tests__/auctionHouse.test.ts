@@ -6,13 +6,12 @@ afterEach(() => {
 });
 
 describe('拍卖行默认补货', () => {
-    it('新档默认拍卖行状态不自动生成系统拍品', () => {
+    it('新档默认拍卖行状态会生成少量题材基础拍品', () => {
         const state = 创建默认拍卖行状态();
 
-        // 新档应该没有系统拍品，等待剧情触发
-        expect(state.行情列表.length).toBeGreaterThan(0); // 行情仍然生成
-        expect(state.拍卖品列表.filter((entry) => entry.状态 === '上架中').length).toBe(0); // 没有拍品
-        expect(state.最近补货时间).toBe(0); // 没有补货
+        expect(state.行情列表.length).toBeGreaterThan(0);
+        expect(state.拍卖品列表.filter((entry) => entry.状态 === '上架中').length).toBeGreaterThan(0);
+        expect(state.最近补货时间).toBeGreaterThan(0);
     });
 
     it('剧情触发时只投放AI/世界事件给出的物品，不再附带系统补货', () => {
@@ -41,7 +40,7 @@ describe('拍卖行默认补货', () => {
         expect(state.拍卖品列表[0].物品.名称).toBe('测试物品');
     });
 
-    it('系统补货入口即使被调用也不会生成本地拍品', () => {
+    it('系统补货入口被调用时会补足基础拍品', () => {
         const state = 清理并补货({
             拍卖品列表: [],
             交易记录: [],
@@ -50,8 +49,8 @@ describe('拍卖行默认补货', () => {
             最近行情时间: 0
         }, { 允许系统补货: true, 最大系统补货数量: 2 });
 
-        expect(state.拍卖品列表.filter((entry) => entry.状态 === '上架中')).toHaveLength(0);
-        expect(state.最近补货时间).toBe(0);
+        expect(state.拍卖品列表.filter((entry) => entry.状态 === '上架中')).toHaveLength(2);
+        expect(state.最近补货时间).toBeGreaterThan(0);
     });
     
     it('系统补货不再生成重复物品', () => {
@@ -67,7 +66,8 @@ describe('拍卖行默认补货', () => {
             .filter((entry) => entry.状态 === '上架中')
             .map((entry) => `${entry.物品.名称}|${entry.物品.类型}|${entry.物品.品质}`);
         
-        expect(itemKeys).toEqual([]);
+        expect(itemKeys.length).toBeGreaterThan(0);
+        expect(new Set(itemKeys).size).toBe(itemKeys.length);
     });
 
     it('系统补货不再生成杂物拍品', () => {
@@ -82,7 +82,7 @@ describe('拍卖行默认补货', () => {
         expect(state.拍卖品列表.filter((entry) => entry.状态 === '上架中').every((entry) => entry.物品.类型 !== '杂物' && entry.物品.类型 !== '杂项')).toBe(true);
     });
 
-    it('武侠模式会过滤事件投放中的仙侠拍品，且不做系统补货', () => {
+    it('武侠模式会按武侠补货并过滤事件投放中的仙侠拍品', () => {
         const state = 清理并补货({
             拍卖品列表: [],
             交易记录: [],
@@ -92,7 +92,8 @@ describe('拍卖行默认补货', () => {
         }, { 允许系统补货: true, 最大系统补货数量: 20, 目标在售数量: 20, 题材模式: '武侠' });
 
         const names = state.拍卖品列表.map((entry) => entry.物品.名称).join('|');
-        expect(names).toBe('');
+        expect(names).toMatch(/金疮药|精铁短刀|软皮护腕|基础吐纳手札/);
+        expect(names).not.toMatch(/储物戒|飞剑|灵晶/);
 
         const blocked = 投放事件拍卖品(state, {
             事件名称: '武侠市集',
@@ -107,7 +108,7 @@ describe('拍卖行默认补货', () => {
         expect(blocked.拍卖品列表.some((entry) => entry.物品.名称 === '储物戒')).toBe(false);
     });
 
-    it('现代和末日模式不再使用本地市场物品池，但仍过滤古风仙侠事件拍品', () => {
+    it('现代和末日模式使用题材市场物品池，并仍过滤古风仙侠事件拍品', () => {
         const modern = 清理并补货({
             拍卖品列表: [],
             交易记录: [],
@@ -116,7 +117,8 @@ describe('拍卖行默认补货', () => {
             最近行情时间: 0
         }, { 允许系统补货: true, 最大系统补货数量: 8, 目标在售数量: 8, 题材模式: '现代都市' });
 
-        expect(modern.拍卖品列表).toEqual([]);
+        expect(modern.拍卖品列表.length).toBeGreaterThan(0);
+        expect(JSON.stringify(modern.拍卖品列表)).toMatch(/急救包|工具钳|防割手套|录音笔/);
 
         const apocalypse = 清理并补货({
             拍卖品列表: [],
@@ -126,7 +128,8 @@ describe('拍卖行默认补货', () => {
             最近行情时间: 0
         }, { 允许系统补货: true, 最大系统补货数量: 8, 目标在售数量: 8, 题材模式: '末日丧尸' });
 
-        expect(apocalypse.拍卖品列表).toEqual([]);
+        expect(apocalypse.拍卖品列表.length).toBeGreaterThan(0);
+        expect(JSON.stringify(apocalypse.拍卖品列表)).toMatch(/净水片|防刺背心|手摇电筒|罐头补给包/);
 
         const blocked = 投放事件拍卖品(apocalypse, {
             事件名称: '营地黑市',

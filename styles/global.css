@@ -246,6 +246,28 @@ html[data-theme="day"] [class*="border-stone-"] {
   border-color: rgba(75, 63, 38, 0.34) !important;
 }
 
+html[data-theme="day"] .social-private-tag,
+html[data-theme="day"] .social-intimacy-archive,
+html[data-theme="day"] .social-intimacy-record,
+html[data-theme="day"] .social-relation-tag {
+  background: rgba(255, 250, 241, 0.96) !important;
+  background-color: rgba(255, 250, 241, 0.96) !important;
+  border-color: rgba(157, 90, 124, 0.28) !important;
+  color: #3f2118 !important;
+}
+
+html[data-theme="day"] .social-private-label {
+  color: rgba(86, 46, 55, 0.78) !important;
+}
+
+html[data-theme="day"] .social-private-value,
+html[data-theme="day"] .social-intimacy-archive span,
+html[data-theme="day"] .social-intimacy-archive div {
+  color: #5b193f !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
 html[data-theme="day"] .day-mode-chat-jump-button {
   background: rgba(255, 252, 244, 0.96) !important;
   background-color: rgba(255, 252, 244, 0.96) !important;
@@ -922,9 +944,18 @@ html[data-theme="day"] .sect-modal-body {
 
 .landing-bg {
   overflow: hidden;
+  pointer-events: none;
   background:
     radial-gradient(circle at 50% 18%, rgba(202, 166, 83, 0.18), transparent 22rem),
     linear-gradient(180deg, #030405 0%, #010101 58%, #020907 100%);
+}
+
+.landing-bg *,
+.landing-bg-art,
+.landing-bg-ink,
+.landing-bg-vignette,
+.landing-bg-grid {
+  pointer-events: none;
 }
 
 .landing-bg-art {
@@ -1111,11 +1142,38 @@ html[data-theme="day"] .sect-modal-body {
   display: block;
 }
 
+.landing-presence-chart-frame,
+.landing-presence-hover-column,
+.landing-presence-hover-point,
+.landing-presence-hit-dot {
+  pointer-events: auto;
+}
+
 .landing-presence-tooltip {
   background: var(--landing-presence-tooltip-bg);
   border-color: color-mix(in srgb, var(--landing-presence-tooltip-text) 28%, transparent);
   color: var(--landing-presence-tooltip-text);
   line-height: 1.2;
+}
+
+.landing-presence-native-tooltip {
+  pointer-events: none;
+  position: fixed;
+  z-index: 10050;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  background: rgba(5, 12, 10, 0.92);
+  border: 1px solid rgba(236, 253, 245, 0.28);
+  border-radius: 6px;
+  color: #ecfdf5;
+  padding: 4px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.38);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 120ms ease;
 }
 
 .landing-presence-axis-label {
@@ -1291,6 +1349,13 @@ html[data-theme="day"] .landing-presence-chart-scroll::-webkit-scrollbar-track {
 
 html[data-theme="day"] .landing-presence-chart-scroll::-webkit-scrollbar-thumb {
   background: rgba(4, 120, 87, 0.52);
+}
+
+html[data-theme="day"] .landing-presence-native-tooltip {
+  background: rgba(255, 252, 244, 0.96);
+  border-color: rgba(6, 95, 70, 0.28);
+  color: #065f46;
+  box-shadow: 0 14px 32px rgba(15, 118, 110, 0.18);
 }
 
 @media (max-width: 767px) {

@@ -4,7 +4,7 @@ import { use图片资源回源预取 } from '../../hooks/useImageAssetPrefetch';
 import { 构建区域文字样式 } from '../../utils/visualSettings';
 import { 获取图片资源文本地址 } from '../../utils/imageAssets';
 import { 计算角色总气血 } from '../../utils/characterVitals';
-import { 获取世界观货币汇率说明, 获取世界观货币槽位, 获取货币显示模式 } from '../../utils/currencyDisplay';
+import { 获取世界观简短货币汇率说明, 获取世界观货币槽位, 获取货币显示模式, 获取货币兼容字段路径, 规范化角色金钱 } from '../../utils/currencyDisplay';
 import { 获取题材资源文案 } from '../../utils/resourceLabels';
 
 interface Props {
@@ -173,7 +173,7 @@ const 读取本回合数值变化 = (commands: any[], path: string): number | nu
 
 const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableManager, onUploadAvatar, visualConfig, gameConfig, openingConfig, latestCommands = [] }) => {
     use图片资源回源预取(角色);
-    const 金钱 = 角色.金钱 || { 金元宝: 0, 银子: 0, 铜钱: 0 };
+    const 金钱 = 规范化角色金钱(角色.金钱);
     const 玩家BUFF列表 = Array.isArray(角色.玩家BUFF) ? 角色.玩家BUFF : [];
     const 启用饱腹口渴系统 = gameConfig?.启用饱腹口渴系统 !== false;
     const 启用修炼体系 = gameConfig?.启用修炼体系 !== false;
@@ -218,14 +218,19 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
         ].reduce((sum, [path, weight]) => sum + (读取本回合数值变化(latestCommands, String(path)) || 0) * Number(weight), 0);
         return weighted === 0 ? null : Math.round(weighted);
     }, [latestCommands]);
-    const 金钱变化 = {
-        金元宝: 读取本回合数值变化(latestCommands, '角色.金钱.金元宝'),
-        银子: 读取本回合数值变化(latestCommands, '角色.金钱.银子'),
-        铜钱: 读取本回合数值变化(latestCommands, '角色.金钱.铜钱')
-    };
     const 货币模式 = 获取货币显示模式(openingConfig, 角色);
     const 货币槽位 = 获取世界观货币槽位(openingConfig, 角色);
-    const 货币汇率说明 = 获取世界观货币汇率说明(openingConfig?.modeRuntimeProfile, 货币模式);
+    const 货币汇率说明 = 获取世界观简短货币汇率说明(openingConfig?.modeRuntimeProfile, 货币模式);
+    const 金钱变化 = React.useMemo(() => Object.fromEntries(
+        货币槽位.map((slot) => [
+            slot.key,
+            获取货币兼容字段路径(slot.key).reduce<number | null>((sum, path) => {
+                const delta = 读取本回合数值变化(latestCommands, path);
+                if (delta === null) return sum;
+                return (sum || 0) + delta;
+            }, null)
+        ])
+    ) as Record<string, number | null>, [latestCommands, 货币槽位]);
 
     const equipmentOrder: { key: keyof typeof 角色.装备; label: string }[] = [
         { key: '头部', label: '头部' },

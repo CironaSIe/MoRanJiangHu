@@ -16,7 +16,7 @@ import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
 import type { 接口设置结构, OpeningConfig } from '../../../types';
 import { 生成物品图标 } from '../../../services/ai/itemImageGeneration';
 import { 获取物品已选图标地址 } from '../../../utils/itemImage';
-import { 获取世界观货币卡片信息, 获取货币显示模式 } from '../../../utils/currencyDisplay';
+import { 获取世界观货币卡片信息, 获取货币显示模式, 获取货币层级倍率, 底层总值转角色金钱 } from '../../../utils/currencyDisplay';
 import { 获取题材模式配置 } from '../../../utils/topicModeProfiles';
 import { 同步角色储物负重上限 } from '../../../utils/storageCarry';
 
@@ -114,7 +114,10 @@ const AuctionHouseModal: React.FC<Props> = ({
     const money = character?.金钱 || {};
     const 货币模式 = 获取货币显示模式(openingConfig, character);
     const 货币卡片 = 获取世界观货币卡片信息(openingConfig, character);
-    const 货币格式化选项 = React.useMemo(() => ({ 货币模式 }), [货币模式]);
+    const 货币格式化选项 = React.useMemo(() => ({
+        货币模式,
+        runtimeProfile: openingConfig?.modeRuntimeProfile || null
+    }), [货币模式, openingConfig?.modeRuntimeProfile]);
     const totalCopper = 计算金钱铜钱总值(money);
     const playerId = character?.姓名 || 'player';
     const activeAuctions = React.useMemo(
@@ -226,14 +229,10 @@ const AuctionHouseModal: React.FC<Props> = ({
         if (!auction || auction.卖家ID !== playerId) return;
         const currency = auction.标价货币 || '铜钱';
         const income = Math.max(1, Math.floor(读数(auction.一口价 || auction.当前价格) * 0.82));
-        const copperIncome = income * (currency === '金元宝' ? 100000 : currency === '银子' ? 1000 : 1);
+        const copperIncome = income * 获取货币层级倍率(currency as any, openingConfig?.modeRuntimeProfile, 货币模式);
         const nextCharacter = {
             ...character,
-            金钱: {
-                金元宝: Math.floor((totalCopper + copperIncome) / 100000),
-                银子: Math.floor(((totalCopper + copperIncome) % 100000) / 1000),
-                铜钱: (totalCopper + copperIncome) % 1000,
-            },
+            金钱: 底层总值转角色金钱(totalCopper + copperIncome, openingConfig?.modeRuntimeProfile, 货币模式),
         };
         const settledAuction: 拍卖品记录 = {
             ...auction,
@@ -290,7 +289,7 @@ const AuctionHouseModal: React.FC<Props> = ({
     const marketList = auctionState.行情列表 || [];
     const recentRecords = (auctionState.交易记录 || []).slice(0, 3);
     const canAfford = (entry: 拍卖品记录) => {
-        const unit = entry.标价货币 === '金元宝' ? 100000 : entry.标价货币 === '银子' ? 1000 : 1;
+        const unit = 获取货币层级倍率(entry.标价货币 as any, openingConfig?.modeRuntimeProfile, 货币模式);
         return totalCopper >= 读数(entry.一口价) * unit;
     };
     const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, entry: 拍卖品记录) => {
@@ -323,10 +322,10 @@ const AuctionHouseModal: React.FC<Props> = ({
 
                 <div className="auction-house-body flex min-h-0 flex-1 flex-col bg-[#0b0907]">
                     <section className={`auction-house-filter-panel shrink-0 overflow-visible border-b border-wuxia-gold/10 bg-[#0e0b08] ${isMobile ? 'p-2' : 'p-3'}`}>
-                        <div className={`mb-3 rounded-xl border border-wuxia-gold/15 bg-[#11100d] ${isMobile ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
-                            <div className="text-xs font-semibold tracking-[0.18em] text-wuxia-gold/85">{货币卡片.title}</div>
-                            <div className="mt-1 text-sm leading-6 text-gray-200">{货币卡片.summary}</div>
-                            <div className="mt-2 text-xs leading-5 text-wuxia-gold/65">{货币卡片.exchangeHint}</div>
+                        <div className={`mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-wuxia-gold/15 bg-[#11100d] text-xs ${isMobile ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
+                            <span className="font-semibold tracking-[0.18em] text-wuxia-gold/85">{货币卡片.title}</span>
+                            <span className="text-wuxia-gold/70">{货币卡片.exchangeHint}</span>
+                            <span className="font-mono text-gray-200">{格式化金钱折算(money, 货币格式化选项)}</span>
                         </div>
                         <div className={`grid min-w-0 gap-3 ${isNarrowPanel ? '' : '2xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)]'}`}>
                             <div>

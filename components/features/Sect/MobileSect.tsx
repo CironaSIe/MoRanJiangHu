@@ -55,7 +55,7 @@ const 现代晋升梯队: RankStep[] = [
 
 const 无限流晋升梯队: RankStep[] = [
     { rank: '新人', lvl: 1, required: 0, discount: 0, perks: ['基础任务', '新人补给'] },
-    { rank: '正式队员', lvl: 2, required: 150, discount: 0.05, perks: ['团队任务权限', '团队商城九五折'] },
+    { rank: '正式队员', lvl: 2, required: 120, discount: 0.05, perks: ['团队任务权限', '团队商城九五折'] },
     { rank: '资深者', lvl: 3, required: 500, discount: 0.1, perks: ['高危任务优先', '团队商城九折'] },
     { rank: '副队长', lvl: 4, required: 1200, discount: 0.15, perks: ['小队管理权限', '团队商城八五折'] },
     { rank: '队长', lvl: 5, required: 3000, discount: 0.2, perks: ['小队决策权', '团队商城八折'] }

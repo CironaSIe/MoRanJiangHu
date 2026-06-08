@@ -41,6 +41,15 @@ const 默认层级尺寸: Record<地图层级类型, 地图层尺寸结构> = {
     子地点: { width: 24, height: 24 },
 };
 
+const 地图层级深度: Record<地图层级类型, number> = {
+    寰宇: 0,
+    大地点: 1,
+    中地点: 2,
+    小地点: 3,
+    区地点: 4,
+    子地点: 5,
+};
+
 const 取文本 = (value: unknown, fallback = ''): string => {
     if (typeof value !== 'string') return fallback;
     const next = value.trim();
@@ -2158,6 +2167,31 @@ const 补齐地图人物 = (
     return people;
 };
 
+const 归一化人物唯一键 = (person: 地图人物结构): string => (
+    归一化地图文本(person?.关联NPC || person?.名称 || person?.ID)
+);
+
+const 去重地图人物落点 = (people: 地图人物结构[], layers: 地图层级结构[]): 地图人物结构[] => {
+    const layerById = new Map(layers.map((layer) => [layer.ID, layer]));
+    const bestByPerson = new Map<string, 地图人物结构>();
+    people.forEach((person) => {
+        const key = 归一化人物唯一键(person);
+        if (!key) return;
+        const existing = bestByPerson.get(key);
+        if (!existing) {
+            bestByPerson.set(key, person);
+            return;
+        }
+        const existingLayer = layerById.get(existing.所在层级ID);
+        const nextLayer = layerById.get(person.所在层级ID);
+        const existingScore = (existing.是否当前玩家 ? 100 : 0) + (existingLayer ? 地图层级深度[existingLayer.层级] || 0 : 0);
+        const nextScore = (person.是否当前玩家 ? 100 : 0) + (nextLayer ? 地图层级深度[nextLayer.层级] || 0 : 0);
+        if (nextScore > existingScore) bestByPerson.set(key, person);
+    });
+    const keepIds = new Set(Array.from(bestByPerson.values()).map((person) => person.ID));
+    return people.filter((person) => keepIds.has(person.ID));
+};
+
 export const 补齐世界地图空间字段 = (
     worldLike: Partial<世界数据结构> | null | undefined,
     options?: 地图空间补齐参数
@@ -2170,7 +2204,7 @@ export const 补齐世界地图空间字段 = (
 
     const { layers, buildings, 优化器道路列表 } = 从旧版字段派生地图空间(baseLayers, baseBuildings, world, options);
     const roads = 按层级补齐道路(layers, baseRoads, buildings, 优化器道路列表);
-    const people = 补齐地图人物(layers, basePeople, buildings, world);
+    const people = 去重地图人物落点(补齐地图人物(layers, basePeople, buildings, world), layers);
 
     const layerById = new Map(layers.map((layer) => [layer.ID, layer]));
     layers.forEach((layer) => {

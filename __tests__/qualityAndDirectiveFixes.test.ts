@@ -285,7 +285,7 @@ describe('无限流商城文案边界', () => {
         expect(skillText).not.toContain('基础剑法残卷');
         expect(skillText).not.toContain('藏经阁');
         expect(taskText).toContain('主神');
-        expect(taskText).toContain('存活至天亮');
+        expect(taskText).toContain('主神任务倒计时');
         expect(taskText).not.toContain('初入江湖');
         expect(taskText).not.toContain('门派贡献');
         expect(taskText).not.toContain('D级支线剧情');

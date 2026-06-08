@@ -186,7 +186,10 @@ const 格式化在线人数日期标签 = (hour: string) => {
 
 const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?: OnlinePresencePublicStats | null }> = ({ data, current }) => {
     const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
+    const panelRef = React.useRef<HTMLDivElement | null>(null);
     const chartScrollRef = React.useRef<HTMLDivElement | null>(null);
+    const chartFrameRef = React.useRef<HTMLDivElement | null>(null);
+    const nativeTooltipRef = React.useRef<HTMLDivElement | null>(null);
     const tooltipHoldTimerRef = React.useRef<number | null>(null);
     const points = data.length > 0
         ? data
@@ -218,7 +221,10 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
         return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
     }).join(' ');
     const hoveredPoint = hoveredIndex !== null ? points[hoveredIndex] : null;
-    const hoveredPosition = hoveredPoint ? pointPosition(hoveredPoint, hoveredIndex ?? 0) : null;
+    const hoveredPosition = React.useMemo(
+        () => hoveredPoint ? pointPosition(hoveredPoint, hoveredIndex ?? 0) : null,
+        [hoveredPoint, hoveredIndex, width, maxCount]
+    );
     const hoverColumnWidth = points.length <= 1
         ? Math.max(52, width - padX * 2)
         : Math.max(28, Math.min(46, (width - padX * 2) / Math.max(1, points.length - 1)));
@@ -239,33 +245,145 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
         scrollContainer.scrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
     }, [points.length, width]);
 
-    React.useEffect(() => () => {
-        if (tooltipHoldTimerRef.current !== null) {
-            window.clearTimeout(tooltipHoldTimerRef.current);
-        }
+    React.useEffect(() => {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'landing-presence-tooltip landing-presence-native-tooltip';
+        tooltip.textContent = '-- 人';
+        tooltip.style.left = '28px';
+        tooltip.style.top = '0px';
+        tooltip.style.opacity = '0';
+        tooltip.style.visibility = 'hidden';
+        document.body.appendChild(tooltip);
+        nativeTooltipRef.current = tooltip;
+
+        return () => {
+            if (tooltipHoldTimerRef.current !== null) {
+                window.clearTimeout(tooltipHoldTimerRef.current);
+                tooltipHoldTimerRef.current = null;
+            }
+            if (nativeTooltipRef.current === tooltip) {
+                nativeTooltipRef.current = null;
+            }
+            tooltip.remove();
+        };
     }, []);
 
-    const 显示在线人数提示 = React.useCallback((index: number, hold = false) => {
+    const showNativeTooltip = React.useCallback((index: number, pointer?: { clientX?: number; clientY?: number }) => {
+        const tooltip = nativeTooltipRef.current;
+        const panel = panelRef.current;
+        const scrollContainer = chartScrollRef.current;
+        const point = points[index];
+        if (!tooltip || !panel || !scrollContainer || !point) return;
+        const position = pointPosition(point, index);
+        const left = typeof pointer?.clientX === 'number'
+            ? pointer.clientX
+            : scrollContainer.getBoundingClientRect().left + position.x - scrollContainer.scrollLeft;
+        const top = typeof pointer?.clientY === 'number'
+            ? pointer.clientY - 38
+            : scrollContainer.getBoundingClientRect().top + position.y - 42;
+        tooltip.textContent = `${point.count} 人`;
+        tooltip.style.left = `${Math.max(42, Math.min(window.innerWidth - 42, left))}px`;
+        tooltip.style.top = `${Math.max(8, Math.min(window.innerHeight - 34, top))}px`;
+        tooltip.style.opacity = '1';
+        tooltip.style.visibility = 'visible';
+    }, [points, width, maxCount]);
+
+    const hideNativeTooltip = React.useCallback(() => {
+        const tooltip = nativeTooltipRef.current;
+        if (!tooltip) return;
+        tooltip.style.opacity = '0';
+        tooltip.style.visibility = 'hidden';
+    }, []);
+
+    const 显示在线人数提示 = React.useCallback((index: number, hold = false, pointer?: { clientX?: number; clientY?: number }) => {
         if (tooltipHoldTimerRef.current !== null) {
             window.clearTimeout(tooltipHoldTimerRef.current);
             tooltipHoldTimerRef.current = null;
         }
+        showNativeTooltip(index, pointer);
         setHoveredIndex(index);
         if (hold) {
             tooltipHoldTimerRef.current = window.setTimeout(() => {
                 setHoveredIndex(null);
+                hideNativeTooltip();
                 tooltipHoldTimerRef.current = null;
             }, 2600);
         }
-    }, []);
+    }, [hideNativeTooltip, showNativeTooltip]);
 
     const 隐藏在线人数提示 = React.useCallback(() => {
         if (tooltipHoldTimerRef.current !== null) return;
+        hideNativeTooltip();
         setHoveredIndex(null);
-    }, []);
+    }, [hideNativeTooltip]);
+
+    const 从指针位置显示最近在线人数提示 = React.useCallback((pointer: { clientX: number; clientY: number }) => {
+        const scrollContainer = chartScrollRef.current;
+        const panel = panelRef.current;
+        if (!scrollContainer || !panel) return false;
+        const rect = scrollContainer.getBoundingClientRect();
+        const panelRect = panel.getBoundingClientRect();
+        const visibleLeft = Math.max(rect.left, panelRect.left, 0);
+        const visibleRight = Math.min(rect.right, panelRect.right, window.innerWidth);
+        const visibleTop = Math.max(panelRect.top, 0);
+        const visibleBottom = Math.min(panelRect.bottom, window.innerHeight);
+        const pointerNearChartX = pointer.clientX >= visibleLeft - 36 && pointer.clientX <= visibleRight + 36;
+        const pointerInsideVisiblePanelY = pointer.clientY >= visibleTop - 12 && pointer.clientY <= visibleBottom + 12;
+        if (!pointerNearChartX || !pointerInsideVisiblePanelY) return false;
+        if (tooltipHoldTimerRef.current !== null) {
+            window.clearTimeout(tooltipHoldTimerRef.current);
+            tooltipHoldTimerRef.current = null;
+        }
+        const localX = pointer.clientX - rect.left + scrollContainer.scrollLeft;
+        let nearestIndex = 0;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+        points.forEach((item, index) => {
+            const { x } = pointPosition(item, index);
+            const distance = Math.abs(x - localX);
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestIndex = index;
+            }
+        });
+        显示在线人数提示(nearestIndex, false, pointer);
+        return true;
+    }, [points, width, maxCount, 显示在线人数提示]);
+
+    const 从图表位置显示最近在线人数提示 = React.useCallback((event: React.MouseEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>) => {
+        从指针位置显示最近在线人数提示(event);
+    }, [从指针位置显示最近在线人数提示]);
+
+    React.useEffect(() => {
+        const handlePointerMove = (event: PointerEvent | MouseEvent) => {
+            if (!从指针位置显示最近在线人数提示(event) && tooltipHoldTimerRef.current === null) {
+                隐藏在线人数提示();
+            }
+        };
+        const handleTouchMove = (event: TouchEvent) => {
+            const touch = event.touches[0];
+            if (!touch) return;
+            if (!从指针位置显示最近在线人数提示(touch) && tooltipHoldTimerRef.current === null) {
+                隐藏在线人数提示();
+            }
+        };
+        window.addEventListener('pointermove', handlePointerMove, { passive: true });
+        window.addEventListener('mousemove', handlePointerMove, { passive: true });
+        window.addEventListener('touchmove', handleTouchMove, { passive: true });
+        return () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('mousemove', handlePointerMove);
+            window.removeEventListener('touchmove', handleTouchMove);
+        };
+    }, [从指针位置显示最近在线人数提示, 隐藏在线人数提示]);
 
     return (
-        <div className="landing-presence-panel relative z-10 flex h-full w-full flex-col items-center border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-center shadow-[0_12px_28px_rgba(0,0,0,0.3)]">
+        <div
+            ref={panelRef}
+            className="landing-presence-panel relative z-10 flex h-full w-full flex-col items-center border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-center shadow-[0_12px_28px_rgba(0,0,0,0.3)]"
+            onMouseMove={从图表位置显示最近在线人数提示}
+            onPointerMove={从图表位置显示最近在线人数提示}
+            onPointerLeave={隐藏在线人数提示}
+        >
             <div className="landing-presence-metrics grid w-full max-w-[430px] grid-cols-3 items-start gap-3">
                 <div className="landing-presence-metric">
                     <div className="landing-presence-label text-[10px] tracking-[0.2em] text-emerald-200/80">在线人数</div>
@@ -282,10 +400,16 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
             </div>
             <div
                 ref={chartScrollRef}
-                className="landing-presence-chart-scroll mt-1 w-full max-w-[430px] flex-1 overflow-x-auto overflow-y-hidden"
+                className="landing-presence-chart-scroll mt-1 w-full max-w-[430px] flex-1 overflow-x-auto overflow-y-visible"
                 onPointerLeave={隐藏在线人数提示}
             >
-                <div className="landing-presence-chart-frame relative shrink-0" style={{ width, height }}>
+                <div
+                    ref={chartFrameRef}
+                    className="landing-presence-chart-frame relative shrink-0"
+                    style={{ width, height }}
+                    onMouseMove={从图表位置显示最近在线人数提示}
+                    onPointerMove={从图表位置显示最近在线人数提示}
+                >
                     <svg
                         viewBox={`0 0 ${width} ${height}`}
                         width={width}
@@ -335,11 +459,11 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                                     cy={y}
                                     r="15"
                                     fill="rgba(255,255,255,0.001)"
-                                    onMouseEnter={() => 显示在线人数提示(index)}
-                                    onMouseMove={() => 显示在线人数提示(index)}
-                                    onPointerEnter={() => 显示在线人数提示(index)}
-                                    onPointerMove={() => 显示在线人数提示(index)}
-                                    onPointerDown={() => 显示在线人数提示(index, true)}
+                                    onMouseEnter={(event) => 显示在线人数提示(index, false, event)}
+                                    onMouseMove={(event) => 显示在线人数提示(index, false, event)}
+                                    onPointerEnter={(event) => 显示在线人数提示(index, false, event)}
+                                    onPointerMove={(event) => 显示在线人数提示(index, false, event)}
+                                    onPointerDown={(event) => 显示在线人数提示(index, true, event)}
                                     onClick={() => 显示在线人数提示(index, true)}
                                     onTouchStart={() => 显示在线人数提示(index, true)}
                                     onFocus={() => 显示在线人数提示(index)}
@@ -347,6 +471,7 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                                     tabIndex={0}
                                     role="img"
                                     aria-label={`在线人数 ${item.count}`}
+                                    title={`${item.count} 人`}
                                     className="landing-presence-hit-dot cursor-pointer"
                                 />
                                 {active ? (
@@ -420,10 +545,11 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                                 }}
                                 role="img"
                                 aria-label={`在线人数 ${item.count}`}
+                                title={`${item.count} 人`}
                                 tabIndex={0}
-                                onPointerEnter={() => 显示在线人数提示(index)}
-                                onPointerMove={() => 显示在线人数提示(index)}
-                                onPointerDown={() => 显示在线人数提示(index, true)}
+                                onPointerEnter={(event) => 显示在线人数提示(index, false, event)}
+                                onPointerMove={(event) => 显示在线人数提示(index, false, event)}
+                                onPointerDown={(event) => 显示在线人数提示(index, true, event)}
                                 onClick={() => 显示在线人数提示(index, true)}
                                 onTouchStart={() => 显示在线人数提示(index, true)}
                                 onFocus={() => 显示在线人数提示(index)}
@@ -445,12 +571,13 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                                 }}
                                 role="img"
                                 aria-label={`在线人数 ${item.count}`}
+                                title={`${item.count} 人`}
                                 tabIndex={0}
-                                onMouseEnter={() => 显示在线人数提示(index)}
-                                onMouseMove={() => 显示在线人数提示(index)}
-                                onPointerEnter={() => 显示在线人数提示(index)}
-                                onPointerMove={() => 显示在线人数提示(index)}
-                                onPointerDown={() => 显示在线人数提示(index, true)}
+                                onMouseEnter={(event) => 显示在线人数提示(index, false, event)}
+                                onMouseMove={(event) => 显示在线人数提示(index, false, event)}
+                                onPointerEnter={(event) => 显示在线人数提示(index, false, event)}
+                                onPointerMove={(event) => 显示在线人数提示(index, false, event)}
+                                onPointerDown={(event) => 显示在线人数提示(index, true, event)}
                                 onClick={() => 显示在线人数提示(index, true)}
                                 onTouchStart={() => 显示在线人数提示(index, true)}
                                 onFocus={() => 显示在线人数提示(index)}
@@ -458,18 +585,6 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
                             />
                         );
                     })}
-                    {hoveredPoint && hoveredPosition && (
-                        <div
-                            className="landing-presence-tooltip pointer-events-none absolute z-20 whitespace-nowrap rounded border px-2 py-0.5 font-mono text-[11px] font-bold shadow-lg"
-                            style={{
-                                left: Math.max(26, Math.min(width - 26, hoveredPosition.x)),
-                                top: Math.max(4, hoveredPosition.y - 30),
-                                transform: 'translateX(-50%)'
-                            }}
-                        >
-                            {hoveredPoint.count} 人
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
@@ -635,7 +750,7 @@ const LandingPage: React.FC<Props> = ({
                 </button>
             </div>
 
-            <div className="landing-stage relative z-10 flex w-full max-w-full min-w-0 flex-1 flex-col items-center gap-6 overflow-x-hidden pb-2 lg:block lg:max-w-[2200px]">
+            <div className="landing-stage relative z-10 flex w-full max-w-full min-w-0 flex-1 flex-col items-center gap-6 overflow-visible pb-2 lg:block lg:max-w-[2200px]">
                 <section className="landing-hero-section relative z-20 flex w-full max-w-full min-w-0 flex-col items-center justify-center overflow-x-hidden animate-fadeIn lg:absolute lg:left-1/2 lg:top-[40%] lg:min-h-[calc(100vh-210px)] lg:-translate-x-1/2 lg:-translate-y-1/2">
                     <div className="relative mb-7 flex w-full max-w-full min-w-0 flex-col items-center">
                         <div className="landing-title-glow absolute -top-20 left-1/2 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-wuxia-gold/5 blur-3xl" />
@@ -719,7 +834,7 @@ const LandingPage: React.FC<Props> = ({
                     </div>
                 </section>
 
-                <div className="landing-dashboard-row relative z-10 grid w-full max-w-full min-w-0 grid-cols-1 items-stretch gap-4 overflow-visible animate-fadeIn lg:absolute lg:bottom-16 lg:left-1/2 lg:h-[224px] lg:max-h-[224px] lg:max-w-[1020px] lg:-translate-x-1/2 lg:grid-cols-[minmax(300px,400px)_minmax(420px,1fr)] lg:overflow-hidden">
+                <div className="landing-dashboard-row relative z-10 grid w-full max-w-full min-w-0 grid-cols-1 items-stretch gap-4 overflow-visible animate-fadeIn lg:absolute lg:bottom-16 lg:left-1/2 lg:h-[224px] lg:max-h-[224px] lg:max-w-[1020px] lg:-translate-x-1/2 lg:grid-cols-[minmax(300px,400px)_minmax(420px,1fr)] lg:overflow-visible">
                     <aside className="landing-card landing-release-card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-wuxia-gold/15 bg-black/45 px-4 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.45)] backdrop-blur-sm">
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-wuxia-gold/10 pb-2">
                             <div>

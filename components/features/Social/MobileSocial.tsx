@@ -564,9 +564,9 @@ const MobileSocial: React.FC<Props> = ({
 
     // Helper for Privacy Tags
     const PrivateTag: React.FC<{ label: string; value?: string; color?: string }> = ({ label, value, color = "text-pink-300" }) => (
-        <div className="flex flex-col bg-black/40 border border-gray-800 p-2 rounded relative group active:border-pink-500/50 transition-colors">
-            <span className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">{label}</span>
-            <span className={`font-serif text-[11px] ${color} drop-shadow-sm`}>{value || "???"}</span>
+        <div className="social-private-tag flex flex-col bg-black/40 border border-gray-800 p-2 rounded relative group active:border-pink-500/50 transition-colors">
+            <span className="social-private-label text-[9px] text-gray-500 uppercase tracking-widest mb-1">{label}</span>
+            <span className={`social-private-value font-serif text-[11px] ${color} drop-shadow-sm`}>{value || "???"}</span>
         </div>
     );
     const 首次亲密档案框: React.FC = () => {
@@ -577,7 +577,7 @@ const MobileSocial: React.FC<Props> = ({
             return <span title={value} className="rounded border border-pink-500/30 px-1 py-0.5 text-[8px] text-pink-200/80">详情</span>;
         };
         return (
-            <div className="mb-4 rounded-lg border border-pink-900/35 bg-black/45 p-3">
+            <div className="social-intimacy-archive mb-4 rounded-lg border border-pink-900/35 bg-black/45 p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-1.5">
                     <span className="text-[9px] font-bold tracking-[0.18em] text-pink-300">NSFW经历档案</span>
                     {当前失贞档案 && (
@@ -588,7 +588,7 @@ const MobileSocial: React.FC<Props> = ({
                 </div>
                 <div className="space-y-1.5">
                     {当前首次亲密记录.map((record: any) => (
-                        <div key={record.类型} className="rounded border border-pink-900/25 bg-black/35 p-2 text-[10px]">
+                        <div key={record.类型} className="social-intimacy-record rounded border border-pink-900/25 bg-black/35 p-2 text-[10px]">
                             <div className="mb-1 flex items-center justify-between gap-2">
                                 <span className="font-bold text-pink-300">{record.类型}</span>
                                 <span className={`rounded px-1.5 py-0.5 text-[8px] ${record.是否已发生 ? 'bg-pink-500/15 text-pink-200' : 'bg-gray-800 text-gray-500'}`}>{record.是否已发生 ? '已发生' : '未发生'}</span>
@@ -608,9 +608,9 @@ const MobileSocial: React.FC<Props> = ({
         );
     };
     const RelationTag: React.FC<{ label: string; value?: string; accent?: string }> = ({ label, value, accent = "text-cyan-300" }) => (
-        <div className="bg-black/30 border border-gray-800 rounded p-2.5 h-full">
-            <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1.5">{label}</div>
-            <div className={`text-[11px] font-serif leading-relaxed ${accent}`}>{value?.trim() || "暂无记录"}</div>
+        <div className="social-relation-tag bg-black/30 border border-gray-800 rounded p-2.5 h-full">
+            <div className="social-private-label text-[9px] text-gray-500 uppercase tracking-widest mb-1.5">{label}</div>
+            <div className={`social-private-value text-[11px] font-serif leading-relaxed ${accent}`}>{value?.trim() || "暂无记录"}</div>
         </div>
     );
     const 在场切换文案 = currentNPC

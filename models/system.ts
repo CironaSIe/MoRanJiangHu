@@ -562,6 +562,13 @@ export interface ModeRuntimeProfile {
         primaryCurrency: string;
         accountingUnit: string;
         exchangeRules: string;
+        currencyTiers: {
+            upperName: string;
+            middleName: string;
+            lowerName: string;
+            upperToMiddleRate: number;
+            middleToLowerRate: number;
+        };
         marketName: string;
         marketVerb: string;
         allowedItemTypes: string[];
