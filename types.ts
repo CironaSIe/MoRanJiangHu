@@ -96,9 +96,15 @@ export interface 天赋结构 {
     效果: string; // 具体数值或逻辑描述
 }
 
+export type 背景初始物品 = {
+    名称: string;
+    数量?: number;
+    描述?: string;
+};
+
 export interface 背景结构 {
     名称: string;
     描述: string;
     效果: string;
-    初始物品?: string[];
+    初始物品?: 背景初始物品[];
 }

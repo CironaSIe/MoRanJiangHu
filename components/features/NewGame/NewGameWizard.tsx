@@ -1544,16 +1544,37 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     };
 
     const handleGenerate = async (preset?: 开局预设方案结构) => {
-        const effectiveWorldConfig = preset ? { ...worldConfig, ...preset.worldConfig } : worldConfig;
-        const effectiveOpeningConfig = preset
-            ? 规范化可选开局配置(preset.openingConfig)
-            : 构建有效开局配置();
-        if (selectedBackground?.初始物品?.length && effectiveOpeningConfig?.modeRuntimeProfile) {
+        const presetRuntime = preset
+            ? 构建预设直开恢复结果({
+                preset,
+                currentWorldConfig: worldConfig,
+                fallbackBackgrounds: [...全部背景选项, ...预设背景, ...自定义背景列表],
+                fallbackTalents: [...全部天赋选项, ...预设天赋, ...自定义天赋列表],
+                defaultBackground: 预设背景[0]
+            })
+            : null;
+        const effectiveWorldConfig = presetRuntime?.worldConfig || worldConfig;
+        const effectiveOpeningConfig = presetRuntime?.openingConfig || 构建有效开局配置();
+        const effectiveBackground = presetRuntime?.selectedBackground || selectedBackground;
+        const effectiveTalents = presetRuntime?.selectedTalents || selectedTalents;
+        const effectiveOpeningExtraRequirement = presetRuntime?.openingExtraPrompt ?? preset?.openingExtraRequirement ?? openingExtraRequirement;
+        const effectiveActiveModuleExtraRules = presetRuntime?.activeModuleExtraRules || activeModuleExtraRules;
+        const effectiveOpeningStreaming = presetRuntime?.openingStreaming ?? openingStreaming;
+        if (effectiveBackground?.初始物品?.length && effectiveOpeningConfig?.modeRuntimeProfile) {
+            const 初始物品名称列表 = effectiveBackground.初始物品
+                .map((item: any) => {
+                    if (typeof item === 'string') return item;
+                    const name = item?.名称?.trim();
+                    if (!name) return null;
+                    const desc = item?.描述?.trim();
+                    return desc ? `${name}（${desc}）` : name;
+                })
+                .filter(Boolean);
             effectiveOpeningConfig.modeRuntimeProfile = {
                 ...effectiveOpeningConfig.modeRuntimeProfile,
                 items: {
                     ...effectiveOpeningConfig.modeRuntimeProfile.items,
-                    initialItemPool: selectedBackground.初始物品
+                    initialItemPool: 初始物品名称列表
                 }
             };
         }

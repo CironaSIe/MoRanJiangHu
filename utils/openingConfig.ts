@@ -402,6 +402,121 @@ export const 默认初始伙伴配置 = (): 初始伙伴配置结构 => ({
 const 读取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 const 角色替换名称分隔正则 = /[\r\n,，、;；]+/u;
 
+const 规范化创意工坊上下文 = (value: unknown, fallbackMode: OpeningConfig['题材模式']) => {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value as any : {};
+    const 已选模式原始值 = 读取文本(source?.已选模式);
+    const 已选模式 = 题材模式选项.some((item) => item.value === 已选模式原始值)
+        ? 已选模式原始值 as OpeningConfig['题材模式']
+        : undefined;
+    const rawItems = source?.已选子项 && typeof source.已选子项 === 'object' && !Array.isArray(source.已选子项)
+        ? source.已选子项 as Record<string, unknown>
+        : {};
+    const 已选子项 = Object.fromEntries(
+        Object.entries(rawItems)
+            .map(([key, raw]) => [key, 读取文本(raw)])
+            .filter(([key, raw]) => ['topic', 'world_rules', 'opening', 'ability', 'comfy_workflow'].includes(key) && Boolean(raw))
+    ) as Partial<Record<'topic' | 'world_rules' | 'opening' | 'ability' | 'comfy_workflow', string>>;
+    if (!已选模式 && Object.keys(已选子项).length <= 0) return undefined;
+    return {
+        已选模式: 已选模式 || fallbackMode,
+        ...(Object.keys(已选子项).length > 0 ? { 已选子项 } : {})
+    };
+};
+
+const 规范化快照背景列表 = (value: unknown): 背景结构[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map((item: any) => {
+            const 名称 = 读取文本(item?.名称);
+            const 描述 = 读取文本(item?.描述);
+            const 效果 = 读取文本(item?.效果);
+            if (!名称 || !描述 || !效果) return null;
+            const 初始物品 = Array.isArray(item?.初始物品)
+                ? item.初始物品.map((entry: any) => {
+                    if (!entry || typeof entry !== 'object') {
+                        const name = 读取文本(entry);
+                        return name ? { 名称: name } : null;
+                    }
+                    const name = 读取文本(entry?.名称);
+                    if (!name) return null;
+                    return {
+                        名称: name,
+                        ...(entry?.数量 != null ? { 数量: Number(entry.数量) } : {}),
+                        ...(entry?.描述 ? { 描述: 读取文本(entry.描述) } : {})
+                    };
+                }).filter(Boolean)
+                : undefined;
+            return {
+                名称,
+                描述,
+                效果,
+                ...(初始物品 && 初始物品.length > 0 ? { 初始物品 } : {})
+            };
+        })
+        .filter(Boolean) as 背景结构[];
+};
+
+const 规范化快照天赋列表 = (value: unknown): 天赋结构[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map((item: any) => {
+            const 名称 = 读取文本(item?.名称);
+            const 描述 = 读取文本(item?.描述);
+            const 效果 = 读取文本(item?.效果);
+            if (!名称 || !描述 || !效果) return null;
+            return { 名称, 描述, 效果 };
+        })
+        .filter(Boolean) as 天赋结构[];
+};
+
+const 规范化运行时快照 = (value: unknown): OpeningConfig['runtimeSnapshot'] | undefined => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    const worldConfig = (value as any)?.worldConfig;
+    const charData = (value as any)?.charData;
+    if (!worldConfig || typeof worldConfig !== 'object' || Array.isArray(worldConfig)) return undefined;
+    if (!charData || typeof charData !== 'object' || Array.isArray(charData)) return undefined;
+    return {
+        worldConfig: {
+            worldName: 读取文本((worldConfig as any)?.worldName),
+            worldSize: (worldConfig as any)?.worldSize === '弹丸之地' || (worldConfig as any)?.worldSize === '九州宏大' || (worldConfig as any)?.worldSize === '无尽位面'
+                ? (worldConfig as any).worldSize
+                : '九州宏大',
+            dynastySetting: 读取文本((worldConfig as any)?.dynastySetting),
+            sectDensity: (worldConfig as any)?.sectDensity === '稀少' || (worldConfig as any)?.sectDensity === '适中' || (worldConfig as any)?.sectDensity === '林立'
+                ? (worldConfig as any).sectDensity
+                : '适中',
+            tianjiaoSetting: 读取文本((worldConfig as any)?.tianjiaoSetting),
+            worldExtraRequirement: 读取文本((worldConfig as any)?.worldExtraRequirement),
+            manualWorldPrompt: 读取文本((worldConfig as any)?.manualWorldPrompt),
+            manualRealmPrompt: 读取文本((worldConfig as any)?.manualRealmPrompt),
+            difficulty: ['relaxed', 'easy', 'normal', 'hard', 'extreme'].includes((worldConfig as any)?.difficulty)
+                ? (worldConfig as any).difficulty
+                : 'normal',
+            ...(worldConfig && typeof (worldConfig as any)?.modeRuntimeProfile === 'object'
+                ? { modeRuntimeProfile: 规范化模式运行时配置((worldConfig as any).modeRuntimeProfile) }
+                : {})
+        } as WorldGenConfig,
+        charData: {
+            ...((charData as any) || {}),
+            姓名: 读取文本((charData as any)?.姓名),
+            性别: 读取文本((charData as any)?.性别),
+            年龄: Number.isFinite(Number((charData as any)?.年龄)) ? Number((charData as any).年龄) : undefined,
+            出身背景: (charData as any)?.出身背景 && typeof (charData as any).出身背景 === 'object'
+                ? {
+                    名称: 读取文本((charData as any).出身背景?.名称),
+                    描述: 读取文本((charData as any).出身背景?.描述),
+                    效果: 读取文本((charData as any).出身背景?.效果)
+                }
+                : undefined,
+            天赋列表: 规范化快照天赋列表((charData as any)?.天赋列表)
+        } as Partial<角色数据结构>,
+        openingStreaming: (value as any)?.openingStreaming !== false,
+        openingExtraPrompt: 读取文本((value as any)?.openingExtraPrompt),
+        activeModuleExtraRules: 读取文本((value as any)?.activeModuleExtraRules),
+        modeBackgrounds: 规范化快照背景列表((value as any)?.modeBackgrounds),
+        modeTalents: 规范化快照天赋列表((value as any)?.modeTalents)
+    };
+};
 export const 规范化角色替换名称列表 = (value: unknown): string[] => {
     const rawList = Array.isArray(value)
         ? value
