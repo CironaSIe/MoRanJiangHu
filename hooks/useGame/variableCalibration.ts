@@ -10,7 +10,7 @@ import type {
     同人剧情规划结构,
     同人女主剧情规划结构
 } from '../../types';
-import { 创建空门派状态, 是否无门派标识 } from './storyState';
+import { 同步角色与门派状态 } from './storyState';
 
 export type 变量校准状态 = {
     角色: 角色数据结构;
@@ -86,28 +86,19 @@ export const 执行变量自动校准 = (
     const 社交 = deps.规范化社交列表(inputState.社交, { 合并同名: false });
     const 世界 = deps.规范化世界状态(inputState.世界);
     const 战斗 = deps.规范化战斗状态(inputState.战斗);
-    let 玩家门派 = deps.规范化门派状态(inputState.玩家门派);
-    const 角色无门派 = 是否无门派标识((角色 as any).所属门派ID)
-        || ((角色 as any).门派职位 !== undefined && 是否无门派标识((角色 as any).门派职位));
-    const 门派无效 = 是否无门派标识((玩家门派 as any).ID)
-        || 是否无门派标识((玩家门派 as any).名称)
-        || 是否无门派标识((玩家门派 as any).玩家职位);
-    if (角色无门派 || 门派无效) {
-        玩家门派 = 创建空门派状态();
-        if ((角色 as any).所属门派ID !== 'none') {
-            corrections.push(`所属门派ID(${(角色 as any).所属门派ID || '空'} -> none)`);
-        }
-        if ((角色 as any).门派职位 !== '无') {
-            corrections.push(`门派职位(${(角色 as any).门派职位 || '空'} -> 无)`);
-        }
-        (角色 as any).所属门派ID = 'none';
-        (角色 as any).门派职位 = '无';
-        (角色 as any).门派贡献 = 0;
-    } else {
-        (角色 as any).所属门派ID = (玩家门派 as any).ID || (角色 as any).所属门派ID;
-        (角色 as any).门派职位 = (玩家门派 as any).玩家职位 || (角色 as any).门派职位;
-        (角色 as any).门派贡献 = Number((玩家门派 as any).玩家贡献) || 0;
+    const 门派同步前 = {
+        角色,
+        玩家门派: deps.规范化门派状态(inputState.玩家门派)
+    };
+    const 门派同步后 = 同步角色与门派状态(门派同步前);
+    const 玩家门派 = 门派同步后.玩家门派;
+    if ((角色 as any).所属门派ID !== (门派同步后.角色 as any).所属门派ID) {
+        corrections.push(`所属门派ID(${(角色 as any).所属门派ID || '空'} -> ${(门派同步后.角色 as any).所属门派ID || '空'})`);
     }
+    if ((角色 as any).门派职位 !== (门派同步后.角色 as any).门派职位) {
+        corrections.push(`门派职位(${(角色 as any).门派职位 || '空'} -> ${(门派同步后.角色 as any).门派职位 || '空'})`);
+    }
+    Object.assign(角色 as any, 门派同步后.角色 as any);
     const 剧情 = deps.规范化剧情状态(inputState.剧情, 环境);
     const 剧情规划 = deps.规范化剧情规划状态(inputState.剧情规划);
     const 女主剧情规划 = deps.规范化女主剧情规划状态(inputState.女主剧情规划);

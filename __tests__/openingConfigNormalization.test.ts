@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { 获取题材预设天赋, 获取题材预设背景 } from '../data/presets';
 import { 获取题材开局配置文案, 规范化开局配置 } from '../utils/openingConfig';
+import { 构建官方模式运行时配置 } from '../utils/modeRuntimeProfile';
+import { 构建开局配置提示词 } from '../prompts/runtime/openingConfig';
 import { 题材模式顺序 } from '../utils/topicModeProfiles';
 
 describe('开局配置题材边界', () => {
@@ -62,5 +64,51 @@ describe('开局配置题材边界', () => {
             expect(获取题材预设背景(mode), mode).toHaveLength(30);
             expect(获取题材预设天赋(mode), mode).toHaveLength(30);
         });
+    });
+
+    it('开局生成性别缺失、空值或非法值时回退为全选', () => {
+        expect(规范化开局配置({ 题材模式: '武侠' }).允许生成性别).toEqual(['男', '女', '男娘', '扶她']);
+        expect(规范化开局配置({ 题材模式: '武侠', 允许生成性别: [] }).允许生成性别).toEqual(['男', '女', '男娘', '扶她']);
+        expect(规范化开局配置({ 题材模式: '武侠', 允许生成性别: ['未知', '妖'] }).允许生成性别).toEqual(['男', '女', '男娘', '扶她']);
+    });
+
+    it('开局生成性别保留合法多选并去重', () => {
+        const config = 规范化开局配置({
+            题材模式: '武侠',
+            允许生成性别: ['女', '女', '扶她', '未知', '男娘']
+        });
+
+        expect(config.允许生成性别).toEqual(['女', '扶她', '男娘']);
+        expect(config.生成性别锁定).toBe(false);
+    });
+
+    it('创意工坊运行时配置可提供默认生成性别并锁定', () => {
+        const runtime = 构建官方模式运行时配置('现代都市', {
+            opening: {
+                ...构建官方模式运行时配置('现代都市').opening,
+                allowedGeneratedGenders: ['女'],
+                lockGeneratedGenders: true
+            }
+        });
+        const config = 规范化开局配置({
+            题材模式: '现代都市',
+            modeRuntimeProfile: runtime
+        });
+
+        expect(config.允许生成性别).toEqual(['女']);
+        expect(config.生成性别锁定).toBe(true);
+    });
+
+    it('开局配置提示词会注入 AI 生成角色性别硬约束', () => {
+        const config = 规范化开局配置({
+            题材模式: '武侠',
+            允许生成性别: ['女']
+        });
+        const prompt = 构建开局配置提示词(config);
+
+        expect(prompt).toContain('AI 生成角色性别硬约束');
+        expect(prompt).toContain('只允许新生成的 NPC');
+        expect(prompt).toContain('女');
+        expect(prompt).toContain('主角性别以玩家建档为准');
     });
 });

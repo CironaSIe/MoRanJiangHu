@@ -546,6 +546,8 @@ export interface 性别比例配置 {
     扶她: number;
 }
 
+export type 开局生成性别类型 = '男' | '女' | '男娘' | '扶她';
+
 export interface ModeRuntimeProfile {
     identity: {
         modeId: string;
@@ -657,6 +659,8 @@ export interface ModeRuntimeProfile {
         companionTemplate: string;
         cutInTemplates: string[];
         initialQuestTemplates: string[];
+        allowedGeneratedGenders: 开局生成性别类型[];
+        lockGeneratedGenders: boolean;
         defaultEquipment?: Record<string, string>;
         defaultCurrency?: Record<string, number>;
     };
@@ -676,6 +680,8 @@ export interface OpeningConfig {
     开局切入偏好: 开局切入偏好类型;
     开局生成门派: boolean;
     开局生成同门: boolean;
+    允许生成性别: 开局生成性别类型[];
+    生成性别锁定?: boolean;
     初始伙伴?: 初始伙伴配置结构;
     同人融合: 同人融合配置结构;
     启用女主剧情规划?: boolean;

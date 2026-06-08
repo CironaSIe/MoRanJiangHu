@@ -2,6 +2,7 @@ import type { TavernCommand } from '../../types';
 import { applyStateCommand, normalizeStateCommandKey } from '../../utils/stateHelpers';
 import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
 import { preserveInventoryOnUnsafeRoleReplace, sanitizeInventoryCommand } from './inventoryCommandGuard';
+import { 同步角色与门派状态 } from './storyState';
 
 export type 运行时变量分区类型 =
     | '角色'
@@ -230,9 +231,13 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
                 return;
             }
             case '玩家门派': {
-                const nextValue = deps.规范化门派状态(value);
-                deps.设置玩家门派(nextValue);
-                void deps.performAutoSave({ sect: nextValue, history: 历史记录, force: true });
+                const synced = 同步角色与门派状态({
+                    角色: 当前状态.角色,
+                    玩家门派: deps.规范化门派状态(value)
+                });
+                deps.设置角色(synced.角色);
+                deps.设置玩家门派(synced.玩家门派);
+                void deps.performAutoSave({ char: synced.角色, sect: synced.玩家门派, history: 历史记录, force: true });
                 return;
             }
             case '任务列表': {
@@ -308,10 +313,15 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         const nextHeroinePlan = deps.规范化女主剧情规划状态(result.heroinePlan);
         const nextFandomStoryPlan = deps.规范化同人剧情规划状态(result.fandomStoryPlan);
         const nextFandomHeroinePlan = deps.规范化同人女主剧情规划状态(result.fandomHeroinePlan);
-        const nextSect = deps.规范化门派状态(result.sect);
+        const syncedSectState = 同步角色与门派状态({
+            角色: nextChar,
+            玩家门派: deps.规范化门派状态(result.sect)
+        });
+        const syncedChar = deps.规范化角色物品容器映射(syncedSectState.角色, { 当前时间: nextEnv });
+        const nextSect = deps.规范化门派状态(syncedSectState.玩家门派);
         const nextTasks = Array.isArray(result.tasks) ? result.tasks : [];
         const nextAgreements = Array.isArray(result.agreements) ? result.agreements : [];
-        deps.设置角色(nextChar);
+        deps.设置角色(syncedChar);
         deps.设置环境(nextEnv);
         deps.设置社交(nextSocial);
         deps.设置世界(nextWorld);
@@ -325,7 +335,7 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         deps.设置任务列表(nextTasks);
         deps.设置约定列表(nextAgreements);
         void deps.performAutoSave({
-            char: nextChar,
+            char: syncedChar,
             env: nextEnv,
             social: nextSocial,
             world: nextWorld,

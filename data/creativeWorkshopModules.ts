@@ -165,6 +165,8 @@ const 构建题材预设 = (
             开局切入偏好: mode === '末日丧尸' ? '风波前夜' : mode === '现代都市' ? '日常低压' : '门派起手',
             开局生成门派: true,
             开局生成同门: true,
+            允许生成性别: ['男', '女', '男娘', '扶她'],
+            生成性别锁定: false,
             初始伙伴: {
                 enabled: true,
                 姓名: '',
@@ -1018,7 +1020,12 @@ const 构建整合模式包 = (topic: 创意工坊模块条目, worldRules?: 创
             modeRuntimeProfile
         },
         openingConfig: topic.preset.openingConfig
-            ? { ...topic.preset.openingConfig, modeRuntimeProfile }
+            ? {
+                ...topic.preset.openingConfig,
+                modeRuntimeProfile,
+                允许生成性别: modeRuntimeProfile.opening.allowedGeneratedGenders,
+                生成性别锁定: modeRuntimeProfile.opening.lockGeneratedGenders
+            }
             : topic.preset.openingConfig,
         openingExtraRequirement: worldExtraRequirement || topic.preset.openingExtraRequirement || ''
     } : undefined;

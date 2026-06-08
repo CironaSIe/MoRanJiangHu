@@ -16,6 +16,19 @@ interface Props {
 
 type Tab = 'hall' | 'exchange' | 'library' | 'members';
 type RankStep = { rank: string; lvl: number; required: number; discount: number; perks: string[] };
+const 无组织标识集合 = new Set(['', 'none', '无', '无门无派', '未加入', '散人']);
+
+const 是否未加入组织 = (sectData?: 详细门派结构): boolean => {
+    if (!sectData) return true;
+    const id = String(sectData.ID || '').trim();
+    const name = String(sectData.名称 || '').trim();
+    const rank = String(sectData.玩家职位 || '').trim();
+    const idProvided = id.length > 0;
+    if (idProvided && 无组织标识集合.has(id)) return true;
+    const hasActiveIdentity = !无组织标识集合.has(id) || (!无组织标识集合.has(name) && name !== '无门无派');
+    if (hasActiveIdentity) return false;
+    return 无组织标识集合.has(rank);
+};
 
 const 古风晋升梯队: RankStep[] = [
     { rank: '杂役弟子', lvl: 1, required: 0, discount: 0, perks: ['基础任务', '入门补给'] },
@@ -66,7 +79,7 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
     const text = JSON.stringify(sectData || {});
     const semantic = String((sectData as any)?.组织语义 || (sectData as any)?.组织类型 || (sectData as any)?.题材组织类型 || '').trim();
     const isInfinite = semantic === '轮回小队' || /主神|轮回|奖励点|支线剧情|基因锁|主神空间|副本|恐怖片|轮回者/u.test(text);
-    const isApocalypse = !isInfinite && /末日|丧尸|营地|避难|安全点|据点|车队|搜救|医疗维修|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(text);
+    const isApocalypse = !isInfinite && /末日|丧尸|感染|尸群|避难|安全点|营地|据点|车队|哨站|救援站|搜救|医疗维修|后勤巡逻|燃油|口粮|弹药/u.test(text);
     const isModern = !isApocalypse && !isInfinite && /现代|都市|公司|项目组|事务所|社区中心|门店|合作团队|合同|客户|技术成员|行政联系人|培训|手机|电脑/u.test(text);
     if (isInfinite) {
         return {
@@ -239,10 +252,7 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
     const [activeTab, setActiveTab] = useState<Tab>('hall');
     const 文案 = useMemo(() => 获取组织显示文案(sectData), [sectData]);
     const 显示职位 = (rank?: string) => 文案.rankMap[String(rank || '').trim()] || rank || '无';
-    const 未加入门派 = !sectData
-        || ['none', '无', '无门无派', '未加入', '散人'].includes(String(sectData.ID || '').trim())
-        || ['none', '无', '无门无派', '未加入', '散人'].includes(String(sectData.名称 || '').trim())
-        || ['none', '无', '无门无派', '未加入', '散人'].includes(String(sectData.玩家职位 || '').trim());
+    const 未加入门派 = 是否未加入组织(sectData);
     const tabs = useMemo(() => (
         未加入门派
             ? [{ id: 'hall' as Tab, label: 文案.hall }]

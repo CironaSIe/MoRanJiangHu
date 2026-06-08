@@ -40,6 +40,7 @@ import { 清理内嵌图片冗余字段 } from '../../utils/imageAssets';
 import { 计算历史游玩回合数 } from '../../utils/saveTurn';
 import { 修复旧姓名库误改NPC姓名列表 } from '../../utils/npcNameRepair';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
+import { 同步角色与门派状态 } from './storyState';
 
 const 收集图床图片地址 = (
     value: unknown,
@@ -728,7 +729,7 @@ export const 执行读取存档 = async (
         roleStats: collectValueStats(save.角色数据, 12000),
         largestStrings: collectLargestStrings(save.角色数据, { limit: 8, maxNodes: 20000 })
     });
-    const loadedRole = shouldTrustPersistedHeavyFields
+    let loadedRole = shouldTrustPersistedHeavyFields
         ? ((save.角色数据 || {}) as 角色数据结构)
         : deps.规范化角色物品容器映射(save.角色数据, {
             当前时间: normalizedEnv,
@@ -781,9 +782,16 @@ export const 执行读取存档 = async (
         layers: Array.isArray((normalizedWorld as any)?.地图层级) ? (normalizedWorld as any).地图层级.length : 0
     });
     const loadedBattle = deps.规范化战斗状态(save.战斗 || deps.创建开场空白战斗());
-    const loadedSect = deps.规范化门派状态(save.玩家门派 || deps.创建空门派状态());
+    let loadedSect = deps.规范化门派状态(save.玩家门派 || deps.创建空门派状态());
+    const syncedSectState = 同步角色与门派状态({
+        角色: loadedRole,
+        玩家门派: loadedSect
+    });
+    loadedRole = syncedSectState.角色;
+    loadedSect = deps.规范化门派状态(syncedSectState.玩家门派);
     const loadedTasks = 规范化任务列表自动结算(save.任务列表 || []);
     const loadedAgreements = Array.isArray(save.约定列表) ? save.约定列表 : [];
+    deps.设置角色(loadedRole);
     deps.设置战斗(loadedBattle);
     deps.设置玩家门派(loadedSect);
     deps.设置任务列表(loadedTasks);

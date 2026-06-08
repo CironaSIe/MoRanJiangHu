@@ -1,6 +1,6 @@
 import type { OpeningConfig } from '../../types';
 import { 构建修炼体系附加块 } from '../../utils/promptFeatureToggles';
-import { 获取题材开局配置文案 } from '../../utils/openingConfig';
+import { 获取题材开局配置文案, 规范化开局生成性别列表 } from '../../utils/openingConfig';
 import { 获取题材模式配置, 题材是否仙侠 } from '../../utils/topicModeProfiles';
 import { 规范化模式运行时配置 } from '../../utils/modeRuntimeProfile';
 
@@ -36,12 +36,15 @@ export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null
     const 关系侧重 = Array.isArray(openingConfig.关系侧重) && openingConfig.关系侧重.length > 0
         ? openingConfig.关系侧重.join('、')
         : '无';
+    const 允许生成性别 = 规范化开局生成性别列表(openingConfig.允许生成性别);
     const 开局文案 = 获取题材开局配置文案(openingConfig.题材模式);
     const blocks = [
         '【本次开局配置约束】',
         构建题材模式提示词(openingConfig),
         `- 关系侧重：${关系侧重}。生成初始社交网时，应优先让人物结构与关系情绪落在这些方向上。`,
         `- 开局切入偏好：${openingConfig.开局切入偏好}。第一幕镜头与气氛优先贴近该切入方式，不要无痕偏离。`,
+        `- AI 生成角色性别硬约束：本次只允许新生成的 NPC、开局伙伴、组织成员、队友、路人、敌人与任务人物使用这些性别：${允许生成性别.join('、')}。不得生成未允许性别的新角色；不得用“未知性别/待定/不详”绕过限制。`,
+        '- 主角性别以玩家建档为准，不受上述生成性别列表覆盖；同人原著章节中已明确存在且性别固定的角色也不强行改性别，但不要额外扩写未允许性别的新原创角色。',
         `- 题材开局边界：${开局文案.promptBoundary}`,
         openingConfig.开局生成门派 === false
             ? '- 开局组织变量：本次明确不生成 `玩家门派` 或等价门派/宗门变量；如题材需要组织归属，只写进地点、社交、任务或世界观语境，不写成门派系统。'

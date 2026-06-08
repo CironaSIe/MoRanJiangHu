@@ -75,6 +75,7 @@ import {
     规范化世界状态,
     规范化战斗状态,
     规范化门派状态,
+    同步角色与门派状态,
     规范化剧情状态,
     规范化剧情规划状态 as 基础规范化剧情规划状态,
     规范化女主剧情规划状态 as 基础规范化女主剧情规划状态,
@@ -2775,7 +2776,9 @@ export const useGame = () => {
                     ...state,
                     社交: 修复开局伙伴社交列表(state.社交, 开局配置, state.角色 || 角色)
                 });
-                const finalizeState = (state: typeof nextState): typeof nextState => 修复开局伙伴(清理题材物品(state));
+                const finalizeState = (state: typeof nextState): typeof nextState => (
+                    同步角色与门派状态(修复开局伙伴(清理题材物品(state))) as typeof nextState
+                );
                 if (!变量生成功能已启用(apiConfig)) {
                     return finalizeState(nextState);
                 }

@@ -6,6 +6,7 @@ import type {
     初始关系模板类型,
     关系侧重类型,
     开局切入偏好类型,
+    开局生成性别类型,
     题材模式类型,
     同人来源类型,
     同人融合强度类型
@@ -376,6 +377,33 @@ export const 获取题材开局切入偏好选项 = (mode?: 题材模式类型):
 
 export const 题材模式选项: Array<{ value: 题材模式类型; label: string; hint: string }> = 获取题材模式选项();
 
+export const 开局生成性别选项: Array<{ value: 开局生成性别类型; label: string }> = [
+    { value: '男', label: '男' },
+    { value: '女', label: '女' },
+    { value: '男娘', label: '男娘' },
+    { value: '扶她', label: '扶她' }
+];
+
+export const 默认开局生成性别列表: 开局生成性别类型[] = 开局生成性别选项.map((item) => item.value);
+
+export const 规范化开局生成性别列表 = (value: unknown): 开局生成性别类型[] => {
+    const rawList = Array.isArray(value)
+        ? value
+        : typeof value === 'string'
+            ? value.split(/[\r\n,，、;；\s]+/u)
+            : [];
+    const allowed = new Set<开局生成性别类型>(默认开局生成性别列表);
+    const seen = new Set<开局生成性别类型>();
+    const result: 开局生成性别类型[] = [];
+    rawList.forEach((item) => {
+        const next = 读取文本(item) as 开局生成性别类型;
+        if (!allowed.has(next) || seen.has(next)) return;
+        seen.add(next);
+        result.push(next);
+    });
+    return result.length > 0 ? result : [...默认开局生成性别列表];
+};
+
 export const 同人来源类型选项: Array<{ value: 同人来源类型; label: string }> = [
     { value: '小说', label: '小说' },
     { value: '动漫', label: '动漫' },
@@ -391,7 +419,9 @@ export const 同人融合强度选项: Array<{ value: 同人融合强度类型; 
 
 export const 默认开局配置 = (): OpeningConfig => ({
     ...创建主题默认开局配置('武侠'),
-    modeRuntimeProfile: 构建官方模式运行时配置('武侠')
+    modeRuntimeProfile: 构建官方模式运行时配置('武侠'),
+    允许生成性别: [...默认开局生成性别列表],
+    生成性别锁定: false
 });
 
 export const 默认初始伙伴配置 = (): 初始伙伴配置结构 => ({
@@ -586,6 +616,12 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
         开局切入偏好,
         开局生成门派: raw?.开局生成门派 !== false,
         开局生成同门: raw?.开局生成同门 !== false,
+        允许生成性别: 规范化开局生成性别列表(
+            raw?.允许生成性别
+            ?? raw?.modeRuntimeProfile?.opening?.allowedGeneratedGenders
+            ?? fallback.允许生成性别
+        ),
+        生成性别锁定: raw?.生成性别锁定 === true || raw?.modeRuntimeProfile?.opening?.lockGeneratedGenders === true,
         初始伙伴: 规范化初始伙伴配置(raw?.初始伙伴 ?? fallback.初始伙伴),
         同人融合: {
             enabled: 同人融合启用,

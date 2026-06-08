@@ -8,6 +8,7 @@ import type { 题材模式类型 } from '../../../models/system';
 import { OrnateBorder } from '../../ui/decorations/OrnateBorder';
 import InlineSelect from '../../ui/InlineSelect';
 import NewGameDiyTools from './NewGameDiyTools';
+import GeneratedGenderSelector from './GeneratedGenderSelector';
 import * as dbService from '../../../services/dbService';
 import { 读取小说拆分数据集列表 } from '../../../services/novelDecompositionStore';
 import { 合并去重开局预设方案, 标准化开局预设方案, 生成自定义开局预设ID, 自定义开局预设存储键 } from '../../../utils/customNewGamePresets';
@@ -30,6 +31,7 @@ import {
     获取难度总属性点,
     获取同人角色替换规则列表,
     格式化角色替换规则摘要,
+    规范化开局生成性别列表,
     规范化开局配置,
     规范化可选开局配置
 } from '../../../utils/openingConfig';
@@ -813,6 +815,10 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             : 当前题材配置.group === 'xianxia'
                 ? '例如：青梅竹马、同门道友、护道人、好友'
                 : '例如：青梅竹马、同门师妹、护卫、好友';
+    const 构建运行时生成性别补丁 = (modeRuntimeProfile?: OpeningConfig['modeRuntimeProfile']) => ({
+        允许生成性别: 规范化开局生成性别列表(modeRuntimeProfile?.opening?.allowedGeneratedGenders),
+        生成性别锁定: modeRuntimeProfile?.opening?.lockGeneratedGenders === true
+    });
     const 更新题材模式 = (题材模式: OpeningConfig['题材模式']) => {
         const modeRuntimeProfile = 构建官方模式运行时配置(题材模式);
         设置模式包背景列表([]);
@@ -820,7 +826,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         setOpeningConfig((prev) => ({
             ...prev,
             题材模式,
-            modeRuntimeProfile
+            modeRuntimeProfile,
+            ...构建运行时生成性别补丁(modeRuntimeProfile)
         }));
         setWorldConfig((prev) => ({
             ...(合并题材世界默认值(题材模式, prev) as WorldGenConfig),
@@ -921,7 +928,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             setOpeningConfig((prev) => ({
                 ...prev,
                 题材模式: modeRuntimeProfile.identity.baseMode,
-                modeRuntimeProfile
+                modeRuntimeProfile,
+                ...构建运行时生成性别补丁(modeRuntimeProfile)
             }));
             setWorldConfig((prev) => ({ ...prev, modeRuntimeProfile }));
             const content = String((module.payload as any)?.content || '').trim();
@@ -935,10 +943,16 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                         manualRealmPrompt: prev.manualRealmPrompt
                     }));
                     if (module.preset.openingConfig?.题材模式) {
+                        const normalizedModuleOpening = 规范化开局配置({
+                            ...module.preset.openingConfig,
+                            modeRuntimeProfile
+                        });
                         setOpeningConfig((prev) => ({
                             ...prev,
-                            题材模式: module.preset!.openingConfig!.题材模式,
-                            modeRuntimeProfile
+                            题材模式: normalizedModuleOpening.题材模式,
+                            modeRuntimeProfile,
+                            允许生成性别: normalizedModuleOpening.允许生成性别,
+                            生成性别锁定: normalizedModuleOpening.生成性别锁定
                         }));
                     }
                 }
@@ -3035,6 +3049,18 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <div className="mt-2 text-[11px] text-gray-500">已选 {openingConfig.关系侧重.length}/2。{当前开局配置文案.relationHelper}</div>
                                 </div>
 
+                                <div className="mt-6 rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
+                                    <div className="mb-3">
+                                        <div className="text-sm text-gray-200">AI 生成角色性别</div>
+                                        <div className="text-[11px] text-gray-500 mt-1">限制开局新生成的 NPC、组织成员、队友和路人性别；不改变玩家手动设置的主角性别。</div>
+                                    </div>
+                                    <GeneratedGenderSelector
+                                        value={openingConfig.允许生成性别}
+                                        locked={openingConfig.生成性别锁定 === true}
+                                        onChange={(允许生成性别) => setOpeningConfig((prev) => ({ ...prev, 允许生成性别 }))}
+                                    />
+                                </div>
+
                                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
                                         <div>
@@ -3124,6 +3150,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <p>题材模式: <span className="text-white">{openingConfig.题材模式}</span></p>
                                     <p>关系侧重: <span className="text-white">{openingConfigEnabled ? (openingConfig.关系侧重.join('、') || '无') : '未设置'}</span></p>
                                     <p>开局切入: <span className="text-white">{openingConfigEnabled ? openingConfig.开局切入偏好 : '未设置'}</span></p>
+                                    <p>生成性别: <span className="text-white">{openingConfigEnabled ? openingConfig.允许生成性别.join('、') : '未设置'}</span></p>
                                     <p>同人融合: <span className="text-white">{openingConfigEnabled ? (openingConfig.同人融合.enabled ? `${openingConfig.同人融合.作品名 || '未命名作品'} / ${openingConfig.同人融合.融合强度}` : '关闭') : '未设置'}</span></p>
                                     <p>角色替换: <span className="text-white">{openingConfigEnabled ? (openingConfig.同人融合.启用角色替换 ? (格式化角色替换规则摘要(当前角色替换规则列表) || '未填写规则') : '关闭') : '未设置'}</span></p>
                                     <p>附加小说: <span className="text-white">{openingConfigEnabled ? (openingConfig.同人融合.启用附加小说 ? (当前附加小说数据集?.作品名 || 当前附加小说数据集?.标题 || '未选择数据集') : '关闭') : '未设置'}</span></p>
