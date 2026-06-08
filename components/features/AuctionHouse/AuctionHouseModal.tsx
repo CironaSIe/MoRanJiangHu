@@ -16,7 +16,7 @@ import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
 import type { 接口设置结构, OpeningConfig } from '../../../types';
 import { 生成物品图标 } from '../../../services/ai/itemImageGeneration';
 import { 获取物品已选图标地址 } from '../../../utils/itemImage';
-import { 获取货币显示模式 } from '../../../utils/currencyDisplay';
+import { 获取世界观货币卡片信息, 获取货币显示模式 } from '../../../utils/currencyDisplay';
 import { 获取题材模式配置 } from '../../../utils/topicModeProfiles';
 import { 同步角色储物负重上限 } from '../../../utils/storageCarry';
 
@@ -113,6 +113,7 @@ const AuctionHouseModal: React.FC<Props> = ({
 
     const money = character?.金钱 || {};
     const 货币模式 = 获取货币显示模式(openingConfig, character);
+    const 货币卡片 = 获取世界观货币卡片信息(openingConfig, character);
     const 货币格式化选项 = React.useMemo(() => ({ 货币模式 }), [货币模式]);
     const totalCopper = 计算金钱铜钱总值(money);
     const playerId = character?.姓名 || 'player';
@@ -322,6 +323,11 @@ const AuctionHouseModal: React.FC<Props> = ({
 
                 <div className="auction-house-body flex min-h-0 flex-1 flex-col bg-[#0b0907]">
                     <section className={`auction-house-filter-panel shrink-0 overflow-visible border-b border-wuxia-gold/10 bg-[#0e0b08] ${isMobile ? 'p-2' : 'p-3'}`}>
+                        <div className={`mb-3 rounded-xl border border-wuxia-gold/15 bg-[#11100d] ${isMobile ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
+                            <div className="text-xs font-semibold tracking-[0.18em] text-wuxia-gold/85">{货币卡片.title}</div>
+                            <div className="mt-1 text-sm leading-6 text-gray-200">{货币卡片.summary}</div>
+                            <div className="mt-2 text-xs leading-5 text-wuxia-gold/65">{货币卡片.exchangeHint}</div>
+                        </div>
                         <div className={`grid min-w-0 gap-3 ${isNarrowPanel ? '' : '2xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)]'}`}>
                             <div>
                                 <div className="mb-2 flex items-center justify-between text-xs text-wuxia-gold/70">

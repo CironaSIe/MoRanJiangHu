@@ -4,7 +4,7 @@ import { use图片资源回源预取 } from '../../hooks/useImageAssetPrefetch';
 import { 构建区域文字样式 } from '../../utils/visualSettings';
 import { 获取图片资源文本地址 } from '../../utils/imageAssets';
 import { 计算角色总气血 } from '../../utils/characterVitals';
-import { 获取货币显示模式, 获取货币单位标签 } from '../../utils/currencyDisplay';
+import { 获取世界观货币汇率说明, 获取世界观货币槽位, 获取货币显示模式 } from '../../utils/currencyDisplay';
 import { 获取题材资源文案 } from '../../utils/resourceLabels';
 
 interface Props {
@@ -224,6 +224,8 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
         铜钱: 读取本回合数值变化(latestCommands, '角色.金钱.铜钱')
     };
     const 货币模式 = 获取货币显示模式(openingConfig, 角色);
+    const 货币槽位 = 获取世界观货币槽位(openingConfig, 角色);
+    const 货币汇率说明 = 获取世界观货币汇率说明(openingConfig?.modeRuntimeProfile, 货币模式);
 
     const equipmentOrder: { key: keyof typeof 角色.装备; label: string }[] = [
         { key: '头部', label: '头部' },
@@ -342,10 +344,16 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
             <div className="mb-2 shrink-0 border border-gray-800/60 bg-black/30 px-2 py-1 flex items-center justify-between gap-2 overflow-hidden font-mono" style={{ color: 'rgba(209,213,219,1)', fontSize: 缩放字号(1, 14) }}>
                 <span className="shrink-0 whitespace-nowrap text-gray-500">钱财</span>
                 <span className="min-w-0 flex-1 whitespace-normal break-words text-right text-[10px] leading-4 sm:text-[11px]">
-                    {获取货币单位标签('金元宝', 货币模式)} {金钱变化.金元宝 !== null && <span className={金钱变化.金元宝 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.金元宝 > 0 ? '+' : ''}{金钱变化.金元宝})</span>} {金钱.金元宝}
-                    {' / '}{获取货币单位标签('银子', 货币模式)} {金钱变化.银子 !== null && <span className={金钱变化.银子 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.银子 > 0 ? '+' : ''}{金钱变化.银子})</span>} {金钱.银子}
-                    {' / '}{获取货币单位标签('铜钱', 货币模式)} {金钱变化.铜钱 !== null && <span className={金钱变化.铜钱 >= 0 ? 'text-emerald-200' : 'text-red-200'}>({金钱变化.铜钱 > 0 ? '+' : ''}{金钱变化.铜钱})</span>} {金钱.铜钱}
+                    {货币槽位.map((slot, index) => (
+                        <React.Fragment key={slot.key}>
+                            {index > 0 ? ' / ' : ''}
+                            {slot.label} {(金钱变化 as any)[slot.key] !== null && <span className={(金钱变化 as any)[slot.key] >= 0 ? 'text-emerald-200' : 'text-red-200'}>({(金钱变化 as any)[slot.key] > 0 ? '+' : ''}{(金钱变化 as any)[slot.key]})</span>} {(金钱 as any)[slot.key]}
+                        </React.Fragment>
+                    ))}
                 </span>
+            </div>
+            <div className="mb-2 -mt-1 shrink-0 px-1 text-[10px] leading-4 text-gray-500">
+                {货币汇率说明}
             </div>
 
             {onOpenVariableManager && (

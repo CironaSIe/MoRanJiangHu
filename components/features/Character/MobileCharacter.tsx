@@ -13,7 +13,7 @@ import { 规范化接口设置 } from '../../../utils/apiConfig';
 import { 获取图片展示地址 } from '../../../utils/imageAssets';
 import { use图片资源回源预取 } from '../../../hooks/useImageAssetPrefetch';
 import { 计算角色总气血 } from '../../../utils/characterVitals';
-import { 格式化角色金钱行, 获取货币显示模式 } from '../../../utils/currencyDisplay';
+import { 格式化角色金钱行, 获取世界观货币卡片信息, 获取货币显示模式 } from '../../../utils/currencyDisplay';
 import { 读取可分配属性点, type 可分配六维属性键 } from '../../../utils/characterAttributePoints';
 import { 获取题材资源文案 } from '../../../utils/resourceLabels';
 
@@ -144,6 +144,7 @@ const MobileCharacter: React.FC<Props> = ({
     });
     const 金钱 = character.金钱 || { 金元宝: 0, 银子: 0, 铜钱: 0 };
     const 货币模式 = 获取货币显示模式(openingConfig, character);
+    const 货币卡片 = 获取世界观货币卡片信息(openingConfig, character);
     const 玩家BUFF列表 = Array.isArray(character.玩家BUFF) ? character.玩家BUFF : [];
     const 天赋列表 = Array.isArray(character.天赋列表) ? character.天赋列表 : [];
     const 技艺列表 = useMemo(
@@ -531,6 +532,11 @@ const MobileCharacter: React.FC<Props> = ({
                                     {格式化角色金钱行(金钱, 货币模式).split(' / ').map((item) => (
                                         <span key={item} className="rounded border border-gray-800 bg-black/40 px-2 py-1 font-mono text-gray-300">{item}</span>
                                     ))}
+                                </div>
+                                <div className="mt-3 rounded-xl border border-wuxia-gold/15 bg-black/25 px-3 py-2.5">
+                                    <div className="text-[10px] tracking-[0.24em] text-wuxia-gold/75">{货币卡片.title}</div>
+                                    <div className="mt-1 text-xs leading-5 text-gray-200">{货币卡片.summary}</div>
+                                    <div className="mt-1.5 text-[11px] leading-5 text-gray-400">{货币卡片.exchangeHint}</div>
                                 </div>
                             </div>
 

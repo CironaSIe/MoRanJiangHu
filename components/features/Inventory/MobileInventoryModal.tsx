@@ -13,7 +13,7 @@ import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 import { 获取物品明细分组 } from '../../../utils/rulebook';
 import { 是否杂物类物品 } from '../../../utils/inventoryActions';
 import { 获取题材界面文案 } from '../../../utils/resourceLabels';
-import { 获取货币显示模式, 获取货币完整单位标签 } from '../../../utils/currencyDisplay';
+import { 获取世界观货币卡片信息, 获取货币显示模式, 获取货币完整单位标签 } from '../../../utils/currencyDisplay';
 
 interface Props {
     character: any;
@@ -177,6 +177,7 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
     const selectedCanEquip = selectedItem ? 是否可装备物品(selectedItem) : false;
     const currencyMode = 获取货币显示模式(openingConfig, character);
     const valueUnit = 获取货币完整单位标签('铜钱', currencyMode);
+    const 货币卡片 = 获取世界观货币卡片信息(openingConfig, character);
     const selectedDetailGroups = selectedItem ? 获取物品明细分组(selectedItem, { 价值单位: valueUnit }) : [];
 
     const applyCharacterChange = (nextCharacter: any, selectedItemRef?: string) => {
@@ -310,6 +311,14 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
                     >
                         杂物全弃
                     </button>
+                </div>
+
+                <div className="shrink-0 border-b border-gray-800 bg-black/15 px-3 py-3">
+                    <div className="rounded-lg border border-wuxia-gold/10 bg-black/25 px-3 py-2.5">
+                        <div className="text-[10px] font-bold tracking-[0.22em] text-wuxia-gold/80">{货币卡片.title}</div>
+                        <div className="mt-1 text-xs leading-5 text-gray-200">{货币卡片.summary}</div>
+                        <div className="mt-1.5 text-[11px] leading-5 text-gray-400">{货币卡片.exchangeHint}</div>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto bg-black/10 p-2 space-y-2">

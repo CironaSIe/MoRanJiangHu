@@ -7,7 +7,7 @@ import { 获取图片展示地址 } from '../../../utils/imageAssets';
 import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 import { IconSwords, IconDagger, IconShield, IconArmor, IconBackpack, IconRing, IconBelt, IconHelmet, IconBoot, IconPants, IconGlove, IconHorse, ItemTypeIcon } from '../../ui/Icons';
 import { 获取物品可装备槽位, 计算装备评分, 装备物品到角色, 卸下角色装备 } from '../../../utils/equipmentActions';
-import { 获取货币完整单位标签, 获取货币显示模式 } from '../../../utils/currencyDisplay';
+import { 获取世界观货币卡片信息, 获取货币完整单位标签, 获取货币显示模式 } from '../../../utils/currencyDisplay';
 import { 获取题材界面文案 } from '../../../utils/resourceLabels';
 
 interface Props {
@@ -81,6 +81,7 @@ const EquipmentModal: React.FC<Props> = ({ character, openingConfig, onClose, on
     const [imageViewer, setImageViewer] = useState<{ src: string; alt: string } | null>(null);
     const 界面文案 = 获取题材界面文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
     const 估值单位 = 获取货币完整单位标签('铜钱', 获取货币显示模式(openingConfig, character));
+    const 货币卡片 = 获取世界观货币卡片信息(openingConfig, character);
     const playerImageHistory = Array.isArray(character?.图片档案?.生图历史) ? character.图片档案!.生图历史 : [];
     const selectedPortraitId = typeof character?.图片档案?.已选立绘图片ID === 'string'
         ? character.图片档案.已选立绘图片ID.trim()
@@ -259,6 +260,11 @@ const EquipmentModal: React.FC<Props> = ({ character, openingConfig, onClose, on
                                 <span className="text-gray-100">{character.最大负重}</span>
                             </div>
                             <span className="text-[10px] md:text-xs text-gray-300 font-serif">斤</span>
+                        </div>
+                        <div className="hidden max-w-[34rem] rounded-xl border border-wuxia-gold/15 bg-black/40 px-4 py-2.5 md:block">
+                            <div className="text-[10px] uppercase tracking-[0.18em] text-wuxia-gold/70">{货币卡片.title}</div>
+                            <div className="mt-1 text-xs leading-5 text-gray-200">{货币卡片.summary}</div>
+                            <div className="mt-1 text-[11px] leading-5 text-gray-400">{货币卡片.exchangeHint}</div>
                         </div>
                         <button onClick={onClose} className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-black/60 border border-gray-700 text-gray-400 hover:text-wuxia-red hover:border-wuxia-red hover:bg-red-950/30 transition-all hover:rotate-90 group">
                             <svg className="w-4 h-4 md:w-5 md:h-5 group-hover:drop-shadow-[0_0_5px_rgba(220,38,38,0.8)]" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
