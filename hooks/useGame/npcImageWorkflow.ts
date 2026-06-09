@@ -152,11 +152,33 @@ const 合并生图历史记录 = (currentNpc: any, incoming: any): any[] => {
     return [incoming, ...withoutSame];
 };
 
-const 读取目标性别 = (source: any): '男' | '女' | '' => {
+type NPC生图性别 = '男' | '女' | '男娘' | '扶她' | '';
+
+const 读取目标性别 = (source: any): NPC生图性别 => {
     const gender = typeof source?.性别 === 'string' ? source.性别.trim() : '';
-    if (gender === '男' || gender.includes('男')) return '男';
-    if (gender === '女' || gender.includes('女')) return '女';
+    if (gender === '男') return '男';
+    if (gender === '女') return '女';
+    if (gender === '男娘') return '男娘';
+    if (gender === '扶她') return '扶她';
     return '';
+};
+
+const 读取NPC性别状态 = (gender: NPC生图性别): 'explicit' | 'unknown' => (
+    gender ? 'explicit' : 'unknown'
+);
+
+const 存在修炼长生语境 = (source: any): boolean => {
+    const text = [
+        source?.境界,
+        source?.身份,
+        source?.简介,
+        source?.外貌,
+        source?.衣着,
+        source?.灵根,
+        source?.灵根资质,
+        source?.出身背景
+    ].map((value) => (typeof value === 'string' ? value.trim() : '')).join(' ');
+    return /修士|修仙|修真|修行|仙人|真人|道君|老祖|圣女|圣子|宗主|长老|峰主|掌门|元婴|金丹|筑基|化神|炼虚|合体|渡劫|大乘|飞升|灵根|驻颜|长生|寿元|返老还童/.test(text);
 };
 
 const 构建年龄正向提示词 = (age?: number): string => {
@@ -168,28 +190,54 @@ const 构建年龄正向提示词 = (age?: number): string => {
     return `${normalizedAge} years old, child, age-accurate child face`;
 };
 
+const 构建男娘年龄正向提示词 = (age?: number): string => {
+    if (typeof age !== 'number' || !Number.isFinite(age) || age <= 0) return 'youthful appearance, soft youthful face';
+    const normalizedAge = Math.max(1, Math.floor(age));
+    if (normalizedAge >= 18) return `${normalizedAge} years old, youthful appearance, soft youthful face, young-looking`; 
+    if (normalizedAge >= 15) return `${normalizedAge} years old, teenage adolescent, soft youthful face, not a child`;
+    if (normalizedAge >= 13) return `${normalizedAge} years old, early teen, soft youthful face`;
+    return `${normalizedAge} years old, child, soft youthful face`;
+};
+
+const 构建扶她年龄正向提示词 = (age?: number): string => {
+    if (typeof age !== 'number' || !Number.isFinite(age) || age <= 0) return 'youthful beautiful appearance, heroic beauty';
+    const normalizedAge = Math.max(1, Math.floor(age));
+    if (normalizedAge >= 18) return `${normalizedAge} years old, youthful beautiful appearance, heroic beauty, young-looking adult`;
+    if (normalizedAge >= 15) return `${normalizedAge} years old, beautiful teen appearance, youthful heroic beauty, not a child`;
+    if (normalizedAge >= 13) return `${normalizedAge} years old, early teen, youthful beauty`;
+    return `${normalizedAge} years old, child, youthful face`;
+};
+
+const 构建扶她双性特征默认提示词 = (): string => (
+    'concealed futanari traits, hidden genital bulge under clothing, subtle crotch outline if clothing is tight, no explicit exposure by default'
+);
+
 const 构建年龄负向提示词 = (age?: number): string => {
     if (typeof age !== 'number' || !Number.isFinite(age) || age <= 0) return '';
-    if (age >= 18) return 'teen, child, little girl, little boy, toddler, prepubescent, baby face';
-    if (age >= 15) return 'child, little girl, little boy, toddler, preschooler, prepubescent, baby face,幼童,小女孩,小男孩';
+    if (age >= 18) return '';
+    if (age >= 15) return 'child, toddler, preschooler, prepubescent, baby face,幼童';
     return '';
 };
 
-const 构建性别正向提示词 = (gender: '男' | '女' | '', age?: number): string => {
+const 构建性别正向提示词 = (gender: NPC生图性别, age?: number): string => {
     const isAdult = typeof age === 'number' && age >= 18;
     const agePrompt = 构建年龄正向提示词(age);
     if (gender === '女') return [isAdult ? '1woman, female, adult woman, feminine face, female body' : '1girl, female, teenage girl, feminine face, female body', agePrompt].filter(Boolean).join(', ');
     if (gender === '男') return [isAdult ? '1man, male, adult man, masculine face, male body' : '1boy, male, teenage boy, masculine face, male body', agePrompt].filter(Boolean).join(', ');
+    if (gender === '男娘') return [isAdult ? '1boy, femboy, passing as female, extremely feminine face, beautiful delicate features, soft pretty appearance, slim body, narrow shoulders, flat chest, subtle male traits only' : '1boy, femboy, passing as female, extremely feminine teen face, beautiful delicate features, soft pretty appearance, slim body, flat chest, subtle male traits only', 构建男娘年龄正向提示词(age)].filter(Boolean).join(', ');
+    if (gender === '扶她') return [isAdult ? '1woman, futanari, dickgirl, extremely feminine face, beautiful or heroic beauty, fully female presentation, female body with subtle athletic strength, soft breasts' : '1girl, futanari, dickgirl, extremely feminine face, youthful beauty, fully female presentation, female body with slight athletic strength, soft breasts', 构建扶她年龄正向提示词(age), 构建扶她双性特征默认提示词()].filter(Boolean).join(', ');
     return agePrompt;
 };
 
-const 构建性别负向提示词 = (gender: '男' | '女' | ''): string => {
+const 构建性别负向提示词 = (gender: NPC生图性别): string => {
     if (gender === '女') return '1boy, 1man, male, man, masculine, beard, mustache, goatee, old man, elderly man';
     if (gender === '男') return '1girl, female, woman, feminine, breasts, young female';
+    if (gender === '男娘') return 'old man, elderly man, rugged beard, heavy beard, hyper-masculine bodybuilder, broad macho face, bulky male body, large muscles, broad thick neck, thick body hair, rough masculine face, mature patriarch look';
+    if (gender === '扶她') return 'old man, elderly man, rugged beard, hyper-masculine face, flat-chested male-only body, bulky male bodybuilder, fully masculine torso without female traits, rough macho face, thick body hair, explicit public flashing, exposed genitals by default';
     return '';
 };
 
-const 清理性别冲突词组 = (prompt: string, gender: '男' | '女' | ''): string => {
+const 清理性别冲突词组 = (prompt: string, gender: NPC生图性别): string => {
     if (!prompt || !gender) return prompt;
     const banned = gender === '女'
         ? [
@@ -203,7 +251,8 @@ const 清理性别冲突词组 = (prompt: string, gender: '男' | '女' | ''): s
             /\bmustache\b/i,
             /\bgoatee\b/i
         ]
-        : [
+        : gender === '男'
+            ? [
             /\b1\s*girl\b/i,
             /\b1\s*woman\b/i,
             /\bfemale\b/i,
@@ -213,7 +262,21 @@ const 清理性别冲突词组 = (prompt: string, gender: '男' | '女' | ''): s
             /\bfeminine\b/i,
             /\bbreasts?\b/i,
             /\bcleavage\b/i
-        ];
+            ]
+            : gender === '男娘'
+                ? [
+                    /\bold\s*man\b/i,
+                    /\belderly\s*man\b/i,
+                    /\brugged\b/i,
+                    /\bheavy\s*beard\b/i,
+                    /\bhyper-?masculine\b/i
+                ]
+                : [
+                    /\bold\s*man\b/i,
+                    /\belderly\s*man\b/i,
+                    /\brugged\b/i,
+                    /\bhyper-?masculine\b/i
+                ];
     return prompt
         .split(',')
         .map((item) => item.trim())
@@ -221,32 +284,41 @@ const 清理性别冲突词组 = (prompt: string, gender: '男' | '女' | ''): s
         .join(', ');
 };
 
-const 强制性别词组 = (prompt: string, gender: '男' | '女' | '', age?: number): string => {
+const 强制性别词组 = (prompt: string, gender: NPC生图性别, age?: number): string => {
     const genderPrompt = 构建性别正向提示词(gender, age);
     const cleanedPrompt = 清理性别冲突词组(prompt, gender);
     return [genderPrompt, cleanedPrompt].filter(Boolean).join(', ');
 };
 
-const 构建词组转化性别硬约束 = (gender: '男' | '女' | '', age?: number): string => {
+export const 构建词组转化性别硬约束 = (gender: NPC生图性别, age?: number, npcData?: any): string => {
     if (!gender && !(typeof age === 'number' && Number.isFinite(age))) return '';
     const positive = 构建性别正向提示词(gender, age);
     const negative = 构建性别负向提示词(gender);
     const ageNegative = 构建年龄负向提示词(age);
+    const isCultivationLongevity = 存在修炼长生语境(npcData);
     return [
         '【角色性别硬约束】',
         gender ? `输入资料中的性别是“${gender}”，最终英文 tags 必须保持这个性别，禁止改写成相反性别或更换性别模板。` : '',
-        typeof age === 'number' && Number.isFinite(age) ? `输入资料中的年龄是“${Math.floor(age)}岁”，最终英文 tags 必须体现这个年龄段，禁止画成明显更小的幼童或明显更老的成年人。` : '',
+        typeof age === 'number' && Number.isFinite(age)
+            ? (isCultivationLongevity
+                ? `输入资料中的年龄是“${Math.floor(age)}岁”。若角色处于修炼、长生、驻颜或超凡寿元语境，视觉年龄感应优先跟随身份、境界、外貌和正文事实，不要机械按真实岁数画成老人；若正文或设定明确驻颜过头、幼态外观，也允许保留这种表现。`
+                : `输入资料中的年龄是“${Math.floor(age)}岁”，最终英文 tags 应体现与身份、外貌和正文一致的年龄感；没有明确证据时不要随便幼化。`)
+            : '',
         positive ? `最终 <提示词> 开头必须包含：${positive}` : '',
         negative || ageNegative ? `最终 <提示词> 不得包含这些冲突词或同义短语：${[negative, ageNegative].filter(Boolean).join(', ')}` : '',
         gender === '男'
             ? '男性角色禁止输出 lady、woman、girl、female、feminine face、female body、noble lady 等女性描述。'
             : gender === '女'
                 ? '女性角色禁止输出 man、boy、male、masculine face、male body、old man、elderly man 等男性描述。'
+                : gender === '男娘'
+                    ? '男娘角色允许高度女性化，甚至外表近似女性；默认应呈现可被误认成女性的年轻美貌风格，但仍需保留男娘/男性基础设定，不要改成普通壮汉。'
+                    : gender === '扶她'
+                        ? '扶她角色允许高度女性化，默认应以美貌或英气的年轻女性主体呈现，再叠加隐藏式双性征暗示；日常默认不应主动露出，只在正文、构图或额外要求明确要求时才直接表现男根。不要简化成纯男性模板，也不要无依据删除其关键性征设定。'
                 : ''
     ].filter(Boolean).join('\n');
 };
 
-const 角色锚点是否匹配NPC性别 = (anchor: 角色锚点摘要, gender: '男' | '女' | ''): boolean => {
+const 角色锚点是否匹配NPC性别 = (anchor: 角色锚点摘要, gender: NPC生图性别): boolean => {
     if (!anchor || !gender) return true;
     const rawText = typeof anchor?.原始提取文本 === 'string' ? anchor.原始提取文本.trim() : '';
     if (!rawText) return true;
@@ -319,6 +391,7 @@ export const 执行NPC生图工作流 = async (
     const 画师串预设 = deps.获取生图画师串预设(deps.apiConfig, 'npc', options?.画师串预设ID);
     const PNG画风预设 = deps.获取当前PNG画风预设(options?.PNG画风预设ID);
     const 目标性别 = 读取目标性别(npcImageBaseData) || 读取目标性别(npc);
+    const 目标性别状态 = 读取NPC性别状态(目标性别);
     const 目标年龄 = typeof npcImageBaseData?.年龄 === 'number' ? npcImageBaseData.年龄 : (typeof npc?.年龄 === 'number' ? npc.年龄 : undefined);
     const 原始角色锚点 = deps.获取NPC角色锚点(typeof npc?.id === 'string' ? npc.id.trim() : '');
     const 角色锚点 = 角色锚点是否匹配NPC性别(原始角色锚点, 目标性别) ? 原始角色锚点 : null;
@@ -370,7 +443,7 @@ export const 执行NPC生图工作流 = async (
     const 词组转化器提示词 = [词组转化器预设上下文.相关提示词.trim(), 画风附加要求]
         .filter(Boolean)
         .join('\n\n');
-    const 词组转化性别硬约束 = 构建词组转化性别硬约束(目标性别, 目标年龄);
+    const 词组转化性别硬约束 = 构建词组转化性别硬约束(目标性别, 目标年龄, npcImageBaseData);
     const promptApiForTask = promptApi ? {
         ...promptApi,
         词组转化器AI角色提示词: 词组转化器预设上下文.AI角色定制提示词,
@@ -400,6 +473,7 @@ export const 执行NPC生图工作流 = async (
         ...currentTask,
         状态: 'running',
         开始时间: Date.now(),
+        NPC性别状态: 目标性别状态,
         原始描述: JSON.stringify(npcImageBaseData ?? {}, null, 2),
         构图,
         画风,
@@ -419,6 +493,7 @@ export const 执行NPC生图工作流 = async (
             原始描述: JSON.stringify(npcImageBaseData ?? {}, null, 2),
             NPC姓名: npcName,
             NPC性别: 目标性别 || undefined,
+            NPC性别状态: 目标性别状态,
             使用模型: modelName,
             生成时间: Date.now(),
             构图,
@@ -437,6 +512,15 @@ export const 执行NPC生图工作流 = async (
                     生图历史: 合并生图历史记录(currentNpc, 待处理结果)
                 }
             };
+        });
+
+        console.info('[npc.image.request]', {
+            npcKey,
+            npcName,
+            构图,
+            gender: 目标性别 || 'unknown',
+            genderStatus: 目标性别状态,
+            source: taskSource
         });
 
     try {
@@ -497,6 +581,7 @@ export const 执行NPC生图工作流 = async (
                 原始描述,
                 NPC姓名: npcName,
                 NPC性别: 目标性别 || undefined,
+                NPC性别状态: 目标性别状态,
                 使用模型: modelName,
                 生成时间: 当前结果?.生成时间 || Date.now(),
                 构图,
@@ -570,6 +655,7 @@ export const 执行NPC生图工作流 = async (
                 原始描述,
                 NPC姓名: npcName,
                 NPC性别: 目标性别 || undefined,
+                NPC性别状态: 目标性别状态,
                 使用模型: modelName,
                 生成时间: Date.now(),
                 构图,
@@ -626,6 +712,7 @@ export const 执行NPC生图工作流 = async (
                 原始描述: currentNpc?.最近生图结果?.原始描述 || JSON.stringify(npcImageBaseData ?? {}, null, 2),
                 NPC姓名: npcName,
                 NPC性别: 目标性别 || undefined,
+                NPC性别状态: 目标性别状态,
                 使用模型: modelName,
                 生成时间: Date.now(),
                 构图,

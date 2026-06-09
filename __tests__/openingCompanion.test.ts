@@ -157,6 +157,67 @@ describe('开局伙伴姓名保护', () => {
         expect(fixed[0].是否主要角色).toBe(true);
     });
 
+    it('多伙伴画像相近时不会把 AI 生成的陌生同伴反复合并到第一个伙伴', () => {
+        const openingConfig = 创建开局配置('林清澜');
+        openingConfig.初始伙伴列表 = [
+            {
+                ...openingConfig.初始伙伴,
+                姓名: '林清澜',
+                关系: '同门伙伴',
+                外貌: '青衣负剑。'
+            },
+            {
+                ...openingConfig.初始伙伴,
+                姓名: '俞月荷',
+                关系: '同门伙伴',
+                外貌: '白裙佩刀。'
+            }
+        ];
+        openingConfig.初始伙伴 = openingConfig.初始伙伴列表[0];
+
+        const fixed = 修复开局伙伴社交列表([
+            {
+                id: 'npc_ai_wrong_name_1',
+                姓名: '苏婉儿',
+                性别: '女',
+                年龄: 19,
+                生日: '3月12日',
+                身份: '同门伙伴',
+                是否在场: true,
+                是否队友: true,
+                是否主要角色: true,
+                好感度: 88,
+                关系状态: '同门伙伴',
+                简介: '第一段 AI 生成的同门伙伴资料。'
+            },
+            {
+                id: 'npc_ai_wrong_name_2',
+                姓名: '柳若雪',
+                性别: '女',
+                年龄: 19,
+                生日: '3月12日',
+                身份: '同门伙伴',
+                是否在场: true,
+                是否队友: true,
+                是否主要角色: true,
+                好感度: 66,
+                关系状态: '同门伙伴',
+                简介: '第二段 AI 生成的同门伙伴资料。'
+            }
+        ], openingConfig, { 姓名: '陆行舟' } as any);
+
+        const lin = fixed.find((npc: any) => npc.姓名 === '林清澜');
+        const yu = fixed.find((npc: any) => npc.姓名 === '俞月荷');
+        expect(lin).toBeTruthy();
+        expect(yu).toBeTruthy();
+        expect(lin?.简介).toContain('青衣负剑');
+        expect(yu?.简介).toContain('白裙佩刀');
+        expect(lin?.曾用名 || []).not.toContain('柳若雪');
+        expect(yu?.曾用名 || []).not.toContain('苏婉儿');
+        expect(fixed.filter((npc: any) => npc.姓名 === '林清澜')).toHaveLength(1);
+        expect(fixed.filter((npc: any) => npc.姓名 === '俞月荷')).toHaveLength(1);
+    });
+
     it('开局变量生成承接提示会携带同伴姓名硬约束', () => {
         const prompt = 构建开局变量生成承接提示({
             currentGameTime: '第0回合',

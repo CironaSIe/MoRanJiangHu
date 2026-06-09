@@ -69,22 +69,41 @@ const buildSaveWithExistingRemoteImages = () => {
   return save;
 };
 
-test('automatic character image generation stays off when existing remote images are present', async ({ page }) => {
-  test.setTimeout(60000);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const imageRequests = [];
-  page.on('request', (request) => {
-    const url = request.url();
-    if (url.includes('127.0.0.1:9') || url.includes('/v1/images/generations')) {
-      imageRequests.push(url);
+const buildSaveWithNpcAvatarMissing = () => {
+  const save = JSON.parse(JSON.stringify(baseSave));
+  const playerRecord = buildImageRecord('e2e-player-avatar', '头像');
+  save.角色数据 = {
+    ...save.角色数据,
+    头像图片URL: '',
+    最近生图结果: playerRecord,
+    图片档案: {
+      ...(save.角色数据?.图片档案 || {}),
+      最近生图结果: playerRecord,
+      生图历史: [playerRecord],
+      已选头像图片ID: playerRecord.id
     }
-  });
+  };
 
-  await page.addInitScript(() => {
-    localStorage.setItem('moranjianghu.releaseNotesSuppressDate', new Date().toISOString().slice(0, 10));
-  });
-  await page.goto('http://127.0.0.1:4173', { waitUntil: 'networkidle' });
+  const originalNpc = Array.isArray(save.社交) && save.社交.length > 0 ? save.社交[0] : {};
+  save.社交 = [{
+    ...originalNpc,
+    id: originalNpc.id || 'e2e-missing-npc',
+    姓名: originalNpc.姓名 || '待补头像角色',
+    性别: originalNpc.性别 || '女',
+    是否主要角色: true,
+    头像图片URL: '',
+    最近生图结果: undefined,
+    图片档案: {
+      ...(originalNpc.图片档案 || {}),
+      最近生图结果: undefined,
+      生图历史: [],
+      已选头像图片ID: ''
+    }
+  }];
+  return save;
+};
 
+const seedSaveAndSettings = async (page, save) => {
   await page.evaluate(async ({ save, blockedImageEndpoint }) => {
     const req = indexedDB.open('WuxiaGameDB', 3);
     const db = await new Promise((resolve, reject) => {
@@ -121,8 +140,11 @@ test('automatic character image generation stays off when existing remote images
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
-  }, { save: buildSaveWithExistingRemoteImages(), blockedImageEndpoint });
+    db.close();
+  }, { save, blockedImageEndpoint });
+};
 
+const openSeededSave = async (page) => {
   await page.reload({ waitUntil: 'networkidle' });
   await clickByTexts(page, ['重入江湖', '读取进度', '继续游戏', '读取', '载入']);
   await page.waitForTimeout(700);
@@ -130,27 +152,109 @@ test('automatic character image generation stays off when existing remote images
   await page.waitForTimeout(300);
   await clickByTexts(page, ['加载此存档', '读取此存档', '载入存档', '确认读取', '读取', '进入江湖']);
   await page.waitForTimeout(3500);
+};
 
-  const state = await page.evaluate(async () => {
-    const req = indexedDB.open('WuxiaGameDB', 3);
-    const db = await new Promise((resolve, reject) => {
-      req.onerror = () => reject(req.error);
-      req.onsuccess = () => resolve(req.result);
-    });
-    const saves = await new Promise((resolve, reject) => {
-      const tx = db.transaction(['saves'], 'readonly');
-      const request = tx.objectStore('saves').getAll();
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(request.error);
-    });
-    const latest = saves.sort((a, b) => Number(b.时间戳 || 0) - Number(a.时间戳 || 0))[0] || {};
-    return {
-      playerHistoryCount: latest?.角色数据?.图片档案?.生图历史?.length || 0,
-      npcHistoryCount: latest?.社交?.[0]?.图片档案?.生图历史?.length || 0
-    };
+const readLatestSaveState = async (page) => page.evaluate(async () => {
+  const req = indexedDB.open('WuxiaGameDB', 3);
+  const db = await new Promise((resolve, reject) => {
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
   });
+  const saves = await new Promise((resolve, reject) => {
+    const tx = db.transaction(['saves'], 'readonly');
+    const request = tx.objectStore('saves').getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+  const latest = saves.sort((a, b) => Number(b.时间戳 || 0) - Number(a.时间戳 || 0))[0] || {};
+  return {
+    playerHistoryCount: latest?.角色数据?.图片档案?.生图历史?.length || 0,
+    npcHistoryCount: latest?.社交?.[0]?.图片档案?.生图历史?.length || 0,
+    npcLatestStatus: latest?.社交?.[0]?.图片档案?.最近生图结果?.状态 || ''
+  };
+});
+
+const readClientDiagnostics = async (page) => page.evaluate(() => {
+  const parseLogs = () => {
+    try {
+      return JSON.parse(localStorage.getItem('moranjianghu.diagnosticLogs') || '[]');
+    } catch {
+      return [];
+    }
+  };
+  const prebootLogs = Array.isArray(window.__MORAN_PREBOOT_LOGS__)
+    ? window.__MORAN_PREBOOT_LOGS__.map((entry) => Array.isArray(entry?.values) ? entry.values.join('\n') : '')
+    : [];
+  const diagnosticLogs = parseLogs().map((entry) => `${entry?.message || ''}\n${entry?.detail || ''}`);
+  return {
+    overlayText: document.querySelector('#moran-preboot-error-overlay')?.textContent || '',
+    prebootLogs,
+    diagnosticLogs
+  };
+});
+
+test.beforeEach(async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    localStorage.setItem('moranjianghu.releaseNotesSuppressDate', new Date().toISOString().slice(0, 10));
+  });
+  await page.goto('http://127.0.0.1:4173', { waitUntil: 'networkidle' });
+});
+
+test('automatic character image generation stays off when existing remote images are present', async ({ page }) => {
+  test.setTimeout(60000);
+  const imageRequests = [];
+  page.on('request', (request) => {
+    const url = request.url();
+    if (url.includes('127.0.0.1:9') || url.includes('/v1/images/generations')) {
+      imageRequests.push(url);
+    }
+  });
+
+  await seedSaveAndSettings(page, buildSaveWithExistingRemoteImages());
+  await openSeededSave(page);
+
+  const state = await readLatestSaveState(page);
 
   expect(imageRequests).toEqual([]);
   expect(state.playerHistoryCount).toBe(1);
   expect(state.npcHistoryCount).toBe(1);
+});
+
+test('automatic npc image generation stays off when npc switch is disabled', async ({ page }) => {
+  test.setTimeout(60000);
+  const imageRequests = [];
+  const pageErrors = [];
+  page.on('request', (request) => {
+    const url = request.url();
+    if (url.includes('127.0.0.1:9') || url.includes('/v1/images/generations')) {
+      imageRequests.push(url);
+    }
+  });
+  page.on('pageerror', (error) => {
+    pageErrors.push(String(error));
+  });
+
+  await seedSaveAndSettings(page, buildSaveWithNpcAvatarMissing());
+  await openSeededSave(page);
+
+  const state = await readLatestSaveState(page);
+  const diagnostics = await readClientDiagnostics(page);
+  const diagnosticText = [
+    diagnostics.overlayText,
+    ...diagnostics.prebootLogs,
+    ...diagnostics.diagnosticLogs,
+    ...pageErrors
+  ].join('\n');
+
+  expect(imageRequests).toEqual([]);
+  expect(state.playerHistoryCount).toBe(1);
+  expect(state.npcHistoryCount).toBe(0);
+  expect(state.npcLatestStatus).toBe('');
+  expect(diagnostics.overlayText).toBe('');
+  expect(diagnosticText).not.toContain('preboot unhandledrejection');
+  expect(diagnosticText).not.toContain('unhandledrejection');
+  expect(diagnosticText).not.toContain('图片生成响应无法解析');
+  expect(diagnosticText).not.toContain('File not found');
 });

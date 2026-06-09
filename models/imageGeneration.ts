@@ -183,6 +183,7 @@ export interface NPC生图任务记录 {
     NPC标识: string;
     NPC姓名: string;
     NPC性别?: '男' | '女' | '男娘' | '扶她';
+    NPC性别状态?: 'explicit' | 'unknown';
     是否主要角色?: boolean;
     来源: 生图任务来源类型;
     状态: 生图任务状态类型;

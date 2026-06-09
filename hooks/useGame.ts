@@ -431,6 +431,7 @@ export const useGame = () => {
     const NPC自动生图签名Ref = useRef<Set<string>>(new Set());
     const NPC自动香闺秘档生图签名Ref = useRef<Set<string>>(new Set());
     const 角色锚点补全进行中Ref = useRef<Set<string>>(new Set());
+    const NPC性别补正生图签名Ref = useRef('');
     const 主要角色资源补全签名Ref = useRef('');
     const 全部NPC头像补全签名Ref = useRef('');
     const 全部NPC头像补全进行中Ref = useRef(false);
@@ -459,6 +460,7 @@ export const useGame = () => {
         NPC自动生图签名Ref.current.clear();
         NPC自动香闺秘档生图签名Ref.current.clear();
         角色锚点补全进行中Ref.current.clear();
+        NPC性别补正生图签名Ref.current = '';
         全部NPC头像补全签名Ref.current = '';
         全部NPC头像补全进行中Ref.current = false;
         setNPC生图任务队列([]);
@@ -2015,6 +2017,47 @@ export const useGame = () => {
         return false;
     };
 
+    const 读取NPC最近成功头像记录 = (npc: any): any | null => {
+        const records = 读取NPC图片记录列表(npc);
+        return records.find((item: any) => (
+            item?.状态 === 'success'
+            && item?.构图 === '头像'
+            && 图片资源记录含可恢复地址(item)
+        )) || null;
+    };
+
+    const 读取NPC最近成功构图记录 = (npc: any, 构图: '头像' | '半身' | '立绘'): any | null => {
+        const records = 读取NPC图片记录列表(npc);
+        return records.find((item: any) => (
+            item?.状态 === 'success'
+            && item?.构图 === 构图
+            && 图片资源记录含可恢复地址(item)
+        )) || null;
+    };
+
+    const 显式NPC生图性别集合 = new Set(['男', '女', '男娘', '扶她']);
+
+    const NPC生图性别是否显式 = (value: string): boolean => 显式NPC生图性别集合.has(value);
+
+    const 读取NPC需性别补正构图列表 = (npc: any): Array<'头像' | '半身' | '立绘'> => {
+        const currentGender = 读取NPC文本字段(npc, '性别');
+        if (!NPC生图性别是否显式(currentGender)) return [];
+        return (['头像', '半身', '立绘'] as const).filter((构图) => {
+            const record = 读取NPC最近成功构图记录(npc, 构图);
+            if (!record) return false;
+            const previousGender = typeof record?.NPC性别 === 'string' ? record.NPC性别.trim() : '';
+            return !NPC生图性别是否显式(previousGender) || previousGender !== currentGender;
+        });
+    };
+
+    const NPC性别已明确可补正头像 = (npc: any): boolean => {
+        if (!npc || typeof npc !== 'object') return false;
+        if (!NPC符合自动生图条件(npc)) return false;
+        const gender = 读取NPC文本字段(npc, '性别');
+        if (!NPC生图性别是否显式(gender)) return false;
+        return 读取NPC需性别补正构图列表(npc).length > 0;
+    };
+
     const NPC自动生图调试已启用 = (): boolean => {
         try {
             return typeof window !== 'undefined' && window.localStorage?.getItem('DEBUG_NPC_AUTO_IMAGE') === '1';
@@ -2093,24 +2136,23 @@ export const useGame = () => {
             输出NPC自动生图调试('跳过：NPC 生图进行中', { npcKey, npcName, 构图 });
             return false;
         }
-        if (!options?.force && !NPC符合自动生图条件(npc)) {
+        if (!NPC符合自动生图条件(npc)) {
             输出NPC自动生图调试('跳过：不符合自动生图条件', { npcKey, npcName, 构图 });
             return false;
         }
-        if (NPC是否已有成功构图(npc, [构图])) {
+        if (!options?.force && NPC是否已有成功构图(npc, [构图])) {
             输出NPC自动生图调试('跳过：已有成功构图', { npcKey, npcName, 构图 });
             return false;
         }
 
         const signatures = 标记NPC自动构图签名(npc, 构图);
-        if (!signatures && !options?.force) {
+        if (!signatures) {
             输出NPC自动生图调试('跳过：自动构图签名已存在', { npcKey, npcName, 构图 });
             return false;
         }
         try {
-            输出NPC自动生图调试('开始执行自动构图任务', { npcKey, npcName, 构图, force: options?.force === true });
+            输出NPC自动生图调试('开始执行自动构图任务', { npcKey, npcName, 构图 });
             await 执行单个NPC生图(npc, {
-                force: options?.force,
                 source: 'auto',
                 构图
             });
@@ -2215,7 +2257,7 @@ export const useGame = () => {
         if (npcList.length === 0) return;
         window.setTimeout(() => {
             npcList.forEach((npc) => {
-                void 执行NPC自动构图任务(npc, '头像', { force: true }).catch((error) => {
+                void 执行NPC自动构图任务(npc, '头像').catch((error) => {
                     console.warn('新增 NPC 头像自动生图失败', 读取NPC文本字段(npc, 'id') || 读取NPC文本字段(npc, '姓名'), error);
                 });
             });
@@ -2229,7 +2271,7 @@ export const useGame = () => {
             .filter((npc: any) => npc?.对白登场 === true || npc?.自动补全头像 === true);
         if (npcList.length === 0) return;
         npcList.forEach((npc) => {
-            void 执行NPC自动构图任务(npc, '头像', { force: true }).catch(() => undefined);
+            void 执行NPC自动构图任务(npc, '头像').catch(() => undefined);
         });
     };
 
@@ -2278,7 +2320,7 @@ export const useGame = () => {
         const runOne = async ({ npc, npcId }: { npc: any; npcId: string }) => {
             try {
                 const finished = await Promise.race([
-                    执行NPC自动构图任务(npc, '头像', { force: true }),
+                    执行NPC自动构图任务(npc, '头像'),
                     new Promise<boolean>((resolve) => {
                         window.setTimeout(() => resolve(false), 单个NPC自动补全等待上限);
                     })
@@ -2345,7 +2387,7 @@ export const useGame = () => {
 
             if (!NPC是否已有成功构图(npc, ['头像'])) {
                 try {
-                    await 执行NPC自动构图任务(npc, '头像', { force: true });
+                    await 执行NPC自动构图任务(npc, '头像');
                 } catch (error) {
                     console.warn('主要角色头像自动补全失败', npcId, error);
                 }
@@ -2353,7 +2395,7 @@ export const useGame = () => {
 
             if ((NPC是否女性(npc) || (男娘NSFW内容已启用() && NPC是否男性或男娘(npc))) && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
                 try {
-                    await 执行NPC自动构图任务(npc, '半身', { force: true });
+                    await 执行NPC自动构图任务(npc, '半身');
                 } catch (error) {
                     console.warn('主要角色展示图自动补全失败', npcId, error);
                 }
@@ -2407,6 +2449,40 @@ export const useGame = () => {
 
         const timerId = window.setTimeout(() => {
             void 自动补全全部NPC头像();
+        }, 500);
+        return () => window.clearTimeout(timerId);
+    }, [社交, apiConfig]);
+
+    useEffect(() => {
+        const candidateList = (Array.isArray(社交) ? 社交 : []).filter((npc: any) => NPC性别已明确可补正头像(npc));
+        if (candidateList.length <= 0) return;
+        const signature = candidateList
+            .map((npc: any, index: number) => {
+                const npcId = 获取NPC唯一标识(npc, index);
+                const gender = 读取NPC文本字段(npc, '性别');
+                const 构图列表 = 读取NPC需性别补正构图列表(npc);
+                return `${npcId}:${构图列表.join(',')}->${gender}`;
+            })
+            .filter(Boolean)
+            .join('|');
+        if (!signature || NPC性别补正生图签名Ref.current === signature) return;
+        NPC性别补正生图签名Ref.current = signature;
+
+        const timerId = window.setTimeout(() => {
+            candidateList.forEach((npc: any) => {
+                const 构图列表 = 读取NPC需性别补正构图列表(npc);
+                console.info('[npc.image.gender-refresh.trigger]', {
+                    npcId: 读取NPC文本字段(npc, 'id') || 获取NPC唯一标识(npc),
+                    npcName: 读取NPC文本字段(npc, '姓名'),
+                    gender: 读取NPC文本字段(npc, '性别'),
+                    layouts: 构图列表
+                });
+                构图列表.forEach((构图) => {
+                    void 执行NPC自动构图任务(npc, 构图, { force: true }).catch((error) => {
+                        console.warn('NPC 性别明确后的补正生图失败', 读取NPC文本字段(npc, 'id') || 读取NPC文本字段(npc, '姓名'), 构图, error);
+                    });
+                });
+            });
         }, 500);
         return () => window.clearTimeout(timerId);
     }, [社交, apiConfig]);

@@ -122,20 +122,6 @@ const 运行时配置分区列表: 运行时配置分区[] = [
         ]
     },
     {
-        title: '开场配置',
-        fields: [
-            { label: '默认开场背景', path: ['opening', 'defaultBackgrounds'], type: 'list' },
-            { label: '默认天赋', path: ['opening', 'defaultTalents'], type: 'list' },
-            { label: '初始伙伴模板', path: ['opening', 'companionTemplate'], type: 'textarea' },
-            { label: '切入模板', path: ['opening', 'cutInTemplates'], type: 'list' },
-            { label: '初始任务模板', path: ['opening', 'initialQuestTemplates'], type: 'list' },
-            { label: '默认生成性别', path: ['opening', 'allowedGeneratedGenders'], type: 'list', placeholder: 默认生成性别占位 },
-            { label: '锁定生成性别', path: ['opening', 'lockGeneratedGenders'], type: 'bool' },
-            { label: '默认装备模板', path: ['opening', 'defaultEquipment'], type: 'record', placeholder: '每行一个，格式：槽位=物品名，例如：武器=青锋剑' },
-            { label: '默认金钱模板', path: ['opening', 'defaultCurrency'], type: 'record', placeholder: '每行一个，格式：货币名=初始量，例如：底层货币=1000' }
-        ]
-    },
-    {
         title: '地图系统',
         fields: [
             { label: '地图层级命名', path: ['map', 'layerNames'], type: 'list' },
@@ -185,7 +171,9 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '开局切入模板', path: ['opening', 'cutInTemplates'], type: 'list' },
             { label: '初始任务模板', path: ['opening', 'initialQuestTemplates'], type: 'list' },
             { label: '默认生成性别', path: ['opening', 'allowedGeneratedGenders'], type: 'list', placeholder: 默认生成性别占位 },
-            { label: '锁定生成性别', path: ['opening', 'lockGeneratedGenders'], type: 'bool' }
+            { label: '锁定生成性别', path: ['opening', 'lockGeneratedGenders'], type: 'bool' },
+            { label: '默认装备模板', path: ['opening', 'defaultEquipment'], type: 'record', placeholder: '每行一个，格式：槽位=物品名，例如：武器=青锋剑' },
+            { label: '默认金钱模板', path: ['opening', 'defaultCurrency'], type: 'record', placeholder: '每行一个，格式：货币名=初始量，例如：底层货币=1000' }
         ]
     },
     {

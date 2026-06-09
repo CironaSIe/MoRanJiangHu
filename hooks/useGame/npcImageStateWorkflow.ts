@@ -83,10 +83,12 @@ const 读取记录原始描述姓名 = (record: any): string => {
     }
 };
 
-const 读取目标性别 = (source: any): '男' | '女' | '' => {
+const 读取目标性别 = (source: any): '男' | '女' | '男娘' | '扶她' | '' => {
     const gender = typeof source?.性别 === 'string' ? source.性别.trim() : '';
-    if (gender === '男' || gender.includes('男')) return '男';
-    if (gender === '女' || gender.includes('女')) return '女';
+    if (gender === '男') return '男';
+    if (gender === '女') return '女';
+    if (gender === '男娘') return '男娘';
+    if (gender === '扶她') return '扶她';
     return '';
 };
 
@@ -494,29 +496,33 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
         画师串?: string;
         额外要求?: string;
         尺寸?: string;
-    }): NPC生图任务记录 => ({
-        id: `npc_image_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        目标类型: 'npc',
-        NPC标识: params.npcKey,
-        NPC姓名: typeof params.npc?.姓名 === 'string' ? params.npc.姓名.trim() || '未命名NPC' : '未命名NPC',
-        NPC性别: params.npc?.性别 === '男' || params.npc?.性别 === '女' ? params.npc.性别 : undefined,
-        NPC身份: typeof params.npc?.身份 === 'string' ? params.npc.身份.trim() || undefined : undefined,
-        是否主要角色: params.npc?.是否主要角色 === true,
-        来源: params.source,
-        状态: 'queued',
-        创建时间: Date.now(),
-        使用模型: params.modelName,
-        原始描述: '',
-        生图词组: '',
-        构图: params.构图,
-        部位: params.部位,
-        画风: params.画风,
-        画师串: params.画师串,
-        额外要求: params.额外要求,
-        尺寸: params.尺寸,
-        进度阶段: 'queued',
-        进度文本: '任务已入队，等待开始。'
-    });
+    }): NPC生图任务记录 => {
+        const normalizedGender = 读取目标性别(params.npc);
+        return {
+            id: `npc_image_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            目标类型: 'npc',
+            NPC标识: params.npcKey,
+            NPC姓名: typeof params.npc?.姓名 === 'string' ? params.npc.姓名.trim() || '未命名NPC' : '未命名NPC',
+            NPC性别: normalizedGender || undefined,
+            NPC性别状态: normalizedGender ? 'explicit' : 'unknown',
+            NPC身份: typeof params.npc?.身份 === 'string' ? params.npc.身份.trim() || undefined : undefined,
+            是否主要角色: params.npc?.是否主要角色 === true,
+            来源: params.source,
+            状态: 'queued',
+            创建时间: Date.now(),
+            使用模型: params.modelName,
+            原始描述: '',
+            生图词组: '',
+            构图: params.构图,
+            部位: params.部位,
+            画风: params.画风,
+            画师串: params.画师串,
+            额外要求: params.额外要求,
+            尺寸: params.尺寸,
+            进度阶段: 'queued',
+            进度文本: '任务已入队，等待开始。'
+        };
+    };
 
     const 追加NPC生图任务 = (task: NPC生图任务记录) => {
         deps.设置NPC生图任务队列((prev: any) => [task, ...(Array.isArray(prev) ? prev : [])].slice(0, 100));
