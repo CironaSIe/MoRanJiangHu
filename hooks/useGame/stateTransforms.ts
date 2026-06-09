@@ -2913,6 +2913,15 @@ const 重算合并后NPC性别 = (leftRaw: any, rightRaw: any): string => {
     if (性别是否明确(rightDerived)) return rightDerived;
     const leftDerived = 推断NPC性别(leftRaw);
     if (性别是否明确(leftDerived)) return leftDerived;
+    console.info('[npc.gender.resolved]', {
+        leftName: 规范化文本(leftRaw?.姓名),
+        rightName: 规范化文本(rightRaw?.姓名),
+        leftGender: 规范化文本(leftRaw?.性别) || 'unknown',
+        rightGender: 规范化文本(rightRaw?.性别) || 'unknown',
+        resolvedGender: '未知',
+        resolver: 'merge-fallback',
+        confidence: 'low'
+    });
     return '未知';
 };
 

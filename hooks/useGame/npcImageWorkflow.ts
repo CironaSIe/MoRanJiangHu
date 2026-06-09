@@ -159,6 +159,10 @@ const 读取目标性别 = (source: any): '男' | '女' | '' => {
     return '';
 };
 
+const 读取NPC性别状态 = (gender: '男' | '女' | ''): 'explicit' | 'unknown' => (
+    gender ? 'explicit' : 'unknown'
+);
+
 const 构建年龄正向提示词 = (age?: number): string => {
     if (typeof age !== 'number' || !Number.isFinite(age) || age <= 0) return '';
     const normalizedAge = Math.max(1, Math.floor(age));
@@ -319,6 +323,7 @@ export const 执行NPC生图工作流 = async (
     const 画师串预设 = deps.获取生图画师串预设(deps.apiConfig, 'npc', options?.画师串预设ID);
     const PNG画风预设 = deps.获取当前PNG画风预设(options?.PNG画风预设ID);
     const 目标性别 = 读取目标性别(npcImageBaseData) || 读取目标性别(npc);
+    const 目标性别状态 = 读取NPC性别状态(目标性别);
     const 目标年龄 = typeof npcImageBaseData?.年龄 === 'number' ? npcImageBaseData.年龄 : (typeof npc?.年龄 === 'number' ? npc.年龄 : undefined);
     const 原始角色锚点 = deps.获取NPC角色锚点(typeof npc?.id === 'string' ? npc.id.trim() : '');
     const 角色锚点 = 角色锚点是否匹配NPC性别(原始角色锚点, 目标性别) ? 原始角色锚点 : null;
@@ -400,6 +405,7 @@ export const 执行NPC生图工作流 = async (
         ...currentTask,
         状态: 'running',
         开始时间: Date.now(),
+        NPC性别状态: 目标性别状态,
         原始描述: JSON.stringify(npcImageBaseData ?? {}, null, 2),
         构图,
         画风,
@@ -419,6 +425,7 @@ export const 执行NPC生图工作流 = async (
             原始描述: JSON.stringify(npcImageBaseData ?? {}, null, 2),
             NPC姓名: npcName,
             NPC性别: 目标性别 || undefined,
+            NPC性别状态: 目标性别状态,
             使用模型: modelName,
             生成时间: Date.now(),
             构图,
@@ -437,6 +444,15 @@ export const 执行NPC生图工作流 = async (
                     生图历史: 合并生图历史记录(currentNpc, 待处理结果)
                 }
             };
+        });
+
+        console.info('[npc.image.request]', {
+            npcKey,
+            npcName,
+            构图,
+            gender: 目标性别 || 'unknown',
+            genderStatus: 目标性别状态,
+            source: taskSource
         });
 
     try {
@@ -497,6 +513,7 @@ export const 执行NPC生图工作流 = async (
                 原始描述,
                 NPC姓名: npcName,
                 NPC性别: 目标性别 || undefined,
+                NPC性别状态: 目标性别状态,
                 使用模型: modelName,
                 生成时间: 当前结果?.生成时间 || Date.now(),
                 构图,
@@ -570,6 +587,7 @@ export const 执行NPC生图工作流 = async (
                 原始描述,
                 NPC姓名: npcName,
                 NPC性别: 目标性别 || undefined,
+                NPC性别状态: 目标性别状态,
                 使用模型: modelName,
                 生成时间: Date.now(),
                 构图,
@@ -626,6 +644,7 @@ export const 执行NPC生图工作流 = async (
                 原始描述: currentNpc?.最近生图结果?.原始描述 || JSON.stringify(npcImageBaseData ?? {}, null, 2),
                 NPC姓名: npcName,
                 NPC性别: 目标性别 || undefined,
+                NPC性别状态: 目标性别状态,
                 使用模型: modelName,
                 生成时间: Date.now(),
                 构图,

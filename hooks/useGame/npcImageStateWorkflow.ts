@@ -85,8 +85,8 @@ const 读取记录原始描述姓名 = (record: any): string => {
 
 const 读取目标性别 = (source: any): '男' | '女' | '' => {
     const gender = typeof source?.性别 === 'string' ? source.性别.trim() : '';
-    if (gender === '男' || gender.includes('男')) return '男';
-    if (gender === '女' || gender.includes('女')) return '女';
+    if (gender === '男') return '男';
+    if (gender === '女') return '女';
     return '';
 };
 
@@ -500,6 +500,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
         NPC标识: params.npcKey,
         NPC姓名: typeof params.npc?.姓名 === 'string' ? params.npc.姓名.trim() || '未命名NPC' : '未命名NPC',
         NPC性别: params.npc?.性别 === '男' || params.npc?.性别 === '女' ? params.npc.性别 : undefined,
+        NPC性别状态: params.npc?.性别 === '男' || params.npc?.性别 === '女' ? 'explicit' : 'unknown',
         NPC身份: typeof params.npc?.身份 === 'string' ? params.npc.身份.trim() || undefined : undefined,
         是否主要角色: params.npc?.是否主要角色 === true,
         来源: params.source,
