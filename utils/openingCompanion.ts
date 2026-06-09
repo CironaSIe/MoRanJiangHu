@@ -212,6 +212,35 @@ const 是否疑似同一开局伙伴 = (npc: any, seed: NPC结构): boolean => {
     return companionFlag && sameProfile && Boolean(relation && text.includes(relation));
 };
 
+const 是否明确同一开局伙伴 = (npc: any, seed: NPC结构): boolean => {
+    if (!npc) return false;
+    const seedId = 规范化文本键(seed.id);
+    const seedName = 规范化文本键(seed.姓名);
+    const npcKeys = [npc.id, npc.ID, npc.姓名, npc.名称, ...(Array.isArray(npc.曾用名) ? npc.曾用名 : [])].map(规范化文本键);
+    return Boolean(
+        (seedId && npcKeys.includes(seedId))
+        || (seedName && npcKeys.includes(seedName))
+    );
+};
+
+const 查找开局伙伴种子 = (
+    npc: any,
+    seeds: NPC结构[],
+    fuzzyMatchedSeedIds: Set<string>
+): NPC结构 | null => {
+    const exactMatches = seeds.filter((seed) => 是否明确同一开局伙伴(npc, seed));
+    if (exactMatches.length === 1) return exactMatches[0];
+    if (exactMatches.length > 1) return null;
+
+    const fuzzyMatches = seeds.filter((seed) => 是否疑似同一开局伙伴(npc, seed));
+    if (fuzzyMatches.length !== 1) return null;
+
+    const matched = fuzzyMatches[0];
+    if (seeds.length > 1 && fuzzyMatchedSeedIds.has(matched.id)) return null;
+    fuzzyMatchedSeedIds.add(matched.id);
+    return matched;
+};
+
 export const 修复开局伙伴社交列表 = (
     socialList: any[],
     openingConfig?: OpeningConfig,
@@ -222,10 +251,11 @@ export const 修复开局伙伴社交列表 = (
 
     const source = Array.isArray(socialList) ? socialList : [];
     const mergedBySeed = new Map<string, any>();
+    const fuzzyMatchedSeedIds = new Set<string>();
     const next: any[] = [];
 
     source.forEach((npc) => {
-        const seed = seeds.find((item) => 是否疑似同一开局伙伴(npc, item));
+        const seed = 查找开局伙伴种子(npc, seeds, fuzzyMatchedSeedIds);
         if (seed) {
             const merged = mergedBySeed.get(seed.id);
             const seedArchive = seed.图片档案 && typeof seed.图片档案 === 'object' ? seed.图片档案 : undefined;

@@ -1,7 +1,7 @@
 import React from 'react';
 import type { 世界书结构, 世界书条目结构, 世界书作用域, 世界书类型, 世界书条目形态, 世界书预设组结构, 内置提示词条目结构 } from '../../../types';
 import { bundledDefaultWorldbookIds, bundledWorldbookPresets, loadAllBundledWorldbookPresets, loadBundledWorldbookPreset } from '../../../data/worldbookPresets';
-import { 内置提示词分类顺序, 构建内置提示词导出数据, 解析内置提示词导入数据, 规范化内置提示词列表 } from '../../../utils/builtinPrompts';
+import { 内置提示词分类顺序, 构建内置提示词导出数据, 解析内置提示词导入数据, 规范化内置提示词列表, 世界书本体槽位 } from '../../../utils/builtinPrompts';
 import { 世界书作用域选项, 世界书类型选项, 世界书条目形态选项, 世界书注入模式选项, 创建空世界书, 创建空世界书条目, 创建空世界书预设组, 获取世界书条目注入说明, 构建世界书导出数据, 构建世界书预设组导出数据, 应用世界书预设组到世界书列表, 解析世界书导入数据, 解析世界书预设组导入数据, 规范化世界书列表, 规范化世界书预设组列表 } from '../../../utils/worldbook';
 import type { ConfirmOptions } from '../../ui/InAppConfirmModal';
 import ToggleSwitch from '../../ui/ToggleSwitch';
@@ -23,6 +23,7 @@ const largeTextareaClass = `${inputClass} min-h-[360px] resize-y`;
 const fieldLabelClass = 'mb-1 text-[11px] font-serif uppercase tracking-[0.2em] text-wuxia-gold/70';
 const sectionToggleClass = 'flex w-full items-center justify-between rounded-xl border border-wuxia-gold/10 bg-black/20 px-3 py-2 text-left transition-colors hover:border-wuxia-gold/25';
 const hintBoxClass = 'rounded-2xl border border-wuxia-gold/15 bg-wuxia-gold/10 px-4 py-3 text-xs leading-6 text-gray-300';
+const miniTagClass = 'inline-flex items-center rounded-full border border-wuxia-gold/15 bg-black/25 px-2 py-0.5 text-[10px] text-gray-300';
 
 const 下载JSON文件 = (filename: string, payload: unknown) => {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
@@ -38,7 +39,156 @@ const 读取JSON文件 = async <T,>(file: File): Promise<T> => JSON.parse(await 
 
 const 内置分类说明 = (category: string): string => category === '主剧情' || category === '开局'
     ? '这里只管理固定模板，不包含世界观母本。'
+    : category === '变量生成'
+        ? '这里同时包含“独立变量生成 API”现行槽位，以及少量仅为旧档兼容保留的历史槽位。'
     : '当前分类下的固定接管提示词。';
+
+type 内置提示词说明 = {
+    摘要: string;
+    何时生效: string;
+    设置建议: string;
+    注意事项?: string;
+    标签: string[];
+};
+
+const 互斥主剧情COT槽位 = new Set<string>([
+    世界书本体槽位.主剧情COT_常规,
+    世界书本体槽位.主剧情COT_女主规划,
+    世界书本体槽位.主剧情COT_NTL女主规划
+]);
+
+const 成对女主规划槽位 = new Set<string>([
+    世界书本体槽位.主剧情女主规划_常规,
+    世界书本体槽位.主剧情女主规划_NTL,
+    世界书本体槽位.主剧情女主规划思考_常规,
+    世界书本体槽位.主剧情女主规划思考_NTL
+]);
+
+const 兼容保留变量槽位 = new Set<string>([
+    世界书本体槽位.主剧情变量校准_常规,
+    世界书本体槽位.主剧情变量校准_世界演变
+]);
+
+const 获取内置提示词说明 = (entry: 内置提示词条目结构 | null): 内置提示词说明 | null => {
+    if (!entry) return null;
+    const slotId = entry.槽位ID;
+    switch (slotId) {
+        case 世界书本体槽位.主剧情输出协议:
+            return {
+                摘要: '这是主剧情输出格式本体，负责约束 `<thinking>`、`<正文>`、命令等整体输出骨架。',
+                何时生效: '每次主剧情请求都会读取这一槽位。',
+                设置建议: '一般只需要开这一条，不需要另外再开同类替代项。',
+                标签: ['主剧情必经', '单槽位']
+            };
+        case 世界书本体槽位.主剧情COT_常规:
+            return {
+                摘要: '这是“不启用女主剧情规划”时的主剧情思维链版本。',
+                何时生效: '仅在未启用女主剧情规划时自动选用；不会和女主规划版、NTL 版同时生效。',
+                设置建议: '只改常规玩法时开这一条即可；另外两条主剧情思维链不用一起开。',
+                标签: ['互斥备选', '主剧情COT']
+            };
+        case 世界书本体槽位.主剧情COT_女主规划:
+            return {
+                摘要: '这是“启用女主剧情规划，但不是 NTL 后宫风格”时的主剧情思维链版本。',
+                何时生效: '仅在启用女主剧情规划、且剧情风格不是 `NTL后宫` 时自动选用。',
+                设置建议: '如果你要改普通女主规划玩法，就开这一条；不需要再同时开常规版和 NTL 版。',
+                标签: ['互斥备选', '主剧情COT']
+            };
+        case 世界书本体槽位.主剧情COT_NTL女主规划:
+            return {
+                摘要: '这是“启用女主剧情规划 + NTL 后宫风格”时的主剧情思维链版本。',
+                何时生效: '仅在启用女主剧情规划、且剧情风格为 `NTL后宫` 时自动选用。',
+                设置建议: '只改 NTL 女主玩法时开这一条即可，不需要和前两条一起开。',
+                标签: ['互斥备选', '主剧情COT', 'NTL']
+            };
+        case 世界书本体槽位.主剧情女主规划_常规:
+            return {
+                摘要: '这是普通女主剧情规划协议正文，告诉主剧情如何写女主规划树。',
+                何时生效: '仅在启用女主剧情规划、且当前不是 NTL 版本时读取。',
+                设置建议: '通常要和“主剧情 · 女主剧情规划思考协议”常规版一起改，成对保持一致。',
+                标签: ['成对启用', '女主规划']
+            };
+        case 世界书本体槽位.主剧情女主规划思考_常规:
+            return {
+                摘要: '这是普通女主剧情规划的思考协议，配合上面的常规女主规划协议一起使用。',
+                何时生效: '仅在启用女主剧情规划、且当前不是 NTL 版本时读取。',
+                设置建议: '建议和“主剧情 · 女主剧情规划协议”常规版一起改，不要只改其中一条。',
+                标签: ['成对启用', '女主规划']
+            };
+        case 世界书本体槽位.主剧情女主规划_NTL:
+            return {
+                摘要: '这是 NTL 女主剧情规划协议正文。',
+                何时生效: '仅在启用女主剧情规划、且剧情风格为 `NTL后宫` 时读取。',
+                设置建议: '通常要和 NTL 版“女主剧情规划思考协议”一起改，成对保持一致。',
+                标签: ['成对启用', '女主规划', 'NTL']
+            };
+        case 世界书本体槽位.主剧情女主规划思考_NTL:
+            return {
+                摘要: '这是 NTL 女主剧情规划的思考协议，配合上面的 NTL 女主规划协议一起使用。',
+                何时生效: '仅在启用女主剧情规划、且剧情风格为 `NTL后宫` 时读取。',
+                设置建议: '建议和“主剧情 · 女主剧情规划协议（NTL）”一起改，不要只改其中一条。',
+                标签: ['成对启用', '女主规划', 'NTL']
+            };
+        case 世界书本体槽位.主剧情变量校准_常规:
+            return {
+                摘要: '这是旧版“主剧情内嵌变量协议”兼容槽位，保留主要为了读旧配置和旧导入数据。',
+                何时生效: '当前独立变量生成链路已不再依赖这条主剧情内嵌协议。',
+                设置建议: '新配置通常不用改这一条；优先改下面“独立变量生成API”那几条。',
+                注意事项: '如果客户只是想改现在实际在跑的变量生成，请不要把精力放在这类历史兼容槽位上。',
+                标签: ['兼容保留', '历史槽位']
+            };
+        case 世界书本体槽位.主剧情变量校准_世界演变:
+            return {
+                摘要: '这是旧版“世界演变分流后主剧情内嵌变量协议”兼容槽位。',
+                何时生效: '当前独立变量生成链路已不再依赖这条主剧情内嵌协议。',
+                设置建议: '新配置通常不用改这一条；优先改下面“独立变量生成API”那几条。',
+                注意事项: '它和上面的常规版都更偏兼容保留，不是客户现在主要该调的入口。',
+                标签: ['兼容保留', '历史槽位']
+            };
+        case 世界书本体槽位.变量模型系统_常规:
+            return {
+                摘要: '这是当前“独立变量生成 API”真正会读的系统补充常规版。',
+                何时生效: '变量生成开启时使用；若本回合还没经过世界演变更新，则走常规版。',
+                设置建议: '大多数客户只改这一条就够了；如果还想覆盖“世界演变已更新后再跑变量生成”的场景，再同步改另一条变体。',
+                标签: ['当前生效', '独立变量API']
+            };
+        case 世界书本体槽位.变量模型系统_世界演变已更新:
+            return {
+                摘要: '这是当前“独立变量生成 API”在“世界演变已更新”分支下会读的系统补充版。',
+                何时生效: '只有变量生成发生在世界演变更新之后时，才会自动改走这一条。',
+                设置建议: '如果客户希望两个分支逻辑一致，建议把这一条和常规版一起同步改。',
+                标签: ['条件生效', '独立变量API']
+            };
+        case 世界书本体槽位.变量模型用户_常规:
+            return {
+                摘要: '这是独立变量生成 API 的“附加变量规则”常规版。',
+                何时生效: '变量生成开启、且没有进入“世界演变已更新”分支时使用。',
+                设置建议: '通常与“独立变量生成API · 系统补充（常规）”一起看、一起改，避免一边改规则一边忘记补系统说明。',
+                标签: ['当前生效', '独立变量API']
+            };
+        case 世界书本体槽位.变量模型用户_世界演变已更新:
+            return {
+                摘要: '这是独立变量生成 API 的“附加变量规则”世界演变后版本。',
+                何时生效: '只有变量生成发生在世界演变更新之后时使用。',
+                设置建议: '如果客户想要所有变量生成分支都统一规则，建议和常规版一起同步维护。',
+                标签: ['条件生效', '独立变量API']
+            };
+        case 世界书本体槽位.变量模型COT:
+            return {
+                摘要: '这是独立变量生成 API 专用的 COT 思考协议。',
+                何时生效: '只要独立变量生成链路在跑，就会读取这一条。',
+                设置建议: '如果客户要改变量生成的思考步骤或输出纪律，这一条才是当前有效入口。',
+                标签: ['当前生效', '独立变量API', 'COT']
+            };
+        default:
+            return {
+                摘要: '这是一个固定接管槽位。开启后只会替换这一槽位对应的默认模板，不会自动影响其他同名条目。',
+                何时生效: '仅在对应流程与条件命中时生效。',
+                设置建议: '如果看到多个名称很像的条目，先看这里的槽位说明，再决定要不要同步改成对项或互斥变体。',
+                标签: []
+            };
+    }
+};
 
 const 更新条目注入说明 = (entry: 世界书条目结构): 世界书条目结构 => ({ ...entry, 注入说明: 获取世界书条目注入说明(entry), 更新时间: Date.now() });
 
@@ -104,6 +254,7 @@ const WorldbookManagerModal: React.FC<Props> = ({ builtinPromptEntries, worldboo
     const selectedEntry = selectedBook?.条目.find((item) => item.id === selectedEntryId) || selectedBook?.条目[0] || null;
     const selectedGroup = groupDraft.find((item) => item.id === selectedGroupId) || groupDraft[0] || null;
     const isBundledDefaultWorldbook = !!selectedBook && bundledDefaultWorldbookIds.includes(selectedBook.id);
+    const selectedBuiltinHint = 获取内置提示词说明(selectedBuiltin);
 
     React.useEffect(() => { if (!selectedBuiltin && builtinDraft[0]) setSelectedBuiltinId(builtinDraft[0].id); }, [builtinDraft, selectedBuiltin]);
     React.useEffect(() => { if (!selectedBook && bookDraft[0]) setSelectedBookId(bookDraft[0].id); }, [bookDraft, selectedBook]);
@@ -271,14 +422,28 @@ const WorldbookManagerModal: React.FC<Props> = ({ builtinPromptEntries, worldboo
                                     {内置提示词分类顺序.map((category) => {
                                         const entries = builtinDraft.filter((entry) => entry.分类 === category);
                                         if (entries.length === 0) return null;
-                                        return <div key={category}><div className="mb-1 text-sm font-serif text-wuxia-gold">{category}</div><div className="mb-2 text-[11px] text-gray-500">{内置分类说明(category)}</div><div className="space-y-2">{entries.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedBuiltinId(entry.id)} className={`w-full rounded-xl border p-3 text-left ${selectedBuiltin?.id === entry.id ? 'border-wuxia-gold/60 bg-wuxia-gold/10' : 'border-wuxia-gold/10 bg-black/30'}`}><div className={`text-sm font-serif ${selectedBuiltin?.id === entry.id ? 'text-wuxia-gold' : 'text-gray-200'}`}>{entry.标题}</div><div className="mt-1 text-[10px] text-gray-500">{entry.启用 !== false ? '接管启用' : '接管关闭'}</div></button>)}</div></div>;
+                                        return <div key={category}><div className="mb-1 text-sm font-serif text-wuxia-gold">{category}</div><div className="mb-2 text-[11px] text-gray-500">{内置分类说明(category)}</div><div className="space-y-2">{entries.map((entry) => {
+                                            const hint = 获取内置提示词说明(entry);
+                                            return <button key={entry.id} type="button" onClick={() => setSelectedBuiltinId(entry.id)} className={`w-full rounded-xl border p-3 text-left ${selectedBuiltin?.id === entry.id ? 'border-wuxia-gold/60 bg-wuxia-gold/10' : 'border-wuxia-gold/10 bg-black/30'}`}><div className={`text-sm font-serif ${selectedBuiltin?.id === entry.id ? 'text-wuxia-gold' : 'text-gray-200'}`}>{entry.标题}</div><div className="mt-1 text-[10px] text-gray-500">{entry.启用 !== false ? '接管启用' : '接管关闭'}</div>{hint && hint.标签.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{hint.标签.map((label) => <span key={`${entry.id}:${label}`} className={miniTagClass}>{label}</span>)}</div>}</button>;
+                                        })}</div></div>;
                                     })}
                                 </div>
                             </div>
                             <div className="min-h-0 overflow-auto rounded-2xl border border-wuxia-gold/15 bg-black/35 p-4">
                                 {selectedBuiltin ? <>
                                     <div className="flex items-center justify-between gap-3"><div><div className="text-lg font-serif text-wuxia-gold">{selectedBuiltin.标题}</div><div className="mt-1 text-xs text-gray-500">{selectedBuiltin.槽位ID}</div></div><div className="flex items-center gap-3 text-sm text-gray-300"><span>启用接管</span><ToggleSwitch checked={selectedBuiltin.启用 !== false} onChange={(next) => setBuiltinDraft((prev) => 规范化内置提示词列表(prev.map((entry) => entry.id === selectedBuiltin.id ? { ...entry, 启用: next, 更新时间: Date.now() } : entry)))} ariaLabel={`切换${selectedBuiltin.标题}接管状态`} /></div></div>
-                                    <div className="my-4 rounded-2xl border border-wuxia-gold/10 bg-black/30 px-4 py-3 text-sm text-gray-400">默认关闭接管。开启后也只会替换该槽位的提示词内容，不会改动独立 API 的消息角色、上下文顺序或本回合即时上下文骨架。</div>
+                                    <div className="my-4 rounded-2xl border border-wuxia-gold/10 bg-black/30 px-4 py-3 text-sm text-gray-400">默认关闭接管。开启后只会替换该槽位的默认模板，不会自动改动消息角色、上下文顺序或本回合状态骨架。</div>
+                                    {selectedBuiltinHint && <div className={`${hintBoxClass} mb-4 space-y-2`}>
+                                        {selectedBuiltinHint.标签.length > 0 && <div className="flex flex-wrap gap-1.5">{selectedBuiltinHint.标签.map((label) => <span key={`selected:${label}`} className={miniTagClass}>{label}</span>)}</div>}
+                                        <div><span className="text-wuxia-gold/90">这条是做什么的：</span>{selectedBuiltinHint.摘要}</div>
+                                        <div><span className="text-wuxia-gold/90">什么时候真的会用到：</span>{selectedBuiltinHint.何时生效}</div>
+                                        <div><span className="text-wuxia-gold/90">推荐怎么配：</span>{selectedBuiltinHint.设置建议}</div>
+                                        {selectedBuiltinHint.注意事项 && <div><span className="text-amber-200">注意：</span>{selectedBuiltinHint.注意事项}</div>}
+                                    </div>}
+                                    {(selectedBuiltin.分类 === '主剧情' || selectedBuiltin.分类 === '变量生成') && <div className="mb-4 rounded-2xl border border-wuxia-gold/10 bg-wuxia-gold/5 px-4 py-3 text-xs leading-6 text-gray-300">
+                                        这里不是“同名条目全开一起叠加”的配置方式，而是“程序按当前玩法自动挑一个槽位来读”。
+                                        主剧情思维链三条属于互斥备选；女主剧情规划协议与思考协议通常要成对维护；变量生成下方标了“兼容保留”的条目更偏旧配置兼容，客户现在真正常改的是“独立变量生成API”那几条。
+                                    </div>}
                                     <textarea className={largeTextareaClass} value={selectedBuiltin.内容} onChange={(e) => setBuiltinDraft((prev) => 规范化内置提示词列表(prev.map((entry) => entry.id === selectedBuiltin.id ? { ...entry, 内容: e.target.value, 更新时间: Date.now() } : entry)))} />
                                 </> : <div className="text-sm text-gray-500">当前没有可编辑的内置提示词。</div>}
                             </div>

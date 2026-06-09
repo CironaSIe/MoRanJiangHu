@@ -2080,8 +2080,7 @@ export const useGame = () => {
 
     const 执行NPC自动构图任务 = async (
         npc: any,
-        构图: '头像' | '半身' | '立绘',
-        options?: { force?: boolean }
+        构图: '头像' | '半身' | '立绘'
     ): Promise<boolean> => {
         const npcKey = 获取NPC唯一标识(npc);
         const npcName = 读取NPC文本字段(npc, '姓名') || 读取NPC文本字段(npc, '名称') || npcKey;
@@ -2093,7 +2092,7 @@ export const useGame = () => {
             输出NPC自动生图调试('跳过：NPC 生图进行中', { npcKey, npcName, 构图 });
             return false;
         }
-        if (!options?.force && !NPC符合自动生图条件(npc)) {
+        if (!NPC符合自动生图条件(npc)) {
             输出NPC自动生图调试('跳过：不符合自动生图条件', { npcKey, npcName, 构图 });
             return false;
         }
@@ -2103,14 +2102,13 @@ export const useGame = () => {
         }
 
         const signatures = 标记NPC自动构图签名(npc, 构图);
-        if (!signatures && !options?.force) {
+        if (!signatures) {
             输出NPC自动生图调试('跳过：自动构图签名已存在', { npcKey, npcName, 构图 });
             return false;
         }
         try {
-            输出NPC自动生图调试('开始执行自动构图任务', { npcKey, npcName, 构图, force: options?.force === true });
+            输出NPC自动生图调试('开始执行自动构图任务', { npcKey, npcName, 构图 });
             await 执行单个NPC生图(npc, {
-                force: options?.force,
                 source: 'auto',
                 构图
             });
@@ -2215,7 +2213,7 @@ export const useGame = () => {
         if (npcList.length === 0) return;
         window.setTimeout(() => {
             npcList.forEach((npc) => {
-                void 执行NPC自动构图任务(npc, '头像', { force: true }).catch((error) => {
+                void 执行NPC自动构图任务(npc, '头像').catch((error) => {
                     console.warn('新增 NPC 头像自动生图失败', 读取NPC文本字段(npc, 'id') || 读取NPC文本字段(npc, '姓名'), error);
                 });
             });
@@ -2229,7 +2227,7 @@ export const useGame = () => {
             .filter((npc: any) => npc?.对白登场 === true || npc?.自动补全头像 === true);
         if (npcList.length === 0) return;
         npcList.forEach((npc) => {
-            void 执行NPC自动构图任务(npc, '头像', { force: true }).catch(() => undefined);
+            void 执行NPC自动构图任务(npc, '头像').catch(() => undefined);
         });
     };
 
@@ -2278,7 +2276,7 @@ export const useGame = () => {
         const runOne = async ({ npc, npcId }: { npc: any; npcId: string }) => {
             try {
                 const finished = await Promise.race([
-                    执行NPC自动构图任务(npc, '头像', { force: true }),
+                    执行NPC自动构图任务(npc, '头像'),
                     new Promise<boolean>((resolve) => {
                         window.setTimeout(() => resolve(false), 单个NPC自动补全等待上限);
                     })
@@ -2345,7 +2343,7 @@ export const useGame = () => {
 
             if (!NPC是否已有成功构图(npc, ['头像'])) {
                 try {
-                    await 执行NPC自动构图任务(npc, '头像', { force: true });
+                    await 执行NPC自动构图任务(npc, '头像');
                 } catch (error) {
                     console.warn('主要角色头像自动补全失败', npcId, error);
                 }
@@ -2353,7 +2351,7 @@ export const useGame = () => {
 
             if ((NPC是否女性(npc) || (男娘NSFW内容已启用() && NPC是否男性或男娘(npc))) && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
                 try {
-                    await 执行NPC自动构图任务(npc, '半身', { force: true });
+                    await 执行NPC自动构图任务(npc, '半身');
                 } catch (error) {
                     console.warn('主要角色展示图自动补全失败', npcId, error);
                 }
