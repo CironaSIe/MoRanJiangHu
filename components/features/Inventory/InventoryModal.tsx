@@ -14,7 +14,7 @@ import { 获取物品明细分组 } from '../../../utils/rulebook';
 import { 是否杂物类物品 } from '../../../utils/inventoryActions';
 import { 规范化消耗品使用效果 } from '../../../utils/itemEffects';
 import { 获取题材界面文案 } from '../../../utils/resourceLabels';
-import { 获取世界观货币卡片信息, 获取货币显示模式, 获取货币完整单位标签 } from '../../../utils/currencyDisplay';
+import { 获取世界观货币卡片信息, 获取背包货币物品聚合列表, 获取货币显示模式, 获取货币完整单位标签 } from '../../../utils/currencyDisplay';
 
 interface Props {
     character: any;
@@ -252,6 +252,7 @@ const InventoryModal: React.FC<Props> = ({ character, openingConfig, onClose, on
     const currencyMode = 获取货币显示模式(openingConfig, character);
     const valueUnit = 获取货币完整单位标签('铜钱', currencyMode);
     const 货币卡片 = 获取世界观货币卡片信息(openingConfig, character);
+    const 货币物品列表 = useMemo(() => 获取背包货币物品聚合列表(items), [items]);
     const selectedEquipSlots = selectedItem ? 获取物品可装备槽位(selectedItem) : [];
     const selectedCanEquip = selectedItem ? 是否可装备物品(selectedItem) : false;
     const selectedCanUse = getSafeText(selectedItem?.类型) === '消耗品';
@@ -515,6 +516,25 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
                                 <div className="mb-1 font-mono text-[11px] uppercase tracking-widest text-gray-400">{货币卡片.title}</div>
                                 <div className="text-sm leading-6 text-gray-200">{货币卡片.summary}</div>
                                 <div className="mt-2 text-xs leading-5 text-gray-400">{货币卡片.exchangeHint}</div>
+                                {货币物品列表.length > 0 ? (
+                                    <div className="mt-3 border-t border-white/10 pt-3">
+                                        <div className="mb-2 font-mono text-[11px] uppercase tracking-widest text-gray-500">货币持有</div>
+                                        <div className="space-y-1.5">
+                                            {货币物品列表.map((entry) => (
+                                                <div key={entry.类型} className="rounded border border-white/8 bg-black/20 px-2.5 py-2">
+                                                    <div className="flex items-center justify-between gap-3 text-sm">
+                                                        <span className="truncate text-gray-100">{entry.名称}</span>
+                                                        <span className="font-mono text-wuxia-gold">x{entry.数量.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="mt-1 text-[11px] text-gray-500">分类：{entry.分类名}</div>
+                                                    {entry.描述 ? (
+                                                        <div className="mt-1 line-clamp-2 text-[11px] leading-5 text-gray-400">{entry.描述}</div>
+                                                    ) : null}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
                     </div>

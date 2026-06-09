@@ -442,7 +442,8 @@ const 规范化快照背景列表 = (value: unknown): 背景结构[] => {
                     return {
                         名称: name,
                         ...(entry?.数量 != null ? { 数量: Number(entry.数量) } : {}),
-                        ...(entry?.描述 ? { 描述: 读取文本(entry.描述) } : {})
+                        ...(entry?.描述 ? { 描述: 读取文本(entry.描述) } : {}),
+                        ...(entry?.类型 ? { 类型: 读取文本(entry.类型) } : {})
                     };
                 }).filter(Boolean)
                 : undefined;

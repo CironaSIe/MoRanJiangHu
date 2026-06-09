@@ -100,6 +100,7 @@ export type 背景初始物品 = {
     名称: string;
     数量?: number;
     描述?: string;
+    类型?: string;
 };
 
 export interface 背景结构 {
