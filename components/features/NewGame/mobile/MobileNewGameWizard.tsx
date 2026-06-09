@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import GameButton from '../../../ui/GameButton';
-import { 接口设置结构, OpeningConfig, WorldGenConfig, 小说拆分数据集结构, 角色数据结构, 天赋结构, 背景结构, 游戏难度 } from '../../../../types';
+import { 接口设置结构, OpeningConfig, WorldGenConfig, 小说拆分数据集结构, 角色数据结构, 天赋结构, 背景结构, 游戏难度, 世界书结构 } from '../../../../types';
 import { 预设天赋, 预设背景, 获取题材预设天赋, 获取题材预设背景 } from '../../../../data/presets';
 import type { 开局预设方案结构 } from '../../../../data/newGamePresets';
 import { 从模式世界书提取提示词, type 创意工坊模块条目, type 创意工坊模块类型 } from '../../../../data/creativeWorkshopModules';
@@ -10,7 +10,7 @@ import InlineSelect from '../../../ui/InlineSelect';
 import NewGameDiyTools from '../NewGameDiyTools';
 import * as dbService from '../../../../services/dbService';
 import { 读取小说拆分数据集列表 } from '../../../../services/novelDecompositionStore';
-import { 合并去重开局预设方案, 标准化开局预设方案, 生成自定义开局预设ID, 自定义开局预设存储键, 构建开局运行时快照, 构建预设表单恢复结果, 获取快速重开运行时恢复参数 } from '../../../../utils/customNewGamePresets';
+import { 合并去重开局预设方案, 标准化开局预设方案, 生成自定义开局预设ID, 自定义开局预设存储键, 构建开局运行时快照, 构建预设表单恢复结果, 构建预设直开恢复结果, 获取快速重开运行时恢复参数 } from '../../../../utils/customNewGamePresets';
 import {
     获取题材关系侧重选项,
     获取题材开局切入偏好选项,
@@ -229,6 +229,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
     const [自定义背景列表, 设置自定义背景列表] = useState<背景结构[]>([]);
     const [模式包天赋列表, 设置模式包天赋列表] = useState<天赋结构[]>([]);
     const [模式包背景列表, 设置模式包背景列表] = useState<背景结构[]>([]);
+    const [模式包世界书列表, 设置模式包世界书列表] = useState<世界书结构[]>([]);
     const [自定义开局预设列表, 设置自定义开局预设列表] = useState<开局预设方案结构[]>([]);
     const [小说拆分数据集列表, 设置小说拆分数据集列表] = useState<小说拆分数据集结构[]>([]);
     const [创意工坊模块列表, 设置创意工坊模块列表] = useState<创意工坊模块条目[]>([]);
@@ -607,9 +608,21 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
             fallbackBackgrounds: 当前题材预设背景,
             fallbackTalents: 当前题材预设天赋,
             selectedBackgroundCatalog: 全部背景选项,
-            selectedTalentCatalog: 全部天赋选项
+            selectedTalentCatalog: 全部天赋选项,
+            validModuleKeys: new Set(创意工坊模块列表.map((item) => 创意工坊模块键(item)))
         });
-        setWorldConfig(nextWorldConfig);
+        const normalizedOpeningConfig = 规范化可选开局配置(preset.openingConfig);
+        const restoredOpeningConfig = normalizedOpeningConfig
+            ? {
+                ...normalizedOpeningConfig,
+                ...(restored.modeRuntimeProfile ? { modeRuntimeProfile: restored.modeRuntimeProfile } : {}),
+                ...(restored.runtimeSnapshot ? { runtimeSnapshot: restored.runtimeSnapshot } : {})
+            }
+            : 默认开局配置();
+        setWorldConfig({
+            ...nextWorldConfig,
+            ...(restored.modeRuntimeProfile ? { modeRuntimeProfile: restored.modeRuntimeProfile } : {})
+        });
         setCharName(preset.character.姓名);
         setCharGender(preset.character.性别);
         setCharAge(preset.character.年龄);
@@ -620,10 +633,9 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
         setStats(preset.character.属性);
         setSelectedBackground(restored.selectedBackground);
         setSelectedTalents(restored.selectedTalents);
-        const normalizedOpeningConfig = 规范化可选开局配置(preset.openingConfig);
-        const normalizedPartner = normalizedOpeningConfig?.初始伙伴 || 默认初始伙伴配置();
+        const normalizedPartner = restoredOpeningConfig?.初始伙伴 || 默认初始伙伴配置();
         setOpeningConfigEnabled(Boolean(normalizedOpeningConfig) && normalizedOpeningConfig?.配置约束启用 !== false);
-        setOpeningConfig(normalizedOpeningConfig || 默认开局配置());
+        setOpeningConfig(restoredOpeningConfig);
         setPartnerEnabled(normalizedPartner.enabled !== false);
         setPartnerName(normalizedPartner.姓名);
         setPartnerGender(normalizedPartner.性别);
@@ -648,6 +660,9 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
         setActiveModuleExtraRules(restored.activeModuleExtraRules || '');
         设置模式包背景列表(restored.模式包背景列表);
         设置模式包天赋列表(restored.模式包天赋列表);
+        设置模式包世界书列表(restored.modeWorldbooks || []);
+        设置已选创意工坊模式(restored.workshopSelection?.selectedMode || '');
+        设置已选创意工坊子项(restored.workshopSelection?.selectedModules || {});
         if (!options?.保持当前步骤) setStep(1);
     };
     const 当前性别模式: '男' | '女' | '男娘' | '扶她' | '自定义' = ['男', '女', '男娘', '扶她'].includes(charGender.trim())
@@ -735,6 +750,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
         const modeRuntimeProfile = 构建官方模式运行时配置(题材模式);
         设置模式包背景列表([]);
         设置模式包天赋列表([]);
+        设置模式包世界书列表([]);
         setOpeningConfig((prev) => ({
             ...prev,
             题材模式,
@@ -861,7 +877,8 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                         }));
                     }
                 }
-                const modeWorldbooks = Array.isArray(module.modeWorldbooks) ? module.modeWorldbooks : Array.isArray((module.payload as any)?.modeWorldbooks) ? (module.payload as any).modeWorldbooks : undefined;
+                const modeWorldbooks = Array.isArray(module.modeWorldbooks) ? module.modeWorldbooks : Array.isArray((module.payload as any)?.modeWorldbooks) ? (module.payload as any).modeWorldbooks : [];
+                设置模式包世界书列表(modeWorldbooks);
                 const extractedPrompts = 从模式世界书提取提示词(modeWorldbooks);
                 const isModePackage = (module.payload as any)?.packagePart === 'mode_package' || (module.payload as any)?.schema === 'moranjianghu-creative-workshop-mode-package';
                 const topicPrompt = String(extractedPrompts.manualWorldPrompt || (module.payload as any)?.manualWorldPrompt || (!module.preset ? content : '')).trim();
@@ -1315,6 +1332,11 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
             openingStreaming: true,
             openingExtraRequirement: openingExtraRequirement.trim(),
             activeModuleExtraRules: activeModuleExtraRules.trim(),
+            modeWorldbooks: 模式包世界书列表,
+            workshopSelection: {
+                selectedMode: 已选创意工坊模式,
+                selectedModules: 已选创意工坊子项
+            },
             modeBackgrounds: 模式包背景列表,
             modeTalents: 模式包天赋列表
         });
@@ -1489,13 +1511,32 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
                 天赋列表: 根据名称查找天赋列表(preset.character.天赋名称列表)
             })
             : 构建角色数据();
-        const runtimeRestore = 获取快速重开运行时恢复参数({
-            openingConfig: effectiveOpeningConfig,
-            openingStreaming: preset?.openingStreaming,
-            openingExtraRequirement: preset?.openingExtraRequirement ?? openingExtraRequirement,
-            activeModuleExtraRules
-        });
+        const runtimeRestore = preset
+            ? 构建预设直开恢复结果({
+                ...preset,
+                openingConfig: effectiveOpeningConfig,
+                openingExtraRequirement: preset?.openingExtraRequirement ?? openingExtraRequirement
+            }, {
+                validModuleKeys: new Set(创意工坊模块列表.map((item) => 创意工坊模块键(item)))
+            })
+            : 获取快速重开运行时恢复参数({
+                openingConfig: effectiveOpeningConfig,
+                openingExtraRequirement: openingExtraRequirement,
+                activeModuleExtraRules,
+                openingStreaming: true,
+                validModuleKeys: new Set(创意工坊模块列表.map((item) => 创意工坊模块键(item)))
+            });
         const effectiveOpeningExtraRequirement = runtimeRestore.openingExtraRequirement || '';
+        const runtimeOpeningConfig = runtimeRestore.modeRuntimeProfile || runtimeRestore.runtimeSnapshot
+            ? {
+                ...effectiveOpeningConfig,
+                ...(runtimeRestore.modeRuntimeProfile ? { modeRuntimeProfile: runtimeRestore.modeRuntimeProfile } : {}),
+                ...(runtimeRestore.runtimeSnapshot ? { runtimeSnapshot: runtimeRestore.runtimeSnapshot } : {})
+            }
+            : effectiveOpeningConfig;
+        const runtimeWorldConfig = runtimeRestore.modeRuntimeProfile
+            ? { ...effectiveWorldConfig, modeRuntimeProfile: runtimeRestore.modeRuntimeProfile }
+            : effectiveWorldConfig;
         const ok = requestConfirm
             ? await requestConfirm({
                 title: '确认创建',
@@ -1504,7 +1545,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
             })
             : true;
         if (!ok) return;
-        onComplete(effectiveWorldConfig, charData, effectiveOpeningConfig, 'all', runtimeRestore.openingStreaming, effectiveOpeningExtraRequirement.trim(), runtimeRestore.activeModuleExtraRules || undefined);
+        onComplete(runtimeWorldConfig, charData, runtimeOpeningConfig, 'all', runtimeRestore.openingStreaming, effectiveOpeningExtraRequirement.trim(), runtimeRestore.activeModuleExtraRules || undefined);
     };
 
     if (loading) {

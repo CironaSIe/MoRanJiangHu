@@ -1,5 +1,6 @@
-import type { OpeningConfig, OpeningRuntimeSnapshot, 天赋结构, 背景结构 } from '../types';
+import type { OpeningConfig, OpeningRuntimeSnapshot, 天赋结构, 背景结构, ModeRuntimeProfile, 世界书结构 } from '../types';
 import type { 开局预设方案结构 } from '../data/newGamePresets';
+import { 创意工坊模块列表, type 创意工坊模块条目 } from '../data/creativeWorkshopModules';
 import { 属性最大值, 属性最小值, 规范化可选开局配置 } from './openingConfig';
 import { 规范化模式运行时配置 } from './modeRuntimeProfile';
 import { normalizeRealmDraft, normalizeWorldMapDraft } from './newGameDiy';
@@ -115,12 +116,132 @@ const 合并去重天赋 = (rawList: 天赋结构[]): 天赋结构[] => {
     return Array.from(map.values());
 };
 
+const 标准化世界书列表 = (rawList: unknown): 世界书结构[] => Array.isArray(rawList) ? rawList as 世界书结构[] : [];
+
+const 创意工坊模块键 = (entry: 创意工坊模块条目): string => `${entry.source || 'builtin'}:${entry.id}`;
+
+const 按键查找创意工坊模块 = (moduleKey: string): 创意工坊模块条目 | undefined => (
+    创意工坊模块列表.find((item) => 创意工坊模块键(item) === moduleKey)
+);
+
+const 提取模块背景列表 = (module: 创意工坊模块条目): 背景结构[] => {
+    const payload = module.payload as any;
+    const rawList = Array.isArray(payload?.backgrounds)
+        ? payload.backgrounds
+        : Array.isArray(payload?.characterBackgrounds)
+            ? payload.characterBackgrounds
+            : [];
+    return 合并去重背景(rawList as 背景结构[]);
+};
+
+const 提取模块天赋列表 = (module: 创意工坊模块条目): 天赋结构[] => {
+    const payload = module.payload as any;
+    const rawList = Array.isArray(payload?.talents)
+        ? payload.talents
+        : Array.isArray(payload?.characterTalents)
+            ? payload.characterTalents
+            : [];
+    return 合并去重天赋(rawList as 天赋结构[]);
+};
+
+const 提取模块世界书列表 = (module: 创意工坊模块条目): 世界书结构[] => {
+    const payload = module.payload as any;
+    return 标准化世界书列表(module.modeWorldbooks || payload?.modeWorldbooks);
+};
+
+const 构建模块额外规则文本 = (module: 创意工坊模块条目, backgrounds: 背景结构[], talents: 天赋结构[]): string => {
+    const extraParts: string[] = [];
+    if (module.safetyNotes?.length) {
+        extraParts.push('【模块安全说明】', ...module.safetyNotes.map((n) => `- ${n}`));
+    }
+    if (module.usagePrompt) {
+        extraParts.push('【模块使用说明】', module.usagePrompt);
+    }
+    if (backgrounds.length > 0) {
+        extraParts.push(
+            '【本世界可用出身背景池】',
+            ...backgrounds.map((b, i) => `${i + 1}. ${b.名称}：${b.描述}${b.效果 ? `（效果：${b.效果}）` : ''}`)
+        );
+    }
+    if (talents.length > 0) {
+        extraParts.push(
+            '【本世界可用天赋池】',
+            ...talents.map((t, i) => `${i + 1}. ${t.名称}：${t.描述}${t.效果 ? `（效果：${t.效果}）` : ''}`)
+        );
+    }
+    return extraParts.join('\n').trim();
+};
+
+const 增量合并模式运行时配置 = (
+    previousProfile: ModeRuntimeProfile | undefined,
+    nextProfile: ModeRuntimeProfile | undefined,
+    fallbackMode: OpeningConfig['题材模式'] | undefined
+): ModeRuntimeProfile | undefined => {
+    if (!previousProfile && !nextProfile) return fallbackMode ? 规范化模式运行时配置(undefined, fallbackMode) : undefined;
+    if (!previousProfile && nextProfile) return 规范化模式运行时配置(nextProfile, fallbackMode || nextProfile.identity.baseMode);
+    if (previousProfile && !nextProfile) return 规范化模式运行时配置(previousProfile, fallbackMode || previousProfile.identity.baseMode);
+    return 规范化模式运行时配置({
+        ...(previousProfile as any),
+        ...(nextProfile as any),
+        identity: {
+            ...(previousProfile as any).identity,
+            ...(nextProfile as any).identity
+        },
+        economy: {
+            ...(previousProfile as any).economy,
+            ...(nextProfile as any).economy
+        },
+        time: {
+            ...(previousProfile as any).time,
+            ...(nextProfile as any).time
+        },
+        organization: {
+            ...(previousProfile as any).organization,
+            ...(nextProfile as any).organization
+        },
+        ability: {
+            ...(previousProfile as any).ability,
+            ...(nextProfile as any).ability
+        },
+        items: {
+            ...(previousProfile as any).items,
+            ...(nextProfile as any).items
+        },
+        map: {
+            ...(previousProfile as any).map,
+            ...(nextProfile as any).map
+        },
+        task: {
+            ...(previousProfile as any).task,
+            ...(nextProfile as any).task
+        },
+        npc: {
+            ...(previousProfile as any).npc,
+            ...(nextProfile as any).npc
+        },
+        image: {
+            ...(previousProfile as any).image,
+            ...(nextProfile as any).image
+        },
+        opening: {
+            ...(previousProfile as any).opening,
+            ...(nextProfile as any).opening
+        },
+        validation: {
+            ...(previousProfile as any).validation,
+            ...(nextProfile as any).validation
+        }
+    }, fallbackMode || nextProfile?.identity.baseMode || previousProfile?.identity.baseMode);
+};
+
 export const 构建开局运行时快照 = (params: {
     openingConfig?: OpeningConfig;
     openingStreaming?: boolean;
     openingExtraRequirement?: string;
     openingExtraPrompt?: string;
     activeModuleExtraRules?: string;
+    modeWorldbooks?: any[];
+    workshopSelection?: OpeningRuntimeSnapshot['workshopSelection'];
     modeBackgrounds?: 背景结构[];
     modeTalents?: 天赋结构[];
 }): OpeningRuntimeSnapshot | undefined => {
@@ -131,6 +252,17 @@ export const 构建开局运行时快照 = (params: {
         openingExtraRequirement: 标准化文本(params.openingExtraRequirement),
         openingExtraPrompt: 标准化文本(params.openingExtraPrompt),
         activeModuleExtraRules: 标准化文本(params.activeModuleExtraRules),
+        ...(Array.isArray(params.modeWorldbooks) && params.modeWorldbooks.length > 0 ? { modeWorldbooks: params.modeWorldbooks } : {}),
+        ...(params.workshopSelection?.selectedMode || Object.keys(params.workshopSelection?.selectedModules || {}).length > 0
+            ? {
+                workshopSelection: {
+                    selectedMode: params.workshopSelection?.selectedMode || '',
+                    ...(Object.keys(params.workshopSelection?.selectedModules || {}).length > 0
+                        ? { selectedModules: params.workshopSelection?.selectedModules }
+                        : {})
+                }
+            }
+            : {}),
         ...(modeBackgrounds.length > 0 ? { modeBackgrounds } : {}),
         ...(modeTalents.length > 0 ? { modeTalents } : {})
     };
@@ -139,6 +271,9 @@ export const 构建开局运行时快照 = (params: {
         && !snapshot.openingExtraRequirement
         && !snapshot.openingExtraPrompt
         && !snapshot.activeModuleExtraRules
+        && (!snapshot.modeWorldbooks || snapshot.modeWorldbooks.length <= 0)
+        && !snapshot.workshopSelection?.selectedMode
+        && (!snapshot.workshopSelection?.selectedModules || Object.keys(snapshot.workshopSelection.selectedModules).length <= 0)
         && modeBackgrounds.length <= 0
         && modeTalents.length <= 0
     ) {
@@ -147,20 +282,72 @@ export const 构建开局运行时快照 = (params: {
     return snapshot;
 };
 
+const 校准工坊运行时恢复结果 = (params: {
+    openingConfig?: OpeningConfig;
+    openingStreaming?: boolean;
+    openingExtraPrompt?: string;
+    openingExtraRequirement?: string;
+    activeModuleExtraRules?: string;
+    validModuleKeys?: Set<string>;
+}) => {
+    const snapshot = params.openingConfig?.runtimeSnapshot;
+    const workshopSelection = 过滤有效工坊选择(snapshot?.workshopSelection, params.validModuleKeys);
+    const selectedModules = workshopSelection?.selectedModules || {};
+    const selectedEntries = Object.values(selectedModules)
+        .map((moduleKey) => 按键查找创意工坊模块(标准化文本(moduleKey)))
+        .filter((item): item is 创意工坊模块条目 => Boolean(item));
+
+    const topicEntry = selectedModules.topic ? 按键查找创意工坊模块(标准化文本(selectedModules.topic)) : undefined;
+    const modeBackgrounds = topicEntry ? 提取模块背景列表(topicEntry) : 合并去重背景(snapshot?.modeBackgrounds || []);
+    const modeTalents = topicEntry ? 提取模块天赋列表(topicEntry) : 合并去重天赋(snapshot?.modeTalents || []);
+    const modeWorldbooks = topicEntry ? 提取模块世界书列表(topicEntry) : 标准化世界书列表(snapshot?.modeWorldbooks);
+    const activeModuleExtraRules = topicEntry
+        ? 构建模块额外规则文本(topicEntry, modeBackgrounds, modeTalents)
+        : 标准化文本(snapshot?.activeModuleExtraRules || params.activeModuleExtraRules);
+
+    const mergedRuntimeProfile = selectedEntries.reduce<ModeRuntimeProfile | undefined>((acc, entry) => {
+        const rawProfile = entry.modeRuntimeProfile || (entry.payload as any)?.modeRuntimeProfile;
+        const nextProfile = rawProfile
+            ? 规范化模式运行时配置(rawProfile, params.openingConfig?.题材模式)
+            : undefined;
+        return 增量合并模式运行时配置(acc, nextProfile, params.openingConfig?.题材模式);
+    }, params.openingConfig?.modeRuntimeProfile);
+
+    const normalizedSnapshot = 构建开局运行时快照({
+        openingConfig: params.openingConfig,
+        openingStreaming: snapshot?.openingStreaming ?? params.openingStreaming,
+        openingExtraPrompt: snapshot?.openingExtraPrompt || params.openingExtraPrompt,
+        openingExtraRequirement: snapshot?.openingExtraRequirement || params.openingExtraRequirement,
+        activeModuleExtraRules,
+        modeWorldbooks,
+        workshopSelection,
+        modeBackgrounds,
+        modeTalents
+    });
+
+    return {
+        openingStreaming: snapshot?.openingStreaming ?? params.openingStreaming !== false,
+        openingExtraPrompt: 标准化文本(snapshot?.openingExtraPrompt || params.openingExtraPrompt),
+        openingExtraRequirement: 标准化文本(snapshot?.openingExtraRequirement || params.openingExtraRequirement),
+        activeModuleExtraRules,
+        modeWorldbooks,
+        workshopSelection,
+        modeBackgrounds,
+        modeTalents,
+        modeRuntimeProfile: mergedRuntimeProfile,
+        runtimeSnapshot: normalizedSnapshot
+    };
+};
+
 export const 获取快速重开运行时恢复参数 = (params: {
     openingConfig?: OpeningConfig;
     openingStreaming?: boolean;
     openingExtraPrompt?: string;
     openingExtraRequirement?: string;
     activeModuleExtraRules?: string;
+    validModuleKeys?: Set<string>;
 }) => {
-    const snapshot = params.openingConfig?.runtimeSnapshot;
-    return {
-        openingStreaming: snapshot?.openingStreaming ?? params.openingStreaming !== false,
-        openingExtraPrompt: 标准化文本(snapshot?.openingExtraPrompt || params.openingExtraPrompt),
-        openingExtraRequirement: 标准化文本(snapshot?.openingExtraRequirement || params.openingExtraRequirement),
-        activeModuleExtraRules: 标准化文本(snapshot?.activeModuleExtraRules || params.activeModuleExtraRules)
-    };
+    return 校准工坊运行时恢复结果(params);
 };
 
 export const 构建预设表单恢复结果 = (
@@ -170,11 +357,17 @@ export const 构建预设表单恢复结果 = (
         fallbackTalents: 天赋结构[];
         selectedBackgroundCatalog?: 背景结构[];
         selectedTalentCatalog?: 天赋结构[];
+        validModuleKeys?: Set<string>;
     }
 ) => {
-    const snapshot = preset.openingConfig?.runtimeSnapshot;
-    const 模式包背景列表 = 合并去重背景(snapshot?.modeBackgrounds || []);
-    const 模式包天赋列表 = 合并去重天赋(snapshot?.modeTalents || []);
+    const runtimeRestore = 获取快速重开运行时恢复参数({
+        openingConfig: preset.openingConfig,
+        openingStreaming: preset.openingStreaming,
+        openingExtraRequirement: preset.openingExtraRequirement,
+        validModuleKeys: options.validModuleKeys
+    });
+    const 模式包背景列表 = 合并去重背景(runtimeRestore.modeBackgrounds || []);
+    const 模式包天赋列表 = 合并去重天赋(runtimeRestore.modeTalents || []);
     const 已选背景兜底列表 = 合并去重背景(options.selectedBackgroundCatalog || []);
     const 已选天赋兜底列表 = 合并去重天赋(options.selectedTalentCatalog || []);
     const 全部背景选项 = 合并去重背景([
@@ -193,18 +386,69 @@ export const 构建预设表单恢复结果 = (
     const selectedTalents = (Array.isArray(preset.character?.天赋名称列表) ? preset.character.天赋名称列表 : [])
         .map((name) => 全部天赋选项.find((item) => item.名称 === 标准化文本(name)))
         .filter(Boolean) as 天赋结构[];
-    const runtimeRestore = 获取快速重开运行时恢复参数({
-        openingConfig: preset.openingConfig,
-        openingStreaming: preset.openingStreaming,
-        openingExtraRequirement: preset.openingExtraRequirement
-    });
     return {
+        ...runtimeRestore,
         模式包背景列表,
         模式包天赋列表,
         全部背景选项,
         全部天赋选项,
         selectedBackground,
         selectedTalents,
-        ...runtimeRestore
+        modeWorldbooks: runtimeRestore.modeWorldbooks,
+        workshopSelection: runtimeRestore.workshopSelection
+    };
+};
+
+const 过滤有效工坊选择 = (
+    selection: OpeningRuntimeSnapshot['workshopSelection'],
+    validModuleKeys?: Set<string>
+): OpeningRuntimeSnapshot['workshopSelection'] => {
+    if (!selection) return undefined;
+    const selectedModules = Object.fromEntries(
+        Object.entries(selection.selectedModules || {}).filter(([, key]) => {
+            const normalized = 标准化文本(key);
+            if (!normalized) return false;
+            if (!validModuleKeys) return true;
+            return validModuleKeys.has(normalized);
+        })
+    ) as NonNullable<OpeningRuntimeSnapshot['workshopSelection']>['selectedModules'];
+    const selectedMode = 标准化文本(selection.selectedMode) as OpeningRuntimeSnapshot['workshopSelection']['selectedMode'];
+    if (!selectedMode && Object.keys(selectedModules || {}).length <= 0) return undefined;
+    return {
+        ...(selectedMode ? { selectedMode } : {}),
+        ...(Object.keys(selectedModules || {}).length > 0 ? { selectedModules } : {})
+    };
+};
+
+export const 构建预设直开恢复结果 = (
+    preset: 开局预设方案结构,
+    options?: {
+        validModuleKeys?: Set<string>;
+    }
+) => {
+    const runtimeRestore = 获取快速重开运行时恢复参数({
+        openingConfig: preset.openingConfig,
+        openingStreaming: preset.openingStreaming,
+        openingExtraRequirement: preset.openingExtraRequirement,
+        validModuleKeys: options?.validModuleKeys
+    });
+    const openingConfig = preset.openingConfig && (runtimeRestore.modeRuntimeProfile || runtimeRestore.runtimeSnapshot)
+        ? {
+            ...preset.openingConfig,
+            ...(runtimeRestore.modeRuntimeProfile ? { modeRuntimeProfile: runtimeRestore.modeRuntimeProfile } : {}),
+            ...(runtimeRestore.runtimeSnapshot ? { runtimeSnapshot: runtimeRestore.runtimeSnapshot } : {})
+        }
+        : preset.openingConfig;
+    return {
+        worldConfig: preset.worldConfig,
+        character: preset.character,
+        openingConfig,
+        openingStreaming: runtimeRestore.openingStreaming,
+        openingExtraRequirement: runtimeRestore.openingExtraRequirement,
+        activeModuleExtraRules: runtimeRestore.activeModuleExtraRules,
+        modeWorldbooks: runtimeRestore.modeWorldbooks,
+        workshopSelection: runtimeRestore.workshopSelection,
+        modeRuntimeProfile: runtimeRestore.modeRuntimeProfile,
+        runtimeSnapshot: runtimeRestore.runtimeSnapshot
     };
 };

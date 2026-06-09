@@ -414,6 +414,15 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
             openingExtraRequirement: openingConfig?.runtimeSnapshot?.openingExtraRequirement,
             activeModuleExtraRules: openingConfig?.runtimeSnapshot?.activeModuleExtraRules
         });
+        if (openingConfig && (restoredRuntime.modeRuntimeProfile || restoredRuntime.runtimeSnapshot)) {
+            if (restoredRuntime.modeRuntimeProfile) {
+                openingConfig.modeRuntimeProfile = restoredRuntime.modeRuntimeProfile;
+                worldConfig.modeRuntimeProfile = restoredRuntime.modeRuntimeProfile;
+            }
+            if (restoredRuntime.runtimeSnapshot) {
+                openingConfig.runtimeSnapshot = restoredRuntime.runtimeSnapshot;
+            }
+        }
         const openingStreaming = restoredRuntime.openingStreaming;
         const openingExtraPrompt = restoredRuntime.openingExtraPrompt || '';
         const currentApi = 获取主剧情接口配置(deps.apiConfig);

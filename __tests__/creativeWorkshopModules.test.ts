@@ -159,6 +159,23 @@ describe('creativeWorkshopModules', () => {
                     openingExtraRequirement: '恢复这个额外要求',
                     openingExtraPrompt: '恢复这个额外提示',
                     activeModuleExtraRules: '恢复模块额外规则',
+                    modeWorldbooks: [{
+                        id: 'book-1',
+                        标题: '模式世界书',
+                        描述: '模式说明',
+                        常驻大纲: '',
+                        启用: true,
+                        内置: false,
+                        条目: [],
+                        创建时间: 0,
+                        更新时间: 0
+                    }],
+                    workshopSelection: {
+                        selectedMode: '武侠',
+                        selectedModules: {
+                            topic: 'builtin:topic-wuxia'
+                        }
+                    },
                     modeBackgrounds: [
                         { 名称: '工坊背景', 描述: '描述', 效果: '效果' }
                     ],
@@ -176,6 +193,23 @@ describe('creativeWorkshopModules', () => {
             openingExtraRequirement: '恢复这个额外要求',
             openingExtraPrompt: '恢复这个额外提示',
             activeModuleExtraRules: '恢复模块额外规则',
+            modeWorldbooks: [{
+                id: 'book-1',
+                标题: '模式世界书',
+                描述: '模式说明',
+                常驻大纲: '',
+                启用: true,
+                内置: false,
+                条目: [],
+                创建时间: 0,
+                更新时间: 0
+            }],
+            workshopSelection: {
+                selectedMode: '武侠',
+                selectedModules: {
+                    topic: 'builtin:topic-wuxia'
+                }
+            },
             modeBackgrounds: [
                 { 名称: '工坊背景', 描述: '描述', 效果: '效果' }
             ],
@@ -328,6 +362,271 @@ describe('creativeWorkshopModules', () => {
         expect(restored.全部天赋选项.map((item) => item.名称)).toContain('纯阳体质');
         expect(restored.全部天赋选项.map((item) => item.名称)).toContain('劫后回甘');
         expect(restored.selectedTalents.map((item) => item.名称)).toEqual(['纯阳体质', '劫后回甘']);
+    });
+
+    it('预设表单恢复结果保留模式世界书与工坊模块选择状态', () => {
+        const preset = 标准化开局预设方案({
+            id: 'restore_workshop_selection',
+            名称: '恢复工坊模块选择',
+            简介: '验证模块选择状态与世界书恢复',
+            worldConfig: {
+                worldName: '测试世界',
+                worldSize: '九州宏大',
+                dynastySetting: '测试王朝',
+                sectDensity: '适中',
+                tianjiaoSetting: '测试天骄',
+                difficulty: 'normal',
+                worldExtraRequirement: '',
+                manualWorldPrompt: '',
+                manualRealmPrompt: ''
+            },
+            character: {
+                姓名: '测试角色',
+                性别: '男',
+                年龄: 18,
+                出生月: 1,
+                出生日: 1,
+                外貌: '普通',
+                性格: '谨慎',
+                属性: { 力量: 5, 敏捷: 5, 体质: 5, 根骨: 5, 悟性: 5, 福源: 5 },
+                背景名称: '宗门旧徒',
+                天赋名称列表: ['稳扎稳打']
+            },
+            openingConfig: {
+                题材模式: '武侠',
+                初始关系模板: '随机邂逅',
+                关系侧重: ['友情'],
+                开局切入偏好: '市井起手',
+                开局生成门派: true,
+                开局生成同门: false,
+                同人融合: {
+                    enabled: false,
+                    作品名: '',
+                    来源类型: '小说',
+                    融合强度: '轻度映射',
+                    保留原著角色: false,
+                    启用角色替换: false,
+                    替换目标角色名: '',
+                    附加替换角色名列表: [],
+                    附加角色替换规则列表: [],
+                    启用附加小说: false,
+                    附加小说数据集ID: ''
+                },
+                runtimeSnapshot: {
+                    modeWorldbooks: [{
+                        id: 'topic-book',
+                        标题: '题材口径',
+                        描述: '题材说明',
+                        常驻大纲: '',
+                        启用: true,
+                        内置: false,
+                        条目: [],
+                        创建时间: 0,
+                        更新时间: 0
+                    }],
+                    workshopSelection: {
+                        selectedMode: '武侠',
+                        selectedModules: {
+                            topic: 'builtin:topic-wuxia',
+                            world_rules: 'builtin:world-rules-wuxia',
+                            ability: 'builtin:ability-wuxia'
+                        }
+                    }
+                }
+            }
+        });
+
+        const restored = 构建预设表单恢复结果(preset!, {
+            fallbackBackgrounds: 获取题材预设背景('武侠'),
+            fallbackTalents: 获取题材预设天赋('武侠')
+        });
+
+        expect(restored.modeWorldbooks?.map((item) => item.id)).toEqual(['topic-book']);
+        expect(restored.workshopSelection).toEqual({
+            selectedMode: '武侠',
+            selectedModules: {
+                topic: 'builtin:topic-wuxia',
+                world_rules: 'builtin:world-rules-wuxia',
+                ability: 'builtin:ability-wuxia'
+            }
+        });
+    });
+
+    it('预设表单恢复结果会过滤失效的工坊模块选择', () => {
+        const preset = 标准化开局预设方案({
+            id: 'restore_workshop_selection_filtered',
+            名称: '恢复工坊模块选择过滤',
+            简介: '验证表单恢复会过滤失效模块',
+            worldConfig: {
+                worldName: '测试世界',
+                worldSize: '九州宏大',
+                dynastySetting: '测试王朝',
+                sectDensity: '适中',
+                tianjiaoSetting: '测试天骄',
+                difficulty: 'normal',
+                worldExtraRequirement: '',
+                manualWorldPrompt: '',
+                manualRealmPrompt: ''
+            },
+            character: {
+                姓名: '测试角色',
+                性别: '男',
+                年龄: 18,
+                出生月: 1,
+                出生日: 1,
+                外貌: '普通',
+                性格: '谨慎',
+                属性: { 力量: 5, 敏捷: 5, 体质: 5, 根骨: 5, 悟性: 5, 福源: 5 },
+                背景名称: '宗门旧徒',
+                天赋名称列表: ['稳扎稳打']
+            },
+            openingConfig: {
+                题材模式: '武侠',
+                初始关系模板: '随机邂逅',
+                关系侧重: ['友情'],
+                开局切入偏好: '市井起手',
+                开局生成门派: true,
+                开局生成同门: false,
+                同人融合: {
+                    enabled: false,
+                    作品名: '',
+                    来源类型: '小说',
+                    融合强度: '轻度映射',
+                    保留原著角色: false,
+                    启用角色替换: false,
+                    替换目标角色名: '',
+                    附加替换角色名列表: [],
+                    附加角色替换规则列表: [],
+                    启用附加小说: false,
+                    附加小说数据集ID: ''
+                },
+                runtimeSnapshot: {
+                    workshopSelection: {
+                        selectedMode: '武侠',
+                        selectedModules: {
+                            topic: 'builtin:topic-wuxia',
+                            world_rules: 'missing:world-rules',
+                            ability: 'builtin:ability-wuxia'
+                        }
+                    }
+                }
+            }
+        });
+
+        const restored = 构建预设表单恢复结果(preset!, {
+            fallbackBackgrounds: 获取题材预设背景('武侠'),
+            fallbackTalents: 获取题材预设天赋('武侠'),
+            validModuleKeys: new Set(['builtin:topic-wuxia', 'builtin:ability-wuxia'])
+        });
+
+        expect(restored.workshopSelection).toEqual({
+            selectedMode: '武侠',
+            selectedModules: {
+                topic: 'builtin:topic-wuxia',
+                ability: 'builtin:ability-wuxia'
+            }
+        });
+    });
+
+    it('预设表单恢复结果会按当前有效模块静默校准派生状态且不依赖旧快照残留', () => {
+        const wuxiaTopic = 创意工坊模块列表.find((entry) => entry.source === 'builtin' && entry.id === 'mode-package-武侠');
+        expect(wuxiaTopic).toBeTruthy();
+        const preset = 标准化开局预设方案({
+            id: 'restore_controlled_replay_recalibration',
+            名称: '静默校准恢复',
+            简介: '验证恢复后按当前模块静默校准派生状态',
+            worldConfig: {
+                worldName: '测试世界',
+                worldSize: '九州宏大',
+                dynastySetting: '测试王朝',
+                sectDensity: '适中',
+                tianjiaoSetting: '测试天骄',
+                difficulty: 'normal',
+                worldExtraRequirement: '旧世界要求',
+                manualWorldPrompt: '旧世界提示',
+                manualRealmPrompt: '旧境界提示'
+            },
+            character: {
+                姓名: '测试角色',
+                性别: '男',
+                年龄: 18,
+                出生月: 1,
+                出生日: 1,
+                外貌: '普通',
+                性格: '谨慎',
+                属性: { 力量: 5, 敏捷: 5, 体质: 5, 根骨: 5, 悟性: 5, 福源: 5 },
+                背景名称: '宗门旧徒',
+                天赋名称列表: ['稳扎稳打']
+            },
+            openingConfig: {
+                题材模式: '武侠',
+                初始关系模板: '随机邂逅',
+                关系侧重: ['友情'],
+                开局切入偏好: '市井起手',
+                开局生成门派: true,
+                开局生成同门: false,
+                modeRuntimeProfile: {
+                    ...(wuxiaTopic!.modeRuntimeProfile as any),
+                    identity: {
+                        ...(wuxiaTopic!.modeRuntimeProfile as any).identity,
+                        displayName: '过期模式名'
+                    }
+                },
+                同人融合: {
+                    enabled: false,
+                    作品名: '',
+                    来源类型: '小说',
+                    融合强度: '轻度映射',
+                    保留原著角色: false,
+                    启用角色替换: false,
+                    替换目标角色名: '',
+                    附加替换角色名列表: [],
+                    附加角色替换规则列表: [],
+                    启用附加小说: false,
+                    附加小说数据集ID: ''
+                },
+                runtimeSnapshot: {
+                    activeModuleExtraRules: '旧模块规则',
+                    modeWorldbooks: [{
+                        id: 'stale-book',
+                        标题: '过期世界书',
+                        描述: '过期说明',
+                        常驻大纲: '',
+                        启用: true,
+                        内置: false,
+                        条目: [],
+                        创建时间: 0,
+                        更新时间: 0
+                    }],
+                    modeBackgrounds: [
+                        { 名称: '过期背景', 描述: '过期描述', 效果: '过期效果' }
+                    ],
+                    modeTalents: [
+                        { 名称: '过期天赋', 描述: '过期描述', 效果: '过期效果' }
+                    ],
+                    workshopSelection: {
+                        selectedMode: '武侠',
+                        selectedModules: {
+                            topic: 'builtin:mode-package-武侠'
+                        }
+                    }
+                }
+            }
+        });
+
+        const restored = 构建预设表单恢复结果(preset!, {
+            fallbackBackgrounds: 获取题材预设背景('武侠'),
+            fallbackTalents: 获取题材预设天赋('武侠'),
+            validModuleKeys: new Set(['builtin:mode-package-武侠'])
+        });
+
+        expect(restored.模式包背景列表.map((item) => item.名称)).not.toContain('过期背景');
+        expect(restored.模式包背景列表.map((item) => item.名称)).toEqual((wuxiaTopic!.payload.backgrounds as any[]).map((item) => item.名称));
+        expect(restored.模式包天赋列表.map((item) => item.名称)).not.toContain('过期天赋');
+        expect(restored.模式包天赋列表.map((item) => item.名称)).toEqual((wuxiaTopic!.payload.talents as any[]).map((item) => item.名称));
+        expect(restored.modeWorldbooks?.map((item) => item.id)).toEqual(wuxiaTopic!.modeWorldbooks?.map((item) => item.id));
+        expect(restored.activeModuleExtraRules).not.toBe('旧模块规则');
+        expect(restored.modeRuntimeProfile?.identity.displayName).toBe(wuxiaTopic!.modeRuntimeProfile?.identity.displayName);
     });
 
     it('开局配置保留在新建存档流程，不作为创意工坊分区模块', () => {
