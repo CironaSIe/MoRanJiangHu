@@ -168,22 +168,12 @@ const 补入对白发送者到社交 = (
     const logs = Array.isArray(response?.logs) ? response.logs : [];
     if (logs.length <= 0) return socialList;
 
-    const existingKeys = new Set(
-        (Array.isArray(socialList) ? socialList : [])
-            .flatMap((npc: any) => [npc?.id, ...读取NPC名称列表(npc)])
-            .map(归一化文本键)
-            .filter(Boolean)
-    );
     const dialogueNameKeys = new Set<string>();
-    const pendingNames: string[] = [];
     logs.forEach((log: any) => {
         const sender = typeof log?.sender === 'string' ? log.sender.trim() : '';
         const key = 归一化文本键(sender);
         if (!是否对白NPC发送者(sender, playerName)) return;
         dialogueNameKeys.add(key);
-        if (existingKeys.has(key)) return;
-        existingKeys.add(key);
-        pendingNames.push(sender);
     });
 
     const markedSocialList = (Array.isArray(socialList) ? socialList : []).map((npc: any) => {
@@ -195,26 +185,7 @@ const 补入对白发送者到社交 = (
             自动补全头像: true
         };
     });
-
-    if (pendingNames.length <= 0) return markedSocialList;
-    const inferredNpcs = pendingNames.map((name) => ({
-        id: `npc_dialogue_${稳定哈希文本(name)}`,
-        姓名: name,
-        性别: '未知',
-        年龄: undefined,
-        境界: '未知境界',
-        身份: '剧情对话人物',
-        是否在场: true,
-        是否队友: false,
-        是否主要角色: false,
-        对白登场: true,
-        自动补全头像: true,
-        好感度: 0,
-        关系状态: '初识',
-        简介: `在剧情对话中登场的人物：${name}。`,
-        记忆: []
-    }));
-    return [...markedSocialList, ...inferredNpcs];
+    return markedSocialList;
 };
 
 const 拆分事实句 = (text: string): string[] => (

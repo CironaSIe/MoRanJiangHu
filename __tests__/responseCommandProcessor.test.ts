@@ -31,7 +31,7 @@ const deps = {
 };
 
 describe('responseCommandProcessor dialogue social sync', () => {
-    it('adds non-player dialogue speakers to social as dialogue NPCs for avatar backfill', () => {
+    it('does not promote new dialogue speakers into long-term social records without stronger structured evidence', () => {
         const state = 构建基础状态();
         const result = 执行响应命令处理({
             logs: [
@@ -43,16 +43,7 @@ describe('responseCommandProcessor dialogue social sync', () => {
             tavern_commands: []
         } as any, state, deps, undefined, { applyState: false });
 
-        expect(result.社交).toHaveLength(1);
-        expect(result.社交[0]).toMatchObject({
-            姓名: '杨青儿',
-            身份: '江湖人物',
-            是否主要角色: false,
-            是否在场: true,
-            对白登场: true,
-            自动补全头像: true
-        });
-        expect(result.社交[0].id).toMatch(/^npc_dialogue_/);
+        expect(result.社交).toHaveLength(0);
     });
 
     it('keeps existing social NPCs instead of duplicating dialogue speakers', () => {
@@ -70,6 +61,40 @@ describe('responseCommandProcessor dialogue social sync', () => {
         expect(result.社交[0].id).toBe('npc_yang_qinger');
         expect(result.社交[0].对白登场).toBe(true);
         expect(result.社交[0].自动补全头像).toBe(true);
+    });
+
+    it('promotes a dialogue speaker into social only when the same turn also contains structured social evidence', () => {
+        const state = 构建基础状态();
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '杨青儿', text: '兄长，前厅来客了。' }
+            ],
+            tavern_commands: [
+                {
+                    action: 'push',
+                    key: '社交',
+                    value: {
+                        id: 'npc_yang_qinger',
+                        姓名: '杨青儿',
+                        性别: '女',
+                        身份: '杨家族妹',
+                        是否在场: true,
+                        记忆: []
+                    }
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交).toHaveLength(1);
+        expect(result.社交[0]).toMatchObject({
+            id: 'npc_yang_qinger',
+            姓名: '杨青儿',
+            性别: '女',
+            身份: '杨家族妹',
+            是否在场: true,
+            对白登场: true,
+            自动补全头像: true
+        });
     });
 
     it('adds a child NPC when an adult pregnant character gives birth', () => {
@@ -168,7 +193,7 @@ describe('responseCommandProcessor dialogue social sync', () => {
         expect(result.社交.find((npc: any) => npc.id === 'npc_lu_mingke')?.好感度).toBe(0);
     });
 
-    it('does not add narration fragments as dialogue NPCs', () => {
+    it('does not auto-create long-term social NPCs from dialogue alone, even when noise speakers are filtered out', () => {
         const state = 构建基础状态();
         const result = 执行响应命令处理({
             logs: [
@@ -178,10 +203,10 @@ describe('responseCommandProcessor dialogue social sync', () => {
             tavern_commands: []
         } as any, state, deps, undefined, { applyState: false });
 
-        expect(result.社交.map((npc: any) => npc.姓名)).toEqual(['杨青儿']);
+        expect(result.社交).toHaveLength(0);
     });
 
-    it('filters false dialogue names that do not start with a known Chinese surname', () => {
+    it('filters false dialogue names, but still leaves real speakers to later structured social generation instead of auto-archiving them', () => {
         const state = 构建基础状态();
         const result = 执行响应命令处理({
             logs: [
@@ -192,7 +217,7 @@ describe('responseCommandProcessor dialogue social sync', () => {
             tavern_commands: []
         } as any, state, deps, undefined, { applyState: false });
 
-        expect(result.社交.map((npc: any) => npc.姓名)).toEqual(['俞月荷']);
+        expect(result.社交).toHaveLength(0);
     });
 
     it('rejects new social NPC commands when the name never appears in story facts or dialogue', () => {
