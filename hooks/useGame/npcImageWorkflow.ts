@@ -154,8 +154,8 @@ const 合并生图历史记录 = (currentNpc: any, incoming: any): any[] => {
 
 const 读取目标性别 = (source: any): '男' | '女' | '' => {
     const gender = typeof source?.性别 === 'string' ? source.性别.trim() : '';
-    if (gender === '男' || gender.includes('男')) return '男';
-    if (gender === '女' || gender.includes('女')) return '女';
+    if (gender === '男') return '男';
+    if (gender === '女') return '女';
     return '';
 };
 

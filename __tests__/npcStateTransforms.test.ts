@@ -227,7 +227,7 @@ describe('NPC old save compatibility', () => {
         expect(list[1].姓名).toBe('慕容氏精锐水鬼');
     });
 
-    it('repairs unknown dialogue NPC basics and keeps private closeups out of avatar selection', () => {
+    it('repairs unknown dialogue NPC basics without forcing a gender guess and keeps private closeups out of avatar selection', () => {
         const [npc] = 规范化社交列表([
             {
                 id: 'npc_dialogue_half_profile',
@@ -258,7 +258,7 @@ describe('NPC old save compatibility', () => {
             }
         ], { 合并同名: false });
 
-        expect(npc.性别).not.toBe('未知');
+        expect(npc.性别).toBe('未知');
         expect(Number.isFinite(npc.年龄)).toBe(true);
         expect(npc.年龄).toBeGreaterThanOrEqual(18);
         expect(npc.身份).not.toBe('未知身份');
@@ -350,5 +350,40 @@ describe('NPC old save compatibility', () => {
             第一次时间: '四月初二 子时'
         });
         expect(npc.首次亲密记录.map((item: any) => item.类型)).toEqual(['口交', '肛交']);
+    });
+
+    it('keeps weak placeholder social NPC gender unknown instead of forcing a binary guess', () => {
+        const [npc] = 规范化社交列表([
+            {
+                id: 'npc_guard_placeholder',
+                姓名: '护院1',
+                性别: '未知',
+                身份: '剧情对话人物',
+                简介: '院门前拦路的一名护院。'
+            }
+        ], { 合并同名: false });
+
+        expect(npc.性别).toBe('未知');
+    });
+
+    it('lets explicit incoming gender evidence overwrite an old wrong placeholder value during merge', () => {
+        const [npc] = 规范化社交列表([
+            {
+                id: 'npc_lin_pozi_old',
+                姓名: '林婆子',
+                性别: '男',
+                身份: '剧情对话人物',
+                简介: '先前被错误写成男性。'
+            },
+            {
+                id: 'npc_lin_pozi_new',
+                姓名: '林婆子',
+                性别: '女',
+                身份: '婆子',
+                简介: '院中掌灶的老妇人。'
+            }
+        ]);
+
+        expect(npc.性别).toBe('女');
     });
 });

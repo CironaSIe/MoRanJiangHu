@@ -2891,21 +2891,29 @@ const 是否应丢弃NPC条目 = (rawNpc: any): boolean => {
 const 推断NPC性别 = (npc: any): string => {
     const raw = 规范化文本(npc?.性别);
     if (raw && !/^(未知|不详|未定|待定|无)$/u.test(raw)) return raw;
-    const text = [
-        npc?.姓名,
-        npc?.身份,
-        npc?.简介,
-        npc?.外貌描写,
-        npc?.身材描写,
-        npc?.衣着风格,
-        npc?.男娘设定,
-        npc?.扶她设定
-    ].map((value) => 规范化文本(value)).join(' ');
-    if (/扶她/.test(text)) return '扶她';
-    if (/男娘/.test(text)) return '男娘';
-    if (/女|女子|少女|姑娘|师姐|师妹|侍女|丫鬟|妇人|夫人|小姐|娘子|仙子|女修/.test(text)) return '女';
-    if (/男|男子|少年|公子|师兄|师弟|老者|老人|太监|内侍|侍卫|护卫|汉子|家丁|门客/.test(text)) return '男';
-    return 稳定区间整数(`${text || npc?.id || npc?.姓名}:gender`, 0, 1) === 0 ? '男' : '女';
+    const 扶她设定 = 规范化文本(npc?.扶她设定);
+    if (扶她设定 && !/^(无扶她设定|否|无)$/u.test(扶她设定) && /扶她/.test(扶她设定)) return '扶她';
+    const 男娘设定 = 规范化文本(npc?.男娘设定);
+    if (男娘设定 && !/^(无男娘设定|否|无)$/u.test(男娘设定) && /男娘/.test(男娘设定)) return '男娘';
+    return '未知';
+};
+
+const 性别是否明确 = (value: unknown): value is '男' | '女' | '男娘' | '扶她' => {
+    const text = 规范化文本(value);
+    return text === '男' || text === '女' || text === '男娘' || text === '扶她';
+};
+
+const 重算合并后NPC性别 = (leftRaw: any, rightRaw: any): string => {
+    const rightExplicit = 规范化文本(rightRaw?.性别);
+    if (性别是否明确(rightExplicit)) return rightExplicit;
+    const leftExplicit = 规范化文本(leftRaw?.性别);
+    if (性别是否明确(leftExplicit)) return leftExplicit;
+
+    const rightDerived = 推断NPC性别(rightRaw);
+    if (性别是否明确(rightDerived)) return rightDerived;
+    const leftDerived = 推断NPC性别(leftRaw);
+    if (性别是否明确(leftDerived)) return leftDerived;
+    return '未知';
 };
 
 const 推断NPC年龄 = (npc: any, fallbackIndex: number): number => {
@@ -3290,7 +3298,7 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
         && ![mergedIdentity, mergedIntroBase].some((text) => 归一化键(text).includes(归一化键(legacyPlaceholderName)))
         ? `${mergedIntroBase}（曾以“${legacyPlaceholderName}”指称。）`
         : mergedIntroBase;
-    const mergedGender = 取更优文本(取字段文本(left, '性别'), 取字段文本(right, '性别')) || '未知';
+    const mergedGender = 重算合并后NPC性别(leftRaw, rightRaw);
     const mergedIsMajor = Boolean(left?.是否主要角色) || Boolean(right?.是否主要角色);
     const mergedArtifactArchive = 标准化名器档案(
         [...(Array.isArray(left?.名器档案) ? left.名器档案 : []), ...(Array.isArray(right?.名器档案) ? right.名器档案 : [])],
