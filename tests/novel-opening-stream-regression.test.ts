@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { 识别TXT章节标题行 } from '../services/novelStructureHeuristics';
 import { 从原始文本提取章节 } from '../services/novelDecompositionPipeline';
 import { 修复开局伙伴社交列表 } from '../utils/openingCompanion';
-import { 构建中断流式草稿历史 } from '../hooks/useGame/sendWorkflow';
+import {
+    构建中断流式草稿历史,
+    主剧情流式草稿已具备完整协议,
+    尝试解析完整主剧情流式草稿
+} from '../hooks/useGame/sendWorkflow';
 
 const 创建伙伴 = (姓名: string, 关系: string) => ({
     enabled: true,
@@ -93,5 +97,48 @@ describe('小说拆章与开局稳定性回归', () => {
         expect(history?.[1].role).toBe('assistant');
         expect(history?.[1].content).toContain('不应被失败吞掉');
         expect(history?.[2].content).toContain('已保留');
+    });
+
+    it('识别已经完整闭合的主剧情协议草稿，避免尾部断流误判整轮失败', () => {
+        const completedDraft = [
+            '<正文>',
+            '【旁白】山风掠过石阶，主角停在殿门前。',
+            '【沈清秋】先进去再说。',
+            '</正文>',
+            '<短期记忆>主角与沈清秋抵达殿门，准备继续调查。</短期记忆>',
+            '<命令>',
+            '{"action":"set","key":"gameState.环境.地点","value":"主殿门前"}',
+            '</命令>',
+            '<行动选项>',
+            '1. 推门而入',
+            '2. 先观察四周',
+            '</行动选项>'
+        ].join('\n');
+
+        expect(主剧情流式草稿已具备完整协议(completedDraft, { requireActionOptionsTag: true })).toBe(true);
+    });
+
+    it('完整协议草稿可以直接解析为正式响应，继续进入后续变量阶段', () => {
+        const completedDraft = [
+            '<正文>',
+            '【旁白】烛火在风里晃了一下。',
+            '【林清澜】别分神，先看地上的脚印。',
+            '</正文>',
+            '<短期记忆>主角与林清澜在堂内发现异常脚印。</短期记忆>',
+            '<命令>',
+            'set 环境.地点 = "偏殿"',
+            '</命令>'
+        ].join('\n');
+
+        const parsed = 尝试解析完整主剧情流式草稿(completedDraft, {
+            validateTagCompleteness: true,
+            enableTagRepair: true,
+            validateDialogueFormat: true
+        });
+
+        expect(parsed).not.toBeNull();
+        expect(parsed?.rawText).toContain('<正文>');
+        expect(parsed?.response.logs?.[0]?.text).toContain('烛火');
+        expect(parsed?.response.tavern_commands?.length ?? 0).toBeGreaterThan(0);
     });
 });

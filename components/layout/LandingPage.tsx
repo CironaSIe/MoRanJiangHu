@@ -884,8 +884,15 @@ const LandingPage: React.FC<Props> = ({
                             </button>
                             <button
                                 type="button"
+                                onClick={() => { void openExternalUrl('/online-ranking.html'); }}
+                                className="min-h-[38px] border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs tracking-[0.16em] text-amber-200 transition-colors hover:bg-amber-500/16"
+                            >
+                                在线时长榜
+                            </button>
+                            <button
+                                type="button"
                                 onClick={() => { void openExternalUrl('/item-preset-feedback.html'); }}
-                                className="min-h-[38px] border border-fuchsia-500/25 bg-fuchsia-500/10 px-3 py-2 text-xs tracking-[0.16em] text-fuchsia-200 transition-colors hover:bg-fuchsia-500/15 sm:col-span-2"
+                                className="min-h-[38px] border border-fuchsia-500/25 bg-fuchsia-500/10 px-3 py-2 text-xs tracking-[0.16em] text-fuchsia-200 transition-colors hover:bg-fuchsia-500/15"
                             >
                                 预设图反馈
                             </button>

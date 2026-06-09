@@ -1,6 +1,7 @@
 import { RELEASE_INFO } from '../data/releaseInfo';
 import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 import { 获取本地图片图床迁移状态 } from './dbService';
+import { 读取云端游玩会话 } from './cloudPlayService';
 
 const ONLINE_SESSION_ID_KEY = 'moranjianghu.onlineSessionId';
 const HEARTBEAT_PATH = '/api/admin/online';
@@ -32,6 +33,7 @@ const readSessionId = (): string => {
 };
 
 const buildHeartbeatPayload = (sessionId: string) => {
+    const cloudSession = 读取云端游玩会话();
     return {
         sessionId,
         path: `${window.location.pathname}${window.location.search}`.slice(0, 240),
@@ -39,6 +41,8 @@ const buildHeartbeatPayload = (sessionId: string) => {
         versionName: RELEASE_INFO.versionName,
         versionCode: RELEASE_INFO.versionCode,
         platform: isNativeCapacitorEnvironment() ? 'capacitor-android' : 'web',
+        userId: cloudSession?.userId || '',
+        username: cloudSession?.username || '',
         imageStats: {
             migrationStatus: 获取本地图片图床迁移状态()
         }
@@ -172,6 +176,38 @@ export interface OnlinePresencePublicStats {
     onlineSessionCount: number;
     ttlSeconds: number;
     serverTime: string;
+    playerTimelineWindowStart: string;
+    playerTimelineWindowEnd: string;
+    loggedInPlayers24h: Array<{
+        userId: string;
+        username: string;
+        online: boolean;
+        sessionCount: number;
+        totalOnlineSeconds24h: number;
+        firstSeenAt: string;
+        lastSeenAt: string;
+        timelineSegments: Array<{
+            startAt: string;
+            endAt: string;
+            durationSeconds: number;
+            active: boolean;
+        }>;
+    }>;
+    topPlayer24h: {
+        userId: string;
+        username: string;
+        online: boolean;
+        sessionCount: number;
+        totalOnlineSeconds24h: number;
+        firstSeenAt: string;
+        lastSeenAt: string;
+        timelineSegments: Array<{
+            startAt: string;
+            endAt: string;
+            durationSeconds: number;
+            active: boolean;
+        }>;
+    } | null;
     hourlyHistory: Array<{
         hour: string;
         onlineCount: number;
@@ -195,6 +231,52 @@ export const fetchOnlinePresencePublicStats = async (): Promise<OnlinePresencePu
             onlineSessionCount: Math.max(0, Number(payload.onlineSessionCount) || 0),
             ttlSeconds: Math.max(0, Number(payload.ttlSeconds) || 0),
             serverTime: typeof payload.serverTime === 'string' ? payload.serverTime : '',
+            playerTimelineWindowStart: typeof payload.playerTimelineWindowStart === 'string' ? payload.playerTimelineWindowStart : '',
+            playerTimelineWindowEnd: typeof payload.playerTimelineWindowEnd === 'string' ? payload.playerTimelineWindowEnd : '',
+            loggedInPlayers24h: Array.isArray(payload.loggedInPlayers24h)
+                ? payload.loggedInPlayers24h
+                    .map((item: any) => ({
+                        userId: typeof item?.userId === 'string' ? item.userId : '',
+                        username: typeof item?.username === 'string' ? item.username : '',
+                        online: Boolean(item?.online),
+                        sessionCount: Math.max(0, Number(item?.sessionCount) || 0),
+                        totalOnlineSeconds24h: Math.max(0, Number(item?.totalOnlineSeconds24h) || 0),
+                        firstSeenAt: typeof item?.firstSeenAt === 'string' ? item.firstSeenAt : '',
+                        lastSeenAt: typeof item?.lastSeenAt === 'string' ? item.lastSeenAt : '',
+                        timelineSegments: Array.isArray(item?.timelineSegments)
+                            ? item.timelineSegments
+                                .map((segment: any) => ({
+                                    startAt: typeof segment?.startAt === 'string' ? segment.startAt : '',
+                                    endAt: typeof segment?.endAt === 'string' ? segment.endAt : '',
+                                    durationSeconds: Math.max(0, Number(segment?.durationSeconds) || 0),
+                                    active: Boolean(segment?.active)
+                                }))
+                                .filter((segment: any) => segment.startAt && segment.endAt)
+                            : []
+                    }))
+                    .filter((item: any) => item.userId && item.username)
+                : [],
+            topPlayer24h: payload?.topPlayer24h && typeof payload.topPlayer24h === 'object'
+                ? {
+                    userId: typeof payload.topPlayer24h?.userId === 'string' ? payload.topPlayer24h.userId : '',
+                    username: typeof payload.topPlayer24h?.username === 'string' ? payload.topPlayer24h.username : '',
+                    online: Boolean(payload.topPlayer24h?.online),
+                    sessionCount: Math.max(0, Number(payload.topPlayer24h?.sessionCount) || 0),
+                    totalOnlineSeconds24h: Math.max(0, Number(payload.topPlayer24h?.totalOnlineSeconds24h) || 0),
+                    firstSeenAt: typeof payload.topPlayer24h?.firstSeenAt === 'string' ? payload.topPlayer24h.firstSeenAt : '',
+                    lastSeenAt: typeof payload.topPlayer24h?.lastSeenAt === 'string' ? payload.topPlayer24h.lastSeenAt : '',
+                    timelineSegments: Array.isArray(payload.topPlayer24h?.timelineSegments)
+                        ? payload.topPlayer24h.timelineSegments
+                            .map((segment: any) => ({
+                                startAt: typeof segment?.startAt === 'string' ? segment.startAt : '',
+                                endAt: typeof segment?.endAt === 'string' ? segment.endAt : '',
+                                durationSeconds: Math.max(0, Number(segment?.durationSeconds) || 0),
+                                active: Boolean(segment?.active)
+                            }))
+                            .filter((segment: any) => segment.startAt && segment.endAt)
+                        : []
+                }
+                : null,
             hourlyHistory: Array.isArray(payload.hourlyHistory)
                 ? payload.hourlyHistory
                     .map((item: any) => ({

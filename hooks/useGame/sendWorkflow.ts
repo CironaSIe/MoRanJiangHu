@@ -272,6 +272,58 @@ const 创建主剧情流式超时错误 = (stage: string, timeoutMs: number): Er
     return error;
 };
 
+const 主剧情协议必需标签 = ['正文', '短期记忆', '命令'];
+
+const 标签块已完整闭合 = (text: string, tag: string): boolean => {
+    const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`<\\s*${escaped}\\s*>[\\s\\S]*?<\\s*\\/\\s*${escaped}\\s*>`, 'i').test(text);
+};
+
+export const 主剧情流式草稿已具备完整协议 = (
+    draftText: string,
+    options?: {
+        requireActionOptionsTag?: boolean;
+        requireDynamicWorldTag?: boolean;
+    }
+): boolean => {
+    const text = typeof draftText === 'string' ? draftText.trim() : '';
+    if (!text) return false;
+    const requiredTags = [
+        ...主剧情协议必需标签,
+        ...(options?.requireActionOptionsTag ? ['行动选项'] : []),
+        ...(options?.requireDynamicWorldTag ? ['动态世界'] : [])
+    ];
+    return requiredTags.every((tag) => 标签块已完整闭合(text, tag));
+};
+
+export const 尝试解析完整主剧情流式草稿 = (
+    draftText: string,
+    requestOptions?: {
+        validateTagCompleteness?: boolean;
+        enableTagRepair?: boolean;
+        requireActionOptionsTag?: boolean;
+        requireDynamicWorldTag?: boolean;
+        validateDialogueFormat?: boolean;
+    }
+): textAIService.StoryResponseResult | null => {
+    const rawText = typeof draftText === 'string' ? draftText.trim() : '';
+    if (!主剧情流式草稿已具备完整协议(rawText, requestOptions)) return null;
+    try {
+        const response = textAIService.parseStoryRawText(rawText, {
+            validateTagCompleteness: requestOptions?.validateTagCompleteness,
+            enableTagRepair: requestOptions?.enableTagRepair,
+            requireActionOptionsTag: requestOptions?.requireActionOptionsTag,
+            requireDynamicWorldTag: requestOptions?.requireDynamicWorldTag,
+            validateDialogueFormat: requestOptions?.validateDialogueFormat
+        });
+        const hasBody = Array.isArray(response.logs)
+            && response.logs.some((log) => typeof log?.text === 'string' && log.text.trim().length > 0);
+        return hasBody ? { response, rawText } : null;
+    } catch {
+        return null;
+    }
+};
+
 const 构建标签协议失败自动回炉提示 = (reason: string, requireActionOptionsTag: boolean): string => [
     '【标签协议失败自动回炉】',
     `上一版被拒绝原因：${reason || '返回内容不符合标签协议'}`,
@@ -285,7 +337,8 @@ const 构建标签协议失败自动回炉提示 = (reason: string, requireActio
 
 const 执行主剧情流式请求带空闲超时 = async <T,>(
     parentSignal: AbortSignal,
-    task: (signal: AbortSignal, markStreamActivity: () => void) => Promise<T>
+    task: (signal: AbortSignal, markStreamActivity: () => void) => Promise<T>,
+    resolveCompletedDraft?: () => T | null
 ): Promise<T> => {
     if (parentSignal.aborted) {
         throw new DOMException('Aborted', 'AbortError');
@@ -309,6 +362,20 @@ const 执行主剧情流式请求带空闲超时 = async <T,>(
         clearTimer();
         const timeoutMs = hasStreamActivity ? 主剧情流式空闲超时毫秒 : 主剧情首次响应超时毫秒;
         timer = setTimeout(() => {
+            const completedResult = hasStreamActivity ? resolveCompletedDraft?.() : null;
+            if (completedResult) {
+                console.warn('[主剧情流式超时] 已收到完整协议草稿，接受当前草稿并中止尾部挂起连接', {
+                    timeoutMs,
+                    hasStreamActivity
+                });
+                rejectTimeout?.(completedResult);
+                try {
+                    requestController.abort(new DOMException('Completed stream draft accepted', 'AbortError'));
+                } catch {
+                    requestController.abort();
+                }
+                return;
+            }
             const timeoutError = 创建主剧情流式超时错误(hasStreamActivity ? '流式输出空闲超时' : '等待首次响应超时', timeoutMs);
             console.warn('[主剧情流式超时] 乾坤推演无流式输出，准备中止本次请求并交给自动重试', {
                 timeoutMs,
@@ -334,7 +401,15 @@ const 执行主剧情流式请求带空闲超时 = async <T,>(
     try {
         return await Promise.race([
             task(requestController.signal, markStreamActivity),
-            new Promise<T>((_, reject) => { rejectTimeout = reject; })
+            new Promise<T>((resolve, reject) => {
+                rejectTimeout = (reason?: any) => {
+                    if (reason && typeof reason === 'object' && 'response' in reason && 'rawText' in reason) {
+                        resolve(reason as T);
+                        return;
+                    }
+                    reject(reason);
+                };
+            })
         ]);
     } catch (error) {
         const signalReason = requestController.signal.reason as any;
@@ -1214,7 +1289,13 @@ export const 执行主剧情发送工作流 = async (
                     ? await requestStory(controller.signal)
                     : await 执行主剧情流式请求带空闲超时(
                         controller.signal,
-                        (signal, markStreamActivity) => requestStory(signal, markStreamActivity)
+                        (signal, markStreamActivity) => requestStory(signal, markStreamActivity),
+                        () => 尝试解析完整主剧情流式草稿(latestStreamDraftText, {
+                            validateTagCompleteness: runtimeGameConfig.启用标签检测完整性 === true,
+                            enableTagRepair: runtimeGameConfig.启用标签修复 !== false,
+                            requireActionOptionsTag: runtimeGameConfig.启用行动选项 !== false,
+                            validateDialogueFormat: true
+                        })
                     );
                 校验响应未命中女性姓名黑名单(
                     storyResult.response,

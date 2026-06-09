@@ -13,6 +13,8 @@ type OnlineSessionRecord = {
     id: string;
     firstSeenAt: string;
     lastSeenAt: string;
+    userId?: string;
+    username?: string;
     ip: string;
     country?: string;
     region?: string;
@@ -90,6 +92,24 @@ type OnlineUserRecord = {
     imageStats?: OnlineImageStats;
 };
 
+type OnlineTimelineSegment = {
+    startAt: string;
+    endAt: string;
+    durationSeconds: number;
+    active: boolean;
+};
+
+type OnlineLoggedInPlayerRecord = {
+    userId: string;
+    username: string;
+    online: boolean;
+    sessionCount: number;
+    totalOnlineSeconds24h: number;
+    firstSeenAt: string;
+    lastSeenAt: string;
+    timelineSegments: OnlineTimelineSegment[];
+};
+
 type CloudPlayUserRecord = {
     userId: string;
     username: string;
@@ -122,6 +142,7 @@ const REGISTRY_FILE = 'sessions.json';
 const HOURLY_HISTORY_FILE = 'hourly-history.json';
 const SESSION_TTL_MS = 2 * 60 * 1000;
 const SESSION_RETENTION_MS = 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_SESSIONS = 500;
 const MAX_HOURLY_HISTORY_POINTS = 72;
 const HEARTBEAT_MIN_INTERVAL_MS = 20 * 1000;
@@ -237,6 +258,10 @@ const sanitizeImageStats = (value: unknown, fallback?: OnlineImageStats): Online
     };
 };
 
+const sanitizeUserField = (value: unknown): string => (
+    readString(value).replace(/[^\w.@\-]/g, '').slice(0, 120)
+);
+
 const readRegistry = async (env: any): Promise<OnlineRegistry> => {
     const bucket = getBucket(env);
     if (!bucket) return { sessions: [] };
@@ -315,12 +340,17 @@ const buildPublicStatsPayload = async (env: any, nowMs: number) => {
     });
     const users = aggregateUsersByIp(sessions, nowMs, ttlMs);
     const onlineUsers = users.filter((item) => item.online);
+    const loggedInPlayers24h = aggregateLoggedInPlayers24h(sessions, nowMs, ttlMs);
     return {
         serverTime: new Date(nowMs).toISOString(),
         onlineCount: onlineUsers.length,
         totalRecentCount: users.length,
         onlineSessionCount: onlineSessions.length,
-        ttlSeconds: Math.round(ttlMs / 1000)
+        ttlSeconds: Math.round(ttlMs / 1000),
+        playerTimelineWindowStart: new Date(nowMs - DAY_MS).toISOString(),
+        playerTimelineWindowEnd: new Date(nowMs).toISOString(),
+        loggedInPlayers24h,
+        topPlayer24h: loggedInPlayers24h[0] || null
     };
 };
 
@@ -355,6 +385,102 @@ const maybeRecordHourlySample = async (env: any, nowMs: number): Promise<OnlineH
 const sanitizeSessionId = (value: unknown): string => (
     readString(value).replace(/[^a-zA-Z0-9._:-]/g, '').slice(0, 96)
 );
+
+const mergeTimelineSegments = (segments: Array<{ startMs: number; endMs: number; active: boolean }>): Array<{ startMs: number; endMs: number; active: boolean }> => {
+    const sorted = segments
+        .filter((segment) => Number.isFinite(segment.startMs) && Number.isFinite(segment.endMs) && segment.endMs > segment.startMs)
+        .sort((left, right) => left.startMs - right.startMs);
+    if (sorted.length === 0) return [];
+
+    const merged: Array<{ startMs: number; endMs: number; active: boolean }> = [];
+    sorted.forEach((segment) => {
+        const last = merged[merged.length - 1];
+        if (!last || segment.startMs > last.endMs) {
+            merged.push({ ...segment });
+            return;
+        }
+        last.endMs = Math.max(last.endMs, segment.endMs);
+        last.active = last.active || segment.active;
+    });
+    return merged;
+};
+
+const aggregateLoggedInPlayers24h = (sessions: OnlineSessionRecord[], nowMs: number, ttlMs: number): OnlineLoggedInPlayerRecord[] => {
+    const windowStartMs = nowMs - DAY_MS;
+    const players = new Map<string, {
+        userId: string;
+        username: string;
+        sessionIds: Set<string>;
+        online: boolean;
+        firstSeenMs: number;
+        lastSeenMs: number;
+        segments: Array<{ startMs: number; endMs: number; active: boolean }>;
+    }>();
+
+    sessions.forEach((session) => {
+        const userId = sanitizeUserField(session.userId);
+        const username = sanitizeUserField(session.username);
+        if (!userId || !username) return;
+
+        const rawFirstSeenMs = Date.parse(session.firstSeenAt || '');
+        const rawLastSeenMs = Date.parse(session.lastSeenAt || '');
+        if (!Number.isFinite(rawFirstSeenMs) || !Number.isFinite(rawLastSeenMs)) return;
+
+        const online = nowMs - rawLastSeenMs <= ttlMs;
+        const intervalStartMs = Math.max(windowStartMs, rawFirstSeenMs);
+        const intervalEndMs = Math.min(nowMs, online ? nowMs : rawLastSeenMs);
+        if (!(intervalEndMs > intervalStartMs)) return;
+
+        const existing = players.get(userId) || {
+            userId,
+            username,
+            sessionIds: new Set<string>(),
+            online: false,
+            firstSeenMs: Number.POSITIVE_INFINITY,
+            lastSeenMs: 0,
+            segments: []
+        };
+
+        existing.username = username || existing.username;
+        existing.online = existing.online || online;
+        existing.firstSeenMs = Math.min(existing.firstSeenMs, intervalStartMs);
+        existing.lastSeenMs = Math.max(existing.lastSeenMs, rawLastSeenMs);
+        existing.sessionIds.add(session.id);
+        existing.segments.push({
+            startMs: intervalStartMs,
+            endMs: intervalEndMs,
+            active: online
+        });
+        players.set(userId, existing);
+    });
+
+    return Array.from(players.values())
+        .map((player) => {
+            const mergedSegments = mergeTimelineSegments(player.segments);
+            const totalOnlineSeconds24h = mergedSegments.reduce((sum, segment) => sum + Math.max(0, Math.round((segment.endMs - segment.startMs) / 1000)), 0);
+            return {
+                userId: player.userId,
+                username: player.username,
+                online: player.online,
+                sessionCount: player.sessionIds.size,
+                totalOnlineSeconds24h,
+                firstSeenAt: Number.isFinite(player.firstSeenMs) ? new Date(player.firstSeenMs).toISOString() : '',
+                lastSeenAt: player.lastSeenMs > 0 ? new Date(player.lastSeenMs).toISOString() : '',
+                timelineSegments: mergedSegments.map((segment) => ({
+                    startAt: new Date(segment.startMs).toISOString(),
+                    endAt: new Date(segment.endMs).toISOString(),
+                    durationSeconds: Math.max(0, Math.round((segment.endMs - segment.startMs) / 1000)),
+                    active: segment.active
+                }))
+            };
+        })
+        .filter((player) => player.totalOnlineSeconds24h > 0)
+        .sort((left, right) => (
+            right.totalOnlineSeconds24h - left.totalOnlineSeconds24h ||
+            Number(right.online) - Number(left.online) ||
+            right.lastSeenAt.localeCompare(left.lastSeenAt)
+        ));
+};
 
 const buildSessionId = (): string => {
     const bytes = crypto.getRandomValues(new Uint8Array(12));
@@ -430,6 +556,8 @@ const upsertSessionHeartbeat = async (request: Request, env: any, body: any): Pr
         id: sessionId,
         firstSeenAt: existing?.firstSeenAt || nowIso,
         lastSeenAt: nowIso,
+        userId: sanitizeUserField(body?.userId) || existing?.userId || '',
+        username: sanitizeUserField(body?.username) || existing?.username || '',
         ip: getClientIp(request),
         country: readString(cf.country),
         region: readString(cf.region) || readString(cf.regionCode),
