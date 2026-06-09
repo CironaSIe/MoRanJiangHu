@@ -669,7 +669,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         setPartnerTalents(partner.天赋列表 as 天赋结构[]);
     };
     const 应用预设到表单 = (preset: 开局预设方案结构, options?: { 保持当前步骤?: boolean }) => {
-        const nextWorldConfig: WorldGenConfig = { ...worldConfig, ...preset.worldConfig };
         const restored = 构建预设表单恢复结果(preset, {
             fallbackBackgrounds: 当前题材预设背景,
             fallbackTalents: 当前题材预设天赋,
@@ -678,6 +677,12 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             validModuleKeys: 恢复链有效模块键
         });
         const normalizedOpeningConfig = 规范化可选开局配置(preset.openingConfig);
+        const restoredWorldMode = (restored.modeRuntimeProfile?.identity.baseMode || normalizedOpeningConfig?.题材模式 || openingConfig.题材模式) as OpeningConfig['题材模式'];
+        const nextWorldConfig: WorldGenConfig = {
+            ...创建主题默认世界配置(restoredWorldMode),
+            ...preset.worldConfig,
+            ...(restored.modeRuntimeProfile ? { modeRuntimeProfile: restored.modeRuntimeProfile } : {})
+        };
         const restoredOpeningConfig = normalizedOpeningConfig
             ? {
                 ...normalizedOpeningConfig,
@@ -685,10 +690,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 ...(restored.runtimeSnapshot ? { runtimeSnapshot: restored.runtimeSnapshot } : {})
             }
             : 默认开局配置();
-        setWorldConfig({
-            ...nextWorldConfig,
-            ...(restored.modeRuntimeProfile ? { modeRuntimeProfile: restored.modeRuntimeProfile } : {})
-        });
+        setWorldConfig(nextWorldConfig);
         setCharName(preset.character.姓名);
         setCharGender(preset.character.性别);
         setCharAge(preset.character.年龄);
@@ -1027,8 +1029,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                         ...prev,
                         ...module.preset!.worldConfig,
                         modeRuntimeProfile,
-                        manualWorldPrompt: prev.manualWorldPrompt,
-                        manualRealmPrompt: prev.manualRealmPrompt
+                        manualWorldPrompt: prev.manualWorldPrompt || module.preset!.worldConfig.manualWorldPrompt || '',
+                        manualRealmPrompt: prev.manualRealmPrompt || module.preset!.worldConfig.manualRealmPrompt || ''
                     }));
                     if (module.preset.openingConfig?.题材模式) {
                         const normalizedModuleOpening = 规范化开局配置({
@@ -1667,12 +1669,12 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
 
     const handleGenerate = async (preset?: 开局预设方案结构) => {
         const presetRuntime = preset
-            ? 构建预设直开恢复结果({
-                preset,
-                currentWorldConfig: worldConfig,
+            ? 构建预设直开恢复结果(preset, {
+                validModuleKeys: 恢复链有效模块键,
                 fallbackBackgrounds: [...全部背景选项, ...预设背景, ...自定义背景列表],
                 fallbackTalents: [...全部天赋选项, ...预设天赋, ...自定义天赋列表],
-                defaultBackground: 预设背景[0]
+                selectedBackgroundCatalog: 全部背景选项,
+                selectedTalentCatalog: 全部天赋选项
             })
             : null;
         const effectiveWorldConfig = presetRuntime?.worldConfig || worldConfig;

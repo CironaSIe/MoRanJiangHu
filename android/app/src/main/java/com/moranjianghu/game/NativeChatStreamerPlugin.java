@@ -23,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @CapacitorPlugin(name = "NativeChatStreamer")
 public class NativeChatStreamerPlugin extends Plugin {
     private static final String TAG = "MoRanJiangHuStream";
+    private static final int CONNECT_TIMEOUT_MS = 15000;
+    private static final int READ_TIMEOUT_MS = 240000;
     private final ConcurrentHashMap<String, HttpURLConnection> activeConnections = new ConcurrentHashMap<>();
 
     @PluginMethod
@@ -68,13 +70,16 @@ public class NativeChatStreamerPlugin extends Plugin {
             URL url = new URL(endpoint);
             connection = (HttpURLConnection) url.openConnection();
             activeConnections.put(requestId, connection);
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(120000);
+            connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
+            connection.setReadTimeout(READ_TIMEOUT_MS);
             connection.setRequestMethod("POST");
             connection.setUseCaches(false);
             connection.setDoInput(true);
             connection.setDoOutput(true);
             connection.setRequestProperty("Accept-Encoding", "identity");
+            // Avoid reusing stale pooled sockets on Android/OkHttp, which can surface as
+            // "unexpected end of stream" during long SSE responses.
+            connection.setRequestProperty("Connection", "close");
 
             Iterator<String> keys = headers.keys();
             while (keys.hasNext()) {

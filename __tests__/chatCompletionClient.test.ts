@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { 应用Claude兼容末尾User修正, 请求模型文本, 规范化请求模型名称, type 通用消息 } from '../services/ai/chatCompletionClient';
+import { 应用Claude兼容末尾User修正, 请求模型文本, 是否流式连接中断错误消息, 规范化流式连接错误提示, 规范化请求模型名称, type 通用消息 } from '../services/ai/chatCompletionClient';
 import type { 当前可用接口结构 } from '../utils/apiConfig';
 
 const baseConfig: 当前可用接口结构 = {
@@ -93,5 +93,34 @@ describe('chatCompletionClient Claude compatible message normalization', () => {
 
         const requestBody = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
         expect(requestBody.model).toBe('gemini-3.1-pro-high-search');
+    });
+
+    it('treats Android OkHttp stream truncation as a retryable transport error', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch')
+            .mockRejectedValueOnce(new Error('unexpected end of stream on com.android.okhttp.Address@4ea9fa8e'))
+            .mockResolvedValueOnce(new Response(JSON.stringify({
+                choices: [{ message: { content: 'retried-ok' } }]
+            }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' }
+            }));
+
+        const result = await 请求模型文本(baseConfig, [{ role: 'user', content: 'ping' }], {
+            temperature: 0.7,
+            signal: undefined,
+            streamOptions: { stream: false },
+            errorDetailLimit: 500
+        });
+
+        expect(result).toBe('retried-ok');
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('normalizes Android stream truncation into a user-readable message', () => {
+        const raw = 'unexpected end of stream on com.android.okhttp.Address@4ea9fa8e';
+
+        expect(是否流式连接中断错误消息(raw)).toBe(true);
+        expect(规范化流式连接错误提示(raw)).toContain('模型流式连接中途断开');
+        expect(规范化流式连接错误提示(raw)).not.toContain('com.android.okhttp.Address');
     });
 });

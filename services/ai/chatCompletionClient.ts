@@ -412,6 +412,25 @@ const 读取错误消息 = (error: unknown): string => {
     return String(error);
 };
 
+export const 是否流式连接中断错误消息 = (message: string): boolean => {
+    const raw = (message || '').toLowerCase();
+    if (!raw) return false;
+    if (raw.includes('unexpected end of stream')) return true;
+    if (raw.includes('end of stream')) return true;
+    if (raw.includes('eofexception')) return true;
+    if (raw.includes('connection reset')) return true;
+    if (raw.includes('socket closed')) return true;
+    if (raw.includes('broken pipe')) return true;
+    if (raw.includes('stream was reset')) return true;
+    return raw.includes('protocol exception') && raw.includes('stream');
+};
+
+export const 规范化流式连接错误提示 = (message: string): string => {
+    const raw = (message || '').trim();
+    if (!是否流式连接中断错误消息(raw)) return raw;
+    return '模型流式连接中途断开，通常是网络波动、代理断流或上游模型服务提前关闭连接导致。系统会自动重试；如果仍失败，请稍后重试或切换网络/API节点。';
+};
+
 const 读取错误状态码 = (error: unknown): number | undefined => {
     if (!error || typeof error !== 'object') return undefined;
     const anyErr = error as any;
@@ -431,6 +450,7 @@ const 错误可重试 = (error: unknown): boolean => {
     const message = 读取错误消息(error).toLowerCase();
     if (!message) return false;
     if (message.includes('aborted') || message.includes('abort') || message.includes('取消')) return false;
+    if (是否流式连接中断错误消息(message)) return true;
     if (message.includes('service unavailable')) return true;
     if (message.includes('timeout') || message.includes('timed out') || message.includes('network error') || message.includes('fetch failed')) {
         return true;
@@ -868,8 +888,10 @@ const 解析SSE文本原生 = async (
                 }
 
                 if (event.type === 'error') {
+                    const rawMessage = event.message || 'API Error: native stream failed';
+                    const normalizedMessage = 规范化流式连接错误提示(rawMessage);
                     settleReject(new 协议请求错误(
-                        event.message || 'API Error: native stream failed',
+                        normalizedMessage || rawMessage,
                         event.status || undefined
                     ));
                 }
@@ -882,6 +904,11 @@ const 解析SSE文本原生 = async (
                 body
             });
         } catch (error) {
+            const message = 读取错误消息(error);
+            if (是否流式连接中断错误消息(message)) {
+                settleReject(new 协议请求错误(规范化流式连接错误提示(message), undefined, message));
+                return;
+            }
             settleReject(error);
         }
     });

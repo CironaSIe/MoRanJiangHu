@@ -248,4 +248,73 @@ describe('workshop opening restore helpers', () => {
         expect(directOpenRestored.modeWorldbooks?.map((item) => item.id)).toEqual(wuxiaTopic!.modeWorldbooks?.map((item) => item.id));
         expect(directOpenRestored.openingConfig?.modeRuntimeProfile?.identity.displayName).toBe(wuxiaTopic!.modeRuntimeProfile?.identity.displayName);
     });
+
+    it('预设直开兼容真实 UI 包装参数并保留预设世界观字段', () => {
+        const restored = 构建预设直开恢复结果({
+            preset: {
+                id: 'direct-open-ui-shape',
+                名称: 'UI 包装调用',
+                简介: '复现 UI 曾传入的包装对象形状',
+                worldConfig: {
+                    worldName: '预设世界',
+                    worldSize: '无尽位面',
+                    dynastySetting: '预设王朝',
+                    sectDensity: '稀少',
+                    tianjiaoSetting: '预设天骄',
+                    difficulty: 'hard',
+                    worldExtraRequirement: '预设世界观草稿',
+                    manualWorldPrompt: '<世界观>预设手动世界观</世界观>',
+                    manualRealmPrompt: '<境界体系>预设境界</境界体系>'
+                },
+                character: {
+                    姓名: '测试角色',
+                    性别: '女',
+                    年龄: 21,
+                    出生月: 2,
+                    出生日: 3,
+                    外貌: '清冷',
+                    性格: '谨慎',
+                    属性: { 力量: 5, 敏捷: 6, 体质: 5, 根骨: 6, 悟性: 7, 福源: 5 },
+                    背景名称: '预设身份',
+                    天赋名称列表: ['预设天赋']
+                },
+                openingConfig: {
+                    题材模式: '武侠',
+                    初始关系模板: '随机邂逅',
+                    关系侧重: ['友情'],
+                    开局切入偏好: '市井起手',
+                    开局生成门派: true,
+                    开局生成同门: true,
+                    同人融合: {
+                        enabled: false,
+                        作品名: '',
+                        来源类型: '小说',
+                        融合强度: '轻度映射',
+                        保留原著角色: false,
+                        启用角色替换: false,
+                        替换目标角色名: '',
+                        附加替换角色名列表: [],
+                        附加角色替换规则列表: [],
+                        启用附加小说: false,
+                        附加小说数据集ID: ''
+                    }
+                },
+                openingStreaming: true,
+                openingExtraRequirement: '预设开局额外要求'
+            },
+            fallbackBackgrounds: [
+                { 名称: '预设身份', 描述: '来自预设身份池', 效果: '获得预设身份效果' }
+            ],
+            fallbackTalents: [
+                { 名称: '预设天赋', 描述: '来自预设天赋池', 效果: '获得预设天赋效果' }
+            ]
+        });
+
+        expect(restored.worldConfig.worldName).toBe('预设世界');
+        expect(restored.worldConfig.worldExtraRequirement).toBe('预设世界观草稿');
+        expect(restored.worldConfig.manualWorldPrompt).toContain('预设手动世界观');
+        expect(restored.worldConfig.manualRealmPrompt).toContain('预设境界');
+        expect(restored.selectedBackground?.名称).toBe('预设身份');
+        expect(restored.selectedTalents.map((item) => item.名称)).toEqual(['预设天赋']);
+    });
 });

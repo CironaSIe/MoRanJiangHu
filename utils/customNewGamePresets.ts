@@ -421,16 +421,47 @@ const 过滤有效工坊选择 = (
 };
 
 export const 构建预设直开恢复结果 = (
-    preset: 开局预设方案结构,
+    presetOrParams: 开局预设方案结构 | {
+        preset?: 开局预设方案结构;
+        validModuleKeys?: Set<string>;
+        fallbackBackgrounds?: 背景结构[];
+        fallbackTalents?: 天赋结构[];
+        selectedBackgroundCatalog?: 背景结构[];
+        selectedTalentCatalog?: 天赋结构[];
+    },
     options?: {
         validModuleKeys?: Set<string>;
+        fallbackBackgrounds?: 背景结构[];
+        fallbackTalents?: 天赋结构[];
+        selectedBackgroundCatalog?: 背景结构[];
+        selectedTalentCatalog?: 天赋结构[];
     }
 ) => {
+    const wrappedParams = (presetOrParams as any)?.preset ? presetOrParams as {
+        preset: 开局预设方案结构;
+        validModuleKeys?: Set<string>;
+        fallbackBackgrounds?: 背景结构[];
+        fallbackTalents?: 天赋结构[];
+        selectedBackgroundCatalog?: 背景结构[];
+        selectedTalentCatalog?: 天赋结构[];
+    } : null;
+    const preset = wrappedParams?.preset || presetOrParams as 开局预设方案结构;
+    const restoreOptions = {
+        ...options,
+        ...(wrappedParams || {})
+    };
     const runtimeRestore = 获取快速重开运行时恢复参数({
         openingConfig: preset.openingConfig,
         openingStreaming: preset.openingStreaming,
         openingExtraRequirement: preset.openingExtraRequirement,
-        validModuleKeys: options?.validModuleKeys
+        validModuleKeys: restoreOptions?.validModuleKeys
+    });
+    const directFormRestore = 构建预设表单恢复结果(preset, {
+        fallbackBackgrounds: restoreOptions?.fallbackBackgrounds || [],
+        fallbackTalents: restoreOptions?.fallbackTalents || [],
+        selectedBackgroundCatalog: restoreOptions?.selectedBackgroundCatalog,
+        selectedTalentCatalog: restoreOptions?.selectedTalentCatalog,
+        validModuleKeys: restoreOptions?.validModuleKeys
     });
     const openingConfig = preset.openingConfig && (runtimeRestore.modeRuntimeProfile || runtimeRestore.runtimeSnapshot)
         ? {
@@ -443,6 +474,8 @@ export const 构建预设直开恢复结果 = (
         worldConfig: preset.worldConfig,
         character: preset.character,
         openingConfig,
+        selectedBackground: directFormRestore.selectedBackground,
+        selectedTalents: directFormRestore.selectedTalents,
         openingStreaming: runtimeRestore.openingStreaming,
         openingExtraRequirement: runtimeRestore.openingExtraRequirement,
         activeModuleExtraRules: runtimeRestore.activeModuleExtraRules,
