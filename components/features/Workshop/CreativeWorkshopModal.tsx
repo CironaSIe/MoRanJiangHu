@@ -4,6 +4,7 @@ import type { 接口设置结构, ModeRuntimeProfile, 世界书结构 } from '..
 import type { 题材模式类型 } from '../../../models/system';
 import { 题材模式配置表, 题材模式顺序 } from '../../../utils/topicModeProfiles';
 import { 构建官方模式运行时配置, 规范化模式运行时配置, 渲染模式运行时配置世界书内容 } from '../../../utils/modeRuntimeProfile';
+import { 开局生成性别选项 } from '../../../utils/openingConfig';
 import {
     编辑创意工坊模块,
     删除创意工坊模块,
@@ -27,6 +28,7 @@ type 来源筛选 = 'all' | 'builtin' | 'cloud' | 'local';
 const 可展示工坊类型: 创意工坊模块类型[] = ['topic', 'comfy_workflow'];
 const 可展示工坊类型集合 = new Set<创意工坊模块类型>(可展示工坊类型);
 const 可展示工坊分区 = 创意工坊模块分区.filter((section) => 可展示工坊类型集合.has(section.id));
+const 默认生成性别占位 = `${开局生成性别选项.map((item) => item.value).join('、')}；留空默认全选`;
 type 运行时配置字段类型 = 'text' | 'textarea' | 'list' | 'record' | 'bool' | 'boolGroup' | 'baseMode' | 'currencyMode' | 'timeFormatMode' | 'realmConfig';
 type 运行时配置字段 = { label: string; path: string[]; type?: 运行时配置字段类型; placeholder?: string; boolGroup?: { label: string; key: string }[] };
 type 运行时配置分区 = { title: string; fields: 运行时配置字段[] };
@@ -127,6 +129,8 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '初始伙伴模板', path: ['opening', 'companionTemplate'], type: 'textarea' },
             { label: '切入模板', path: ['opening', 'cutInTemplates'], type: 'list' },
             { label: '初始任务模板', path: ['opening', 'initialQuestTemplates'], type: 'list' },
+            { label: '默认生成性别', path: ['opening', 'allowedGeneratedGenders'], type: 'list', placeholder: 默认生成性别占位 },
+            { label: '锁定生成性别', path: ['opening', 'lockGeneratedGenders'], type: 'bool' },
             { label: '默认装备模板', path: ['opening', 'defaultEquipment'], type: 'record', placeholder: '每行一个，格式：槽位=物品名，例如：武器=青锋剑' },
             { label: '默认金钱模板', path: ['opening', 'defaultCurrency'], type: 'record', placeholder: '每行一个，格式：货币名=初始量，例如：底层货币=1000' }
         ]
@@ -179,7 +183,9 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '默认天赋池', path: ['opening', 'defaultTalents'], type: 'list' },
             { label: '初始伙伴模板', path: ['opening', 'companionTemplate'], type: 'textarea' },
             { label: '开局切入模板', path: ['opening', 'cutInTemplates'], type: 'list' },
-            { label: '初始任务模板', path: ['opening', 'initialQuestTemplates'], type: 'list' }
+            { label: '初始任务模板', path: ['opening', 'initialQuestTemplates'], type: 'list' },
+            { label: '默认生成性别', path: ['opening', 'allowedGeneratedGenders'], type: 'list', placeholder: 默认生成性别占位 },
+            { label: '锁定生成性别', path: ['opening', 'lockGeneratedGenders'], type: 'bool' }
         ]
     },
     {

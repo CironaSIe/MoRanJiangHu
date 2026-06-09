@@ -29,8 +29,12 @@ describe('creativeWorkshopModules', () => {
             expect(entry.payload?.modeWorldbooks).toEqual(entry.modeWorldbooks);
             expect(entry.modeRuntimeProfile?.identity.baseMode, mode).toBe(mode);
             expect(entry.modeRuntimeProfile?.time?.narrativeStyle, mode).toBeTruthy();
+            expect(entry.modeRuntimeProfile?.opening?.allowedGeneratedGenders, mode).toEqual(['男', '女', '男娘', '扶她']);
+            expect(entry.modeRuntimeProfile?.opening?.lockGeneratedGenders, mode).toBe(false);
             expect(entry.payload?.modeRuntimeProfile).toEqual(entry.modeRuntimeProfile);
             expect(entry.preset?.openingConfig?.modeRuntimeProfile?.identity.baseMode, mode).toBe(mode);
+            expect(entry.preset?.openingConfig?.允许生成性别, mode).toEqual(['男', '女', '男娘', '扶她']);
+            expect(entry.preset?.openingConfig?.生成性别锁定, mode).toBe(false);
             expect(entry.preset?.worldConfig?.modeRuntimeProfile?.identity.baseMode, mode).toBe(mode);
             expect(Array.isArray(entry.payload?.backgrounds), mode).toBe(true);
             expect(Array.isArray(entry.payload?.talents), mode).toBe(true);
@@ -102,6 +106,7 @@ describe('creativeWorkshopModules', () => {
             expect(normalized?.id).toBe(entry.preset?.id);
             expect(normalized?.openingConfig?.题材模式).toBeTruthy();
             expect(normalized?.openingConfig?.modeRuntimeProfile?.identity.baseMode).toBeTruthy();
+            expect(normalized?.openingConfig?.允许生成性别).toEqual(expect.arrayContaining(['男', '女', '男娘', '扶她']));
             expect(normalized?.worldConfig?.modeRuntimeProfile?.identity.baseMode).toBe(normalized?.openingConfig?.modeRuntimeProfile?.identity.baseMode);
         }
     });

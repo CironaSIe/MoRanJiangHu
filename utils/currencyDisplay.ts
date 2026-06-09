@@ -22,6 +22,14 @@ export type 世界观货币卡片信息 = {
     exchangeHint: string;
 };
 
+export type 货币物品聚合信息 = {
+    类型: string;
+    分类名: string;
+    名称: string;
+    数量: number;
+    描述: string;
+};
+
 type 货币层级配置 = {
     key: 货币层级键;
     label: string;
@@ -56,6 +64,13 @@ const 读取可用于UI的短货币文案 = (value: unknown): string => {
 const 读取正整数汇率 = (value: unknown, fallback: number): number => {
     const numeric = Math.floor(Number(value));
     return Number.isFinite(numeric) && numeric > 0 ? numeric : fallback;
+};
+
+const 读取货币类型分类名 = (value: unknown): string => {
+    if (typeof value !== 'string') return '';
+    const text = value.trim();
+    if (!text.startsWith('货币:')) return '';
+    return text.slice(3).trim();
 };
 
 const 归一化货币键 = (key: 兼容货币键): 货币层级键 => 旧货币键映射[key] || '底层货币';
@@ -336,4 +351,25 @@ export const 格式化角色金钱行 = (
     return 获取世界观货币层级配置(profile, mode)
         .map((slot) => `${slot.label} ${读取货币数值(normalized, slot.key)}`)
         .join(' / ');
+};
+
+export const 获取背包货币物品聚合列表 = (items?: any[] | null): 货币物品聚合信息[] => {
+    if (!Array.isArray(items) || items.length === 0) return [];
+    const byType = new Map<string, 货币物品聚合信息>();
+    items.forEach((item: any) => {
+        const 类型 = typeof item?.类型 === 'string' ? item.类型.trim() : '';
+        const 分类名 = 读取货币类型分类名(类型);
+        if (!分类名) return;
+        const 名称 = typeof item?.名称 === 'string' && item.名称.trim() ? item.名称.trim() : 分类名;
+        const 数量 = Math.max(0, Math.floor(Number(item?.堆叠数量 ?? item?.数量 ?? 0) || 0));
+        const 描述 = typeof item?.描述 === 'string' ? item.描述.trim() : '';
+        const existing = byType.get(类型);
+        if (existing) {
+            existing.数量 += 数量;
+            if (!existing.描述 && 描述) existing.描述 = 描述;
+            return;
+        }
+        byType.set(类型, { 类型, 分类名, 名称, 数量, 描述 });
+    });
+    return Array.from(byType.values()).sort((a, b) => a.分类名.localeCompare(b.分类名, 'zh-Hans-CN'));
 };

@@ -75,6 +75,7 @@ import {
     规范化世界状态,
     规范化战斗状态,
     规范化门派状态,
+    同步角色与门派状态,
     规范化剧情状态,
     规范化剧情规划状态 as 基础规范化剧情规划状态,
     规范化女主剧情规划状态 as 基础规范化女主剧情规划状态,
@@ -150,6 +151,7 @@ import { 执行游戏后台重计算 } from '../utils/gameHeavyWorkerClient';
 import { 保存NPC变量本地备份, 自动备份NPC变量 } from '../services/npcVariableBackup';
 import { 合并保留既有NPC列表 } from '../utils/npcRetentionGuard';
 import { 设置默认技艺运行时配置 } from './useGame/stateTransforms';
+import { 最新AI消息可继续变量生成 } from '../utils/chatRecovery';
 
 const 加载图片AI服务 = () => import('../services/ai/image/runtime');
 const 加载NPC生图工作流 = () => import('./useGame/npcImageWorkflow');
@@ -2775,7 +2777,9 @@ export const useGame = () => {
                     ...state,
                     社交: 修复开局伙伴社交列表(state.社交, 开局配置, state.角色 || 角色)
                 });
-                const finalizeState = (state: typeof nextState): typeof nextState => 修复开局伙伴(清理题材物品(state));
+                const finalizeState = (state: typeof nextState): typeof nextState => (
+                    同步角色与门派状态(修复开局伙伴(清理题材物品(state))) as typeof nextState
+                );
                 if (!变量生成功能已启用(apiConfig)) {
                     return finalizeState(nextState);
                 }
@@ -3721,11 +3725,13 @@ export const useGame = () => {
         void 检查主角每回合头像(player).catch(() => undefined);
     };
 
+    const 最新AI回合可继续变量生成 = 最新AI消息可继续变量生成(历史记录);
+
     return {
         state: gameState,
         meta: {
             canRerollLatest: 可重Roll计数 > 0,
-            canRetryLatestVariableGeneration: 可重Roll计数 > 0 && 历史记录.some(item => item?.role === 'assistant'),
+            canRetryLatestVariableGeneration: 可重Roll计数 > 0 && 最新AI回合可继续变量生成,
             canQuickRestart: Boolean(最近开局配置),
             worldEvolutionEnabled: 已进入主剧情回合() && apiConfig?.功能模型占位?.世界演变功能启用 !== false && 接口配置是否可用(获取世界演变接口配置(apiConfig)),
             worldEvolutionUpdating: 世界演变更新中,

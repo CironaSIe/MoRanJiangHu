@@ -65,7 +65,7 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
     const text = JSON.stringify(sectData || {});
     const semantic = String((sectData as any)?.组织语义 || (sectData as any)?.组织类型 || (sectData as any)?.题材组织类型 || '').trim();
     const isInfinite = semantic === '轮回小队' || /主神|轮回|奖励点|支线剧情|基因锁|主神空间|副本|恐怖片|轮回者/u.test(text);
-    const isApocalypse = !isInfinite && /末日|丧尸|营地|避难|安全点|据点|车队|搜救|医疗维修|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(text);
+    const isApocalypse = !isInfinite && /末日|丧尸|感染|尸群|避难|安全点|营地|据点|车队|哨站|救援站|搜救|医疗维修|后勤巡逻|燃油|口粮|弹药/u.test(text);
     const isModern = !isApocalypse && !isInfinite && /现代|都市|公司|项目组|事务所|社区中心|门店|合作团队|合同|客户|技术成员|行政联系人|培训|手机|电脑/u.test(text);
     if (isInfinite) {
         return {

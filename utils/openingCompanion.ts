@@ -39,27 +39,41 @@ const 稳定哈希文本 = (text: string): string => {
     return (hash >>> 0).toString(36);
 };
 
-const 读取伙伴 = (openingConfig?: OpeningConfig) => {
-    const partner = openingConfig?.初始伙伴;
-    const name = 取文本(partner?.姓名);
-    if (!partner || partner.enabled === false || !name) return null;
-    return { partner, name };
+const 读取伙伴列表 = (openingConfig?: OpeningConfig) => {
+    const source = Array.isArray(openingConfig?.初始伙伴列表) && openingConfig.初始伙伴列表.length > 0
+        ? openingConfig.初始伙伴列表
+        : (openingConfig?.初始伙伴 ? [openingConfig.初始伙伴] : []);
+    return source
+        .map((partner, index) => ({ partner, name: 取文本(partner?.姓名), index }))
+        .filter((item) => item.partner && item.partner.enabled !== false && item.name);
+};
+
+const 读取伙伴 = (openingConfig?: OpeningConfig) => 读取伙伴列表(openingConfig)[0] || null;
+
+const 生成单个开局伙伴ID = (
+    partner: NonNullable<OpeningConfig['初始伙伴']>,
+    name: string,
+    playerName?: string,
+    index = 0
+): string => {
+    const relation = 取文本(partner.关系, '开局伙伴');
+    const indexSeed = index > 0 ? `|${index}` : '';
+    return `npc_opening_partner_${稳定哈希文本(`${playerName || ''}|${name}|${relation}${indexSeed}`)}`;
 };
 
 export const 生成开局伙伴ID = (openingConfig?: OpeningConfig, playerName?: string): string => {
     const data = 读取伙伴(openingConfig);
     if (!data) return '';
-    const relation = 取文本(data.partner.关系, '开局伙伴');
-    return `npc_opening_partner_${稳定哈希文本(`${playerName || ''}|${data.name}|${relation}`)}`;
+    return 生成单个开局伙伴ID(data.partner, data.name, playerName, data.index);
 };
 
-export const 构建初始伙伴NPC = (
+const 构建单个初始伙伴NPC = (
+    partner: NonNullable<OpeningConfig['初始伙伴']>,
+    name: string,
+    index: number,
     openingConfig?: OpeningConfig,
     player?: Partial<角色数据结构>
 ): NPC结构 | null => {
-    const data = 读取伙伴(openingConfig);
-    if (!data) return null;
-    const { partner, name } = data;
     const relation = 取文本(partner.关系, '开局伙伴');
     const birthday = `${取数字(partner.出生月, 1)}月${取数字(partner.出生日, 1)}日`;
     const attrs = partner.属性 || {};
@@ -82,7 +96,7 @@ export const 构建初始伙伴NPC = (
     ].filter(Boolean);
 
     return {
-        id: 生成开局伙伴ID(openingConfig, 取文本(player?.姓名)),
+        id: 生成单个开局伙伴ID(partner, name, 取文本(player?.姓名), index),
         姓名: name,
         来源: '开局伙伴',
         保留开局伙伴设定属性: true,
@@ -162,14 +176,25 @@ export const 构建初始伙伴NPC = (
     };
 };
 
-const 是否疑似同一开局伙伴 = (npc: any, seed: NPC结构, openingConfig?: OpeningConfig): boolean => {
+export const 构建初始伙伴NPC列表 = (
+    openingConfig?: OpeningConfig,
+    player?: Partial<角色数据结构>
+): NPC结构[] => 读取伙伴列表(openingConfig)
+    .map((data) => 构建单个初始伙伴NPC(data.partner, data.name, data.index, openingConfig, player))
+    .filter((item): item is NPC结构 => Boolean(item));
+
+export const 构建初始伙伴NPC = (
+    openingConfig?: OpeningConfig,
+    player?: Partial<角色数据结构>
+): NPC结构 | null => 构建初始伙伴NPC列表(openingConfig, player)[0] || null;
+
+const 是否疑似同一开局伙伴 = (npc: any, seed: NPC结构): boolean => {
     if (!npc) return false;
     const nameKey = 规范化文本键(seed.姓名);
     const npcKeys = [npc.id, npc.ID, npc.姓名, npc.名称, ...(Array.isArray(npc.曾用名) ? npc.曾用名 : [])].map(规范化文本键);
     if (npcKeys.includes(规范化文本键(seed.id)) || npcKeys.includes(nameKey)) return true;
 
-    const data = 读取伙伴(openingConfig);
-    const relation = 规范化文本键(data?.partner.关系);
+    const relation = 规范化文本键(seed.关系状态 || seed.身份);
     const birthday = 规范化文本键(seed.生日);
     const text = [
         npc.身份,
@@ -192,19 +217,21 @@ export const 修复开局伙伴社交列表 = (
     openingConfig?: OpeningConfig,
     player?: Partial<角色数据结构>
 ): any[] => {
-    const seed = 构建初始伙伴NPC(openingConfig, player);
-    if (!seed) return Array.isArray(socialList) ? socialList : [];
+    const seeds = 构建初始伙伴NPC列表(openingConfig, player);
+    if (seeds.length <= 0) return Array.isArray(socialList) ? socialList : [];
 
     const source = Array.isArray(socialList) ? socialList : [];
-    let merged: any | null = null;
+    const mergedBySeed = new Map<string, any>();
     const next: any[] = [];
 
     source.forEach((npc) => {
-        if (是否疑似同一开局伙伴(npc, seed, openingConfig)) {
+        const seed = seeds.find((item) => 是否疑似同一开局伙伴(npc, item));
+        if (seed) {
+            const merged = mergedBySeed.get(seed.id);
             const seedArchive = seed.图片档案 && typeof seed.图片档案 === 'object' ? seed.图片档案 : undefined;
             const mergedArchive = merged?.图片档案 && typeof merged.图片档案 === 'object' ? merged.图片档案 : undefined;
             const npcArchive = npc?.图片档案 && typeof npc.图片档案 === 'object' ? npc.图片档案 : undefined;
-            merged = {
+            mergedBySeed.set(seed.id, {
                 ...seed,
                 ...merged,
                 ...npc,
@@ -236,11 +263,14 @@ export const 修复开局伙伴社交列表 = (
                 是否队友: true,
                 是否主要角色: true,
                 关系状态: 取文本(npc?.关系状态, seed.关系状态) || seed.关系状态
-            };
+            });
             return;
         }
         next.push(npc);
     });
 
-    return [merged || seed, ...next];
+    return [
+        ...seeds.map((seed) => mergedBySeed.get(seed.id) || seed),
+        ...next
+    ];
 };

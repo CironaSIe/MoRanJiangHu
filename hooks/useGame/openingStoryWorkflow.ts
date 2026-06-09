@@ -322,8 +322,11 @@ const 构建开局伙伴建档摘要 = (
     openingConfig?: OpeningConfig,
     options?: { cultivationSystemEnabled?: boolean }
 ): string => {
-    const partner = openingConfig?.初始伙伴;
-    if (!partner || partner.enabled === false) return '';
+    const partners = (Array.isArray(openingConfig?.初始伙伴列表) && openingConfig.初始伙伴列表.length > 0
+        ? openingConfig.初始伙伴列表
+        : (openingConfig?.初始伙伴 ? [openingConfig.初始伙伴] : [])
+    ).filter((partner) => partner && partner.enabled !== false && typeof partner.姓名 === 'string' && partner.姓名.trim());
+    if (partners.length <= 0) return '';
     const 启用修炼体系 = options?.cultivationSystemEnabled !== false;
     const 纯文本 = (value: unknown, fallback = '未提供'): string => {
         if (typeof value !== 'string') return fallback;
@@ -333,39 +336,45 @@ const 构建开局伙伴建档摘要 = (
     const 数值文本 = (value: unknown, fallback = '未提供'): string => (
         typeof value === 'number' && Number.isFinite(value) ? String(value) : fallback
     );
-    const 天赋列表 = Array.isArray(partner.天赋列表)
-        ? partner.天赋列表
-            .map((item: any, index: number) => {
-                const 名称 = 纯文本(item?.名称, '未提供');
-                const 描述 = 纯文本(item?.描述, '未提供');
-                const 效果 = 纯文本(item?.效果, '未提供');
-                return `[${index}] 名称：${名称}｜描述：${描述}｜效果：${效果}`;
-            })
-            .filter(Boolean)
-            .join('\n')
-        : '';
+    const blocks = partners.map((partner, partnerIndex) => {
+        const 天赋列表 = Array.isArray(partner.天赋列表)
+            ? partner.天赋列表
+                .map((item: any, index: number) => {
+                    const 名称 = 纯文本(item?.名称, '未提供');
+                    const 描述 = 纯文本(item?.描述, '未提供');
+                    const 效果 = 纯文本(item?.效果, '未提供');
+                    return `[${index}] 名称：${名称}｜描述：${描述}｜效果：${效果}`;
+                })
+                .filter(Boolean)
+                .join('\n')
+            : '';
+        return [
+            `【开局同伴 ${partnerIndex + 1}】`,
+            `- 同伴姓名：${纯文本(partner.姓名)}`,
+            `- 【姓名硬约束】该同伴的正式姓名只能是「${纯文本(partner.姓名)}」；不得改名、另起名、用近义名、用默认女主名替代，也不得把同一同伴拆成另一个姓名的 NPC。`,
+            `- 性别：${纯文本(partner.性别)}`,
+            `- 年龄：${数值文本(partner.年龄)}`,
+            `- 出生日期：${数值文本(partner.出生月)}月${数值文本(partner.出生日)}日`,
+            `- 与主角关系：${纯文本(partner.关系)}`,
+            `- 外貌：${纯文本(partner.外貌)}`,
+            `- 性格：${纯文本(partner.性格)}`,
+            ...(启用修炼体系 ? ['- 初始境界：按同一难度和世界观合理推导，不得强行高于主角一个大阶。'] : []),
+            `- 六维：力量 ${数值文本(partner.属性?.力量)} / 敏捷 ${数值文本(partner.属性?.敏捷)} / 体质 ${数值文本(partner.属性?.体质)} / 根骨 ${数值文本(partner.属性?.根骨)} / 悟性 ${数值文本(partner.属性?.悟性)} / 福源 ${数值文本(partner.属性?.福源)}`,
+            `- 出身背景名称：${纯文本(partner.背景名称)}`,
+            `- 出身背景描述：${纯文本(partner.背景描述)}`,
+            `- 出身背景效果：${纯文本(partner.背景效果)}`,
+            `- 天赋数量：${Array.isArray(partner.天赋列表) ? partner.天赋列表.length : 0}`,
+            天赋列表 ? `- 天赋详情：\n${天赋列表}` : '- 天赋详情：无',
+            `- 备注：${纯文本(partner.备注, '无')}`,
+            '如果本段同伴建档信息启用，开局必须把该同伴作为第0回合已成立、可在第1回合直接互动的主要 NPC 写入 `<变量规划>` 的 `社交` 初始化内容。',
+            `写入 \`社交\` 时，\`社交[i].姓名\` 必须严格等于「${纯文本(partner.姓名)}」；如果正文需要称呼或化名，只能写入“曾用名/对主角称呼/称呼类字段”，不能覆盖正式姓名。`
+        ].join('\n');
+    });
     return [
-        '【开局同伴建档信息】',
-        `- 同伴姓名：${纯文本(partner.姓名)}`,
-        `- 【姓名硬约束】该同伴的正式姓名只能是「${纯文本(partner.姓名)}」；不得改名、另起名、用近义名、用默认女主名替代，也不得把同一同伴拆成另一个姓名的 NPC。`,
-        `- 性别：${纯文本(partner.性别)}`,
-        `- 年龄：${数值文本(partner.年龄)}`,
-        `- 出生日期：${数值文本(partner.出生月)}月${数值文本(partner.出生日)}日`,
-        `- 与主角关系：${纯文本(partner.关系)}`,
-        `- 外貌：${纯文本(partner.外貌)}`,
-        `- 性格：${纯文本(partner.性格)}`,
-        ...(启用修炼体系 ? ['- 初始境界：按同一难度和世界观合理推导，不得强行高于主角一个大阶。'] : []),
-        `- 六维：力量 ${数值文本(partner.属性?.力量)} / 敏捷 ${数值文本(partner.属性?.敏捷)} / 体质 ${数值文本(partner.属性?.体质)} / 根骨 ${数值文本(partner.属性?.根骨)} / 悟性 ${数值文本(partner.属性?.悟性)} / 福源 ${数值文本(partner.属性?.福源)}`,
-        `- 出身背景名称：${纯文本(partner.背景名称)}`,
-        `- 出身背景描述：${纯文本(partner.背景描述)}`,
-        `- 出身背景效果：${纯文本(partner.背景效果)}`,
-        `- 天赋数量：${Array.isArray(partner.天赋列表) ? partner.天赋列表.length : 0}`,
-        天赋列表 ? `- 天赋详情：\n${天赋列表}` : '- 天赋详情：无',
-        `- 备注：${纯文本(partner.备注, '无')}`,
-        '如果本段同伴建档信息启用，开局必须把该同伴作为第0回合已成立、可在第1回合直接互动的主要 NPC 写入 `<变量规划>` 的 `社交` 初始化内容。',
-        `写入 \`社交\` 时，\`社交[i].姓名\` 必须严格等于「${纯文本(partner.姓名)}」；如果正文需要称呼或化名，只能写入“曾用名/对主角称呼/称呼类字段”，不能覆盖正式姓名。`,
-        '该同伴应与主角同场或有明确同行/汇合状态；必须包含完整 NPC 最小档案、是否主要角色=true、是否在场、位置、记忆、天赋列表、出身背景、技艺、战斗数值与七部位状态。'
-    ].join('\n');
+        `【开局同伴建档信息｜共 ${partners.length} 人】`,
+        ...blocks,
+        '每一名开局同伴都应与主角同场或有明确同行/汇合状态；必须包含完整 NPC 最小档案、是否主要角色=true、是否在场、位置、记忆、天赋列表、出身背景、技艺、战斗数值与七部位状态。'
+    ].join('\n\n');
 };
 
 const 提取响应完整正文文本 = (response?: GameResponse): string => {

@@ -16,6 +16,7 @@ type SendResult = {
     parseErrorRawText?: string;
     errorDetail?: string;
     errorTitle?: string;
+    recoveryHint?: string;
 };
 
 type RecallProgress = {
@@ -221,13 +222,17 @@ const InputArea: React.FC<Props> = ({
     });
     const [parseRepairModal, setParseRepairModal] = useState<{
         open: boolean;
+        title: string;
         detail: string;
+        hint: string;
         originalRaw: string;
         editedRaw: string;
         error: string;
     }>({
         open: false,
+        title: '',
         detail: '',
+        hint: '',
         originalRaw: '',
         editedRaw: '',
         error: ''
@@ -400,7 +405,9 @@ const InputArea: React.FC<Props> = ({
                     const raw = typeof result.parseErrorRawText === 'string' ? result.parseErrorRawText : '';
                     setParseRepairModal({
                         open: true,
+                        title: result.errorTitle || '恢复本回合',
                         detail: parseErrorText,
+                        hint: result.recoveryHint || '可直接手动补全文本后恢复，或尝试自动修复恢复；如果不想保留这版内容，也可以直接重ROLL。',
                         originalRaw: raw,
                         editedRaw: raw,
                         error: ''
@@ -523,7 +530,9 @@ const InputArea: React.FC<Props> = ({
         }
         setParseRepairModal({
             open: false,
+            title: '',
             detail: '',
+            hint: '',
             originalRaw: '',
             editedRaw: '',
             error: ''
@@ -1217,7 +1226,7 @@ const InputArea: React.FC<Props> = ({
                     >
                         <div className="flex items-center justify-between gap-4 mb-4">
                             <h4 className="text-lg font-serif font-bold text-wuxia-cyan">
-                                标签结构不完整
+                                {parseRepairModal.title || '恢复本回合'}
                             </h4>
                             <button
                                 type="button"
@@ -1231,7 +1240,7 @@ const InputArea: React.FC<Props> = ({
                         <div className="text-xs text-gray-300 whitespace-pre-wrap border border-gray-800 rounded-md bg-black/50 p-3 mb-3">
                             {parseRepairModal.detail}
                         </div>
-                        <div className="text-[11px] text-gray-500 mb-2">可直接手动改标签后恢复，或尝试自动修复恢复。</div>
+                        <div className="text-[11px] text-gray-500 mb-2">{parseRepairModal.hint || '可直接手动补全文本后恢复，或尝试自动修复恢复。'}</div>
                         <textarea
                             value={parseRepairModal.editedRaw}
                             onChange={(e) => setParseRepairModal(prev => ({ ...prev, editedRaw: e.target.value, error: '' }))}
@@ -1263,7 +1272,9 @@ const InputArea: React.FC<Props> = ({
                                     void handleReroll();
                                     setParseRepairModal({
                                         open: false,
+                                        title: '',
                                         detail: '',
+                                        hint: '',
                                         originalRaw: '',
                                         editedRaw: '',
                                         error: ''

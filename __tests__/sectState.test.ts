@@ -5,7 +5,8 @@ import SectModal from '../components/features/Sect/SectModal';
 import MobileSect from '../components/features/Sect/MobileSect';
 import TeamModal from '../components/features/Team/TeamModal';
 import MobileTeamModal from '../components/features/Team/MobileTeamModal';
-import { 创建空门派状态, 创建开场基础状态, 创建开场命令基态, 规范化门派状态, 是否无门派标识, 保护开局生成门派状态 } from '../hooks/useGame/storyState';
+import { 执行变量自动校准 } from '../hooks/useGame/variableCalibration';
+import { 创建空门派状态, 创建开场基础状态, 创建开场命令基态, 规范化门派状态, 是否无门派标识, 保护开局生成门派状态, 同步角色与门派状态 } from '../hooks/useGame/storyState';
 import { 开局变量生成附加提示词, 构建开局变量生成审计重点 } from '../prompts/runtime/openingVariableGenerationInit';
 
 describe('门派状态规范化', () => {
@@ -44,6 +45,80 @@ describe('门派状态规范化', () => {
         expect(normalized.重要成员).toEqual([]);
         expect(normalized.任务列表).toEqual([]);
         expect(是否无门派标识(normalized.ID)).toBe(false);
+    });
+
+    it('有效门派 ID 或名称不会因为玩家职位暂为无而被判成未加入', () => {
+        const normalized = 规范化门派状态({
+            ID: 'sect_xuanmo',
+            名称: '玄墨派',
+            玩家职位: '无'
+        });
+
+        expect(normalized.ID).toBe('sect_xuanmo');
+        expect(normalized.名称).toBe('玄墨派');
+        expect(normalized.玩家职位).toBe('杂役弟子');
+        expect(是否无门派标识(normalized.ID)).toBe(false);
+    });
+
+    it('只有角色所属门派被更新时会同步修复玩家门派状态', () => {
+        const synced = 同步角色与门派状态({
+            角色: {
+                姓名: '沈墨',
+                所属门派ID: '玄墨派',
+                门派职位: '外门弟子',
+                门派贡献: 120
+            },
+            玩家门派: 创建空门派状态()
+        } as any);
+
+        expect(synced.玩家门派.ID).toBe('玄墨派');
+        expect(synced.玩家门派.玩家职位).toBe('外门弟子');
+        expect(synced.角色.所属门派ID).toBe('玄墨派');
+        expect(synced.角色.门派职位).toBe('外门弟子');
+    });
+
+    it('变量自动校准不会把半同步的已加入宗门清空', () => {
+        const result = 执行变量自动校准({
+            角色: {
+                姓名: '沈墨',
+                所属门派ID: '玄墨派',
+                门派职位: '外门弟子',
+                门派贡献: 120,
+                当前精力: 10,
+                最大精力: 10,
+                当前内力: 0,
+                最大内力: 0,
+                当前饱腹: 0,
+                最大饱腹: 0,
+                当前口渴: 0,
+                最大口渴: 0
+            } as any,
+            环境: {} as any,
+            社交: [],
+            世界: {} as any,
+            战斗: {} as any,
+            玩家门派: { ID: 'none', 名称: '无门无派', 玩家职位: '无' } as any,
+            任务列表: [],
+            约定列表: [],
+            剧情: {} as any,
+            剧情规划: {} as any
+        }, {
+            规范化环境信息: (value?: any) => value || {},
+            规范化社交列表: (value?: any[]) => value || [],
+            规范化世界状态: (value?: any) => value || {},
+            规范化战斗状态: (value?: any) => value || {},
+            规范化门派状态,
+            规范化剧情状态: (value?: any) => value || {},
+            规范化剧情规划状态: (value?: any) => value || {},
+            规范化女主剧情规划状态: (value?: any) => value,
+            规范化同人剧情规划状态: (value?: any) => value,
+            规范化同人女主剧情规划状态: (value?: any) => value,
+            规范化角色物品容器映射: (value?: any) => value || {}
+        });
+
+        expect(result.state.玩家门派.ID).toBe('玄墨派');
+        expect(result.state.玩家门派.玩家职位).toBe('外门弟子');
+        expect(result.state.角色.所属门派ID).toBe('玄墨派');
     });
 
     it('兼容小写和模式化组织字段，避免轮回小队读成无组织', () => {
@@ -364,6 +439,52 @@ describe('门派状态规范化', () => {
 
         expect(desktopHtml).toMatch(/身份[\s\S]{0,300}营地管理人员/);
         expect(mobileHtml).toMatch(/铁栅安全点[\s\S]{0,300}营地管理人员/);
+    });
+
+    it('宗门面板不会把有效组织 ID 但职位暂为无的存档显示成未加入', () => {
+        const sectData: any = {
+            ID: 'sect_xuanmo',
+            名称: '玄墨派',
+            简介: '隐于墨山的宗门。',
+            门规: ['不可同门相残'],
+            门派资金: 1200,
+            门派物资: 350,
+            建设度: 180,
+            门派等级: '小型门派',
+            门派规模: '小型',
+            弟子总数: 18,
+            战力分布: {},
+            财富评级: '薄有积蓄',
+            月俸规则: { 基础俸禄: 0, 贡献系数: 0, 规模系数: 0, 发放说明: '' },
+            玩家职位: '无',
+            玩家贡献: 0,
+            累计贡献: 0,
+            任务列表: [],
+            兑换列表: [],
+            藏经阁列表: [],
+            重要成员: []
+        };
+
+        const desktopHtml = renderToStaticMarkup(React.createElement(SectModal, {
+            sectData,
+            onClose: () => undefined
+        }));
+        const mobileHtml = renderToStaticMarkup(React.createElement(MobileSect, {
+            sectData,
+            onClose: () => undefined
+        }));
+
+        expect(desktopHtml).toContain('玄墨派');
+        expect(desktopHtml).not.toContain('尚未加入组织');
+        expect(desktopHtml).toContain('聚宝阁');
+        expect(desktopHtml).not.toContain('据点总览');
+        expect(desktopHtml).not.toContain('营地成员');
+        expect(desktopHtml).not.toContain('物资库');
+        expect(mobileHtml).toContain('玄墨派');
+        expect(mobileHtml).not.toContain('尚未加入组织');
+        expect(mobileHtml).toContain('兑换');
+        expect(mobileHtml).not.toContain('营地成员');
+        expect(mobileHtml).not.toContain('物资库');
     });
 
     it('无限流面板用贡献决定进阶，不把新人队长显示成高阶身份', () => {

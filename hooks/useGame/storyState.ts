@@ -477,15 +477,57 @@ export const 创建空门派状态 = (): 详细门派结构 => ({
 });
 
 export const 创建占位门派状态 = (charData: 角色数据结构): 详细门派结构 => {
-    if (是否无门派标识(charData?.所属门派ID) || (charData?.门派职位 !== undefined && 是否无门派标识(charData?.门派职位))) {
+    if (是否无门派标识(charData?.所属门派ID)) {
         return 创建空门派状态();
     }
-    return {
-        ...创建空门派状态(),
+    return 规范化门派状态({
         ID: charData.所属门派ID,
+        名称: charData.所属门派ID,
         玩家职位: 补全门派职位(charData, 取数字(charData.门派贡献), '杂役弟子'),
         玩家贡献: 取数字(charData.门派贡献),
         累计贡献: 取数字(charData.门派贡献)
+    });
+};
+
+export const 同步角色与门派状态 = <T extends { 角色?: any; 玩家门派?: any }>(state: T): T => {
+    const role = state?.角色 && typeof state.角色 === 'object' ? state.角色 : undefined;
+    let sect = 规范化门派状态(state?.玩家门派);
+    const roleSectId = 取文本(role?.所属门派ID);
+    const roleHasSect = Boolean(role) && !是否无门派标识(roleSectId);
+
+    if (roleHasSect && 是否无门派标识(sect.ID)) {
+        sect = 创建占位门派状态(role);
+    }
+
+    if (!role) {
+        return {
+            ...state,
+            玩家门派: sect
+        };
+    }
+
+    if (是否无门派标识(sect.ID)) {
+        return {
+            ...state,
+            玩家门派: sect,
+            角色: {
+                ...role,
+                所属门派ID: 'none',
+                门派职位: '无',
+                门派贡献: 0
+            }
+        };
+    }
+
+    return {
+        ...state,
+        玩家门派: sect,
+        角色: {
+            ...role,
+            所属门派ID: sect.ID,
+            门派职位: sect.玩家职位,
+            门派贡献: 取数字(sect.玩家贡献 ?? sect.累计贡献)
+        }
     };
 };
 
@@ -1566,12 +1608,18 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
     const id = 取文本(sourceId, base.ID);
     const name = 取文本(sourceName, base.名称);
     const playerRankSource = 取文本(sourcePlayerRank, base.玩家职位);
+    const idInactive = sourceId !== undefined && 是否无门派标识(id);
+    const nameInactive = sourceName !== undefined && 是否无门派标识(name);
+    const playerRankInactive = sourcePlayerRank !== undefined && 是否无门派标识(playerRankSource);
+    const hasActiveId = sourceId !== undefined && !是否无门派标识(id);
+    const hasActiveName = sourceName !== undefined && !是否无门派标识(name) && name !== base.名称;
+    const hasActiveRank = sourcePlayerRank !== undefined && !是否无门派标识(playerRankSource);
     const hasExplicitInactiveMarker = (
-        (sourceId !== undefined && 是否无门派标识(id))
-        || (sourceName !== undefined && 是否无门派标识(name))
-        || (sourcePlayerRank !== undefined && 是否无门派标识(playerRankSource))
+        idInactive
+        || (nameInactive && !hasActiveId && !hasActiveRank)
+        || (playerRankInactive && !hasActiveId && !hasActiveName)
     );
-    const hasActiveMarker = !是否无门派标识(id) || (!是否无门派标识(name) && name !== base.名称) || !是否无门派标识(playerRankSource);
+    const hasActiveMarker = hasActiveId || hasActiveName || hasActiveRank;
     const isActiveSect = hasActiveMarker && !hasExplicitInactiveMarker;
     if (!isActiveSect) return base;
     const displayName = isActiveSect && name === base.名称 ? (id === 'none' ? '青云山庄' : id) : name;

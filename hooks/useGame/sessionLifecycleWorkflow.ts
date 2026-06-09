@@ -449,7 +449,8 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 'step',
                 openingStreaming,
                 openingExtraPrompt,
-                { 清空前端变量: true }
+                { 清空前端变量: true },
+                restoredRuntime.activeModuleExtraRules
             );
             return;
         }
@@ -488,7 +489,8 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
             'all',
             openingStreaming,
             openingExtraPrompt,
-            { 清空前端变量: true }
+            { 清空前端变量: true },
+            restoredRuntime.activeModuleExtraRules
         );
     };
 

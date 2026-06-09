@@ -78,7 +78,7 @@ export const 标准化开局预设方案 = (raw: any): 开局预设方案结构 
             ? { ...openingConfig, modeRuntimeProfile }
             : openingConfig,
         openingStreaming: openingConfig?.runtimeSnapshot?.openingStreaming ?? raw?.openingStreaming !== false,
-        openingExtraRequirement: 标准化文本(raw?.openingExtraRequirement || openingConfig?.runtimeSnapshot?.openingExtraRequirement)
+        openingExtraRequirement: 标准化文本(raw?.openingExtraRequirement ?? openingConfig?.runtimeSnapshot?.openingExtraRequirement)
     };
 };
 
@@ -277,7 +277,7 @@ export const 构建开局运行时快照 = (params: {
         && modeBackgrounds.length <= 0
         && modeTalents.length <= 0
     ) {
-        return params.openingConfig?.runtimeSnapshot;
+        return undefined;
     }
     return snapshot;
 };
@@ -303,7 +303,7 @@ const 校准工坊运行时恢复结果 = (params: {
     const modeWorldbooks = topicEntry ? 提取模块世界书列表(topicEntry) : 标准化世界书列表(snapshot?.modeWorldbooks);
     const activeModuleExtraRules = topicEntry
         ? 构建模块额外规则文本(topicEntry, modeBackgrounds, modeTalents)
-        : 标准化文本(snapshot?.activeModuleExtraRules || params.activeModuleExtraRules);
+        : 标准化文本(snapshot?.activeModuleExtraRules ?? params.activeModuleExtraRules);
 
     const mergedRuntimeProfile = selectedEntries.reduce<ModeRuntimeProfile | undefined>((acc, entry) => {
         const rawProfile = entry.modeRuntimeProfile || (entry.payload as any)?.modeRuntimeProfile;
@@ -316,8 +316,8 @@ const 校准工坊运行时恢复结果 = (params: {
     const normalizedSnapshot = 构建开局运行时快照({
         openingConfig: params.openingConfig,
         openingStreaming: snapshot?.openingStreaming ?? params.openingStreaming,
-        openingExtraPrompt: snapshot?.openingExtraPrompt || params.openingExtraPrompt,
-        openingExtraRequirement: snapshot?.openingExtraRequirement || params.openingExtraRequirement,
+        openingExtraPrompt: snapshot?.openingExtraPrompt ?? params.openingExtraPrompt,
+        openingExtraRequirement: snapshot?.openingExtraRequirement ?? params.openingExtraRequirement,
         activeModuleExtraRules,
         modeWorldbooks,
         workshopSelection,
@@ -327,8 +327,8 @@ const 校准工坊运行时恢复结果 = (params: {
 
     return {
         openingStreaming: snapshot?.openingStreaming ?? params.openingStreaming !== false,
-        openingExtraPrompt: 标准化文本(snapshot?.openingExtraPrompt || params.openingExtraPrompt),
-        openingExtraRequirement: 标准化文本(snapshot?.openingExtraRequirement || params.openingExtraRequirement),
+        openingExtraPrompt: 标准化文本(snapshot?.openingExtraPrompt ?? params.openingExtraPrompt),
+        openingExtraRequirement: 标准化文本(snapshot?.openingExtraRequirement ?? params.openingExtraRequirement),
         activeModuleExtraRules,
         modeWorldbooks,
         workshopSelection,
