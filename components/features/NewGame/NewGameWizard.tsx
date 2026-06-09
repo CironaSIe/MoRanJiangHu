@@ -1637,7 +1637,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 天赋列表: 根据名称查找天赋列表(preset.character.天赋名称列表)
             })
             : 构建角色数据();
-        const effectiveOpeningExtraRequirement = preset?.openingExtraRequirement ?? openingExtraRequirement;
         const ok = requestConfirm
             ? await requestConfirm({
                 title: '确认创建',
@@ -1646,7 +1645,15 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             })
             : true;
         if (!ok) return;
-        onComplete(effectiveWorldConfig, charData, effectiveOpeningConfig, 'all', true, effectiveOpeningExtraRequirement.trim(), undefined, activeModuleExtraRules || undefined);
+        onComplete(
+            effectiveWorldConfig,
+            charData,
+            effectiveOpeningConfig,
+            'all',
+            effectiveOpeningStreaming,
+            effectiveOpeningExtraRequirement.trim(),
+            effectiveActiveModuleExtraRules || undefined
+        );
     };
 
     if (loading) {

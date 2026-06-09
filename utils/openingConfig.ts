@@ -439,9 +439,10 @@ const 规范化快照背景列表 = (value: unknown): 背景结构[] => {
                     }
                     const name = 读取文本(entry?.名称);
                     if (!name) return null;
+                    const quantity = Number(entry?.数量);
                     return {
                         名称: name,
-                        ...(entry?.数量 != null ? { 数量: Number(entry.数量) } : {}),
+                        ...(Number.isFinite(quantity) && quantity > 0 ? { 数量: quantity } : {}),
                         ...(entry?.描述 ? { 描述: 读取文本(entry.描述) } : {}),
                         ...(entry?.类型 ? { 类型: 读取文本(entry.类型) } : {})
                     };
