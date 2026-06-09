@@ -1,5 +1,59 @@
-import { describe, expect, it } from 'vitest';
-import { 构建词组转化性别硬约束 } from '../hooks/useGame/npcImageWorkflow';
+import { describe, expect, it, vi } from 'vitest';
+import { 执行NPC生图工作流, 构建词组转化性别硬约束 } from '../hooks/useGame/npcImageWorkflow';
+
+const 构建NPC生图依赖 = (socialList: any[]) => {
+    const 创建NPC生图任务 = vi.fn((params: any) => ({ id: 'task_1', ...params }));
+    const 追加NPC生图任务 = vi.fn();
+    return {
+        deps: {
+            apiConfig: {} as any,
+            获取NPC唯一标识: (npc: any) => npc?.id || npc?.姓名 || '',
+            获取社交列表: () => socialList,
+            获取文生图接口配置: () => ({ 图片后端类型: 'openai', model: 'image-model' }) as any,
+            获取生图词组转化器接口配置: () => null,
+            获取生图画师串预设: () => null,
+            获取当前PNG画风预设: () => null,
+            获取NPC角色锚点: () => null,
+            获取词组转化器预设提示词: () => '',
+            接口配置是否可用: () => true,
+            读取文生图功能配置: () => ({ 总开关: true, NPC开关: true, 使用词组转化器: false, NPC画风: '写实' }),
+            NPC符合自动生图条件: () => true,
+            NPC生图进行中集合: new Set<string>(),
+            提取NPC生图基础数据: (npc: any) => npc,
+            创建NPC生图任务,
+            生成NPC生图记录ID: () => 'record_1',
+            追加NPC生图任务,
+            更新NPC生图任务: vi.fn(),
+            更新NPC最近生图结果: vi.fn()
+        },
+        创建NPC生图任务,
+        追加NPC生图任务
+    };
+};
+
+describe('npc image workflow auto generation guard', () => {
+    it('skips automatic generation when the latest social NPC already has a successful image', async () => {
+        const staleNpc = { id: 'npc_su_wanqing', 姓名: '苏晚晴', 性别: '女' };
+        const latestNpc = {
+            ...staleNpc,
+            图片档案: {
+                最近生图结果: {
+                    id: 'img_avatar_1',
+                    状态: 'success',
+                    构图: '头像',
+                    图片URL: 'https://example.com/avatar.png'
+                }
+            }
+        };
+        const { deps, 创建NPC生图任务, 追加NPC生图任务 } = 构建NPC生图依赖([latestNpc]);
+
+        await 执行NPC生图工作流(staleNpc, { 构图: '头像' }, deps as any);
+
+        expect(创建NPC生图任务).not.toHaveBeenCalled();
+        expect(追加NPC生图任务).not.toHaveBeenCalled();
+        expect(deps.NPC生图进行中集合.size).toBe(0);
+    });
+});
 
 describe('npc image workflow age constraints', () => {
     it('does not force cultivation longevity characters to look old', async () => {

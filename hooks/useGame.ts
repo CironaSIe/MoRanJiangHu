@@ -2254,7 +2254,7 @@ export const useGame = () => {
         if (npcList.length === 0) return;
         window.setTimeout(() => {
             npcList.forEach((npc) => {
-                void 执行NPC自动构图任务(npc, '头像', { force: true }).catch((error) => {
+                void 执行NPC自动构图任务(npc, '头像').catch((error) => {
                     console.warn('新增 NPC 头像自动生图失败', 读取NPC文本字段(npc, 'id') || 读取NPC文本字段(npc, '姓名'), error);
                 });
             });
@@ -2268,7 +2268,7 @@ export const useGame = () => {
             .filter((npc: any) => npc?.对白登场 === true || npc?.自动补全头像 === true);
         if (npcList.length === 0) return;
         npcList.forEach((npc) => {
-            void 执行NPC自动构图任务(npc, '头像', { force: true }).catch(() => undefined);
+            void 执行NPC自动构图任务(npc, '头像').catch(() => undefined);
         });
     };
 
@@ -2317,7 +2317,7 @@ export const useGame = () => {
         const runOne = async ({ npc, npcId }: { npc: any; npcId: string }) => {
             try {
                 const finished = await Promise.race([
-                    执行NPC自动构图任务(npc, '头像', { force: true }),
+                    执行NPC自动构图任务(npc, '头像'),
                     new Promise<boolean>((resolve) => {
                         window.setTimeout(() => resolve(false), 单个NPC自动补全等待上限);
                     })
@@ -2384,7 +2384,7 @@ export const useGame = () => {
 
             if (!NPC是否已有成功构图(npc, ['头像'])) {
                 try {
-                    await 执行NPC自动构图任务(npc, '头像', { force: true });
+                    await 执行NPC自动构图任务(npc, '头像');
                 } catch (error) {
                     console.warn('主要角色头像自动补全失败', npcId, error);
                 }
@@ -2392,7 +2392,7 @@ export const useGame = () => {
 
             if ((NPC是否女性(npc) || (男娘NSFW内容已启用() && NPC是否男性或男娘(npc))) && !NPC是否已有成功构图(npc, ['半身', '立绘'])) {
                 try {
-                    await 执行NPC自动构图任务(npc, '半身', { force: true });
+                    await 执行NPC自动构图任务(npc, '半身');
                 } catch (error) {
                     console.warn('主要角色展示图自动补全失败', npcId, error);
                 }
