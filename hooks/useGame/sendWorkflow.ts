@@ -521,6 +521,7 @@ export type 发送结果 = {
     parseErrorRawText?: string;
     errorDetail?: string;
     errorTitle?: string;
+    recoveryHint?: string;
 };
 
 type 回合快照结构 = {
@@ -2301,9 +2302,12 @@ export const 执行主剧情发送工作流 = async (
                 }
                 return {
                     cancelled: true,
+                    needRerollConfirm: true,
                     parseErrorMessage: parseErrorRaw,
                     parseErrorDetail: parseErrorRaw,
-                    parseErrorRawText
+                    parseErrorRawText,
+                    errorTitle: '标签结构不完整',
+                    recoveryHint: '可直接手动补全缺失标签后恢复，或尝试自动修复恢复；如果不想保留这版内容，也可以直接重ROLL。'
                 };
             }
             return {
@@ -2313,11 +2317,12 @@ export const 执行主剧情发送工作流 = async (
                 parseErrorDetail: parseFailureGameConfig.启用标签协议失败自动回炉 === false
                     ? `${parseErrorRaw}\n\n当前已关闭“标签协议失败自动回炉”。最佳选择是直接重ROLL；若想保留这版内容，可点“查看/编辑原文”后修复缺失标签再重解析。`
                     : parseErrorRaw,
-                parseErrorRawText
+                parseErrorRawText,
+                errorTitle: '标签结构不完整',
+                recoveryHint: '可直接手动补全缺失标签后恢复，或尝试自动修复恢复；如果不想保留这版内容，也可以直接重ROLL。'
             };
         }
 
-        deps.弹出重Roll快照();
         const detail = deps.格式化错误详情(error);
         const summary = typeof error?.message === 'string' && error.message.trim().length > 0
             ? error.message
@@ -2339,6 +2344,15 @@ export const 执行主剧情发送工作流 = async (
         deps.设置历史记录(nextHistory);
         if (preservedDraftHistory) {
             void deps.performAutoSave({ history: preservedDraftHistory, force: true });
+            return {
+                cancelled: true,
+                needRerollConfirm: true,
+                parseErrorMessage: summary,
+                parseErrorDetail: `${summary}\n\n已保留上方流式正文草稿。你可以在下面直接补全草稿后恢复，也可以点“重ROLL”回到本回合开始前。`,
+                parseErrorRawText: latestStreamDraftText,
+                errorTitle: '主剧情已中断，草稿已保留',
+                recoveryHint: '若这版草稿还有价值，可以直接在此补全文本、补齐标签后恢复；如果这版已经跑偏，直接重ROLL最安全。'
+            };
         }
         return {
             cancelled: true,
