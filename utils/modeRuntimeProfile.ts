@@ -1,4 +1,4 @@
-import type { ModeRuntimeProfile, 题材模式类型, 性别比例配置, 开局生成性别类型 } from '../models/system';
+import type { CurrencySystem, CurrencyUnit, ModeRuntimeProfile, 题材模式类型, 性别比例配置, 开局生成性别类型 } from '../models/system';
 import { 获取题材模式配置, 规范化题材模式 } from '../data/workshopThemes/topicModeThemeData';
 import { 获取世界观货币层级配置 } from './currencyDisplay';
 
@@ -51,6 +51,91 @@ const 读取正整数 = (value: unknown, fallback: number): number => {
     return Number.isFinite(numeric) && numeric > 0 ? numeric : fallback;
 };
 
+const 读取非空字符串 = (value: unknown): string => (
+    typeof value === 'string' ? value.trim() : ''
+);
+
+export const 校验CurrencySystem草稿 = (value: unknown): { currencySystem?: CurrencySystem; errors: string[] } => {
+    const errors: string[] = [];
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return { errors: ['currencySystem 必须是对象。'] };
+    }
+    const raw = value as Record<string, unknown>;
+    const id = 读取非空字符串(raw.id);
+    const name = 读取非空字符串(raw.name);
+    const baseUnitId = 读取非空字符串(raw.baseUnitId);
+    if (!id) errors.push('id 必填。');
+    if (!name) errors.push('name 必填。');
+    if (!baseUnitId) errors.push('baseUnitId 必填。');
+    if (raw.formatStyle !== undefined && raw.formatStyle !== 'single' && raw.formatStyle !== 'compound') {
+        errors.push('formatStyle 只能是 single 或 compound。');
+    }
+    if (!Array.isArray(raw.units) || raw.units.length <= 0) {
+        errors.push('units 必须是非空数组。');
+    }
+
+    const seenIds = new Set<string>();
+    const units: CurrencyUnit[] = [];
+    const rawUnits = Array.isArray(raw.units) ? raw.units : [];
+    rawUnits.forEach((item, index) => {
+        const prefix = `units[${index}]`;
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+            errors.push(`${prefix} 必须是对象。`);
+            return;
+        }
+        const unitRaw = item as Record<string, unknown>;
+        const unitId = 读取非空字符串(unitRaw.id);
+        const unitName = 读取非空字符串(unitRaw.name);
+        if (!unitId) errors.push(`${prefix}.id 必填。`);
+        if (!unitName) errors.push(`${prefix}.name 必填。`);
+        if (unitId && seenIds.has(unitId)) errors.push(`unit.id 不可重复：${unitId}。`);
+        const baseRate = Number(unitRaw.baseRate);
+        const order = Number(unitRaw.order);
+        if (!Number.isInteger(baseRate) || baseRate <= 0) errors.push(`${prefix}.baseRate 必须是正整数。`);
+        if (!Number.isFinite(order)) errors.push(`${prefix}.order 必须是有限数字。`);
+        if (unitRaw.aliases !== undefined && (!Array.isArray(unitRaw.aliases) || !unitRaw.aliases.every((alias) => typeof alias === 'string'))) {
+            errors.push(`${prefix}.aliases 必须是字符串数组。`);
+        }
+        const symbol = 读取非空字符串(unitRaw.symbol);
+        const aliases = Array.isArray(unitRaw.aliases)
+            ? unitRaw.aliases
+                .filter((alias) => typeof alias === 'string')
+                .map((alias) => alias.trim())
+                .filter(Boolean)
+            : [];
+        if (unitId) seenIds.add(unitId);
+        if (unitId && unitName && Number.isInteger(baseRate) && baseRate > 0 && Number.isFinite(order)) {
+            units.push({
+                id: unitId,
+                name: unitName,
+                ...(symbol ? { symbol } : {}),
+                baseRate,
+                order,
+                ...(aliases.length > 0 ? { aliases: Array.from(new Set(aliases)) } : {})
+            });
+        }
+    });
+
+    const baseUnit = units.find((unit) => unit.id === baseUnitId);
+    if (baseUnitId && !baseUnit) errors.push('baseUnitId 必须命中某个 unit.id。');
+    if (baseUnit && baseUnit.baseRate !== 1) errors.push('base unit 的 baseRate 必须为 1。');
+    if (errors.length > 0) return { errors };
+    return {
+        currencySystem: {
+            id,
+            name,
+            baseUnitId,
+            units,
+            ...(raw.formatStyle === 'single' || raw.formatStyle === 'compound' ? { formatStyle: raw.formatStyle } : {})
+        },
+        errors: []
+    };
+};
+
+export const 规范化显式CurrencySystem = (value: unknown): CurrencySystem | undefined => {
+    return 校验CurrencySystem草稿(value).currencySystem;
+};
+
 export const 拆分模式配置短语 = (value: unknown): string[] => {
     const source = Array.isArray(value)
         ? value
@@ -95,6 +180,171 @@ const 构建默认货币层级 = (currencyDisplayMode: ModeRuntimeProfile['econo
         lowerName: lower.label,
         upperToMiddleRate: Math.max(1, Math.floor(upper.multiplier / Math.max(1, middle.multiplier))),
         middleToLowerRate: Math.max(1, middle.multiplier)
+    };
+};
+
+type 货币层级配置 = ModeRuntimeProfile['economy']['currencyTiers'];
+
+const 去重非空文本 = (items: string[]): string[] => (
+    Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)))
+);
+
+export const 从CurrencyTiers生成CurrencySystem = (
+    currencyTiers: 货币层级配置,
+    currencyDisplayMode: ModeRuntimeProfile['economy']['currencyDisplayMode']
+): CurrencySystem => {
+    const upperRate = Math.max(1, Math.floor(currencyTiers.upperToMiddleRate)) * Math.max(1, Math.floor(currencyTiers.middleToLowerRate));
+    const middleRate = Math.max(1, Math.floor(currencyTiers.middleToLowerRate));
+    return {
+        id: `${currencyDisplayMode}-default-currency-system`,
+        name: `${currencyTiers.upperName}/${currencyTiers.middleName}/${currencyTiers.lowerName}货币体系`,
+        baseUnitId: 'lower',
+        formatStyle: 'compound',
+        units: [
+            {
+                id: 'upper',
+                name: currencyTiers.upperName,
+                baseRate: upperRate,
+                order: 3,
+                aliases: 去重非空文本([currencyTiers.upperName, '上层货币', '金元宝', '元宝'])
+            },
+            {
+                id: 'middle',
+                name: currencyTiers.middleName,
+                baseRate: middleRate,
+                order: 2,
+                aliases: 去重非空文本([currencyTiers.middleName, '中层货币', '银子', '银两'])
+            },
+            {
+                id: 'lower',
+                name: currencyTiers.lowerName,
+                baseRate: 1,
+                order: 1,
+                aliases: 去重非空文本([currencyTiers.lowerName, '底层货币', '铜钱'])
+            }
+        ]
+    };
+};
+
+export type CurrencySystem预设模板ID =
+    | 'topic-default'
+    | 'single'
+    | 'modern-yuan'
+    | 'credit'
+    | 'wuxia'
+    | 'xianxia'
+    | 'fantasy'
+    | 'apocalypse'
+    | 'infinite';
+
+export const 获取CurrencySystem预设模板列表 = (): Array<{ id: CurrencySystem预设模板ID; label: string }> => [
+    { id: 'topic-default', label: '题材默认' },
+    { id: 'single', label: '单一货币' },
+    { id: 'modern-yuan', label: '现代人民币' },
+    { id: 'credit', label: '信用点' },
+    { id: 'wuxia', label: '武侠金银铜' },
+    { id: 'xianxia', label: '修仙灵石' },
+    { id: 'fantasy', label: '西幻金币银币铜币' },
+    { id: 'apocalypse', label: '末日物资券/瓶盖' },
+    { id: 'infinite', label: '无限流奖励点/支线剧情' }
+];
+
+const 克隆CurrencySystem = (currencySystem: CurrencySystem): CurrencySystem => JSON.parse(JSON.stringify(currencySystem));
+
+const 构建单币种CurrencySystem = (id: string, name: string, unitName: string, symbol = '', aliases: string[] = []): CurrencySystem => ({
+    id,
+    name,
+    baseUnitId: 'base',
+    formatStyle: 'single',
+    units: [
+        {
+            id: 'base',
+            name: unitName,
+            ...(symbol ? { symbol } : {}),
+            baseRate: 1,
+            order: 1,
+            aliases: 去重非空文本([unitName, ...aliases])
+        }
+    ]
+});
+
+export const 构建CurrencySystem模板 = (
+    templateId: CurrencySystem预设模板ID,
+    profile?: ModeRuntimeProfile
+): CurrencySystem => {
+    if (templateId === 'topic-default') {
+        if (profile?.economy.currencySystem) return 克隆CurrencySystem(profile.economy.currencySystem);
+        if (profile?.economy.currencyTiers) {
+            return 从CurrencyTiers生成CurrencySystem(profile.economy.currencyTiers, profile.economy.currencyDisplayMode);
+        }
+        return 从CurrencyTiers生成CurrencySystem(构建默认货币层级('wuxia'), 'wuxia');
+    }
+    if (templateId === 'single') return 构建单币种CurrencySystem('single-currency', '单一货币体系', '货币', '', ['基础货币']);
+    if (templateId === 'modern-yuan') return 构建单币种CurrencySystem('modern-yuan', '人民币体系', '元', '¥', ['人民币', '现金', '电子支付']);
+    if (templateId === 'credit') return 构建单币种CurrencySystem('credit-point', '信用点体系', '信用点', '点', ['信用', '点数']);
+    if (templateId === 'wuxia') {
+        return {
+            id: 'wuxia-gold-silver-copper',
+            name: '武侠金银铜',
+            baseUnitId: 'copper',
+            formatStyle: 'compound',
+            units: [
+                { id: 'gold', name: '金', baseRate: 100000, order: 3, aliases: ['金元宝', '元宝', '上层货币'] },
+                { id: 'silver', name: '银', baseRate: 1000, order: 2, aliases: ['银子', '银两', '中层货币'] },
+                { id: 'copper', name: '铜', baseRate: 1, order: 1, aliases: ['铜钱', '底层货币'] }
+            ]
+        };
+    }
+    if (templateId === 'xianxia') {
+        return {
+            id: 'xianxia-spirit-stones',
+            name: '修仙灵石体系',
+            baseUnitId: 'low',
+            formatStyle: 'compound',
+            units: [
+                { id: 'supreme', name: '极品灵石', baseRate: 100000000, order: 4, aliases: ['极品'] },
+                { id: 'high', name: '上品灵石', baseRate: 100000, order: 3, aliases: ['上品', '上层货币'] },
+                { id: 'middle', name: '中品灵石', baseRate: 1000, order: 2, aliases: ['中品', '中层货币'] },
+                { id: 'low', name: '下品灵石', baseRate: 1, order: 1, aliases: ['下品', '底层货币'] }
+            ]
+        };
+    }
+    if (templateId === 'fantasy') {
+        return {
+            id: 'fantasy-coins',
+            name: '西幻金币银币铜币',
+            baseUnitId: 'copper',
+            formatStyle: 'compound',
+            units: [
+                { id: 'gold', name: '金币', baseRate: 10000, order: 3, aliases: ['金', '上层货币'] },
+                { id: 'silver', name: '银币', baseRate: 100, order: 2, aliases: ['银', '中层货币'] },
+                { id: 'copper', name: '铜币', baseRate: 1, order: 1, aliases: ['铜', '底层货币'] }
+            ]
+        };
+    }
+    if (templateId === 'apocalypse') {
+        return {
+            id: 'apocalypse-supplies',
+            name: '末日物资券/瓶盖体系',
+            baseUnitId: 'camp-credit',
+            formatStyle: 'compound',
+            units: [
+                { id: 'supply-ticket', name: '物资券', baseRate: 1000, order: 3, aliases: ['物资票', '补给券', '上层货币'] },
+                { id: 'bottle-cap', name: '瓶盖', baseRate: 10, order: 2, aliases: ['瓶盖币', '中层货币'] },
+                { id: 'camp-credit', name: '营地信用点', baseRate: 1, order: 1, aliases: ['信用点', '营地信用', '底层货币'] }
+            ]
+        };
+    }
+    return {
+        id: 'infinite-rewards',
+        name: '无限流奖励点/支线剧情',
+        baseUnitId: 'reward-point',
+        formatStyle: 'compound',
+        units: [
+            { id: 'c-plot', name: 'C级支线剧情', baseRate: 100000, order: 3, aliases: ['C支线', 'C级', '上层货币'] },
+            { id: 'd-plot', name: 'D级支线剧情', baseRate: 1000, order: 2, aliases: ['D支线', 'D级', '中层货币'] },
+            { id: 'reward-point', name: '奖励点', baseRate: 1, order: 1, aliases: ['点数', '底层货币'] }
+        ]
     };
 };
 
@@ -400,6 +650,7 @@ export const 构建官方模式运行时配置 = (
     const isModern = 判断现代(baseMode);
     const isApocalypse = profile.group === 'apocalypse';
     const isInfinite = profile.group === 'infinite';
+    const currencyTiers = 构建默认货币层级(profile.currencyDisplayMode);
     const runtime: ModeRuntimeProfile = {
         identity: {
             modeId: profile.value,
@@ -416,7 +667,8 @@ export const 构建官方模式运行时配置 = (
             primaryCurrency: profile.currencyPrompt,
             accountingUnit: 取记账单位(profile.currencyDisplayMode),
             exchangeRules: profile.currencyExchangePrompt,
-            currencyTiers: 构建默认货币层级(profile.currencyDisplayMode),
+            currencyTiers,
+            currencySystem: 从CurrencyTiers生成CurrencySystem(currencyTiers, profile.currencyDisplayMode),
             marketName: profile.auctionName,
             marketVerb: profile.marketVerb,
             allowedItemTypes: items.exclusiveItemTypes,
@@ -511,6 +763,7 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
     const baseMode = 规范化题材模式(raw?.identity?.baseMode || fallback.identity.baseMode);
     const official = 构建官方模式运行时配置基础(baseMode);
     const resource = raw?.items?.resourceToggles || {};
+    const currencySystem = 规范化显式CurrencySystem(raw?.economy?.currencySystem);
     const 旧资源转列表 = (r: Record<string, boolean>): string[] => {
         const list: string[] = [];
         if (r.food) list.push('饱腹');
@@ -543,6 +796,7 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
                 upperToMiddleRate: 读取正整数(raw?.economy?.currencyTiers?.upperToMiddleRate, official.economy.currencyTiers.upperToMiddleRate),
                 middleToLowerRate: 读取正整数(raw?.economy?.currencyTiers?.middleToLowerRate, official.economy.currencyTiers.middleToLowerRate)
             },
+            ...(currencySystem ? { currencySystem } : {}),
             marketName: 文本(raw?.economy?.marketName, official.economy.marketName),
             marketVerb: 文本(raw?.economy?.marketVerb, official.economy.marketVerb),
             allowedItemTypes: 拆分模式配置短语(raw?.economy?.allowedItemTypes).length ? 拆分模式配置短语(raw.economy.allowedItemTypes) : official.economy.allowedItemTypes,
@@ -653,6 +907,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
     const isModern = 判断现代(baseMode);
     const isApocalypse = profile.group === 'apocalypse';
     const isInfinite = profile.group === 'infinite';
+    const currencyTiers = 构建默认货币层级(profile.currencyDisplayMode);
     return {
         identity: {
             modeId: profile.value,
@@ -669,7 +924,8 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             primaryCurrency: profile.currencyPrompt,
             accountingUnit: 取记账单位(profile.currencyDisplayMode),
             exchangeRules: profile.currencyExchangePrompt,
-            currencyTiers: 构建默认货币层级(profile.currencyDisplayMode),
+            currencyTiers,
+            currencySystem: 从CurrencyTiers生成CurrencySystem(currencyTiers, profile.currencyDisplayMode),
             marketName: profile.auctionName,
             marketVerb: profile.marketVerb,
             allowedItemTypes: items.exclusiveItemTypes,
@@ -755,9 +1011,22 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
     };
 };
 
+const 渲染动态货币体系摘要 = (currencySystem?: CurrencySystem): string => {
+    if (!currencySystem) return '';
+    const units = currencySystem.units
+        .map((unit) => {
+            const symbol = unit.symbol ? `；符号=${unit.symbol}` : '';
+            const aliases = unit.aliases?.length ? `；别名=${unit.aliases.join('、')}` : '';
+            return `${unit.name}${symbol}；baseRate=${unit.baseRate}${aliases}`;
+        })
+        .join(' | ');
+    return `动态货币体系：${currencySystem.name}；baseUnitId=${currencySystem.baseUnitId}；单位=${units}`;
+};
+
 export const 渲染模式运行时配置世界书内容 = (profile: ModeRuntimeProfile): string => ([
     `题材身份：${profile.identity.displayName}（继承 ${profile.identity.baseMode}；现代=${profile.identity.isModern ? '是' : '否'}；修炼=${profile.identity.usesCultivation ? '是' : '否'}；生存=${profile.identity.isSurvival ? '是' : '否'}；同人/IP=${profile.identity.isFandomIp ? '是' : '否'}）`,
     `经济系统：市场=${profile.economy.marketName}；行为=${profile.economy.marketVerb}；上层=${profile.economy.currencyTiers.upperName}；中层=${profile.economy.currencyTiers.middleName}；底层=${profile.economy.currencyTiers.lowerName}；汇率=${profile.economy.currencyTiers.upperToMiddleRate}/${profile.economy.currencyTiers.middleToLowerRate}`,
+    渲染动态货币体系摘要(profile.economy.currencySystem),
     `时间系统：显示=${profile.time.displayFormat}；历法=${profile.time.calendarName}；叙事=${profile.time.narrativeStyle}；时段=${profile.time.dayPeriodNames.join('、')}；允许=${profile.time.allowedTimeTerms.join('、') || '无'}；禁用=${profile.time.bannedTimeTerms.join('、') || '无'}；推进=${profile.time.progressionPrompt}`,
     `组织系统：组织=${profile.organization.organizationName}；成员=${profile.organization.memberName}；贡献=${profile.organization.contributionName}；等级=${profile.organization.rankNames.join('、')}`,
     `能力系统：主轴=${profile.ability.primaryAxis}；阶段=${profile.ability.progressionNames.join('、')}；技艺=${profile.ability.skillPool.join('、')}；结算=${profile.ability.combatResolution}`,
@@ -768,7 +1037,7 @@ export const 渲染模式运行时配置世界书内容 = (profile: ModeRuntimeP
     `生图系统：服饰=${profile.image.characterClothingEra}；场景=${profile.image.sceneMaterials}；物品=${profile.image.itemRealismPrompt}；负面=${profile.image.negativePrompt}`,
     `开局系统：背景=${profile.opening.defaultBackgrounds.join('、')}；天赋=${profile.opening.defaultTalents.join('、')}；切入=${profile.opening.cutInTemplates.join('、')}；初始任务=${profile.opening.initialQuestTemplates.join('、')}；允许生成性别=${profile.opening.allowedGeneratedGenders.join('、')}；性别锁定=${profile.opening.lockGeneratedGenders ? '是' : '否'}`,
     `校验系统：禁词=${profile.validation.bannedWords.join('、')}；冲突检测=${profile.validation.conflictChecks.join('、')}；迁移清理=${profile.validation.migrationCleanupRules.join('、')}`
-]).join('\n');
+]).filter(Boolean).join('\n');
 
 export const 获取题材顶部时间显示格式 = (
     runtimeProfile?: ModeRuntimeProfile | null,

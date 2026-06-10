@@ -64,6 +64,7 @@ import { 构建女主规划专项提示词 } from '../../prompts/core/heroinePla
 import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 构建题材模式提示词 } from '../../prompts/runtime/openingConfig';
 import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
+import { 构建角色金钱显示快照 } from '../../utils/currencyDisplay';
 
 export type 运行时提示词状态 = {
     当前启用: boolean;
@@ -433,9 +434,12 @@ export const 构建系统提示词 = ({
         };
         const 金钱原始 = role?.金钱 && typeof role.金钱 === 'object' ? role.金钱 : {};
         const 金钱 = {
-            金元宝: 取数值(金钱原始?.金元宝),
-            银子: 取数值(金钱原始?.银子),
-            铜钱: 取数值(金钱原始?.铜钱)
+            ...构建角色金钱显示快照(
+                金钱原始,
+                openingConfig || source?.开局配置 || source?.openingConfig,
+                role
+            ),
+            写入说明: '真实写入仍使用 角色.金钱；程序兼容 baseAmount 与旧三层字段。'
         };
         const 装备原始 = role?.装备 && typeof role.装备 === 'object' ? role.装备 : {};
         const 装备 = {
@@ -1153,6 +1157,18 @@ export const 构建系统提示词 = ({
     const openingConfig = options?.openingConfig
         || statePayload?.开局配置
         || statePayload?.openingConfig;
+    const 构建当前货币系统提示词 = (): string => {
+        const currencySystem = (openingConfig as any)?.modeRuntimeProfile?.economy?.currencySystem;
+        if (!currencySystem || typeof currencySystem !== 'object') return '';
+        return 包装树状上下文('当前货币系统', {
+            currencySystem,
+            使用规则: [
+                'currencySystem 是当前世界的显式货币体系；后续余额、奖励、价格文本应优先使用 units[].name/symbol/aliases 识别。',
+                '角色.金钱 继续保留金元宝/银子/铜钱兼容字段；baseAmount 是最小结算单位。',
+                '交易计算由程序处理，不要在剧情中手动改汇率或重建 currencySystem。'
+            ]
+        });
+    };
     const worldbookInjection = 构建世界书注入文本({
         books: Array.isArray(worldbooks) ? worldbooks : [],
         scopes: activeWorldbookScopes,
@@ -1508,9 +1524,11 @@ export const 构建系统提示词 = ({
         cultivationSystemEnabled: 启用修炼体系
     });
     const contextMapAndBuilding = 构建地图建筑状态文本(statePayload);
+    const contextCurrencySystem = 构建当前货币系统提示词();
     const promptHeader = [
         worldPrompt.trim(),
         contextMapAndBuilding,
+        contextCurrencySystem,
         npcContext.离场数据块,
         构建女性姓名候选提示词({
             usedNames: 收集女性姓名候选已用名({
