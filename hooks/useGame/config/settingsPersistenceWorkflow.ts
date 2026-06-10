@@ -24,6 +24,7 @@ import { 设置键 } from '../../../utils/settingsSchema';
 import { 写入接口设置本地镜像, 规范化接口设置 } from '../../../utils/apiConfig';
 import { 写入APK自动更新禁用镜像 } from '../../../utils/appUpdatePreferences';
 import { 内置提示词存储键, 规范化内置提示词列表 } from '../../../utils/builtinPrompts';
+import { 创建并记录ObjectURL, 释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 import { 世界书存储键, 世界书预设组存储键, 规范化世界书列表, 规范化世界书预设组列表 } from '../../../utils/worldbook';
 import { 规范化记忆配置 } from '../memoryUtils';
 
@@ -58,14 +59,22 @@ const 合并并去重预设列表 = (existing: any[] = [], incoming: any[] = [])
 
 const 下载JSON文件 = (payload: unknown, filename: string) => {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+    const url = 创建并记录ObjectURL(blob, {
+        source: 'settingsPersistenceWorkflow.下载JSON文件',
+        kind: 'settings-json-export',
+        detail: { filename }
+    });
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = filename;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    释放并记录ObjectURL(url, {
+        source: 'settingsPersistenceWorkflow.下载JSON文件',
+        kind: 'settings-json-export',
+        detail: { filename, reason: 'download-clicked' }
+    });
 };
 
 const 读取文件为文本 = (file: File): Promise<string> => new Promise((resolve, reject) => {

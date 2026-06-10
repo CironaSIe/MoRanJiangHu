@@ -52,6 +52,7 @@ import { 设置键 } from '../../../../utils/settingsSchema';
 import { 根据名称映射天赋抽卡, 根据名称映射抽卡, 补全天赋抽卡名称列表, 补全抽卡名称列表, 天赋抽卡数量, 出身抽卡数量, 抽取天赋卡牌, 抽取卡牌 } from '../../../../utils/talentDraw';
 import { 构建开局世界观生成提示词预览 } from '../../../../utils/worldGenerationPromptPreview';
 import { 下载创意工坊模块, 列出创意工坊模块 } from '../../../../services/creativeWorkshop';
+import { 创建并记录ObjectURL, 释放并记录ObjectURL } from '../../../../utils/objectUrlLifecycle';
 
 interface Props {
     onComplete: (
@@ -1035,12 +1036,20 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
     );
     const 导出文本文件 = (filename: string, content: string) => {
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
+        const url = 创建并记录ObjectURL(blob, {
+            source: 'MobileNewGameWizard.导出文本文件',
+            kind: 'newgame-prompt-export',
+            detail: { filename }
+        });
         const link = document.createElement('a');
         link.href = url;
         link.download = filename;
         link.click();
-        URL.revokeObjectURL(url);
+        释放并记录ObjectURL(url, {
+            source: 'MobileNewGameWizard.导出文本文件',
+            kind: 'newgame-prompt-export',
+            detail: { filename, reason: 'download-clicked' }
+        });
     };
     const 导入手动提示词文件 = async (
         event: React.ChangeEvent<HTMLInputElement>,

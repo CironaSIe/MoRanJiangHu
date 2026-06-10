@@ -55,6 +55,7 @@ import { normalizeWorldMapDraft } from '../../../utils/newGameDiy';
 import { 获取主剧情接口配置, 接口配置是否可用 } from '../../../utils/apiConfig';
 import { 请求模型文本 } from '../../../services/ai/chatCompletionClient';
 import { 下载创意工坊模块, 列出创意工坊模块 } from '../../../services/creativeWorkshop';
+import { 创建并记录ObjectURL, 释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 
 interface Props {
     onComplete: (
@@ -1299,12 +1300,20 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     );
     const 导出文本文件 = (filename: string, content: string) => {
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
+        const url = 创建并记录ObjectURL(blob, {
+            source: 'NewGameWizard.导出文本文件',
+            kind: 'newgame-prompt-export',
+            detail: { filename }
+        });
         const link = document.createElement('a');
         link.href = url;
         link.download = filename;
         link.click();
-        URL.revokeObjectURL(url);
+        释放并记录ObjectURL(url, {
+            source: 'NewGameWizard.导出文本文件',
+            kind: 'newgame-prompt-export',
+            detail: { filename, reason: 'download-clicked' }
+        });
     };
     const 导入手动提示词文件 = async (
         event: React.ChangeEvent<HTMLInputElement>,

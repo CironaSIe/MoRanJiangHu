@@ -11,6 +11,7 @@ import { 导出ZIP存档文件, 解析ZIP存档文件 } from '../../../services/
 import { 存档结构 } from '../../../types';
 import { parseJsonWithRepair } from '../../../utils/jsonRepair';
 import { isNativeCapacitorEnvironment } from '../../../utils/nativeRuntime';
+import { 创建并记录ObjectURL, 延迟释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 import { buildSaveDebugSummary, recordSaveLoadError, recordSaveLoadTrace } from '../../../utils/saveLoadTrace';
 import { 读取存档游玩回合数 } from '../../../utils/saveTurn';
 import GameButton from '../../ui/GameButton';
@@ -532,7 +533,11 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             return;
         }
 
-        const url = URL.createObjectURL(blob);
+        const url = 创建并记录ObjectURL(blob, {
+            source: 'SaveLoadModal.downloadArchiveBlob',
+            kind: 'save-archive-export',
+            detail: { fileName }
+        });
         const link = document.createElement('a');
         link.href = url;
         link.download = fileName;
@@ -540,7 +545,11 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         document.body.appendChild(link);
         link.click();
         link.remove();
-        window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+        延迟释放并记录ObjectURL(url, {
+            source: 'SaveLoadModal.downloadArchiveBlob',
+            kind: 'save-archive-export',
+            detail: { fileName, reason: 'download-clicked' }
+        }, 30_000);
         setTransferMessage(`已开始下载：${fileName}`);
     };
 

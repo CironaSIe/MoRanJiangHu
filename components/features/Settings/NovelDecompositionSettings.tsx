@@ -50,6 +50,7 @@ import {
 import { 发布创意工坊模块, 导入本地创意工坊模块 } from '../../../services/creativeWorkshop';
 import { 构建小说拆分模式包创意工坊模块 } from '../../../services/novelDecompositionWorkshopBridge';
 import { 读取云端游玩会话 } from '../../../services/cloudPlayService';
+import { 创建并记录ObjectURL, 释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 
 interface Props {
     settings: 接口设置结构;
@@ -1540,14 +1541,22 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                 console.warn('小说分解分享 ZIP 写入设备文档目录失败，改用浏览器下载。', error);
             }
         }
-        const url = URL.createObjectURL(zipBlob);
+        const url = 创建并记录ObjectURL(zipBlob, {
+            source: 'NovelDecompositionSettings.handleExportSharePackage',
+            kind: 'novel-decomposition-share-export',
+            detail: { fileName }
+        });
         const link = document.createElement('a');
         link.href = url;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        释放并记录ObjectURL(url, {
+            source: 'NovelDecompositionSettings.handleExportSharePackage',
+            kind: 'novel-decomposition-share-export',
+            detail: { fileName, reason: 'download-clicked' }
+        });
         return `已开始下载：${fileName}`;
     };
 

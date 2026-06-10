@@ -28,6 +28,7 @@ import * as dbService from '../dbService';
 import { 压缩图片资源字段, 是否图片资源引用 } from '../../utils/imageAssets';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
 import { RELEASE_INFO } from '../../data/releaseInfo';
+import { 创建并记录ObjectURL, 释放并记录ObjectURL } from '../../utils/objectUrlLifecycle';
 import { buildSyncApiUrl, isNativeCapacitorEnvironment, requiresRemoteSyncApi } from '../../utils/nativeRuntime';
 import {
     判断疑似网络或跨域错误,
@@ -548,7 +549,11 @@ const 从PNG隐写Alpha提取NovelAI文本 = async (blob: Blob): Promise<string>
             const img = new Image();
             img.onload = () => resolve(img);
             img.onerror = () => reject(new Error('加载 PNG 图像失败'));
-            objectUrl = URL.createObjectURL(blob);
+            objectUrl = 创建并记录ObjectURL(blob, {
+                source: 'imageTasks.从PNG隐写Alpha提取NovelAI文本',
+                kind: 'png-metadata-preview',
+                detail: { blobType: blob.type, blobSize: blob.size }
+            });
             img.src = objectUrl;
         });
 
@@ -611,7 +616,11 @@ const 从PNG隐写Alpha提取NovelAI文本 = async (blob: Blob): Promise<string>
         return '';
     } finally {
         if (objectUrl) {
-            URL.revokeObjectURL(objectUrl);
+            释放并记录ObjectURL(objectUrl, {
+                source: 'imageTasks.从PNG隐写Alpha提取NovelAI文本',
+                kind: 'png-metadata-preview',
+                detail: { reason: 'image-decode-finished' }
+            });
         }
     }
 };

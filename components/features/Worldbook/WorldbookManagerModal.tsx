@@ -3,6 +3,7 @@ import type { 世界书结构, 世界书条目结构, 世界书作用域, 世界
 import { bundledDefaultWorldbookIds, bundledWorldbookPresets, loadAllBundledWorldbookPresets, loadBundledWorldbookPreset } from '../../../data/worldbookPresets';
 import { 内置提示词分类顺序, 构建内置提示词导出数据, 解析内置提示词导入数据, 规范化内置提示词列表, 世界书本体槽位 } from '../../../utils/builtinPrompts';
 import { 世界书作用域选项, 世界书类型选项, 世界书条目形态选项, 世界书注入模式选项, 创建空世界书, 创建空世界书条目, 创建空世界书预设组, 获取世界书条目注入说明, 构建世界书导出数据, 构建世界书预设组导出数据, 应用世界书预设组到世界书列表, 解析世界书导入数据, 解析世界书预设组导入数据, 规范化世界书列表, 规范化世界书预设组列表 } from '../../../utils/worldbook';
+import { 创建并记录ObjectURL, 释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 import type { ConfirmOptions } from '../../ui/InAppConfirmModal';
 import ToggleSwitch from '../../ui/ToggleSwitch';
 
@@ -27,12 +28,20 @@ const miniTagClass = 'inline-flex items-center rounded-full border border-wuxia-
 
 const 下载JSON文件 = (filename: string, payload: unknown) => {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+    const url = 创建并记录ObjectURL(blob, {
+        source: 'WorldbookManagerModal.下载JSON文件',
+        kind: 'json-export',
+        detail: { filename }
+    });
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = filename;
     anchor.click();
-    URL.revokeObjectURL(url);
+    释放并记录ObjectURL(url, {
+        source: 'WorldbookManagerModal.下载JSON文件',
+        kind: 'json-export',
+        detail: { filename, reason: 'download-clicked' }
+    });
 };
 
 const 读取JSON文件 = async <T,>(file: File): Promise<T> => JSON.parse(await file.text()) as T;

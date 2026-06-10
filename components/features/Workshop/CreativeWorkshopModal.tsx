@@ -15,6 +15,7 @@ import {
 } from '../../../services/creativeWorkshop';
 import { 读取云端游玩会话 } from '../../../services/cloudPlayService';
 import { 校验ComfyUI工作流可生图 } from '../../../services/ai/comfyWorkflowValidation';
+import { 创建并记录ObjectURL, 释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 import CurrencySystemEditor from './CurrencySystemEditor';
 
 interface Props {
@@ -248,12 +249,20 @@ const 下载JSON = (entry: 创意工坊模块条目) => {
         module: entry
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+    const url = 创建并记录ObjectURL(blob, {
+        source: 'CreativeWorkshopModal.下载JSON',
+        kind: 'creative-workshop-export',
+        detail: { moduleId: entry.id, moduleTitle: entry.title }
+    });
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = `${entry.id}.json`;
     anchor.click();
-    URL.revokeObjectURL(url);
+    释放并记录ObjectURL(url, {
+        source: 'CreativeWorkshopModal.下载JSON',
+        kind: 'creative-workshop-export',
+        detail: { moduleId: entry.id, reason: 'download-clicked' }
+    });
 };
 
 const 复制文本 = async (text: string): Promise<boolean> => {

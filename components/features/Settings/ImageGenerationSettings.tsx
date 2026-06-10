@@ -29,6 +29,7 @@ import {
     type ImageBackendConnectionStats
 } from '../../../services/ai/imageBackendRegistry';
 import { 规范化ComfyUI工作流JSON } from '../../../services/ai/comfyWorkflowTools';
+import { 创建并记录ObjectURL, 释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 import {
     下载创意工坊模块,
     发布创意工坊模块,
@@ -926,12 +927,20 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
 
     const 导出JSON文件 = (filename: string, payload: unknown) => {
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
+        const url = 创建并记录ObjectURL(blob, {
+            source: 'ImageGenerationSettings.导出JSON文件',
+            kind: 'image-generation-settings-export',
+            detail: { filename }
+        });
         const anchor = document.createElement('a');
         anchor.href = url;
         anchor.download = filename;
         anchor.click();
-        URL.revokeObjectURL(url);
+        释放并记录ObjectURL(url, {
+            source: 'ImageGenerationSettings.导出JSON文件',
+            kind: 'image-generation-settings-export',
+            detail: { filename, reason: 'download-clicked' }
+        });
     };
 
     const 读取JSON文件 = async (file: File): Promise<any> => {

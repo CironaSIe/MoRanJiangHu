@@ -2,6 +2,7 @@ import type { 存档结构 } from '../types';
 import * as dbService from './dbService';
 import { 导出ZIP存档文件, 解析ZIP存档文件 } from './saveArchiveService';
 import { 上传Blob到图床, buildImageHostProxyUrl } from './imageHostService';
+import { 创建并记录ObjectURL, 延迟释放并记录ObjectURL } from '../utils/objectUrlLifecycle';
 import {
     读取对象存储同步配置,
     增量同步到对象存储,
@@ -1223,7 +1224,11 @@ export const 保存云端存档为本地文件 = async (session: 云端游玩账
     const payload = await 下载云端存档包(session, item);
     const blob = await 导出ZIP存档文件({ saves: payload.saves, includeImages: true });
     const safeTitle = (item.title || 'cloud-save').replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_').slice(0, 40) || 'cloud-save';
-    const url = URL.createObjectURL(blob);
+    const url = 创建并记录ObjectURL(blob, {
+        source: 'cloudPlayService.保存云端存档为本地文件',
+        kind: 'cloud-save-export',
+        detail: { saveId: item.id, title: item.title, syncHash: item.syncHash }
+    });
     try {
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -1232,6 +1237,10 @@ export const 保存云端存档为本地文件 = async (session: 云端游玩账
         anchor.click();
         document.body.removeChild(anchor);
     } finally {
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        延迟释放并记录ObjectURL(url, {
+            source: 'cloudPlayService.保存云端存档为本地文件',
+            kind: 'cloud-save-export',
+            detail: { reason: 'download-clicked', saveId: item.id }
+        }, 1000);
     }
 };

@@ -1,5 +1,6 @@
 import type { PNG画风预设结构, 接口设置结构, 角色锚点结构 } from '../../types';
 import { 获取主剧情接口配置, 获取生图词组转化器接口配置, 接口配置是否可用, 规范化接口设置 } from '../../utils/apiConfig';
+import { 创建并记录ObjectURL, 释放并记录ObjectURL } from '../../utils/objectUrlLifecycle';
 import { 提取NPC生图基础数据, 提取主角生图基础数据 } from './npcContext';
 
 type 右下角提示参数 = {
@@ -43,12 +44,20 @@ const 读取文件为文本 = (file: File): Promise<string> => new Promise((reso
 
 const 下载JSON文件 = (payload: unknown, filename: string) => {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+    const url = 创建并记录ObjectURL(blob, {
+        source: 'imagePresetWorkflow.下载JSON文件',
+        kind: 'image-preset-export',
+        detail: { filename }
+    });
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = filename;
     anchor.click();
-    URL.revokeObjectURL(url);
+    释放并记录ObjectURL(url, {
+        source: 'imagePresetWorkflow.下载JSON文件',
+        kind: 'image-preset-export',
+        detail: { filename, reason: 'download-clicked' }
+    });
 };
 
 const 打开JSON文件 = async (): Promise<string> => {

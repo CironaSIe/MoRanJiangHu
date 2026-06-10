@@ -1,5 +1,3 @@
-import { recordDiagnosticLog } from '../services/diagnosticLog';
-
 type ObjectUrlSource = {
     source: string;
     kind?: string;
@@ -26,12 +24,17 @@ const 记录ObjectURL生命周期 = (
     url: string,
     payload: Record<string, unknown>
 ) => {
-    recordDiagnosticLog('info', ['objectUrl.lifecycle', {
-        event,
-        url: 截短URL(url),
-        activeCount: activeObjectUrls.size,
-        ...payload
-    }]);
+    const 事件 = event === 'create' ? '创建' : '释放';
+    try {
+        console.info('[对象URL生命周期]', {
+            事件,
+            URL: 截短URL(url),
+            活跃数量: activeObjectUrls.size,
+            ...payload
+        });
+    } catch {
+        // Diagnostic logging must never affect object URL cleanup.
+    }
 };
 
 export const 创建并记录ObjectURL = (blob: Blob, meta: ObjectUrlSource): string => {
@@ -45,12 +48,12 @@ export const 创建并记录ObjectURL = (blob: Blob, meta: ObjectUrlSource): str
     };
     activeObjectUrls.set(url, entry);
     记录ObjectURL生命周期('create', url, {
-        sequence: entry.sequence,
-        source: entry.source,
-        kind: entry.kind,
-        bytes: entry.bytes,
-        type: entry.type,
-        detail: entry.detail
+        序号: entry.sequence,
+        来源: entry.source,
+        类型: entry.kind,
+        字节数: entry.bytes,
+        MIME类型: entry.type,
+        详情: entry.detail
     });
     return url;
 };
@@ -63,18 +66,38 @@ export const 释放并记录ObjectURL = (url: string | null | undefined, meta: O
     } finally {
         activeObjectUrls.delete(url);
         记录ObjectURL生命周期('revoke', url, {
-            sequence: entry?.sequence,
-            source: meta.source,
-            originalSource: entry?.source,
-            kind: meta.kind || entry?.kind,
-            matchedCreate: Boolean(entry),
-            bytes: entry?.bytes,
-            type: entry?.type,
-            lifetimeMs: entry ? Date.now() - entry.createdAt : undefined,
-            detail: {
+            序号: entry?.sequence,
+            来源: meta.source,
+            原始来源: entry?.source,
+            类型: meta.kind || entry?.kind,
+            是否匹配创建记录: Boolean(entry),
+            字节数: entry?.bytes,
+            MIME类型: entry?.type,
+            存活毫秒: entry ? Date.now() - entry.createdAt : undefined,
+            详情: {
                 ...(entry?.detail || {}),
                 ...(meta.detail || {})
             }
         });
     }
+};
+
+export const 延迟释放并记录ObjectURL = (
+    url: string | null | undefined,
+    meta: ObjectUrlSource,
+    delayMs: number
+): void => {
+    if (typeof url !== 'string' || !url.startsWith('blob:')) return;
+    const release = () => 释放并记录ObjectURL(url, {
+        ...meta,
+        detail: {
+            ...(meta.detail || {}),
+            delayMs
+        }
+    });
+    if (typeof globalThis.setTimeout === 'function' && delayMs > 0) {
+        globalThis.setTimeout(release, delayMs);
+        return;
+    }
+    release();
 };
