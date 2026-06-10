@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { 提示词结构, PromptCategory } from '../../../types';
 import GameButton from '../../ui/GameButton';
 import ToggleSwitch from '../../ui/ToggleSwitch';
+import { 创建并记录ObjectURL, 释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 
 type RuntimePromptState = {
     当前启用: boolean;
@@ -76,11 +77,20 @@ const PromptManager: React.FC<Props> = ({ prompts, onUpdate, requestConfirm, run
 
     const handleExport = () => {
         const blob = new Blob([JSON.stringify(prompts, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+        const url = 创建并记录ObjectURL(blob, {
+            source: 'PromptManager.handleExport',
+            kind: 'prompt-export',
+            detail: { promptCount: prompts.length }
+        });
         const a = document.createElement('a');
         a.href = url;
         a.download = 'wuxia_prompts.json';
         a.click();
+        释放并记录ObjectURL(url, {
+            source: 'PromptManager.handleExport',
+            kind: 'prompt-export',
+            detail: { reason: 'download-clicked' }
+        });
     };
 
     const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {

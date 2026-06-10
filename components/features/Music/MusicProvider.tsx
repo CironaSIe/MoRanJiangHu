@@ -3,6 +3,7 @@ import { 视觉设置结构, MusicTrack } from '../../../types';
 import { 读取设置, 保存设置, 读取图片资源 } from '../../../services/dbService';
 import { 设置键 } from '../../../utils/settingsSchema';
 import { 默认背景音乐曲库 } from '../../../data/defaultMusicTracks';
+import { 释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 
 interface MusicContextType {
     tracks: MusicTrack[];
@@ -51,6 +52,19 @@ const 默认音乐上下文: MusicContextType = {
 };
 
 const MusicContext = createContext<MusicContextType>(默认音乐上下文);
+
+const 释放音乐封面ObjectURL = (track?: MusicTrack | null) => {
+    const coverUrl = track?.封面URL;
+    if (typeof coverUrl !== 'string' || !coverUrl.startsWith('blob:')) return;
+    释放并记录ObjectURL(coverUrl, {
+        source: 'MusicProvider.removeTrack',
+        kind: 'music-cover',
+        detail: {
+            trackId: track?.id,
+            trackName: track?.名称
+        }
+    });
+};
 
 export const useMusic = () => {
     return useContext(MusicContext);
@@ -273,9 +287,11 @@ export const MusicProvider: React.FC<{
 
     const removeTrack = async (id: string) => {
         if (id.startsWith('default_')) return;
+        const removedTrack = tracks.find(t => t.id === id);
         const updatedTracks = tracks.filter(t => t.id !== id);
         setTracks(updatedTracks);
         await 保存设置(设置键.音乐曲库, updatedTracks);
+        释放音乐封面ObjectURL(removedTrack);
         
         if (currentTrackId === id) {
             handleNext();
