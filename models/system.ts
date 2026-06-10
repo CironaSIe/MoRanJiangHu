@@ -916,6 +916,7 @@ export interface 游戏设置结构 {
     禁用APK自动更新: boolean; // Disable automatic APK update checks and release-note popups; manual update remains available
     启用回合结束自动存档: boolean; // Auto save after each completed story turn
     启用繁体模式: boolean; // Require AI-generated in-game text to use Traditional Chinese
+    启用非流式输出: boolean; // Disable streaming output, use non-streaming request instead
     启用NSFW模式: boolean; // Gate NSFW prompt and heroine privacy UI
     启用男娘NSFW内容: boolean; // Gate femboy/male NSFW archive prompts, UI, and auto secret image generation
     启用亲密边界机制: boolean; // Require consent, privacy, relationship thresholds, and character agency for intimacy

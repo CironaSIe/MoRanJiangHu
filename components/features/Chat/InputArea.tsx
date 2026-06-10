@@ -172,6 +172,7 @@ interface Props {
     openingPlanningProgress?: PlanningProgress | null;
     openingVariableGenerationProgress?: VariableGenerationProgress | null;
     openingMapUpdateProgress?: MapUpdateProgress | null;
+    isStreamingDefault?: boolean;
 }
 
 const InputArea: React.FC<Props> = ({
@@ -196,10 +197,11 @@ const InputArea: React.FC<Props> = ({
     openingWorldEvolutionProgress = null,
     openingPlanningProgress = null,
     openingVariableGenerationProgress = null,
-    openingMapUpdateProgress = null
+    openingMapUpdateProgress = null,
+    isStreamingDefault = true
 }) => {
     const [content, setContent] = useState('');
-    const [isStreaming, setIsStreaming] = useState(true);
+    const [isStreaming, setIsStreaming] = useState(isStreamingDefault);
     const [lastSentContent, setLastSentContent] = useState('');
     const [isPreparing, setIsPreparing] = useState(false);
     const [attachedRecallPreview, setAttachedRecallPreview] = useState('');

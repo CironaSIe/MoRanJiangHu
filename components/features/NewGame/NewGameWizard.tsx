@@ -68,6 +68,7 @@ interface Props {
     loading: boolean;
     apiConfig?: 接口设置结构;
     requestConfirm?: (options: { title?: string; message: string; confirmText?: string; cancelText?: string; danger?: boolean }) => Promise<boolean>;
+    isStreamingDefault?: boolean;
 }
 
 const STEP_CONFIGS = [...新开局步骤定义列表];
@@ -180,9 +181,10 @@ const 开关按钮: React.FC<{
     </button>
 );
 
-const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConfig, requestConfirm }) => {
+const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConfig, requestConfirm, isStreamingDefault = true }) => {
     const [step, setStep] = useState(0);
     const 角色默认值 = useMemo(() => 获取创意工坊角色默认值(), []);
+    const effectiveOpeningStreaming = isStreamingDefault !== false;
 
     // --- State: World Config ---
     const [worldConfig, setWorldConfig] = useState<WorldGenConfig>(() => 创建主题默认世界配置('武侠'));
@@ -1560,7 +1562,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         const effectiveOpeningConfig = 构建有效开局配置();
         const runtimeSnapshot = 构建开局运行时快照({
             openingConfig: effectiveOpeningConfig,
-            openingStreaming: true,
+            openingStreaming: effectiveOpeningStreaming,
             openingExtraRequirement: openingExtraRequirement.trim(),
             activeModuleExtraRules: activeModuleExtraRules.trim(),
             modeWorldbooks: 模式包世界书列表,
@@ -1599,7 +1601,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                     ...(runtimeSnapshot ? { runtimeSnapshot } : {})
                 }
                 : undefined,
-            openingStreaming: true,
+            openingStreaming: effectiveOpeningStreaming,
             openingExtraRequirement: openingExtraRequirement.trim()
         };
     };
@@ -1769,7 +1771,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 openingConfig: effectiveOpeningConfig,
                 openingExtraRequirement: openingExtraRequirement,
                 activeModuleExtraRules,
-                openingStreaming: true,
+                openingStreaming: effectiveOpeningStreaming,
                 validModuleKeys: 恢复链有效模块键
             });
         const effectiveOpeningExtraRequirement = runtimeRestore.openingExtraRequirement || '';
