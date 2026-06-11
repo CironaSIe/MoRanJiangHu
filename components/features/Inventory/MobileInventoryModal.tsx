@@ -47,6 +47,7 @@ const getCategoryCount = (items: any[], category: ItemCategory) => {
     if (category === '全部') return items.length;
     if (category === '装备') return items.filter((item) => ['武器', '防具', '饰品'].includes(getSafeText(item?.类型))).length;
     if (category === '杂物') return items.filter(是否杂物类物品).length;
+    if (category === '材料') return items.filter((item) => { const t = getSafeText(item?.类型); return t === '材料' || t.startsWith('货币:'); }).length;
     return items.filter((item) => getSafeText(item?.类型) === category).length;
 };
 
@@ -134,6 +135,7 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
             if (activeCategory === '全部') return true;
             if (activeCategory === '装备') return ['武器', '防具', '饰品'].includes(type);
             if (activeCategory === '杂物') return 是否杂物类物品(item);
+            if (activeCategory === '材料') return type === '材料' || type.startsWith('货币:');
             return type === activeCategory;
         });
 
