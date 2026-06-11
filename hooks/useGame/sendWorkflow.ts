@@ -2340,7 +2340,7 @@ export const 执行主剧情发送工作流 = async (
                 deps.设置剧情(finalState.剧情);
                 finalDisplayResponse = {
                     ...finalDisplayResponse,
-                    logs: Array.isArray(finalParsedResponse.logs) ? [...finalParsedResponse.logs] : finalDisplayResponse.logs
+                    logs: displayAiData.logs || finalDisplayResponse.logs
                 };
 
                 const queuedAiMsg: 聊天记录结构 = {
