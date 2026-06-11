@@ -29,6 +29,9 @@ type 回忆检索进度 = {
     text?: string;
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 正文润色进度 = {
@@ -38,6 +41,9 @@ type 正文润色进度 = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 正文字数不足信息 = {
@@ -56,6 +62,9 @@ type 变量生成进度 = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 独立阶段标识 = 'polish' | 'world' | 'planning' | 'variable' | 'map';
@@ -74,6 +83,9 @@ type 规划分析进度 = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 世界演变进度 = {
@@ -83,6 +95,9 @@ type 世界演变进度 = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 地图更新进度 = {
@@ -92,6 +107,9 @@ type 地图更新进度 = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 export const 构建中断流式草稿历史 = (params: {
@@ -569,6 +587,20 @@ type 队列阶段模型信息 = {
     modelName?: string;
 };
 
+type 队列阶段计时进度 = {
+    phase?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
+};
+
+const 队列阶段已结束 = (phase?: string): boolean => (
+    phase === 'done'
+    || phase === 'error'
+    || phase === 'skipped'
+    || phase === 'cancelled'
+);
+
 const 获取队列阶段渠道键 = (config: any, mainConfig?: any | null): string => {
     if (!config) return '';
     return [
@@ -859,27 +891,53 @@ export const 执行主剧情发送工作流 = async (
         planning: 构建队列阶段模型信息('规划分析', 获取规划分析接口配置(currentState.apiConfig), activeApi),
         map: 构建队列阶段模型信息('地图更新', 获取地图自动更新接口配置(currentState.apiConfig), activeApi)
     };
+    const stageTiming: Partial<Record<独立阶段标识 | 'recall', { startedAt: number; finishedAt?: number }>> = {};
+    const 附加队列阶段运行信息 = <T extends 队列阶段计时进度 & { channelName?: string; modelName?: string }>(
+        stageId: 独立阶段标识 | 'recall',
+        progress: T,
+        info: 队列阶段模型信息
+    ): T => {
+        const now = Date.now();
+        const current = stageTiming[stageId] || { startedAt: now };
+        if (progress.phase === 'start' || progress.phase === 'stream') {
+            current.startedAt = current.startedAt || now;
+            current.finishedAt = undefined;
+        } else if (队列阶段已结束(progress.phase)) {
+            current.finishedAt = current.finishedAt || now;
+        }
+        stageTiming[stageId] = current;
+        const finishedAt = current.finishedAt;
+        const elapsedMs = typeof progress.elapsedMs === 'number'
+            ? progress.elapsedMs
+            : Math.max(0, (finishedAt || now) - current.startedAt);
+        return 附加队列阶段模型信息({
+            ...progress,
+            startedAt: progress.startedAt || current.startedAt,
+            finishedAt: progress.finishedAt || finishedAt,
+            elapsedMs
+        }, info);
+    };
     if (options) {
         const originalOptions = options;
         options = {
             ...originalOptions,
             onRecallProgress: originalOptions.onRecallProgress
-                ? (progress) => originalOptions.onRecallProgress?.(附加队列阶段模型信息(progress, stageModelInfo.recall))
+                ? (progress) => originalOptions.onRecallProgress?.(附加队列阶段运行信息('recall', progress, stageModelInfo.recall))
                 : undefined,
             onPolishProgress: originalOptions.onPolishProgress
-                ? (progress) => originalOptions.onPolishProgress?.(附加队列阶段模型信息(progress, stageModelInfo.polish))
+                ? (progress) => originalOptions.onPolishProgress?.(附加队列阶段运行信息('polish', progress, stageModelInfo.polish))
                 : undefined,
             onVariableGenerationProgress: originalOptions.onVariableGenerationProgress
-                ? (progress) => originalOptions.onVariableGenerationProgress?.(附加队列阶段模型信息(progress, stageModelInfo.variable))
+                ? (progress) => originalOptions.onVariableGenerationProgress?.(附加队列阶段运行信息('variable', progress, stageModelInfo.variable))
                 : undefined,
             onWorldEvolutionProgress: originalOptions.onWorldEvolutionProgress
-                ? (progress) => originalOptions.onWorldEvolutionProgress?.(附加队列阶段模型信息(progress, stageModelInfo.world))
+                ? (progress) => originalOptions.onWorldEvolutionProgress?.(附加队列阶段运行信息('world', progress, stageModelInfo.world))
                 : undefined,
             onPlanningProgress: originalOptions.onPlanningProgress
-                ? (progress) => originalOptions.onPlanningProgress?.(附加队列阶段模型信息(progress, stageModelInfo.planning))
+                ? (progress) => originalOptions.onPlanningProgress?.(附加队列阶段运行信息('planning', progress, stageModelInfo.planning))
                 : undefined,
             onMapUpdateProgress: originalOptions.onMapUpdateProgress
-                ? (progress) => originalOptions.onMapUpdateProgress?.(附加队列阶段模型信息(progress, stageModelInfo.map))
+                ? (progress) => originalOptions.onMapUpdateProgress?.(附加队列阶段运行信息('map', progress, stageModelInfo.map))
                 : undefined
         };
     }

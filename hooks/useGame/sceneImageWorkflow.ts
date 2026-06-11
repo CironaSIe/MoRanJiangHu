@@ -315,6 +315,7 @@ export const 执行场景生图工作流 = async (
             }
         );
         const localizedImageResult = await imageAIService.persistImageAssetLocally(imageResult);
+        const 调试链路 = Array.isArray(imageResult?.调试链路) ? imageResult.调试链路 : undefined;
         if (!当前任务允许写入()) return;
         if (!localizedImageResult.图片URL && !localizedImageResult.本地路径) {
             throw new Error('图片已生成，但未得到可展示或可保存的图片资源。');
@@ -345,7 +346,8 @@ export const 执行场景生图工作流 = async (
             状态: 'success' as const,
             错误信息: undefined,
             来源回合: params.来源回合,
-            摘要: params.摘要
+            摘要: params.摘要,
+            调试链路
         };
 
         deps.更新场景图片档案((archive) => ({
@@ -380,6 +382,7 @@ export const 执行场景生图工作流 = async (
             尺寸: params.尺寸,
             额外要求: params.额外要求,
             错误信息: undefined,
+            调试链路,
             进度阶段: 'success',
             进度文本: localizedImageResult.客户提示
                 ? `${localizedImageResult.客户提示}，${appliedAsWallpaper ? '图片已生成并自动应用为壁纸。' : '图片已生成并写入场景档案。'}`
@@ -391,6 +394,7 @@ export const 执行场景生图工作流 = async (
         const errorMessage = typeof error?.message === 'string' && error.message.trim()
             ? error.message.trim()
             : '场景生图失败';
+        const 调试链路 = Array.isArray(error?.生图调试链路) ? error.生图调试链路 : undefined;
         deps.更新场景图片档案((archive) => ({
             ...archive,
             最近生图结果: {
@@ -411,7 +415,8 @@ export const 执行场景生图工作流 = async (
                 状态: 'failed' as const,
                 错误信息: errorMessage,
                 来源回合: params.来源回合,
-                摘要: params.摘要
+                摘要: params.摘要,
+                调试链路
             }
         }));
         deps.更新场景生图任务(task.id, (currentTask) => ({
@@ -422,6 +427,7 @@ export const 执行场景生图工作流 = async (
             最终正向提示词: currentTask.最终正向提示词,
             最终负向提示词: currentTask.最终负向提示词,
             错误信息: errorMessage,
+            调试链路,
             进度阶段: 'failed',
             进度文本: errorMessage
         }));

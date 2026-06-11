@@ -202,6 +202,9 @@ type 开局独立阶段进度 = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 世界生成选项 = {
@@ -242,6 +245,11 @@ const 自动重试最大次数 = 3;
 type 回忆检索进度 = {
     phase: 'start' | 'stream' | 'done' | 'error';
     text?: string;
+    channelName?: string;
+    modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 正文润色进度 = {
@@ -249,6 +257,11 @@ type 正文润色进度 = {
     text?: string;
     rawText?: string;
     commandTexts?: string[];
+    channelName?: string;
+    modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 变量生成进度 = {
@@ -256,6 +269,11 @@ type 变量生成进度 = {
     text?: string;
     rawText?: string;
     commandTexts?: string[];
+    channelName?: string;
+    modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 独立阶段标识 = 'polish' | 'world' | 'planning' | 'variable' | 'map';
@@ -272,6 +290,11 @@ type 规划分析进度 = {
     text?: string;
     rawText?: string;
     commandTexts?: string[];
+    channelName?: string;
+    modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 世界演变进度 = {
@@ -279,6 +302,11 @@ type 世界演变进度 = {
     text?: string;
     rawText?: string;
     commandTexts?: string[];
+    channelName?: string;
+    modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 地图更新进度 = {
@@ -286,6 +314,11 @@ type 地图更新进度 = {
     text?: string;
     rawText?: string;
     commandTexts?: string[];
+    channelName?: string;
+    modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type 变量生成上下文缓存项 = {
@@ -512,6 +545,15 @@ export const useGame = () => {
     useEffect(() => {
         刷新NPC记忆总结队列(Array.isArray(社交) ? 社交 : [], { 静默: NPC记忆总结阶段 === 'processing' || NPC记忆总结阶段 === 'review' });
     }, [社交, memoryConfig]);
+
+    const prevLoadingRef = useRef(false);
+    useEffect(() => {
+        const wasLoading = prevLoadingRef.current;
+        prevLoadingRef.current = loading;
+        if (wasLoading && !loading && view === 'game' && gameConfig.启用回合提示音 !== false) {
+            import('../utils/turnNotificationSound').then(m => m.playTurnNotificationSound()).catch(() => {});
+        }
+    }, [loading, view, gameConfig.启用回合提示音]);
 
     // --- Actions ---
     const 深拷贝 = <T,>(data: T): T => {

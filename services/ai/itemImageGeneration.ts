@@ -55,7 +55,7 @@ const 构建物品生图接口配置 = (imageApi: 当前可用接口结构 | nul
  * 不再混入 `描述`、`词条列表`、`来源描述`、`关联事件` 等游戏机制文字，
  * 否则 AI 会把"承载一段c级支线剧情用于兑换高级强化"这类文案画进图片。
  */
-const 游戏机制关键词 = /兑换|强化|支线剧情|奖励点|属性|技能|等级|经验|伤害|生命值|法力值|冷却|暴击|命中|闪避|抗性|穿透|吸血|回蓝|buff|debuff|增益|减益|附加|提升|降低|增加|减少|触发|释放|消耗|恢复|回复|持续|回合|概率|倍率|加成/i;
+const 游戏机制关键词 = /兑换|强化|支线剧情|奖励点|属性|技能|等级|经验|伤害|生命值|法力值|冷却|暴击|命中|闪避|抗性|穿透|吸血|回蓝|buff|debuff|增益|减益|附加|提升|降低|增加|减少|触发|释放|消耗|恢复|回复|持续|回合|概率|倍率|加成|短时间|缓解|恐怖片任务|惊惧|精神污染|精神防护/i;
 
 const 是否游戏机制文案 = (text: string): boolean => 游戏机制关键词.test(text);
 export const 物品无文字正向约束 = `${全局无文字正向提示词}, blank unmarked object surface, plain empty panels, clean material texture where markings would appear`;
@@ -414,6 +414,19 @@ const 物品是否古代药物 = (item: any): boolean => {
     return /丹药|药丸|药散|散剂|药粉|药膏|膏药|药液|伤药|止血|凝血|金疮|解毒|疗伤|丸|散\b|膏\b/.test(text);
 };
 
+const 物品是否现代药剂 = (item: any): boolean => {
+    const text = [
+        item?.名称,
+        item?.类型,
+        item?.描述,
+        item?.视觉描述,
+        Array.isArray(item?.标签) ? item.标签.join(' ') : '',
+        Array.isArray(item?.视觉标签) ? item.视觉标签.join(' ') : ''
+    ].map((value) => 读取文本(value)).join(' ');
+    return /稳定剂|镇定剂|精神稳定|精神防护|药剂|针剂|注射剂|安瓿|药水|试剂|血清|解药|医疗喷雾|medical vial|ampoule|serum/i.test(text)
+        || (/消耗品/.test(text) && /精神|恐怖|污染|防护|稳定|镇定|医疗|药/.test(text));
+};
+
 const 物品是否草药植物 = (item: any): boolean => {
     const text = [
         item?.名称,
@@ -459,16 +472,22 @@ const 物品名称转英文描述 = (name: string): string => {
         '突击步枪': 'modern assault rifle, firearm barrel, magazine, stock, receiver and grip clearly visible',
         '步枪': 'modern rifle firearm, long gun body with stock, barrel, receiver and magazine',
         '手枪': 'modern pistol firearm, compact handgun with grip, trigger guard, slide and barrel',
+        '九毫米手枪': '9mm semi-automatic pistol prop, compact black handgun with slide, short barrel, grip, trigger guard and magazine baseplate, clearly a pistol, not a submachine gun',
+        '9毫米手枪': '9mm semi-automatic pistol prop, compact black handgun with slide, short barrel, grip, trigger guard and magazine baseplate, clearly a pistol, not a submachine gun',
+        '9mm手枪': '9mm semi-automatic pistol prop, compact black handgun with slide, short barrel, grip, trigger guard and magazine baseplate, clearly a pistol, not a submachine gun',
         '霰弹枪': 'modern shotgun firearm, pump or break-action body with stock and barrel',
         '散弹枪': 'modern shotgun firearm, pump or break-action body with stock and barrel',
         '冲锋枪': 'modern submachine gun firearm, compact receiver, magazine, grip and stock',
         '狙击枪': 'modern sniper rifle firearm, long barrel, scope, stock and magazine',
         '战术背心': 'wearable tactical vest, MOLLE webbing, shoulder straps, front buckles, pouch panels, torso garment shape, no shield',
+        '轻型防护背心': 'light protective tactical vest, wearable fabric torso vest with shoulder straps, front zipper or buckles, thin padded panels, arm holes and waist hem, no cutting board, no shield',
         '防弹背心': 'wearable bulletproof vest, soft ballistic torso vest with shoulder straps and front panels, no shield',
         '负重背心': 'wearable load-bearing tactical vest, fabric torso gear with pouches and straps, no shield',
         '半包受潮的香烟': 'opened damp cigarette pack, crumpled stained cardboard cigarette box, half-empty paper pack with visible bent cigarettes and water damage, realistic survival prop, not a pouch, not a bag',
         '受潮的香烟': 'damp cigarette pack, stained cardboard cigarette box with soggy paper edges and visible cigarettes, not leather, not cloth pouch',
         '香烟': 'paper cigarette pack with visible cigarettes, cardboard box, crumpled soft pack or opened hard pack, tobacco product prop, no pouch',
+        '基础精神稳定剂': 'small unlabelled amber glass medicine vial or ampoule kit, calming stabilizer serum, plain blank cap, transparent brown glass, small protective medicine case, no book, no label, no text',
+        '精神稳定剂': 'small unlabelled amber glass medicine vial or ampoule kit, calming stabilizer serum, plain blank cap, transparent brown glass, small protective medicine case, no book, no label, no text',
         '旧军装': 'worn modern military uniform, faded cloth jacket and trousers, fabric patches, frayed seams, soft garment only, no armor plates',
         '军装': 'modern military uniform, cloth jacket and trousers, soft textile garment, no armor plates',
         '作训服': 'modern combat training uniform, cloth shirt and trousers, fabric folds, no armor plates',
@@ -584,7 +603,7 @@ const 物品名称转英文描述 = (name: string): string => {
         '骆驼': 'real living camel, full body animal, natural fur',
         '牦牛': 'real living yak, full body animal, natural fur',
     };
-    for (const [cn, en] of Object.entries(map)) {
+    for (const [cn, en] of Object.entries(map).sort((a, b) => b[0].length - a[0].length)) {
         if (name.includes(cn)) return en;
     }
     // 通用关键词推断
@@ -635,8 +654,9 @@ const 构建物品视觉主体描述 = (item: any): string => {
     const isSectDiscipleUniform = 物品是否门派弟子服(item);
     const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isAncientMedicine = !isCigarette && 物品是否古代药物(item);
+    const isModernMedicine = !isCigarette && !isAncientMedicine && 物品是否现代药剂(item);
     const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
-    const typeEn = isLivingMount ? 'living mount animal' : isLivingAnimal ? 'living animal' : isFan ? 'folded Chinese hand fan' : isModernFirearm ? 'modern firearm' : isEnergyWeapon ? 'sci-fi energy weapon' : isCrossbow ? 'crossbow' : isQuiver ? 'arrow container' : isArrowAmmo ? 'arrow ammunition' : isWeapon ? 'weapon' : isSoftGarment ? 'cloth garment' : isTacticalVest ? 'wearable tactical vest' : isWearableArmor ? 'wearable torso armor vest' : isAncientMedicine ? 'ancient medicinal powder or pills' : isBotanicalHerb ? 'botanical medicinal herb' : 物品类型转英文(读取文本(item?.类型, '物品'));
+    const typeEn = isLivingMount ? 'living mount animal' : isLivingAnimal ? 'living animal' : isFan ? 'folded Chinese hand fan' : isModernFirearm ? 'modern firearm' : isEnergyWeapon ? 'sci-fi energy weapon' : isCrossbow ? 'crossbow' : isQuiver ? 'arrow container' : isArrowAmmo ? 'arrow ammunition' : isWeapon ? 'weapon' : isSoftGarment ? 'cloth garment' : isTacticalVest ? 'wearable tactical vest' : isWearableArmor ? 'wearable torso armor vest' : isAncientMedicine ? 'ancient medicinal powder or pills' : isModernMedicine ? 'modern medicine vial or ampoule' : isBotanicalHerb ? 'botanical medicinal herb' : 物品类型转英文(读取文本(item?.类型, '物品'));
     const qualityEn = 物品品质转英文(读取文本(item?.品质, '普通'));
     const nameEn = 物品名称转英文描述(name);
     const description = 读取文本(item?.视觉描述) || (!是否游戏机制文案(读取文本(item?.描述) || '') ? 读取文本(item?.描述) : '');
@@ -659,6 +679,7 @@ const 构建物品视觉主体描述 = (item: any): string => {
         isTacticalVest ? 'strict wearable tactical vest garment: MOLLE webbing, shoulder straps, front zipper or buckles, pouch panels, fabric torso vest shape, arm openings, displayed alone as gear' : '',
         isWearableArmor && !isTacticalVest ? 'strict wearable armor garment: torso vest shape, chest panel, back panel, shoulder straps, arm openings, waist hem, fitted to human upper body silhouette, displayed flat or on a simple invisible dress form' : '',
         isAncientMedicine ? 'ancient Chinese medicine presentation, herbal powder or pills, folded paper packet, cloth sachet, small ceramic medicine vial, apothecary prop, pre-modern wuxia era' : '',
+        isModernMedicine ? 'strict medicine stabilizer prop: small amber glass vial, ampoule, syringe-free serum bottle or compact blank medicine case, sealed cap, transparent liquid, no label, no text, no book shape' : '',
         isBotanicalHerb ? 'strict botanical herb or flower specimen: organic petals, leaves, roots or stems, natural plant anatomy, no manufactured device, no electronics' : '',
         description ? `form and materials: ${description}` : '',
         tags ? `material cues: ${tags}` : ''
@@ -684,6 +705,7 @@ export const 构建物品负面提示词 = (item: any): string => {
     const isLivingAnimal = 物品是否活体生物(item);
     const isLivingMount = 物品是否坐骑生物(item);
     const isAncientMedicine = !isCigarette && 物品是否古代药物(item);
+    const isModernMedicine = !isCigarette && !isAncientMedicine && 物品是否现代药剂(item);
     const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
     return [
         isLivingMount ? 'rider, saddle covering the body, harness covering the body, cart, carriage, vehicle, boat' : isLivingAnimal ? 'person, human handler, leash held by person, cage, carrier bag, framed portrait, stuffed display, taxidermy scene' : 'person, human, face, hand, foot, feet, body part, skin, portrait, headshot, framed portrait, photo frame, picture frame',
@@ -705,6 +727,7 @@ export const 构建物品负面提示词 = (item: any): string => {
         isSoftGarment ? 'armor, cuirass, breastplate, metal armor, metal plates, gauntlet, shield, helmet, hard shell, leather jacket, shiny leather garment, black armor, dark armor, lamellar armor, scale armor' : '',
         isPaleMoonWhiteGarment ? 'black clothing, dark outfit, black robe, dark robe, black fabric, dark fabric, black leather, dark leather' : '',
         isAncientMedicine ? 'weapon, blade, sword, dagger, knife, armor plate, metal weapon, hardware tool, industrial object, modern container, syringe, capsule bottle, plastic medical bottle, laboratory vial' : '',
+        isModernMedicine ? 'book, scroll, manual, document, paper stack, card, talisman, weapon, armor, cutting board, food package, drink bottle, labeled bottle, printed label, visible writing, syringe needle in skin' : '',
         isBotanicalHerb ? 'machine, mechanism, tool, container, box, bottle, vial, weapon, armor, toy, controller, manufactured object, plastic, metal gadget' : '',
         isClothShoe ? 'feet, toes, legs, socks, person wearing shoes, shoe model, leather dress shoe, polished leather shoe, oxford shoe, loafer, business shoe, high heel, glossy leather, hard stacked heel' : '',
         isBandageDressing ? 'patient, wounded person, nurse, doctor, face, portrait, hand wrapping bandage, arm, leg, injury, blood, hospital bed, medical scene, photo frame, framed portrait' : ''
@@ -734,7 +757,8 @@ export const 构建物品图提示词 = (
     const isSectDiscipleUniform = 物品是否门派弟子服(item);
     const isWearableArmor = !isSoftGarment && 物品是否可穿戴护甲(item);
     const isAncientMedicine = !isCigarette && 物品是否古代药物(item);
-    const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
+    const isModernMedicine = !isCigarette && !isAncientMedicine && 物品是否现代药剂(item);
+    const isBotanicalHerb = !isWeapon && !isAncientMedicine && !isModernMedicine && 物品是否草药植物(item);
     const softGarmentGuard = isSoftGarment
         ? 'for clothing items: soft fabric garment laid flat or neatly folded, visible cloth weave, seams, wrinkles, flexible drape'
         : '';
@@ -776,6 +800,7 @@ export const 构建物品图提示词 = (
         isPaleMoonWhiteGarment ? 'strict color requirement: moon-white pale ivory cloth, light warm white fabric, soft non-metal textile, bright clean garment surface' : '',
         isSectDiscipleUniform ? 'strict sect uniform garment: inner-disciple robe or training uniform, cloth collar, sash, woven trim, folded or laid flat as clothing' : '',
         isAncientMedicine ? 'strict ancient wuxia medicine prop only: folded paper medicine packet, small cloth sachet, ceramic medicine vial, herbal powder or pills; absolutely pre-modern, no modern technology' : '',
+        isModernMedicine ? 'strict medicine stabilizer prop only: one small unlabelled amber glass vial or ampoule kit, sealed cap, transparent liquid, compact blank medical case, no book, no label, no text' : '',
         isBotanicalHerb ? 'strict botanical herb or flower only: natural plant specimen, visible petals leaves roots or stems, organic plant anatomy, not a manufactured object' : '',
         isTacticalVest ? 'strict wearable tactical vest item: fabric upper-body vest with MOLLE webbing, shoulder straps, front buckles or zipper, pouch panels, arm holes and waist hem; product photo of clothing-shaped protective gear, no shield' : '',
         isWearableArmor && !isTacticalVest ? 'strict wearable armor item: upper-body vest or cuirass garment shape, sleeveless torso armor with arm holes, shoulder straps, chest and back panels, waist hem; product photo of clothing-shaped protective gear' : '',
@@ -875,10 +900,12 @@ export const 生成物品图标 = async (
             ? 'single pair of empty cloth shoes or straw sandals, footwear prop, side by side, unworn product still life, photorealistic product photo, neutral matte studio background'
             : enrichedItemIsBandageDressing
             ? 'rolled gauze bandage and folded white cloth dressing, standalone first-aid supply still life, photorealistic product photo, neutral matte studio background'
-            : !enrichedItemIsAncientMedicine && 物品是否草药植物(enrichedItem)
+            : !enrichedItemIsAncientMedicine && !物品是否现代药剂(enrichedItem) && 物品是否草药植物(enrichedItem)
             ? 'botanical medicinal herb specimen, natural plant anatomy, petals leaves roots or stems, single organic flower or herb, pre-modern wuxia material, photorealistic product photo, neutral matte studio background'
             : enrichedItemIsAncientMedicine
             ? 'ancient Chinese medicine prop, folded paper medicine packet, ceramic medicine vial, herbal powder or pills, pre-modern wuxia era, single physical object, photorealistic product photo, neutral matte studio background'
+            : 物品是否现代药剂(enrichedItem)
+            ? 'single small unlabelled amber glass medicine vial or ampoule kit, sealed stabilizer serum bottle, blank cap, no label, no text, not a book, photorealistic product photo, neutral matte studio background'
             : renderStyle === '写实道具'
             ? `single physical ${enrichedItemIsModernFirearm || enrichedItemIsTacticalVest ? 'modern survival' : 'non-modern'} inventory item, photorealistic product photo, centered product composition, neutral matte studio background, clean silhouette, realistic material${enrichedItemIsSoftGarment ? ', soft fabric garment, cloth folds, flexible drape' : ''}`
             : 'single physical object, centered composition, clean silhouette, plain asset presentation'}; ${noTextGuard}`,
@@ -916,6 +943,7 @@ export const 生成物品图标 = async (
         尺寸: size,
         状态: 'success',
         来源: 'generated',
+        调试链路: rawResult.调试链路,
     };
     const nextArchive = 合并物品图片档案(enrichedItem, imageRecord);
     recordDiagnosticLog('info', '[物品生图链路] 图片记录已合并入物品档案', {

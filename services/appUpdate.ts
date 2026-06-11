@@ -131,7 +131,8 @@ export const openExternalUrl = async (url: string): Promise<void> => {
 
     if (isNativeCapacitorEnvironment()) {
         const { Browser } = await import('@capacitor/browser');
-        await Browser.open({ url });
+        const resolvedUrl = url.startsWith('/') ? `${(typeof RELEASE_INFO.websiteUrl === 'string' ? RELEASE_INFO.websiteUrl : 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '')}${url}` : url;
+        await Browser.open({ url: resolvedUrl });
         return;
     }
 

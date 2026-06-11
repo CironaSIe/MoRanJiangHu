@@ -112,18 +112,36 @@ const StageApiModelSelector: React.FC<Props> = ({
                 />
             </div>
             <div className="flex gap-3 items-end">
-                <div className="flex-1 space-y-1">
+                <div className="flex-1 space-y-2">
                     <label className="text-xs text-gray-300">{title}使用模型</label>
-                    <InlineSelect
-                        value={displayModel}
-                        options={selectOptions.map((model) => ({ value: model, label: model }))}
-                        onChange={(model) => onChange(modelKey, model as any)}
-                        disabled={!enabled || selectOptions.length === 0}
-                        placeholder={!enabled
-                            ? (disabledPlaceholder || `跟随默认模型：${fallbackModel || '未设置'}`)
-                            : (selectOptions.length ? '请选择模型' : '请选择渠道或刷新模型')}
-                        buttonClassName={enabled ? 'bg-black/50 border-gray-600 py-2.5' : 'bg-black/30 border-gray-700 py-2.5'}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
+                        <InlineSelect
+                            value={displayModel}
+                            options={selectOptions.map((model) => ({ value: model, label: model }))}
+                            onChange={(model) => onChange(modelKey, model as any)}
+                            disabled={!enabled || selectOptions.length === 0}
+                            placeholder={!enabled
+                                ? (disabledPlaceholder || `跟随默认模型：${fallbackModel || '未设置'}`)
+                                : (selectOptions.length ? '从列表选择模型' : '刷新后可从列表选择')}
+                            buttonClassName={enabled ? 'bg-black/50 border-gray-600 py-2.5' : 'bg-black/30 border-gray-700 py-2.5'}
+                        />
+                        <input
+                            type="text"
+                            value={enabled ? modelValue : displayModel}
+                            onChange={(event) => onChange(modelKey, event.target.value as any)}
+                            disabled={!enabled}
+                            placeholder={!enabled
+                                ? (disabledPlaceholder || `跟随默认模型：${fallbackModel || '未设置'}`)
+                                : '也可直接输入/粘贴模型名'}
+                            spellCheck={false}
+                            className={`w-full rounded-md border px-3 py-2.5 text-sm outline-none transition ${
+                                enabled
+                                    ? 'bg-black/50 border-gray-600 text-white placeholder-gray-500 focus:border-wuxia-gold'
+                                    : 'bg-black/30 border-gray-700 text-gray-500 cursor-not-allowed'
+                            }`}
+                        />
+                    </div>
+                    <div className="text-[11px] text-gray-500">左侧可下拉选择，右侧可直接输入、复制和粘贴自定义模型名。</div>
                 </div>
                 <GameButton
                     onClick={fetchModels}

@@ -11,6 +11,21 @@ export type 图片记录来源类型 = 'generated' | 'upload' | 'hosted';
 export type 物品生图构图类型 = '物品图标' | '物品特写' | '物品展示';
 export type 物品生图渲染风格 = '写实道具' | '国风插画' | '像素图标' | '3D渲染';
 
+export interface 生图调试事件 {
+    时间: number;
+    阶段: string;
+    状态: 'info' | 'pending' | 'success' | 'failed';
+    耗时ms?: number;
+    说明?: string;
+    端点?: string;
+    通道?: 'direct' | 'proxy' | 'unknown';
+    HTTP状态?: number;
+    promptId?: string;
+    图片地址?: string;
+    响应摘要?: string;
+    错误?: string;
+}
+
 export interface NPC生图结果 {
     id?: string;
     图片URL?: string;
@@ -31,6 +46,7 @@ export interface NPC生图结果 {
     来源?: 图片记录来源类型;
     上传文件名?: string;
     上传时间?: number;
+    调试链路?: 生图调试事件[];
 }
 
 export interface NPC香闺秘档生图结果 {
@@ -53,6 +69,7 @@ export interface NPC香闺秘档生图结果 {
     来源?: 图片记录来源类型;
     上传文件名?: string;
     上传时间?: number;
+    调试链路?: 生图调试事件[];
 }
 
 export interface 场景生图结果 {
@@ -79,6 +96,7 @@ export interface 场景生图结果 {
     来源?: 图片记录来源类型;
     上传文件名?: string;
     上传时间?: number;
+    调试链路?: 生图调试事件[];
 }
 
 export interface 图片管理筛选条件 {
@@ -133,6 +151,7 @@ export interface 物品生图结果 {
     来源?: 图片记录来源类型;
     上传文件名?: string;
     上传时间?: number;
+    调试链路?: 生图调试事件[];
 }
 
 export interface 物品图片档案 {
@@ -175,6 +194,7 @@ export interface 物品生图任务记录 {
     进度文本?: string;
     额外要求?: string;
     来源位置?: '背包' | '拍卖行';
+    调试链路?: 生图调试事件[];
 }
 
 export interface NPC生图任务记录 {
@@ -208,6 +228,7 @@ export interface NPC生图任务记录 {
     进度阶段?: 'queued' | 'prompting' | 'generating' | 'saving' | 'success' | 'failed';
     进度文本?: string;
     额外要求?: string;
+    调试链路?: 生图调试事件[];
 }
 
 export interface 场景生图任务记录 {
@@ -240,4 +261,5 @@ export interface 场景生图任务记录 {
     来源回合?: number;
     摘要?: string;
     已应用为壁纸?: boolean;
+    调试链路?: 生图调试事件[];
 }

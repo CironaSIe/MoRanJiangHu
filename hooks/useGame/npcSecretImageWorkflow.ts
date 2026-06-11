@@ -419,6 +419,7 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
         });
         const fixedImageResult = await imageAIService.修复部位特写底部缩略图栏(imageResult);
         const localizedImageResult = await imageAIService.persistImageAssetLocally(fixedImageResult);
+        const 调试链路 = Array.isArray(imageResult?.调试链路) ? imageResult.调试链路 : undefined;
         recordDiagnosticLog('info', '[NPC私密部位生图链路] 图片资源本地化完成', {
             taskId: task.id,
             recordId,
@@ -453,7 +454,8 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
             画师串: 前置正向提示词,
             状态: 'success',
             错误信息: undefined,
-            描述文本: partDescription
+            描述文本: partDescription,
+            调试链路
         };
         const writeSucceeded = deps.写入NPC香闺秘档部位记录(npcKey, part, successRecord, { 同步最近结果: false });
         recordDiagnosticLog(writeSucceeded ? 'info' : 'error', '[NPC私密部位生图链路] 写入历史记录结果', {
@@ -486,6 +488,7 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
             图片URL: localizedImageResult.图片URL,
             本地路径: localizedImageResult.本地路径,
             错误信息: undefined,
+            调试链路,
             进度阶段: 'success',
             进度文本: `${part}特写已生成并写入历史记录。`
         }));
@@ -493,6 +496,7 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
         const errorMessage = typeof error?.message === 'string' && error.message.trim()
             ? error.message.trim()
             : `${part}特写生成失败`;
+        const 调试链路 = Array.isArray(error?.生图调试链路) ? error.生图调试链路 : undefined;
         deps.更新NPC香闺秘档部位结果(npcKey, part, (currentResult) => ({
             id: currentResult?.id || recordId,
             部位: part,
@@ -509,7 +513,8 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
             画师串: 前置正向提示词,
             状态: 'failed',
             错误信息: errorMessage,
-            描述文本: partDescription
+            描述文本: partDescription,
+            调试链路
         }));
         deps.写入NPC图片历史记录(npcKey, {
             id: recordId,
@@ -526,7 +531,8 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
             画风,
             画师串: 前置正向提示词,
             状态: 'failed' as const,
-            错误信息: errorMessage
+            错误信息: errorMessage,
+            调试链路
         }, { 同步最近结果: false });
         deps.更新NPC生图任务(task.id, (currentTask) => ({
             ...currentTask,
@@ -540,6 +546,7 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
             画师串: 前置正向提示词,
             额外要求,
             错误信息: errorMessage,
+            调试链路,
             进度阶段: 'failed',
             进度文本: errorMessage
         }));

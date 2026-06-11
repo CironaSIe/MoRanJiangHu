@@ -1218,7 +1218,12 @@ const App: React.FC = () => {
                 状态: record?.状态 || 'success',
                 构图: record?.构图,
                 来源位置: '背包' as const,
-                错误信息: typeof record?.错误信息 === 'string' ? record.错误信息.trim() : ''
+                错误信息: typeof record?.错误信息 === 'string' ? record.错误信息.trim() : '',
+                调试链路: Array.isArray(record?.调试链路) ? record.调试链路 : undefined,
+                图片URL: record?.图片URL,
+                本地路径: record?.本地路径,
+                最终正向提示词: record?.最终正向提示词,
+                最终负向提示词: record?.最终负向提示词
             }));
         });
         const auctionRecords = (Array.isArray(auctionHouseState?.拍卖品列表) ? auctionHouseState.拍卖品列表 : []).flatMap((entry: any) => {
@@ -1235,7 +1240,12 @@ const App: React.FC = () => {
                 状态: record?.状态 || 'success',
                 构图: record?.构图,
                 来源位置: '拍卖行' as const,
-                错误信息: typeof record?.错误信息 === 'string' ? record.错误信息.trim() : ''
+                错误信息: typeof record?.错误信息 === 'string' ? record.错误信息.trim() : '',
+                调试链路: Array.isArray(record?.调试链路) ? record.调试链路 : undefined,
+                图片URL: record?.图片URL,
+                本地路径: record?.本地路径,
+                最终正向提示词: record?.最终正向提示词,
+                最终负向提示词: record?.最终负向提示词
             }));
         });
         return [...bagRecords, ...auctionRecords];
@@ -1445,7 +1455,10 @@ const App: React.FC = () => {
         const 画风 = (feature?.自动物品生图画风 || '写实') as 物品生图结果['画风'];
         const 渲染风格 = (feature?.自动物品生图渲染风格 || '写实道具') as 物品生图结果['渲染风格'];
         const 尺寸 = (typeof feature?.自动物品生图分辨率 === 'string' && feature.自动物品生图分辨率.trim()) || '1024x1024';
-        const 写回物品生图记录 = (status: 物品生图结果['状态'], errorMessage?: string) => {
+        const 读取错误调试链路 = (error: any) => (
+            Array.isArray(error?.生图调试链路) ? error.生图调试链路 : undefined
+        );
+        const 写回物品生图记录 = (status: 物品生图结果['状态'], errorMessage?: string, debugTrace?: 物品生图结果['调试链路']) => {
             const record: 物品生图结果 = {
                 id: recordId,
                 图片URL: undefined,
@@ -1460,7 +1473,8 @@ const App: React.FC = () => {
                 尺寸,
                 状态: status,
                 错误信息: errorMessage,
-                来源: 'generated'
+                来源: 'generated',
+                调试链路: debugTrace
             };
             const nextArchive = 合并物品图片档案(candidate.item, record);
             recordDiagnosticLog(status === 'failed' ? 'warn' : 'info', '[物品自动生图] 写回占位/失败记录', {
@@ -1471,7 +1485,8 @@ const App: React.FC = () => {
                 historyCount: Array.isArray(nextArchive?.生图历史) ? nextArchive.生图历史.length : 0,
                 recentId: nextArchive?.最近生图结果?.id || '',
                 hasError: Boolean(errorMessage),
-                errorMessage: errorMessage || ''
+                errorMessage: errorMessage || '',
+                debugTraceCount: Array.isArray(debugTrace) ? debugTrace.length : 0
             });
             写回候选物品({
                 ...(candidate.item as any),
@@ -1542,7 +1557,7 @@ const App: React.FC = () => {
                 console.info('[物品自动生图] 已生成物品图标', candidate.sourceLocation, result.nextItem?.名称 || candidate.item?.名称);
             } catch (error) {
                 const errorMessage = 读取生图错误文本(error, '物品自动生图失败');
-                写回物品生图记录('failed', errorMessage);
+                写回物品生图记录('failed', errorMessage, 读取错误调试链路(error));
                 autoItemImageFailedAtRef.current.set(candidate.key, Date.now());
                 console.warn('[物品自动生图] 生成失败', candidate.sourceLocation, candidate.item?.名称, error);
                 if (是生图后端不可用错误文本(errorMessage)) {
@@ -3705,6 +3720,7 @@ const App: React.FC = () => {
                             socialList={state.社交}
                             playerCharacter={state.角色}
                             cultivationSystemEnabled={启用修炼体系}
+                            itemImageSequence={itemImageSequence}
                             queue={meta.imageGenerationQueue || []}
                             sceneArchive={meta.sceneImageArchive || {}}
                             sceneQueue={meta.sceneImageQueue || []}
@@ -3740,6 +3756,7 @@ const App: React.FC = () => {
                             onClearSceneHistory={actions.clearSceneImageHistory}
                             onDeleteSceneQueueTask={actions.removeSceneImageQueueTask}
                             onClearSceneQueue={actions.clearSceneImageQueue}
+                            onClearItemImageHistory={actions.clearItemImageHistory}
                             onSaveSceneImageLocally={actions.saveSceneImageLocally}
                             onSetPersistentWallpaper={actions.setPersistentWallpaper}
                             onClearPersistentWallpaper={actions.clearPersistentWallpaper}

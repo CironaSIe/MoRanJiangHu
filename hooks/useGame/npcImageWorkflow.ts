@@ -636,6 +636,7 @@ export const 执行NPC生图工作流 = async (
             }
         );
         const localizedImageResult = await imageAIService.persistImageAssetLocally(imageResult);
+        const 调试链路 = Array.isArray(imageResult?.调试链路) ? imageResult.调试链路 : undefined;
         if (!localizedImageResult.图片URL && !localizedImageResult.本地路径) {
             throw new Error('图片已生成，但未得到可展示或可保存的图片资源。');
         }
@@ -662,7 +663,8 @@ export const 执行NPC生图工作流 = async (
                 画风,
                 画师串: 前置正向提示词,
                 尺寸,
-                状态: 'success' as const
+                状态: 'success' as const,
+                调试链路
             };
             return {
                 ...currentNpc,
@@ -691,6 +693,7 @@ export const 执行NPC生图工作流 = async (
             图片URL: localizedImageResult.图片URL,
             本地路径: localizedImageResult.本地路径,
             错误信息: undefined,
+            调试链路,
             进度阶段: 'success',
             进度文本: localizedImageResult.客户提示
                 ? `${localizedImageResult.客户提示}，图片已生成并写入图片档案。`
@@ -700,6 +703,7 @@ export const 执行NPC生图工作流 = async (
         const errorMessage = typeof error?.message === 'string' && error.message.trim()
             ? error.message.trim()
             : 'NPC 生图失败';
+        const 调试链路 = Array.isArray(error?.生图调试链路) ? error.生图调试链路 : undefined;
         console.error(`NPC 生图失败: ${npcName}`, error);
         deps.更新NPC最近生图结果(npcKey, (currentNpc) => {
             const 失败结果 = {
@@ -719,7 +723,8 @@ export const 执行NPC生图工作流 = async (
                 画风,
                 画师串: 前置正向提示词,
                 状态: 'failed' as const,
-                错误信息: errorMessage
+                错误信息: errorMessage,
+                调试链路
             };
             return {
                 ...currentNpc,
@@ -742,6 +747,7 @@ export const 执行NPC生图工作流 = async (
             画师串: 前置正向提示词,
             额外要求,
             错误信息: errorMessage,
+            调试链路,
             进度阶段: 'failed',
             进度文本: errorMessage
         }));

@@ -561,6 +561,20 @@ const 附加开局阶段模型信息 = <T extends { channelName?: string; modelN
     modelName: progress.modelName || info.modelName
 });
 
+type 开局阶段计时进度 = {
+    phase?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
+};
+
+const 开局阶段已结束 = (phase?: string): boolean => (
+    phase === 'done'
+    || phase === 'error'
+    || phase === 'skipped'
+    || phase === 'cancelled'
+);
+
 export const 执行开场剧情生成工作流 = async (
     contextData: any,
     promptSnapshot: 提示词结构[],
@@ -1244,9 +1258,35 @@ export const 执行开场剧情生成工作流 = async (
 
         const openingPolishApi = 获取文章优化接口配置(deps.apiConfig);
         const openingVariableApi = 获取变量计算接口配置(deps.apiConfig);
+        const openingStageTiming: Record<string, { startedAt: number; finishedAt?: number }> = {};
+        const 附加开局阶段运行信息 = <T extends 开局阶段计时进度 & { channelName?: string; modelName?: string }>(
+            stageId: string,
+            progress: T,
+            info: { channelName: string; modelName: string }
+        ): T => {
+            const now = Date.now();
+            const current = openingStageTiming[stageId] || { startedAt: now };
+            if (progress.phase === 'start') {
+                current.startedAt = current.startedAt || now;
+                current.finishedAt = undefined;
+            } else if (开局阶段已结束(progress.phase)) {
+                current.finishedAt = current.finishedAt || now;
+            }
+            openingStageTiming[stageId] = current;
+            const finishedAt = current.finishedAt;
+            const elapsedMs = typeof progress.elapsedMs === 'number'
+                ? progress.elapsedMs
+                : Math.max(0, (finishedAt || now) - current.startedAt);
+            return 附加开局阶段模型信息({
+                ...progress,
+                startedAt: progress.startedAt || current.startedAt,
+                finishedAt: progress.finishedAt || finishedAt,
+                elapsedMs
+            }, info);
+        };
         const openingPolishInfo = 构建开局阶段模型信息('文章优化', openingPolishApi, apiForOpening);
         const 设置开局文章优化进度 = (progress: any) => {
-            deps.设置开局文章优化进度(附加开局阶段模型信息(progress, openingPolishInfo));
+            deps.设置开局文章优化进度(附加开局阶段运行信息('polish', progress, openingPolishInfo));
         };
         const 开局文章优化变量可并行 = deps.文章优化功能已开启()
             && 接口配置是否可用(openingPolishApi)
@@ -1350,7 +1390,7 @@ export const 执行开场剧情生成工作流 = async (
 
         const openingVariableInfo = 构建开局阶段模型信息('变量生成', openingVariableApi, apiForOpening);
         const 设置开局变量生成进度 = (progress: any) => {
-            deps.设置开局变量生成进度(附加开局阶段模型信息(progress, openingVariableInfo));
+            deps.设置开局变量生成进度(附加开局阶段运行信息('variable', progress, openingVariableInfo));
         };
         if (接口配置是否可用(openingVariableApi)) {
             const variableStage = await 执行可重试开局阶段({
@@ -1486,22 +1526,38 @@ export const 执行开场剧情生成工作流 = async (
 
         const worldEvolutionFeatureEnabled = deps.apiConfig?.功能模型占位?.世界演变功能启用 !== false;
         const planningFeatureEnabled = deps.apiConfig?.功能模型占位?.规划分析功能启用 !== false;
+        const mapGenerationEnabled = deps.apiConfig?.功能模型占位?.地图生成功能启用 !== false;
         const openingWorldApi = 获取世界演变接口配置(deps.apiConfig);
         const openingPlanningApi = 获取规划分析接口配置(deps.apiConfig);
+        const openingMapApi = 获取地图自动更新接口配置(deps.apiConfig);
         const openingWorldInfo = 构建开局阶段模型信息('动态世界', openingWorldApi, apiForOpening);
         const openingPlanningInfo = 构建开局阶段模型信息('规划分析', openingPlanningApi, apiForOpening);
+        const openingMapInfo = 构建开局阶段模型信息('地图更新', openingMapApi, apiForOpening);
         const 设置开局世界演变进度 = (progress: any) => {
-            deps.设置开局世界演变进度(附加开局阶段模型信息(progress, openingWorldInfo));
+            deps.设置开局世界演变进度(附加开局阶段运行信息('world', progress, openingWorldInfo));
         };
         const 设置开局规划进度 = (progress: any) => {
-            deps.设置开局规划进度(附加开局阶段模型信息(progress, openingPlanningInfo));
+            deps.设置开局规划进度(附加开局阶段运行信息('planning', progress, openingPlanningInfo));
         };
-        const 开局世界与规划可并行 = worldEvolutionFeatureEnabled
-            && planningFeatureEnabled
-            && 接口配置是否可用(openingWorldApi)
-            && 接口配置是否可用(openingPlanningApi)
-            && 获取开局阶段渠道键(openingWorldApi, apiForOpening) !== 获取开局阶段渠道键(openingPlanningApi, apiForOpening);
+        const 设置开局地图更新进度 = (progress: any) => {
+            deps.设置开局地图更新进度(附加开局阶段运行信息('map', progress, openingMapInfo));
+        };
+        const 开局可用并行阶段 = [
+            worldEvolutionFeatureEnabled && 接口配置是否可用(openingWorldApi)
+                ? { id: 'world', channelKey: 获取开局阶段渠道键(openingWorldApi, apiForOpening) }
+                : null,
+            planningFeatureEnabled && 接口配置是否可用(openingPlanningApi)
+                ? { id: 'planning', channelKey: 获取开局阶段渠道键(openingPlanningApi, apiForOpening) }
+                : null,
+            mapGenerationEnabled && 接口配置是否可用(openingMapApi)
+                ? { id: 'map', channelKey: 获取开局阶段渠道键(openingMapApi, apiForOpening) }
+                : null
+        ].filter(Boolean) as Array<{ id: string; channelKey: string }>;
+        const 开局后处理可并行 = 开局可用并行阶段.length > 1
+            && new Set(开局可用并行阶段.map((item) => item.channelKey)).size === 开局可用并行阶段.length;
         let pendingOpeningWorldStage: Promise<any> | null = null;
+        let pendingOpeningMapStage: Promise<any> | null = null;
+        let openingMapProgressSettled = false;
         if (!worldEvolutionFeatureEnabled) {
             设置开局世界演变进度({
                 phase: 'skipped',
@@ -1515,7 +1571,7 @@ export const 执行开场剧情生成工作流 = async (
                         phase: 'start',
                         text: attempt > 1
                             ? `正在重新初始化动态世界...（第 ${attempt} 次手动重试）`
-                            : (开局世界与规划可并行 ? '正在初始化动态世界...（与规划分析并行）' : '正在初始化动态世界...')
+                            : (开局后处理可并行 ? '正在初始化动态世界...（与规划分析/地图更新并行）' : '正在初始化动态世界...')
                     });
                 },
                 onAutoRetry: (attempt, maxAttempts, reason) => {
@@ -1600,8 +1656,8 @@ export const 执行开场剧情生成工作流 = async (
                 },
                 getErrorText: (error: any) => error?.message || '动态世界初始化失败'
             });
-            const worldStage = 开局世界与规划可并行 ? null : await 运行开局动态世界阶段();
-            if (开局世界与规划可并行) {
+            const worldStage = 开局后处理可并行 ? null : await 运行开局动态世界阶段();
+            if (开局后处理可并行) {
                 pendingOpeningWorldStage = 运行开局动态世界阶段();
             }
             const worldResult = worldStage?.result;
@@ -1669,6 +1725,82 @@ export const 执行开场剧情生成工作流 = async (
             }
         } catch (_) { /* 静默 */ }
 
+        const 运行开局地图阶段 = () => {
+            const mapBaseState = simulatedOpeningState;
+            const mapBaseResponse = responseForExecution;
+            const mapBaseAiData = aiData;
+            return 执行可重试开局阶段({
+                stageLabel: '开局地图更新',
+                beforeAttempt: (attempt) => {
+                    设置开局地图更新进度({
+                        phase: 'start',
+                        text: attempt > 1
+                            ? `正在重新执行开局地图更新...（第 ${attempt} 次手动重试）`
+                            : (开局后处理可并行 ? '正在根据开局正文与初始化变量更新地图...（与动态世界/规划分析并行）' : '正在根据开局正文与初始化变量更新地图...')
+                    });
+                },
+                onAutoRetry: (attempt, maxAttempts, reason) => {
+                    设置开局地图更新进度({
+                        phase: 'start',
+                        text: `开局地图更新请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ''}`
+                    });
+                },
+                run: async () => {
+                    const mapContextResponse: GameResponse = {
+                        ...mapBaseAiData,
+                        tavern_commands: Array.isArray(mapBaseResponse.tavern_commands)
+                            ? [...mapBaseResponse.tavern_commands]
+                            : []
+                    };
+                    const result = await 生成地图更新({
+                        mode: 'auto_incremental',
+                        apiSettings: deps.apiConfig,
+                        环境: mapBaseState.环境,
+                        世界: mapBaseState.世界,
+                        社交: mapBaseState.社交,
+                        角色: mapBaseState.角色,
+                        gameConfig: openingGameConfig,
+                        worldbooks: deps.worldbooks,
+                        currentResponse: mapContextResponse,
+                        stateBase: mapBaseState,
+                        signal: controller.signal
+                    });
+                    if (result.phase === 'error') {
+                        throw new Error(result.statusText || '开局地图更新失败');
+                    }
+                    return result;
+                },
+                onError: (errorText) => {
+                    设置开局地图更新进度({
+                        phase: 'error',
+                        text: `${errorText || '开局地图更新失败'}\n等待选择：重试当前阶段，或跳过继续。`
+                    });
+                },
+                onSkip: (errorText) => {
+                    设置开局地图更新进度({
+                        phase: 'skipped',
+                        text: `开局地图更新失败，已按用户选择跳过。${errorText ? `\n${errorText}` : ''}`
+                    });
+                },
+                getErrorText: (error: any) => error?.message || '开局地图更新失败'
+            });
+        };
+        if (!mapGenerationEnabled) {
+            openingMapProgressSettled = true;
+            设置开局地图更新进度({
+                phase: 'skipped',
+                text: '地图生成功能未开启，已跳过开局地图更新。'
+            });
+        } else if (!接口配置是否可用(openingMapApi)) {
+            openingMapProgressSettled = true;
+            设置开局地图更新进度({
+                phase: 'skipped',
+                text: '地图更新独立链路未启用，已跳过。'
+            });
+        } else if (开局后处理可并行) {
+            pendingOpeningMapStage = 运行开局地图阶段();
+        }
+
         if (!planningFeatureEnabled) {
             设置开局规划进度({
                 phase: 'skipped',
@@ -1683,7 +1815,7 @@ export const 执行开场剧情生成工作流 = async (
                         phase: 'start',
                         text: attempt > 1
                             ? `正在重新初始化剧情与规划...（第 ${attempt} 次手动重试）`
-                            : '正在初始化剧情与规划...'
+                            : (开局后处理可并行 ? '正在初始化剧情与规划...（与动态世界/地图更新并行）' : '正在初始化剧情与规划...')
                     });
                 },
                 onAutoRetry: (attempt, maxAttempts, reason) => {
@@ -1865,73 +1997,10 @@ export const 执行开场剧情生成工作流 = async (
             }
         }
 
-        const mapGenerationEnabled = deps.apiConfig?.功能模型占位?.地图生成功能启用 !== false;
-        const openingMapApi = 获取地图自动更新接口配置(deps.apiConfig);
-        const openingMapInfo = 构建开局阶段模型信息('地图更新', openingMapApi, apiForOpening);
-        const 设置开局地图更新进度 = (progress: any) => {
-            deps.设置开局地图更新进度(附加开局阶段模型信息(progress, openingMapInfo));
-        };
-        if (!mapGenerationEnabled) {
-            设置开局地图更新进度({
-                phase: 'skipped',
-                text: '地图生成功能未开启，已跳过开局地图更新。'
-            });
-        } else if (接口配置是否可用(openingMapApi)) {
-            const mapStage = await 执行可重试开局阶段({
-                stageLabel: '开局地图更新',
-                beforeAttempt: (attempt) => {
-                    设置开局地图更新进度({
-                        phase: 'start',
-                        text: attempt > 1
-                            ? `正在重新执行开局地图更新...（第 ${attempt} 次手动重试）`
-                            : '正在根据开局正文与初始化变量更新地图...'
-                    });
-                },
-                onAutoRetry: (attempt, maxAttempts, reason) => {
-                    设置开局地图更新进度({
-                        phase: 'start',
-                        text: `开局地图更新请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ''}`
-                    });
-                },
-                run: async () => {
-                    const mapContextResponse: GameResponse = {
-                        ...aiData,
-                        tavern_commands: Array.isArray(responseForExecution.tavern_commands)
-                            ? [...responseForExecution.tavern_commands]
-                            : []
-                    };
-                    const result = await 生成地图更新({
-                        mode: 'auto_incremental',
-                        apiSettings: deps.apiConfig,
-                        环境: simulatedOpeningState.环境,
-                        世界: simulatedOpeningState.世界,
-                        社交: simulatedOpeningState.社交,
-                        角色: simulatedOpeningState.角色,
-                        gameConfig: openingGameConfig,
-                        worldbooks: deps.worldbooks,
-                        currentResponse: mapContextResponse,
-                        stateBase: simulatedOpeningState,
-                        signal: controller.signal
-                    });
-                    if (result.phase === 'error') {
-                        throw new Error(result.statusText || '开局地图更新失败');
-                    }
-                    return result;
-                },
-                onError: (errorText) => {
-                    设置开局地图更新进度({
-                        phase: 'error',
-                        text: `${errorText || '开局地图更新失败'}\n等待选择：重试当前阶段，或跳过继续。`
-                    });
-                },
-                onSkip: (errorText) => {
-                    设置开局地图更新进度({
-                        phase: 'skipped',
-                        text: `开局地图更新失败，已按用户选择跳过。${errorText ? `\n${errorText}` : ''}`
-                    });
-                },
-                getErrorText: (error: any) => error?.message || '开局地图更新失败'
-            });
+        if (!openingMapProgressSettled) {
+            const mapStage = pendingOpeningMapStage
+                ? await pendingOpeningMapStage
+                : await 运行开局地图阶段();
             const mapResult = mapStage.result;
             if (mapStage?.completed && mapResult) {
                 const mapCommands = Array.isArray(mapResult.commands) ? mapResult.commands : [];
@@ -1953,11 +2022,6 @@ export const 执行开场剧情生成工作流 = async (
                     simulatedOpeningState = 保护开局门派(deps.processResponseCommands(responseForExecution, commandBaseState, { applyState: false }));
                 }
             }
-        } else {
-            设置开局地图更新进度({
-                phase: 'skipped',
-                text: '地图更新独立链路未启用，已跳过。'
-            });
         }
 
         const displayAiData: GameResponse = {

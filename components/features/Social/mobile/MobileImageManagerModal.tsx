@@ -12,6 +12,7 @@ import type {
     接口设置结构,
     图片管理设置结构,
     香闺秘档部位类型,
+    物品生图结果,
     画师串预设结构,
     角色数据结构,
     角色锚点结构,
@@ -27,11 +28,20 @@ import { 自动场景横屏尺寸选项, 自动场景竖屏尺寸选项 } from '
 import { 获取本地图片图床迁移状态, 订阅本地图片图床迁移状态 } from '../../../../services/dbService';
 import ImageMigrationStatusPanel from '../ImageMigrationStatusPanel';
 
+type 物品历史展示记录 = 物品生图结果 & {
+    id: string;
+    物品名称: string;
+    物品类型?: string;
+    物品品质?: string;
+    来源位置?: '背包' | '拍卖行';
+};
+
 interface Props {
     socialList: NPC结构[];
     playerCharacter?: 角色数据结构 | null;
     cultivationSystemEnabled?: boolean;
     femboyNsfwEnabled?: boolean;
+    itemImageSequence?: 物品历史展示记录[];
     queue: NPC生图任务记录[];
     sceneArchive: 场景图片档案;
     sceneQueue: 场景生图任务记录[];
@@ -68,6 +78,7 @@ interface Props {
     onClearSceneHistory?: () => Promise<void> | void;
     onDeleteSceneQueueTask?: (taskId: string) => Promise<void> | void;
     onClearSceneQueue?: (mode?: 'all' | 'completed') => Promise<void> | void;
+    onClearItemImageHistory?: () => Promise<void> | void;
     onSaveSceneImageLocally?: (imageId: string) => Promise<void> | void;
     onSavePngStylePreset?: (preset: PNG画风预设结构) => Promise<PNG画风预设结构 | null | void> | PNG画风预设结构 | null | void;
     onDeletePngStylePreset?: (presetId: string) => Promise<void> | void;
@@ -99,20 +110,22 @@ type NPC图库分组 = {
 };
 
 type 合并队列记录 = {
-    类型: 'npc' | 'scene';
+    类型: 'npc' | 'scene' | 'item';
     id: string;
     创建时间: number;
     状态: NPC生图任务记录['状态'];
-    task: NPC生图任务记录 | 场景生图任务记录;
+    task?: NPC生图任务记录 | 场景生图任务记录;
+    itemRecord?: 物品历史展示记录;
 };
 
 type 合并历史记录 = {
-    类型: 'npc' | 'scene';
+    类型: 'npc' | 'scene' | 'item';
     key: string;
     时间: number;
     状态: 图片生成状态类型;
     npcRecord?: NPC图片记录;
     sceneRecord?: 场景图片档案['最近生图结果'];
+    itemRecord?: 物品历史展示记录;
 };
 
 const 状态样式: Record<图片生成状态类型, string> = {
@@ -183,6 +196,34 @@ const 获取NPC构图文案 = (构图?: string, 部位?: string): string => {
     if (构图 === '立绘') return '立绘';
     if (构图 === '半身') return '半身像';
     return '头像';
+};
+
+const 从图片状态推导队列状态 = (status?: 图片生成状态类型): NPC生图任务记录['状态'] => {
+    if (status === 'failed') return 'failed';
+    if (status === 'pending') return 'running';
+    return 'success';
+};
+
+const 渲染生图调试链路 = (trace?: any[]) => {
+    const events = Array.isArray(trace) ? trace.filter((item) => item && typeof item === 'object') : [];
+    if (events.length <= 0) return null;
+    return (
+        <details className="rounded border border-cyan-300/10 bg-black/40 px-2 py-1 text-[10px] text-gray-400">
+            <summary className="cursor-pointer select-none text-cyan-100/80">CNB/后端调试链路（{events.length}步）</summary>
+            <div className="mt-2 space-y-2 max-h-44 overflow-y-auto custom-scrollbar font-mono">
+                {events.map((event, index) => (
+                    <div key={`${event.时间 || index}_${event.阶段 || index}`} className="rounded border border-white/10 bg-black/40 p-2">
+                        <div className="text-gray-300">#{index + 1} {event.阶段 || '未命名阶段'} / {event.状态 || 'info'}{typeof event.HTTP状态 === 'number' ? ` / HTTP ${event.HTTP状态}` : ''}{typeof event.耗时ms === 'number' ? ` / ${event.耗时ms}ms` : ''}</div>
+                        {event.promptId && <div className="break-all text-cyan-100/70">prompt_id: {event.promptId}</div>}
+                        {event.端点 && <div className="break-all text-gray-500">endpoint: {event.端点}</div>}
+                        {event.图片地址 && <div className="break-all text-cyan-100/70">image: {event.图片地址}</div>}
+                        {event.响应摘要 && <div className="break-words text-gray-500">response: {event.响应摘要}</div>}
+                        {event.错误 && <div className="break-words text-red-300">error: {event.错误}</div>}
+                    </div>
+                ))}
+            </div>
+        </details>
+    );
 };
 
 const NPC是否男性或男娘 = (npc?: any): boolean => {
@@ -283,6 +324,7 @@ const MobileImageManagerModal: React.FC<Props> = ({
     socialList,
     cultivationSystemEnabled = true,
     femboyNsfwEnabled = true,
+    itemImageSequence = [],
     queue,
     sceneArchive,
     sceneQueue,
@@ -314,6 +356,7 @@ const MobileImageManagerModal: React.FC<Props> = ({
     onClearSceneHistory,
     onDeleteSceneQueueTask,
     onClearSceneQueue,
+    onClearItemImageHistory,
     onSaveSceneImageLocally,
     onSavePngStylePreset,
     onDeletePngStylePreset,
@@ -1702,12 +1745,19 @@ const SceneTabContent: React.FC<TabProps> = ({
     );
 };
 
-const QueueTabContent: React.FC<TabProps> = ({ queue, sceneQueue, onRetryImage, onDeleteQueueTask, onClearQueue, onDeleteSceneQueueTask, onClearSceneQueue, withBusyAction, busyActionKey }) => {
+const QueueTabContent: React.FC<TabProps> = ({ queue, sceneQueue, itemImageSequence = [], onRetryImage, onDeleteQueueTask, onClearQueue, onDeleteSceneQueueTask, onClearSceneQueue, withBusyAction, busyActionKey }) => {
     const combinedQueue = React.useMemo<合并队列记录[]>(() => {
         const sceneRecords = (Array.isArray(sceneQueue) ? sceneQueue : []).map(task => ({ 类型: 'scene' as const, id: task.id, 创建时间: task.创建时间 || 0, 状态: task.状态, task }));
         const npcRecords = (Array.isArray(queue) ? queue : []).map(task => ({ 类型: 'npc' as const, id: task.id, 创建时间: task.创建时间 || 0, 状态: task.状态, task }));
-        return [...npcRecords, ...sceneRecords].sort((a, b) => b.创建时间 - a.创建时间);
-    }, [queue, sceneQueue]);
+        const itemRecords = (Array.isArray(itemImageSequence) ? itemImageSequence : []).map(item => ({
+            类型: 'item' as const,
+            id: item.id,
+            创建时间: item.生成时间 || 0,
+            状态: 从图片状态推导队列状态(item.状态),
+            itemRecord: item
+        }));
+        return [...npcRecords, ...sceneRecords, ...itemRecords].sort((a, b) => b.创建时间 - a.创建时间);
+    }, [itemImageSequence, queue, sceneQueue]);
 
     if (combinedQueue.length === 0) return <空状态 title="队列为空" desc="新的生成请求会显示在这里。" />
 
@@ -1720,6 +1770,23 @@ const QueueTabContent: React.FC<TabProps> = ({ queue, sceneQueue, onRetryImage, 
                 {onClearSceneQueue && <button onClick={() => withBusyAction('clear_sq_all', () => onClearSceneQueue('all'))} disabled={!!busyActionKey} className={次级按钮样式(true, true)}>清空场景</button>}
             </div>
             {combinedQueue.map(entry => {
+                if (entry.类型 === 'item' && entry.itemRecord) {
+                    const item = entry.itemRecord;
+                    const imageSrc = 获取图片展示地址(item);
+                    return (
+                        <div key={item.id} className={`${卡片样式} p-3 text-xs space-y-2 font-serif relative overflow-hidden group hover:border-cyan-300/50`}>
+                            <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-cyan-400/10 to-transparent pointer-events-none"></div>
+                            <div className="flex items-center justify-between relative z-10 gap-2">
+                                <span className='font-bold text-cyan-100 tracking-widest truncate'>{item.物品名称 || '物品生图'}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded border tracking-widest ${队列状态样式[从图片状态推导队列状态(item.状态)]}`}>{获取图片状态文案(item)}</span>
+                            </div>
+                            {imageSrc && <img src={imageSrc} alt={item.物品名称 || '物品图片'} className="w-full max-h-52 object-contain rounded border border-cyan-300/10 bg-black/40 p-2" />}
+                            <div className='text-[10px] text-cyan-100/60 relative z-10'>{格式化时间(item.生成时间)} / {item.物品类型 || '未分类'} / {item.物品品质 || '未知品质'} / {item.来源位置 || '未知来源'}</div>
+                            <div className="text-cyan-100/60 relative z-10">{item.错误信息 || (imageSrc ? '图片已返回并写入历史。' : '等待图片后端返回或本地化。')}</div>
+                            {渲染生图调试链路(item.调试链路)}
+                        </div>
+                    );
+                }
                 if (entry.类型 === 'scene') {
                     const task = entry.task as 场景生图任务记录;
                     return (
@@ -1761,9 +1828,11 @@ const QueueTabContent: React.FC<TabProps> = ({ queue, sceneQueue, onRetryImage, 
 const HistoryTabContent: React.FC<TabProps> = ({
     socialList,
     sceneArchive,
+    itemImageSequence = [],
     currentPersistentWallpaper,
     onClearImageHistory,
     onClearSceneHistory,
+    onClearItemImageHistory,
     onSetPersistentWallpaper,
     onClearPersistentWallpaper,
     withBusyAction,
@@ -1783,9 +1852,11 @@ const HistoryTabContent: React.FC<TabProps> = ({
         );
         const sceneItems: 合并历史记录[] = (Array.isArray(sceneArchive?.生图历史) ? sceneArchive.生图历史 : [])
             .map(result => ({ 类型: 'scene' as const, key: `scene_${result.id || result.生成时间}`, 时间: result.生成时间 || 0, 状态: result.状态 || 'success', sceneRecord: result }));
+        const itemItems: 合并历史记录[] = (Array.isArray(itemImageSequence) ? itemImageSequence : [])
+            .map(result => ({ 类型: 'item' as const, key: `item_${result.id || result.生成时间}`, 时间: result.生成时间 || 0, 状态: result.状态 || 'success', itemRecord: result }));
 
-        return [...npcItems, ...sceneItems].sort((a, b) => b.时间 - a.时间);
-    }, [socialList, sceneArchive]);
+        return [...npcItems, ...sceneItems, ...itemItems].sort((a, b) => b.时间 - a.时间);
+    }, [itemImageSequence, socialList, sceneArchive]);
 
     if (combinedHistory.length === 0) return <空状态 title="历史为空" desc="所有生成记录（不论成败）都会显示在这里。" />
 
@@ -1794,8 +1865,37 @@ const HistoryTabContent: React.FC<TabProps> = ({
             <div className="flex gap-2 justify-end flex-wrap">
                 {onClearImageHistory && <button onClick={() => withBusyAction('clear_npc_hist_all', () => onClearImageHistory())} disabled={!!busyActionKey} className={次级按钮样式(true, true)}>清空NPC历史</button>}
                 {onClearSceneHistory && <button onClick={() => withBusyAction('clear_scene_hist_all', () => onClearSceneHistory())} disabled={!!busyActionKey} className={次级按钮样式(true, true)}>清空场景历史</button>}
+                {onClearItemImageHistory && <button onClick={() => withBusyAction('clear_item_hist_all', () => onClearItemImageHistory())} disabled={!!busyActionKey} className={次级按钮样式(true, true)}>清空物品历史</button>}
             </div>
             {combinedHistory.map(entry => {
+                if (entry.类型 === 'item' && entry.itemRecord) {
+                    const result = entry.itemRecord;
+                    const imageSrc = 获取图片展示地址(result);
+                    return (
+                        <details key={entry.key} className={`${卡片样式} p-3 text-xs space-y-2 font-serif group`}>
+                            <summary className='flex items-center justify-between outline-none cursor-pointer gap-2'>
+                                <span className='font-bold text-cyan-100 tracking-widest truncate'>{result.物品名称 || '物品记录'}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] px-2 py-0.5 rounded border tracking-widest ${状态样式[result.状态 || 'success']}`}>{获取图片状态文案(result)}</span>
+                                    <span className="text-cyan-100 transition-transform group-open:rotate-180">▼</span>
+                                </div>
+                            </summary>
+                            <div className='border-t border-cyan-300/20 pt-3 mt-3 space-y-2'>
+                                {imageSrc && (
+                                    <button type="button" onClick={() => 打开图片查看器(imageSrc, `${result.物品名称} 图片`)} className="w-full block text-left">
+                                        <img src={imageSrc} alt='物品图片' className='w-full rounded border border-cyan-300/20 bg-black/40 object-contain p-2 shadow-[0_0_15px_rgba(34,211,238,0.08)]' />
+                                    </button>
+                                )}
+                                <div className='text-cyan-100/60 text-[10px]'>{格式化时间(result.生成时间)} / {result.物品类型 || '未分类'} / {result.物品品质 || '未知品质'} / {result.来源位置 || '未知来源'}</div>
+                                {result.错误信息 && <div className='text-red-400 break-words bg-red-950/20 px-2 py-1 rounded border border-red-900/30'>错误: {result.错误信息}</div>}
+                                <div className='text-cyan-100/60 break-words'>模型: {result.使用模型 || '未记录'}</div>
+                                <div className='text-cyan-100/60 break-words'>最终正向提示词: {result.最终正向提示词 || result.生图词组 || '未记录'}</div>
+                                {result.最终负向提示词 && <div className='text-cyan-100/60 break-words'>最终负面提示词: {result.最终负向提示词}</div>}
+                                {渲染生图调试链路(result.调试链路)}
+                            </div>
+                        </details>
+                    );
+                }
                 if (entry.类型 === 'scene' && entry.sceneRecord) {
                     const result = entry.sceneRecord;
                     const imageSrc = 获取图片展示地址(result);

@@ -102,11 +102,12 @@ type NPC图库分组 = {
 const 主角图库标识 = '__player__';
 
 type 合并队列记录 = {
-    类型: 'npc' | 'scene';
+    类型: 'npc' | 'scene' | 'item';
     id: string;
     创建时间: number;
     状态: NPC生图任务记录['状态'];
-    task: NPC生图任务记录 | 场景生图任务记录;
+    task?: NPC生图任务记录 | 场景生图任务记录;
+    itemRecord?: 物品历史展示记录;
 };
 
 type 合并历史记录 = {
@@ -179,6 +180,52 @@ const 从任务状态推导阶段 = (status?: NPC生图任务记录['状态']): 
     if (status === 'success') return 'success';
     if (status === 'failed') return 'failed';
     return undefined;
+};
+
+const 从图片状态推导队列状态 = (status?: 图片生成状态类型): NPC生图任务记录['状态'] => {
+    if (status === 'failed') return 'failed';
+    if (status === 'pending') return 'running';
+    return 'success';
+};
+
+const 渲染生图调试链路 = (trace?: any[], accentClass = 'border-wuxia-gold/10 bg-black/80 text-gray-400') => {
+    const events = Array.isArray(trace) ? trace.filter((item) => item && typeof item === 'object') : [];
+    if (events.length <= 0) return null;
+    return (
+        <details className="group/details">
+            <summary className="text-[11px] text-gray-400 cursor-pointer select-none hover:text-wuxia-gold transition-colors outline-none flex items-center gap-1 before:content-['▶'] before:text-[8px] before:transition-transform group-open/details:before:rotate-90">
+                CNB / 后端调试链路（{events.length}步）
+            </summary>
+            <div className={`mt-2 rounded border p-3 max-h-56 overflow-y-auto custom-scrollbar font-mono text-[10px] leading-relaxed ${accentClass}`}>
+                <div className="space-y-2">
+                    {events.map((event, index) => (
+                        <div key={`${event.时间 || index}_${event.阶段 || index}`} className="rounded border border-white/10 bg-black/35 p-2">
+                            <div className="flex flex-wrap items-center gap-2 text-gray-300">
+                                <span className="text-wuxia-gold/80">#{index + 1}</span>
+                                <span>{event.阶段 || '未命名阶段'}</span>
+                                <span className={
+                                    event.状态 === 'success' ? 'text-emerald-300'
+                                        : event.状态 === 'failed' ? 'text-red-300'
+                                            : event.状态 === 'pending' ? 'text-amber-300'
+                                                : 'text-gray-400'
+                                }>{event.状态 || 'info'}</span>
+                                {typeof event.HTTP状态 === 'number' && <span>HTTP {event.HTTP状态}</span>}
+                                {typeof event.耗时ms === 'number' && <span>{event.耗时ms}ms</span>}
+                                {event.通道 && <span>{event.通道}</span>}
+                            </div>
+                            {event.promptId && <div className="mt-1 break-all text-cyan-100/70">prompt_id: {event.promptId}</div>}
+                            {event.端点 && <div className="mt-1 break-all text-gray-500">endpoint: {event.端点}</div>}
+                            {event.图片地址 && <div className="mt-1 break-all text-cyan-100/70">image: {event.图片地址}</div>}
+                            {event.说明 && <div className="mt-1 whitespace-pre-wrap break-words text-gray-400">{event.说明}</div>}
+                            {event.响应摘要 && <div className="mt-1 whitespace-pre-wrap break-words text-gray-500">response: {event.响应摘要}</div>}
+                            {event.错误 && <div className="mt-1 whitespace-pre-wrap break-words text-red-300">error: {event.错误}</div>}
+                            {event.时间 && <div className="mt-1 text-gray-600">{格式化时间(event.时间)}</div>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </details>
+    );
 };
 
 const 获取NPC构图文案 = (构图?: NPC生图任务记录['构图'] | 场景生图任务记录['构图'] | string, 部位?: 香闺秘档部位类型): string => {
@@ -979,6 +1026,12 @@ const ImageManagerModal: React.FC<Props> = ({
         });
     }, [filters, queueList]);
 
+    const itemSequenceList = React.useMemo(() => (
+        Array.isArray(itemImageSequence)
+            ? itemImageSequence.slice().sort((a, b) => (b.生成时间 || 0) - (a.生成时间 || 0))
+            : []
+    ), [itemImageSequence]);
+
     const combinedQueue = React.useMemo<合并队列记录[]>(() => {
         const sceneRecords = (Array.isArray(sceneQueue) ? sceneQueue : []).map((task) => ({
             类型: 'scene' as const,
@@ -994,14 +1047,15 @@ const ImageManagerModal: React.FC<Props> = ({
             状态: task.状态,
             task
         }));
-        return [...npcRecords, ...sceneRecords].sort((a, b) => b.创建时间 - a.创建时间);
-    }, [queueList, sceneQueue]);
-
-    const itemSequenceList = React.useMemo(() => (
-        Array.isArray(itemImageSequence)
-            ? itemImageSequence.slice().sort((a, b) => (b.生成时间 || 0) - (a.生成时间 || 0))
-            : []
-    ), [itemImageSequence]);
+        const itemRecords = itemSequenceList.map((item) => ({
+            类型: 'item' as const,
+            id: item.id,
+            创建时间: item.生成时间 || 0,
+            状态: 从图片状态推导队列状态(item.状态),
+            itemRecord: item
+        }));
+        return [...npcRecords, ...sceneRecords, ...itemRecords].sort((a, b) => b.创建时间 - a.创建时间);
+    }, [itemSequenceList, queueList, sceneQueue]);
 
     const filteredCombinedQueue = React.useMemo(() => {
         const keyword = (filters.角色姓名 || '').trim().toLowerCase();
@@ -1017,6 +1071,22 @@ const ImageManagerModal: React.FC<Props> = ({
                 }
             }
             if (!keyword) return true;
+            if (entry.类型 === 'item') {
+                const item = entry.itemRecord;
+                const text = [
+                    item?.物品名称,
+                    item?.物品类型,
+                    item?.物品品质,
+                    item?.构图,
+                    item?.画风,
+                    item?.渲染风格,
+                    item?.使用模型,
+                    item?.来源位置,
+                    item?.错误信息,
+                    '物品'
+                ].filter(Boolean).join(' ').toLowerCase();
+                return text.includes(keyword);
+            }
             if (entry.类型 === 'npc') {
                 const task = entry.task as NPC生图任务记录;
                 return (task.NPC姓名 || '').toLowerCase().includes(keyword);
@@ -1041,16 +1111,14 @@ const ImageManagerModal: React.FC<Props> = ({
     }, [records, sceneArchive, itemSequenceList]);
 
     const 队列统计 = React.useMemo(() => {
-        const itemRunning = itemSequenceList.filter((item) => item.状态 === 'pending').length;
-        const itemFailed = itemSequenceList.filter((item) => item.状态 === 'failed').length;
         return {
-            total: combinedQueue.length + itemRunning + itemFailed,
+            total: combinedQueue.length,
             queued: combinedQueue.filter((item) => item.状态 === 'queued').length,
-            running: combinedQueue.filter((item) => item.状态 === 'running').length + itemRunning,
+            running: combinedQueue.filter((item) => item.状态 === 'running').length,
             success: combinedQueue.filter((item) => item.状态 === 'success').length,
-            failed: combinedQueue.filter((item) => item.状态 === 'failed').length + itemFailed
+            failed: combinedQueue.filter((item) => item.状态 === 'failed').length
         };
-    }, [combinedQueue, itemSequenceList]);
+    }, [combinedQueue]);
 
     const sceneHistory = React.useMemo(() => {
         return (Array.isArray(sceneArchive?.生图历史) ? sceneArchive.生图历史 : [])
@@ -2977,7 +3045,7 @@ const ImageManagerModal: React.FC<Props> = ({
                 <div className="flex flex-wrap items-center justify-between border-b border-wuxia-gold/10 pb-4 mb-4 shrink-0 gap-4">
                     <div>
                         <div className="text-wuxia-gold font-serif text-xl tracking-wider text-shadow-glow">统一生成队列</div>
-                        <div className="text-[10px] text-gray-500 mt-1">所有角色和场景的生成任务都会显示在这里。</div>
+                        <div className="text-[10px] text-gray-500 mt-1">所有角色、场景和物品的生成任务与最近结果都会显示在这里。</div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {onClearQueue && (
@@ -3004,7 +3072,7 @@ const ImageManagerModal: React.FC<Props> = ({
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
-                    {itemSequenceList.length > 0 && (
+                    {false && itemSequenceList.length > 0 && (
                         <div className="rounded border border-cyan-500/20 bg-cyan-950/10 p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <div>
@@ -3044,6 +3112,60 @@ const ImageManagerModal: React.FC<Props> = ({
                     )}
                     {filteredCombinedQueue.length > 0 ? (
                         filteredCombinedQueue.map((entry) => {
+                            if (entry.类型 === 'item' && entry.itemRecord) {
+                                const item = entry.itemRecord;
+                                const imageSrc = 获取图片展示地址(item);
+                                const status = item.状态 || 'success';
+                                return (
+                                    <div key={item.id} className="rounded border border-cyan-400/20 bg-black/40 p-4 relative group hover:border-cyan-300/50 transition-colors">
+                                        <div className="absolute top-0 right-0 px-2 py-0.5 bg-cyan-400/10 border-b border-l border-cyan-300/20 text-[10px] text-cyan-100/80 font-serif rounded-bl">
+                                            物品任务
+                                        </div>
+                                        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                                            <div className="pr-16 min-w-0">
+                                                <div className="text-lg font-serif text-cyan-100 truncate" title={item.物品名称}>{item.物品名称 || '未命名物品'}</div>
+                                                <div className="text-[10px] text-gray-500 mt-1 flex flex-wrap items-center gap-2">
+                                                    <span className="px-1.5 py-0.5 rounded bg-black/50 border border-cyan-300/10 text-cyan-100/70">{item.构图 || '物品图'}</span>
+                                                    <span>{item.物品类型 || '未分类'}</span>
+                                                    <span>{item.物品品质 || '未知品质'}</span>
+                                                    <span>来源: {item.来源位置 || '未知'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-[11px] px-2.5 py-1 rounded border shadow-sm ${队列状态样式[从图片状态推导队列状态(status)]}`}>{获取图片状态文案(item)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 text-[11px]">
+                                            <div className="rounded border border-cyan-300/10 bg-black/50 p-2.5">
+                                                <div className="text-cyan-100/50 mb-1">记录时间</div>
+                                                <div className="text-gray-300 font-mono text-[10px]">{格式化时间(item.生成时间)}</div>
+                                            </div>
+                                            <div className="rounded border border-cyan-300/10 bg-black/50 p-2.5">
+                                                <div className="text-cyan-100/50 mb-1">模型 / 风格</div>
+                                                <div className="text-gray-300 truncate" title={[item.使用模型, item.画风, item.渲染风格].filter(Boolean).join(' / ')}>{[item.使用模型, item.画风, item.渲染风格].filter(Boolean).join(' / ') || '未定'}</div>
+                                            </div>
+                                            <div className="rounded border border-cyan-300/10 bg-black/50 p-2.5">
+                                                <div className="text-cyan-100/50 mb-1">图片返回</div>
+                                                <div className="text-gray-300">{imageSrc ? '已有可展示图片' : '暂无可展示图片'}</div>
+                                            </div>
+                                            <div className="rounded border border-cyan-300/10 bg-black/50 p-2.5 relative overflow-hidden">
+                                                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-cyan-300/40"></div>
+                                                <div className="text-cyan-100/50 mb-1 pl-1">任务进度 ({status === 'pending' ? '生成中' : 获取图片状态文案(item)})</div>
+                                                <div className="text-gray-300 pl-1">{item.错误信息 || (imageSrc ? '图片已返回并写入历史。' : '等待图片后端返回或本地化。')}</div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-3 flex flex-col gap-2 border-t border-cyan-300/10 pt-3">
+                                            {渲染生图调试链路(item.调试链路, 'border-cyan-300/10 bg-black/80 text-gray-400')}
+                                            {item.最终正向提示词 && (
+                                                <details className="group/details">
+                                                    <summary className="text-[11px] text-gray-400 cursor-pointer select-none hover:text-cyan-100 transition-colors outline-none flex items-center gap-1 before:content-['▶'] before:text-[8px] before:transition-transform group-open/details:before:rotate-90">最终正向提示词</summary>
+                                                    <div className="mt-2 text-[10px] text-gray-400/80 bg-black/80 p-3 rounded border border-cyan-300/10 whitespace-pre-wrap break-words max-h-32 overflow-y-auto custom-scrollbar font-mono leading-relaxed">{item.最终正向提示词}</div>
+                                                </details>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            }
                             if (entry.类型 === 'scene') {
                                 const task = entry.task as 场景生图任务记录;
                                 return (
@@ -3086,6 +3208,9 @@ const ImageManagerModal: React.FC<Props> = ({
                                                 <div className="text-wuxia-gold/50 mb-1 pl-1">任务进度 ({获取生图阶段中文(task.进度阶段 || 从任务状态推导阶段(task.状态))})</div>
                                                 <div className="text-gray-300 pl-1">{task.进度文本 || task.错误信息 || '场景生成中...'}</div>
                                             </div>
+                                        </div>
+                                        <div className="mt-3">
+                                            {渲染生图调试链路(task.调试链路)}
                                         </div>
                                     </div>
                                 );
@@ -3134,6 +3259,9 @@ const ImageManagerModal: React.FC<Props> = ({
                                             <div className="text-wuxia-gold/50 mb-1 pl-1">任务进度 ({获取生图阶段中文(task.进度阶段 || 从任务状态推导阶段(task.状态))})</div>
                                             <div className="text-gray-300 pl-1">{task.进度文本 || task.错误信息 || '图片生成中...'}</div>
                                         </div>
+                                    </div>
+                                    <div className="mt-3">
+                                        {渲染生图调试链路(task.调试链路)}
                                     </div>
                                     {task.状态 === 'failed' && (
                                         <div className="mt-4 pt-3 border-t border-wuxia-gold/10 flex flex-wrap justify-end gap-2">
@@ -3839,6 +3967,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                                             错误：{result.错误信息}
                                                         </div>
                                                     )}
+                                                    {渲染生图调试链路(result.调试链路)}
                                                 </div>
 
                                                 <div className="flex flex-col gap-2">
@@ -3860,6 +3989,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                                             </div>
                                                         </details>
                                                     )}
+                                                    {渲染生图调试链路(result.调试链路, 'border-cyan-300/10 bg-black/80 text-gray-400')}
                                                     <details className="group/details">
                                                         <summary className={`text-[11px] text-gray-400 cursor-pointer select-none hover:text-cyan-100 transition-colors outline-none flex items-center gap-1 before:content-['▶'] before:text-[8px] before:transition-transform group-open/details:before:rotate-90`}>
                                                             原始描述
@@ -3980,6 +4110,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                                         </div>
                                                     </details>
                                                 )}
+                                                {渲染生图调试链路(result.调试链路)}
                                                 <details className="group/details">
                                                     <summary className={`text-[11px] text-gray-400 cursor-pointer select-none hover:text-wuxia-gold transition-colors outline-none flex items-center gap-1 before:content-['▶'] before:text-[8px] before:transition-transform group-open/details:before:rotate-90`}>
                                                         原始描述

@@ -5,7 +5,7 @@ import {
     用已发现ComfyUI后端替换地址,
     type 当前可用接口结构
 } from '../../utils/apiConfig';
-import type { 生图构图类型, 香闺秘档部位类型 } from '../../models/imageGeneration';
+import type { 生图构图类型, 生图调试事件, 香闺秘档部位类型 } from '../../models/imageGeneration';
 import type { PNG解析参数结构, PNG画风预设来源类型, 角色锚点结构, 图片词组序列化策略类型, 图片响应格式类型 } from '../../models/system';
 import { 角色图片分词COT伪装历史消息提示词 } from '../../prompts/runtime/imageTokenizerCharacterCot';
 import { 场景图片分词COT伪装历史消息提示词 } from '../../prompts/runtime/imageTokenizerSceneCot';
@@ -57,6 +57,7 @@ export interface 图片生成结果 {
     最终正向提示词?: string;
     最终负向提示词?: string;
     客户提示?: string;
+    调试链路?: 生图调试事件[];
 }
 
 export type 图片提示词装配结果 = {
@@ -2176,6 +2177,25 @@ const 提取ComfyUI图片地址 = (
     return null;
 };
 
+const 截断调试文本 = (value: unknown, limit = 1200): string => {
+    const text = typeof value === 'string' ? value : JSON.stringify(value ?? '');
+    return text.replace(/\s+/g, ' ').trim().slice(0, limit);
+};
+
+const 追加生图调试事件 = (
+    trace: 生图调试事件[],
+    event: Omit<生图调试事件, '时间'>
+): void => {
+    trace.push({ 时间: Date.now(), ...event });
+};
+
+const 附加生图调试链路到错误 = (error: any, trace: 生图调试事件[]): never => {
+    if (error && typeof error === 'object') {
+        (error as any).生图调试链路 = trace;
+    }
+    throw error;
+};
+
 const COMFYUI_POLL_TIMEOUT_MS = 3 * 60 * 1000;
 
 const 提取ComfyUI历史根节点 = (historyPayload: any): any => {
@@ -2260,128 +2280,214 @@ const 执行ComfyUI生图 = async (
     signal?: AbortSignal,
     pngParams?: PNG解析参数结构
 ): Promise<图片生成结果> => {
+    const debugTrace: 生图调试事件[] = [];
     const baseUrl = 获取ComfyUI基础地址(apiConfig.baseUrl);
     if (!baseUrl) throw new Error('ComfyUI 缺少 API 地址');
-    const [width, height] = size.split('x').map((value) => Number(value));
-    const workflow = 构建ComfyUI工作流(apiConfig.ComfyUI工作流JSON || '', prompt, negativePrompt, width, height, pngParams);
-    const promptPath = apiConfig.图片接口路径 || '/prompt';
-    let enqueueResponse: Response;
-    let requestChannel: ComfyUI请求通道 = 'direct';
-    {
-        const result = await fetchComfyUI直连优先(baseUrl, promptPath, {
-            method: 'POST',
-            headers: 构建生图请求头(apiConfig),
-            body: JSON.stringify({
-                prompt: workflow,
-                client_id: 'wuxia-web'
-            }),
-            signal
-        }, apiConfig.baseUrl);
-        enqueueResponse = result.response;
-        requestChannel = result.channel;
-    }
-    if (!enqueueResponse.ok) {
-        const detail = await 读取失败详情文本(enqueueResponse, Number.POSITIVE_INFINITY);
-        if (判断ComfyUI响应像HTML(detail, enqueueResponse)) {
-            await 标记ComfyUI后端近期不可用(baseUrl);
-            throw new ComfyUI后端不可用错误(
-                构建ComfyUI非JSON响应提示(apiConfig.baseUrl || baseUrl, enqueueResponse, detail, 'prompt'),
-                baseUrl
-            );
-        }
-        throw new 协议请求错误(`ComfyUI 请求失败: ${enqueueResponse.status}${detail ? ` - ${detail}` : ''}`, enqueueResponse.status, detail);
-    }
-    const enqueueText = await enqueueResponse.text();
-    const enqueuePayload = 解析可能是JSON字符串(enqueueText);
-    const promptId = typeof enqueuePayload?.prompt_id === 'string' ? enqueuePayload.prompt_id.trim() : '';
-    if (!promptId) {
-        const message = 构建ComfyUI缺少PromptId提示(apiConfig.baseUrl, enqueueResponse, enqueueText);
-        if (判断ComfyUI响应像HTML(enqueueText, enqueueResponse)) {
-            await 标记ComfyUI后端近期不可用(baseUrl);
-            throw new ComfyUI后端不可用错误(message, baseUrl);
-        }
-        throw new Error(message);
-    }
-    const queueKey = 构建ComfyUI队列Key(baseUrl, promptId);
-    const trackedTask: ComfyUI队列任务 = { baseUrl, apiConfig, promptId, channel: requestChannel };
-    ComfyUI进行中队列.set(queueKey, trackedTask);
-    const handleAbort = () => {
-        ComfyUI进行中队列.delete(queueKey);
-        void 尝试终止ComfyUI任务(trackedTask);
-    };
-    signal?.addEventListener('abort', handleAbort, { once: true });
-
     try {
+        const [width, height] = size.split('x').map((value) => Number(value));
+        const workflow = 构建ComfyUI工作流(apiConfig.ComfyUI工作流JSON || '', prompt, negativePrompt, width, height, pngParams);
+        const promptPath = apiConfig.图片接口路径 || '/prompt';
+        let enqueueResponse: Response;
+        let requestChannel: ComfyUI请求通道 = 'direct';
+        const enqueueStartedAt = Date.now();
+        追加生图调试事件(debugTrace, {
+            阶段: '提交到 ComfyUI /prompt',
+            状态: 'pending',
+            端点: 构建ComfyUI直连端点(baseUrl, promptPath),
+            通道: 'direct',
+            说明: `workflow 节点数：${Object.keys(workflow).length}，尺寸：${size}`
+        });
+        {
+            const result = await fetchComfyUI直连优先(baseUrl, promptPath, {
+                method: 'POST',
+                headers: 构建生图请求头(apiConfig),
+                body: JSON.stringify({
+                    prompt: workflow,
+                    client_id: 'wuxia-web'
+                }),
+                signal
+            }, apiConfig.baseUrl);
+            enqueueResponse = result.response;
+            requestChannel = result.channel;
+        }
+        追加生图调试事件(debugTrace, {
+            阶段: 'ComfyUI /prompt 返回',
+            状态: enqueueResponse.ok ? 'success' : 'failed',
+            耗时ms: Date.now() - enqueueStartedAt,
+            端点: 构建ComfyUI端点(baseUrl, promptPath, requestChannel),
+            通道: requestChannel,
+            HTTP状态: enqueueResponse.status
+        });
+        if (!enqueueResponse.ok) {
+            const detail = await 读取失败详情文本(enqueueResponse, Number.POSITIVE_INFINITY);
+            追加生图调试事件(debugTrace, {
+                阶段: 'ComfyUI /prompt 错误体',
+                状态: 'failed',
+                HTTP状态: enqueueResponse.status,
+                响应摘要: 截断调试文本(detail)
+            });
+            if (判断ComfyUI响应像HTML(detail, enqueueResponse)) {
+                await 标记ComfyUI后端近期不可用(baseUrl);
+                throw new ComfyUI后端不可用错误(
+                    构建ComfyUI非JSON响应提示(apiConfig.baseUrl || baseUrl, enqueueResponse, detail, 'prompt'),
+                    baseUrl
+                );
+            }
+            throw new 协议请求错误(`ComfyUI 请求失败: ${enqueueResponse.status}${detail ? ` - ${detail}` : ''}`, enqueueResponse.status, detail);
+        }
+        const enqueueText = await enqueueResponse.text();
+        const enqueuePayload = 解析可能是JSON字符串(enqueueText);
+        const promptId = typeof enqueuePayload?.prompt_id === 'string' ? enqueuePayload.prompt_id.trim() : '';
+        追加生图调试事件(debugTrace, {
+            阶段: '解析 prompt_id',
+            状态: promptId ? 'success' : 'failed',
+            promptId,
+            响应摘要: 截断调试文本(enqueueText)
+        });
+        if (!promptId) {
+            const message = 构建ComfyUI缺少PromptId提示(apiConfig.baseUrl, enqueueResponse, enqueueText);
+            if (判断ComfyUI响应像HTML(enqueueText, enqueueResponse)) {
+                await 标记ComfyUI后端近期不可用(baseUrl);
+                throw new ComfyUI后端不可用错误(message, baseUrl);
+            }
+            throw new Error(message);
+        }
+        const queueKey = 构建ComfyUI队列Key(baseUrl, promptId);
+        const trackedTask: ComfyUI队列任务 = { baseUrl, apiConfig, promptId, channel: requestChannel };
+        ComfyUI进行中队列.set(queueKey, trackedTask);
+        const handleAbort = () => {
+            ComfyUI进行中队列.delete(queueKey);
+            void 尝试终止ComfyUI任务(trackedTask);
+        };
+        signal?.addEventListener('abort', handleAbort, { once: true });
         const startedAt = Date.now();
         const historyPath = `/history/${encodeURIComponent(promptId)}`;
-        while (true) {
-            if (Date.now() - startedAt > COMFYUI_POLL_TIMEOUT_MS) {
-                throw new Error(`ComfyUI 生图超过 ${Math.round(COMFYUI_POLL_TIMEOUT_MS / 1000)} 秒仍未返回图片，已自动判定本次尝试失败。`);
-            }
-            let historyResponse: Response;
-            try {
-                const result = requestChannel === 'proxy'
-                    ? {
-                        response: await fetch(构建ComfyUI端点(baseUrl, historyPath, 'proxy'), {
-                            method: 'GET',
-                            headers: 构建生图请求头(apiConfig),
-                            signal
-                        }),
-                        channel: 'proxy' as const
-                    }
-                    : await fetchComfyUI直连优先(baseUrl, historyPath, {
-                    method: 'GET',
-                    headers: 构建生图请求头(apiConfig),
-                    signal
-                    }, apiConfig.baseUrl);
-                historyResponse = result.response;
-                requestChannel = result.channel;
-                trackedTask.channel = requestChannel;
-            } catch (error: any) {
-                throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
-            }
-            if (historyResponse.ok) {
-                const historyText = await historyResponse.text();
-                if (判断ComfyUI响应像HTML(historyText, historyResponse)) {
-                    await 标记ComfyUI后端近期不可用(baseUrl);
-                    throw new ComfyUI后端不可用错误(
-                        构建ComfyUI非JSON响应提示(apiConfig.baseUrl, historyResponse, historyText, 'history'),
-                        baseUrl
-                    );
+        try {
+            while (true) {
+                if (Date.now() - startedAt > COMFYUI_POLL_TIMEOUT_MS) {
+                    throw new Error(`ComfyUI 生图超过 ${Math.round(COMFYUI_POLL_TIMEOUT_MS / 1000)} 秒仍未返回图片，已自动判定本次尝试失败。`);
                 }
-                const historyPayload = 解析可能是JSON字符串(historyText);
-                const imageUrl = 提取ComfyUI图片地址(historyPayload, baseUrl, requestChannel);
-                if (imageUrl) {
-                    if (responseFormat === 'b64_json' || responseFormat === 'base64') {
-                        let imageResponse: Response;
-                        try {
-                            imageResponse = await fetch(imageUrl, { signal });
-                        } catch (error: any) {
-                            throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
+                let historyResponse: Response;
+                const historyStartedAt = Date.now();
+                try {
+                    const result = requestChannel === 'proxy'
+                        ? {
+                            response: await fetch(构建ComfyUI端点(baseUrl, historyPath, 'proxy'), {
+                                method: 'GET',
+                                headers: 构建生图请求头(apiConfig),
+                                signal
+                            }),
+                            channel: 'proxy' as const
                         }
-                        if (!imageResponse.ok) {
-                            throw new Error(`ComfyUI 图片下载失败: ${imageResponse.status}`);
+                        : await fetchComfyUI直连优先(baseUrl, historyPath, {
+                        method: 'GET',
+                        headers: 构建生图请求头(apiConfig),
+                        signal
+                        }, apiConfig.baseUrl);
+                    historyResponse = result.response;
+                    requestChannel = result.channel;
+                    trackedTask.channel = requestChannel;
+                } catch (error: any) {
+                    追加生图调试事件(debugTrace, {
+                        阶段: '轮询 ComfyUI /history 失败',
+                        状态: 'failed',
+                        端点: 构建ComfyUI端点(baseUrl, historyPath, requestChannel),
+                        通道: requestChannel,
+                        promptId,
+                        错误: error?.message || String(error || '')
+                    });
+                    throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
+                }
+                if (historyResponse.ok) {
+                    const historyText = await historyResponse.text();
+                    if (判断ComfyUI响应像HTML(historyText, historyResponse)) {
+                        await 标记ComfyUI后端近期不可用(baseUrl);
+                        追加生图调试事件(debugTrace, {
+                            阶段: 'ComfyUI /history 返回 HTML',
+                            状态: 'failed',
+                            耗时ms: Date.now() - historyStartedAt,
+                            HTTP状态: historyResponse.status,
+                            promptId,
+                            响应摘要: 截断调试文本(historyText)
+                        });
+                        throw new ComfyUI后端不可用错误(
+                            构建ComfyUI非JSON响应提示(apiConfig.baseUrl, historyResponse, historyText, 'history'),
+                            baseUrl
+                        );
+                    }
+                    const historyPayload = 解析可能是JSON字符串(historyText);
+                    const imageUrl = 提取ComfyUI图片地址(historyPayload, baseUrl, requestChannel);
+                    const failureMessage = 提取ComfyUI失败信息(historyPayload);
+                    if (imageUrl || failureMessage) {
+                        追加生图调试事件(debugTrace, {
+                            阶段: 'ComfyUI /history 完成',
+                            状态: imageUrl ? 'success' : 'failed',
+                            耗时ms: Date.now() - startedAt,
+                            端点: 构建ComfyUI端点(baseUrl, historyPath, requestChannel),
+                            通道: requestChannel,
+                            HTTP状态: historyResponse.status,
+                            promptId,
+                            图片地址: imageUrl || undefined,
+                            错误: failureMessage || undefined,
+                            响应摘要: 截断调试文本(historyText)
+                        });
+                    }
+                    if (imageUrl) {
+                        if (responseFormat === 'b64_json' || responseFormat === 'base64') {
+                            let imageResponse: Response;
+                            const downloadStartedAt = Date.now();
+                            try {
+                                imageResponse = await fetch(imageUrl, { signal });
+                            } catch (error: any) {
+                                追加生图调试事件(debugTrace, {
+                                    阶段: '下载 ComfyUI 图片失败',
+                                    状态: 'failed',
+                                    图片地址: imageUrl,
+                                    promptId,
+                                    错误: error?.message || String(error || '')
+                                });
+                                throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
+                            }
+                            追加生图调试事件(debugTrace, {
+                                阶段: '下载 ComfyUI 图片',
+                                状态: imageResponse.ok ? 'success' : 'failed',
+                                耗时ms: Date.now() - downloadStartedAt,
+                                HTTP状态: imageResponse.status,
+                                promptId,
+                                图片地址: imageUrl
+                            });
+                            if (!imageResponse.ok) {
+                                throw new Error(`ComfyUI 图片下载失败: ${imageResponse.status}`);
+                            }
+                            return {
+                                图片URL: await blob转DataUrl(await imageResponse.blob()),
+                                原始响应: historyText,
+                                调试链路: debugTrace
+                            };
                         }
                         return {
-                            图片URL: await blob转DataUrl(await imageResponse.blob()),
-                            原始响应: historyText
+                            图片URL: imageUrl,
+                            原始响应: historyText,
+                            调试链路: debugTrace
                         };
                     }
-                    return {
-                        图片URL: imageUrl,
-                        原始响应: historyText
-                    };
+                    if (failureMessage) {
+                        throw new Error(failureMessage);
+                    }
                 }
-                const failureMessage = 提取ComfyUI失败信息(historyPayload);
-                if (failureMessage) {
-                    throw new Error(failureMessage);
-                }
+                await 等待(1000, signal);
             }
-            await 等待(1000, signal);
+        } finally {
+            signal?.removeEventListener('abort', handleAbort);
+            ComfyUI进行中队列.delete(queueKey);
         }
-    } finally {
-        signal?.removeEventListener('abort', handleAbort);
-        ComfyUI进行中队列.delete(queueKey);
+    } catch (error: any) {
+        追加生图调试事件(debugTrace, {
+            阶段: 'ComfyUI 生图异常',
+            状态: 'failed',
+            错误: error?.message || String(error || '')
+        });
+        附加生图调试链路到错误(error, debugTrace);
     }
 };
 

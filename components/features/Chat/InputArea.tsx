@@ -24,6 +24,9 @@ type RecallProgress = {
     text?: string;
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type PolishProgress = {
@@ -32,6 +35,9 @@ type PolishProgress = {
     rawText?: string;
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type WorldEvolutionProgress = {
@@ -41,6 +47,9 @@ type WorldEvolutionProgress = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type PlanningProgress = {
@@ -50,6 +59,9 @@ type PlanningProgress = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type VariableGenerationProgress = {
@@ -59,6 +71,9 @@ type VariableGenerationProgress = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type MapUpdateProgress = {
@@ -68,6 +83,9 @@ type MapUpdateProgress = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 type QueueProgressPayload = {
@@ -77,6 +95,9 @@ type QueueProgressPayload = {
     commandTexts?: string[];
     channelName?: string;
     modelName?: string;
+    startedAt?: number;
+    finishedAt?: number;
+    elapsedMs?: number;
 };
 
 const QUEUE_TEXT_RENDER_LIMIT = 6000;
@@ -126,6 +147,20 @@ const 合并队列命令展示 = (commandTexts: string[]): string => (
     commandTexts.length > 0
         ? commandTexts.join('\n')
         : ''
+);
+
+const 格式化队列耗时 = (elapsedMs?: number): string => {
+    if (typeof elapsedMs !== 'number' || !Number.isFinite(elapsedMs) || elapsedMs < 0) return '';
+    if (elapsedMs < 1000) return `${Math.round(elapsedMs)}ms`;
+    const seconds = elapsedMs / 1000;
+    if (seconds < 60) return `${seconds.toFixed(seconds >= 10 ? 0 : 1)}s`;
+    const minutes = Math.floor(seconds / 60);
+    const rest = Math.round(seconds % 60);
+    return `${minutes}m ${rest}s`;
+};
+
+const 队列阶段不调用AI = (progress?: QueueProgressPayload | null): boolean => (
+    String(progress?.modelName || '').trim().toLowerCase() === '不调用 ai'
 );
 
 type IndependentStageId = 'polish' | 'world' | 'planning' | 'variable' | 'map';
@@ -848,6 +883,8 @@ const InputArea: React.FC<Props> = ({
                                         const rawExpanded = expandedRawStageId === stage.id;
                                         const commandExpanded = expandedCommandStageId === stage.id;
                                         const isVariableStage = stage.id === 'variable';
+                                        const hidesModel = 队列阶段不调用AI(stage.progress);
+                                        const elapsedText = 格式化队列耗时(stage.progress?.elapsedMs);
                                         return (
                                             <div key={stage.id} className="rounded border border-gray-800/80 bg-neutral-950 p-2">
                                                 <div className="flex items-center justify-between gap-3">
@@ -916,14 +953,21 @@ const InputArea: React.FC<Props> = ({
                                                         {progressText}
                                                     </pre>
                                                 )}
-                                                {(stage.progress?.channelName || stage.progress?.modelName) && (
+                                                {(stage.progress?.channelName || (!hidesModel && stage.progress?.modelName) || elapsedText) && (
                                                     <div className="mt-2 flex flex-wrap gap-2 text-[11px] leading-5">
                                                         <span className="rounded border border-wuxia-cyan/25 bg-wuxia-cyan/10 px-2 py-0.5 text-wuxia-cyan">
                                                             渠道：{stage.progress?.channelName || '未配置渠道'}
                                                         </span>
-                                                        <span className="rounded border border-wuxia-gold/25 bg-wuxia-gold/10 px-2 py-0.5 text-wuxia-gold">
-                                                            模型：{stage.progress?.modelName || '未选择模型'}
-                                                        </span>
+                                                        {!hidesModel && (
+                                                            <span className="rounded border border-wuxia-gold/25 bg-wuxia-gold/10 px-2 py-0.5 text-wuxia-gold">
+                                                                模型：{stage.progress?.modelName || '未选择模型'}
+                                                            </span>
+                                                        )}
+                                                        {elapsedText && (
+                                                            <span className="rounded border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-emerald-200">
+                                                                耗时：{elapsedText}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 )}
                                                 {commandExpanded && commandTexts.length > 0 && (
@@ -1016,14 +1060,21 @@ const InputArea: React.FC<Props> = ({
                             {截断队列展示文本(recallProgress.text, QUEUE_TEXT_RENDER_LIMIT, '剧情回忆文本')}
                         </pre>
                     )}
-                    {(recallProgress.channelName || recallProgress.modelName) && (
+                    {(recallProgress.channelName || (!队列阶段不调用AI(recallProgress) && recallProgress.modelName) || 格式化队列耗时(recallProgress.elapsedMs)) && (
                         <div className="flex flex-wrap gap-2 text-[11px] leading-5">
                             <span className="rounded border border-wuxia-cyan/25 bg-wuxia-cyan/10 px-2 py-0.5 text-wuxia-cyan">
                                 渠道：{recallProgress.channelName || '未配置渠道'}
                             </span>
-                            <span className="rounded border border-wuxia-gold/25 bg-wuxia-gold/10 px-2 py-0.5 text-wuxia-gold">
-                                模型：{recallProgress.modelName || '未选择模型'}
-                            </span>
+                            {!队列阶段不调用AI(recallProgress) && (
+                                <span className="rounded border border-wuxia-gold/25 bg-wuxia-gold/10 px-2 py-0.5 text-wuxia-gold">
+                                    模型：{recallProgress.modelName || '未选择模型'}
+                                </span>
+                            )}
+                            {格式化队列耗时(recallProgress.elapsedMs) && (
+                                <span className="rounded border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-emerald-200">
+                                    耗时：{格式化队列耗时(recallProgress.elapsedMs)}
+                                </span>
+                            )}
                         </div>
                     )}
                     <div className="flex flex-wrap gap-2 pt-1">
