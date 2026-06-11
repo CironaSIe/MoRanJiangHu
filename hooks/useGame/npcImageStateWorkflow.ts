@@ -633,6 +633,14 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                     return npc;
                 }
                 changed = true;
+                console.info('[npc.image.slot.set]', {
+                    npcId,
+                    npcName: npc?.名称 || `NPC(${npcId})`,
+                    field,
+                    imageId: imageId || undefined,
+                    previousImageId: archive?.[field] || undefined,
+                    source: 'manual'
+                });
                 return {
                     ...npc,
                     图片档案: {
