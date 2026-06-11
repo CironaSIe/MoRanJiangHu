@@ -644,7 +644,10 @@ const WorkflowGraphSettings: React.FC<{
                             updateMainChannel(channelId);
                         } else {
                             updatePlaceholderStage(stage, {
-                                [cfg.channelKey!]: channelId
+                                [cfg.channelKey!]: channelId,
+                                [cfg.modelKey!]: trim(nextConfig?.model),
+                                [cfg.baseUrlKey!]: '',
+                                [cfg.apiKeyKey!]: ''
                             } as Partial<功能模型占位配置结构>);
                         }
                         setModelOptionsByStage((prev) => ({ ...prev, [stage.id]: [] }));

@@ -55,6 +55,8 @@ const StageApiModelSelector: React.FC<Props> = ({
         const nextConfig = form.configs.find((cfg) => cfg.id === channelId) || null;
         onChange(channelKey, channelId as any);
         onChange(modelKey, trim(nextConfig?.model) as any);
+        onChange(baseUrlKey, '' as any);
+        onChange(apiKeyKey, '' as any);
         setModelOptions([]);
         setMessage('');
     };

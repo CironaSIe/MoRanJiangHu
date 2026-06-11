@@ -556,7 +556,7 @@ export const 执行NPC生图工作流 = async (
             附加负面提示词: 合并负向画师串,
             PNG参数
         });
-        deps.更新NPC生图任务(task.id, (currentTask) => ({
+            deps.更新NPC生图任务(task.id, (currentTask) => ({
             ...currentTask,
             原始描述,
             生图词组,
@@ -570,6 +570,21 @@ export const 执行NPC生图工作流 = async (
             进度阶段: 'generating',
             进度文本: shouldUsePromptTransformer ? '词组转换完成，正在调用图片模型生成图片。' : '角色资料整理完成，正在调用图片模型生成图片。'
         }));
+        console.info('[npc.image.prompt]', {
+            npcKey,
+            npcName,
+            targetGender: 目标性别 || 'unknown',
+            genderStatus: 目标性别状态,
+            targetAge: 目标年龄,
+            composition: 构图,
+            useAIPromptTransformer: shouldUsePromptTransformer,
+            modelName,
+            style: 画风,
+            additionalRequirements: 额外要求,
+            finalPositivePrompt: 最终提示词.最终正向提示词?.slice(0, 500),
+            finalNegativePrompt: 最终提示词.最终负向提示词?.slice(0, 200),
+            rawTagsLength: 生图词组?.length || 0
+        });
         deps.更新NPC最近生图结果(npcKey, (currentNpc) => {
             const 当前结果 = currentNpc?.图片档案?.最近生图结果 || currentNpc?.最近生图结果 || {};
             const 处理中结果 = {
@@ -646,8 +661,9 @@ export const 执行NPC生图工作流 = async (
             进度文本: localizedImageResult.客户提示 || '图片已生成，正在写回图片档案。'
         }));
         deps.更新NPC最近生图结果(npcKey, (currentNpc) => {
+            const 新ID = currentNpc?.图片档案?.最近生图结果?.id || currentNpc?.最近生图结果?.id || deps.生成NPC生图记录ID();
             const 成功结果 = {
-                id: currentNpc?.图片档案?.最近生图结果?.id || currentNpc?.最近生图结果?.id || deps.生成NPC生图记录ID(),
+                id: 新ID,
                 图片URL: localizedImageResult.图片URL,
                 本地路径: localizedImageResult.本地路径,
                 生图词组,
@@ -666,13 +682,37 @@ export const 执行NPC生图工作流 = async (
                 状态: 'success' as const,
                 调试链路
             };
+            const archive = currentNpc?.图片档案 && typeof currentNpc.图片档案 === 'object' ? currentNpc.图片档案 : {};
+            const 旧头像ID = typeof archive.已选头像图片ID === 'string' ? archive.已选头像图片ID.trim() : undefined;
+            const 旧立绘ID = typeof archive.已选立绘图片ID === 'string' ? archive.已选立绘图片ID.trim() : undefined;
+            const 已选头像图片ID = 构图 === '头像' ? 新ID : 旧头像ID;
+            const 已选立绘图片ID = 构图 === '立绘' ? 新ID : 旧立绘ID;
+            if (构图 === '头像' && 已选头像图片ID !== 旧头像ID) {
+                console.info('[npc.image.slot.set]', {
+                    npcKey, npcName,
+                    field: '已选头像图片ID',
+                    imageId: 已选头像图片ID,
+                    previousImageId: 旧头像ID,
+                    source: 'auto-generate'
+                });
+            } else if (构图 === '立绘' && 已选立绘图片ID !== 旧立绘ID) {
+                console.info('[npc.image.slot.set]', {
+                    npcKey, npcName,
+                    field: '已选立绘图片ID',
+                    imageId: 已选立绘图片ID,
+                    previousImageId: 旧立绘ID,
+                    source: 'auto-generate'
+                });
+            }
             return {
                 ...currentNpc,
                 最近生图结果: 成功结果,
                 图片档案: {
-                    ...(currentNpc?.图片档案 && typeof currentNpc.图片档案 === 'object' ? currentNpc.图片档案 : {}),
+                    ...archive,
                     最近生图结果: 成功结果,
-                    生图历史: 合并生图历史记录(currentNpc, 成功结果)
+                    生图历史: 合并生图历史记录(currentNpc, 成功结果),
+                    已选头像图片ID,
+                    已选立绘图片ID
                 }
             };
         });
@@ -699,6 +739,17 @@ export const 执行NPC生图工作流 = async (
                 ? `${localizedImageResult.客户提示}，图片已生成并写入图片档案。`
                 : '图片已生成并写入图片档案。'
         }));
+        console.info('[npc.image.result]', {
+            npcKey,
+            npcName,
+            targetGender: 目标性别 || 'unknown',
+            genderStatus: 目标性别状态,
+            composition: 构图,
+            imageUrl: localizedImageResult.图片URL,
+            localPath: localizedImageResult.本地路径,
+            modelName,
+            status: 'success'
+        });
     } catch (error: any) {
         const errorMessage = typeof error?.message === 'string' && error.message.trim()
             ? error.message.trim()

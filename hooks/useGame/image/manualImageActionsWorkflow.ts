@@ -351,6 +351,13 @@ export const 创建手动图片动作工作流 = (deps: 手动图片动作工作
             force: true,
             source: 'retry',
             构图: validComp
+        }).catch((error) => {
+            recordDiagnosticLog('error', ['重试NPC生图任务执行失败', {
+                npcId,
+                message: error?.message || '',
+                stack: typeof error?.stack === 'string' ? error.stack : undefined
+            }]);
+            console.error('重试NPC生图任务执行失败', error);
         });
     };
 

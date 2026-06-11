@@ -1027,6 +1027,14 @@ const 解析SSE文本XHR = (
 
     xhr.onerror = () => {
         writeStreamSummary('xhr stream network error');
+        console.warn('[xhr.stream.network.error]', {
+            endpoint,
+            method: 'POST',
+            headersPresent: Object.keys(headers).length,
+            bodyLength: body.length,
+            readyState: xhr.readyState,
+            status: xhr.status
+        });
         settleReject(new 协议请求错误('API Error: network error during stream request'));
     };
 
@@ -1194,6 +1202,12 @@ const 请求OpenAI家族文本 = async (
                     streamOptions?.onDelta
                 );
             } catch (error) {
+                console.warn('[native.stream.failed]', {
+                    endpoint,
+                    model: requestModel || apiConfig.model,
+                    supplier: apiConfig.供应商,
+                    message: 读取错误消息(error)
+                });
                 写入流式诊断日志('native stream failed', {
                     message: 读取错误消息(error)
                 });

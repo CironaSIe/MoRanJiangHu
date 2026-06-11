@@ -2,6 +2,8 @@
  * Extremely basic ID3v2 parser to extract common tags and cover art
  */
 
+import { 创建并记录ObjectURL } from './objectUrlLifecycle';
+
 export interface MusicMetadata {
     title?: string;
     artist?: string;
@@ -122,7 +124,17 @@ function decodeImageFrame(data: ArrayBuffer, version: number): string | undefine
     
     const imageData = data.slice(offset);
     const blob = new Blob([imageData], { type: mimeType });
-    return URL.createObjectURL(blob);
+    return 创建并记录ObjectURL(blob, {
+        source: 'musicMetadata.decodeImageFrame',
+        kind: 'music-cover',
+        detail: {
+            version,
+            pictureType,
+            mimeType,
+            frameBytes: data.byteLength,
+            imageBytes: imageData.byteLength
+        }
+    });
 }
 
 function decodeLyricsFrame(data: ArrayBuffer, version: number): string {

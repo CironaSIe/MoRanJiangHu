@@ -40,6 +40,7 @@ import {
 } from '../../../services/objectStorageSync';
 import * as dbService from '../../../services/dbService';
 import { 导出ZIP存档文件 } from '../../../services/saveArchiveService';
+import { 创建并记录ObjectURL, 延迟释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 import {
     构建对象存储云存档时间树,
     展开对象存储进度线,
@@ -539,7 +540,11 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
             const { save } = await 下载对象存储云存档(objectStorageConfig, item, (progress) => setMessage(progress.message));
             const blob = await 导出ZIP存档文件({ saves: [save], includeImages: true });
             const safeTitle = (item.title || 'object-save').replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_').slice(0, 40) || 'object-save';
-            const url = URL.createObjectURL(blob);
+            const url = 创建并记录ObjectURL(blob, {
+                source: 'CloudPlayModal.handleExportObjectStorageSave',
+                kind: 'object-storage-save-export',
+                detail: { saveId: item.id, title: item.title, hash: item.hash }
+            });
             try {
                 const anchor = document.createElement('a');
                 anchor.href = url;
@@ -548,7 +553,11 @@ const CloudPlayModal: React.FC<Props> = ({ onClose, onLoadGame, onStartNewGame, 
                 anchor.click();
                 document.body.removeChild(anchor);
             } finally {
-                window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+                延迟释放并记录ObjectURL(url, {
+                    source: 'CloudPlayModal.handleExportObjectStorageSave',
+                    kind: 'object-storage-save-export',
+                    detail: { reason: 'download-clicked', saveId: item.id }
+                }, 1000);
             }
             setMessage('已开始下载对象存储存档 ZIP。');
         } catch (error: any) {
