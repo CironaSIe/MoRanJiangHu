@@ -129,7 +129,7 @@ const 格式化命令展示路径 = (key: string): string => key.replace(/^gameS
 const 队列命令展示数量上限 = 120;
 const 队列命令展示单行上限 = 1800;
 const 主剧情首次响应超时毫秒 = 90_000;
-const 主剧情流式空闲超时毫秒 = 30_000;
+const 主剧情流式空闲超时毫秒 = 120_000;
 
 const 读取接口主机 = (baseUrl?: string): string => {
     const raw = typeof baseUrl === 'string' ? baseUrl.trim() : '';
