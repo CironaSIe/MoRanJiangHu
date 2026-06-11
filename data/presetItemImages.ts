@@ -824,6 +824,10 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     { 名称: '轮回者腕表', 类型: '饰品', 品质: '上品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E8%BD%AE%E5%9B%9E%E8%80%85%E8%85%95%E8%A1%A8.png' },
     { 名称: '枪械速成模块', 类型: '秘籍', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E6%9E%AA%E6%A2%B0%E9%80%9F%E6%88%90%E6%A8%A1%E5%9D%97.png' },
     { 名称: '单兵火箭筒', 类型: '武器', 品质: '极品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E5%8D%95%E5%85%B5%E7%81%AB%E7%AE%AD%E7%AD%92.png' },
+    // ─── 无限流常见无前缀物品（gpt-image2）──────────────────────────
+    { 名称: '手枪', 类型: '武器', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E6%89%8B%E6%9E%AA.png' },
+    { 名称: '防护背心', 类型: '防具', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E9%98%B2%E6%8A%A4%E8%83%8C%E5%BF%83.png' },
+    { 名称: '护符', 类型: '饰品', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E6%8A%A4%E7%AC%A6.png' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     { 名称: '迷魂香囊', 类型: '任务道具', 品质: '上品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E8%BF%B7%E9%AD%82%E9%A6%99%E5%9B%8A.png' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
