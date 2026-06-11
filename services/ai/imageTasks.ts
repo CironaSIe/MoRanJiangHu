@@ -4516,7 +4516,19 @@ export const persistImageAssetLocally = async (
     const compactResult = 压缩图片资源字段(result || {}) as 图片生成结果;
     const local = (compactResult?.本地路径 || '').trim();
     const imageUrl = (compactResult?.图片URL || '').trim();
+    const entryLog = {
+        inputHasLocal: Boolean(local),
+        inputHasUrl: Boolean(imageUrl),
+        inputLocalPrefix: local.slice(0, 60),
+        inputUrlPrefix: imageUrl.slice(0, 60),
+        localIsRef: local ? 是否图片资源引用(local) : false,
+        localIsDataUrl: /^data:image\//i.test(local),
+        urlIsDataUrl: /^data:image\//i.test(imageUrl),
+        urlIsBlob: /^blob:/i.test(imageUrl),
+        urlIsHttp: /^https?:\/\//i.test(imageUrl)
+    };
     if (local && 是否图片资源引用(local)) {
+        console.info('[persistImage] 已是本地引用，直接返回', entryLog);
         return {
             ...compactResult,
             图片URL: undefined,
@@ -4525,6 +4537,7 @@ export const persistImageAssetLocally = async (
     }
     if (local && /^data:image\//i.test(local)) {
         const assetRef = await dbService.保存图片资源(local);
+        console.info('[persistImage] 本地dataUrl已保存到IndexedDB', { refPrefix: assetRef?.slice(0, 60) || '(empty)' });
         return {
             ...compactResult,
             图片URL: undefined,
@@ -4547,10 +4560,12 @@ export const persistImageAssetLocally = async (
     }
 
     if (!imageUrl) {
+        console.warn('[persistImage] 无输入URL也无本地路径，抛出异常', entryLog);
         throw new Error('没有可保存的图片地址');
     }
     if (/^data:image\//i.test(imageUrl)) {
         const assetRef = await dbService.保存图片资源(imageUrl);
+        console.info('[persistImage] 远程dataUrl已保存到IndexedDB', { refPrefix: assetRef?.slice(0, 60) || '(empty)' });
         return {
             ...compactResult,
             图片URL: undefined,
@@ -4568,6 +4583,7 @@ export const persistImageAssetLocally = async (
             throw new Error('保存本地副本失败：图片内容为空');
         }
         const assetRef = await dbService.保存图片资源(dataUrl);
+        console.info('[persistImage] blob已转dataUrl并保存到IndexedDB', { refPrefix: assetRef?.slice(0, 60) || '(empty)' });
         return {
             ...compactResult,
             图片URL: undefined,
@@ -4585,6 +4601,7 @@ export const persistImageAssetLocally = async (
     const response = await fetch(imageUrl);
     if (!response.ok) {
         const detail = await response.text().catch(() => '');
+        console.error('[persistImage] HTTP下载失败', { status: response.status, urlPrefix: imageUrl.slice(0, 80) });
         throw new Error(`保存本地副本失败: ${response.status}${detail ? ` - ${detail.slice(0, 200)}` : ''}`);
     }
     const blob = await response.blob();
@@ -4593,6 +4610,7 @@ export const persistImageAssetLocally = async (
         throw new Error('保存本地副本失败：图片内容为空');
     }
     const assetRef = await dbService.保存图片资源(dataUrl);
+    console.info('[persistImage] HTTP图片已下载并保存到IndexedDB', { refPrefix: assetRef?.slice(0, 60) || '(empty)', blobSize: blob.size });
     return {
         ...compactResult,
         图片URL: undefined,

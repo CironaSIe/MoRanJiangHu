@@ -20,7 +20,7 @@ import { 生成地图更新 } from './hooks/useGame/mapUpdateWorkflow';
 import { 构建字体注入样式文本, 构建UI文字CSS变量 } from './utils/visualSettings';
 import { 获取图片资源文本地址, 读取远程图片兜底资源ID } from './utils/imageAssets';
 import { 生成物品图标 } from './services/ai/itemImageGeneration';
-import { 合并物品图片档案, 获取物品图标复用Key, 物品已有可用图标 } from './utils/itemImage';
+import { 合并物品图片档案, 获取物品图标复用Key, 物品已有可用图标, 获取物品已选图标地址 } from './utils/itemImage';
 import { 生图最大自动重试次数, 执行生图模型调用带重试, 读取生图错误文本 } from './utils/imageGenerationRetry';
 import { 丢弃背包物品, 是否杂物类物品 } from './utils/inventoryActions';
 import { MusicProvider } from './components/features/Music/MusicProvider';
@@ -1439,15 +1439,23 @@ const App: React.FC = () => {
             if (autoItemImageRunningRef.current.has(candidate.key)) return;
             const recentSuccess = autoItemImageRecentSuccessRef.current.get(candidate.key);
             if (recentSuccess && startedAt - recentSuccess.completedAt <= ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL) {
-                recordDiagnosticLog('info', '[物品自动生图] 复用近期生成结果，跳过重复提交', {
+                const recentHasImage = 物品已有可用图标(recentSuccess.nextItem);
+                if (recentHasImage) {
+                    recordDiagnosticLog('info', '[物品自动生图] 复用近期生成结果，跳过重复提交', {
+                        key: candidate.key,
+                        recordId: recentSuccess.recordId,
+                        sourceLocation: candidate.sourceLocation,
+                        itemName: candidate.item?.名称 || '无名物品',
+                        ageMs: startedAt - recentSuccess.completedAt
+                    });
+                    写回候选物品(复用物品图片档案(candidate.item, recentSuccess.nextItem), true);
+                    return;
+                }
+                autoItemImageRecentSuccessRef.current.delete(candidate.key);
+                recordDiagnosticLog('warn', '[物品自动生图] 近期结果无可用图片，清除缓存并重新生成', {
                     key: candidate.key,
-                    recordId: recentSuccess.recordId,
-                    sourceLocation: candidate.sourceLocation,
-                    itemName: candidate.item?.名称 || '无名物品',
-                    ageMs: startedAt - recentSuccess.completedAt
+                    recordId: recentSuccess.recordId
                 });
-                写回候选物品(复用物品图片档案(candidate.item, recentSuccess.nextItem), true);
-                return;
             }
 
         const recordId = `item_img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -1533,15 +1541,23 @@ const App: React.FC = () => {
                     ? result.nextItem.图片档案.生图历史
                     : [];
                 写回候选物品(result.nextItem, true);
+                const verifyArchive = result.nextItem?.图片档案;
+                const verifyRecent = verifyArchive?.最近生图结果;
+                const verifySelected = 获取物品已选图标地址(result.nextItem);
                 recordDiagnosticLog('info', '[物品自动生图] 成功结果写回候选物品', {
                     recordId,
                     resultRecordId: result.imageRecord?.id || '',
                     sourceLocation: candidate.sourceLocation,
                     itemName: result.nextItem?.名称 || candidate.item?.名称 || '无名物品',
                     historyCount: successHistory.length,
-                    recentId: result.nextItem?.图片档案?.最近生图结果?.id || '',
+                    recentId: verifyRecent?.id || '',
                     hasImageUrl: Boolean(result.imageRecord?.图片URL),
-                    hasLocalPath: Boolean(result.imageRecord?.本地路径)
+                    hasLocalPath: Boolean(result.imageRecord?.本地路径),
+                    imageUrlPrefix: typeof result.imageRecord?.图片URL === 'string' ? result.imageRecord.图片URL.slice(0, 60) : '',
+                    localPathPrefix: typeof result.imageRecord?.本地路径 === 'string' ? result.imageRecord.本地路径.slice(0, 60) : '',
+                    verifySelectedUrl: verifySelected || '(empty)',
+                    verifyRecentHasUrl: Boolean(verifyRecent?.图片URL),
+                    verifyRecentHasPath: Boolean(verifyRecent?.本地路径)
                 });
                 autoItemImageRecentSuccessRef.current.set(candidate.key, {
                     completedAt: Date.now(),

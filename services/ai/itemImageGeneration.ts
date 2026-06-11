@@ -915,16 +915,34 @@ export const 生成物品图标 = async (
         recordId,
         itemName: (item as any)?.名称 || '未命名物品',
         hasImageUrl: Boolean(rawResult?.图片URL),
+        imageUrlPrefix: typeof rawResult?.图片URL === 'string' ? rawResult.图片URL.slice(0, 80) : '',
         hasLocalPath: Boolean(rawResult?.本地路径),
+        localPathPrefix: typeof rawResult?.本地路径 === 'string' ? rawResult.本地路径.slice(0, 80) : '',
         hasFinalPositivePrompt: Boolean(rawResult?.最终正向提示词),
-        hasFinalNegativePrompt: Boolean(rawResult?.最终负向提示词)
+        promptPrefix: finalPrompt.slice(0, 120),
+        backendType: imageApi.图片后端类型 || 'unknown',
+        model: imageApi.model || ''
     });
-    const localResult = await persistImageAssetLocally(rawResult);
+    let localResult: any;
+    try {
+        localResult = await persistImageAssetLocally(rawResult);
+    } catch (persistError: any) {
+        recordDiagnosticLog('error', '[物品生图链路] 图片本地化异常！图片数据丢失', {
+            recordId,
+            itemName: (item as any)?.名称 || '未命名物品',
+            errorMessage: persistError?.message || String(persistError),
+            rawHasUrl: Boolean(rawResult?.图片URL),
+            rawHasPath: Boolean(rawResult?.本地路径)
+        });
+        throw persistError;
+    }
     recordDiagnosticLog('info', '[物品生图链路] 图片资源本地化完成', {
         recordId,
         itemName: (item as any)?.名称 || '未命名物品',
         hasImageUrl: Boolean(localResult?.图片URL),
+        imageUrlPrefix: typeof localResult?.图片URL === 'string' ? localResult.图片URL.slice(0, 80) : '',
         hasLocalPath: Boolean(localResult?.本地路径),
+        localPathPrefix: typeof localResult?.本地路径 === 'string' ? localResult.本地路径.slice(0, 80) : '',
         displayable: Boolean(localResult?.图片URL || localResult?.本地路径)
     });
     const imageRecord: 物品生图结果 = {
@@ -935,7 +953,13 @@ export const 生成物品图标 = async (
         最终正向提示词: localResult.最终正向提示词,
         最终负向提示词: localResult.最终负向提示词,
         原始描述: JSON.stringify(enrichedItem, null, 2),
-        使用模型: imageApi.model || imageApi.图片后端类型 || 'image-model',
+        使用模型: ((): string => {
+            switch (imageApi.图片后端类型) {
+                case 'comfyui': return 'ComfyUI';
+                case 'sd_webui': return 'Stable Diffusion WebUI';
+                case 'novelai': case 'openai': default: return (imageApi.model || '').trim() || '图片模型';
+            }
+        })(),
         生成时间: Date.now(),
         构图: '物品图标',
         画风: style as 物品生图结果['画风'],

@@ -5117,12 +5117,8 @@ const ImageManagerModal: React.FC<Props> = ({
                             <span className="hidden md:inline">场景壁纸</span>
                         </button>
                         <button type="button" onClick={() => setActiveTab('queue')} className={标签按钮样式(activeTab === 'queue')}>
-                            <span className="md:hidden text-lg w-full text-center">队</span>
+                            <span className="md:hidden text-lg w-full text-center">图</span>
                             <span className="hidden md:inline">生成队列</span>
-                        </button>
-                        <button type="button" onClick={() => setActiveTab('history')} className={标签按钮样式(activeTab === 'history')}>
-                            <span className="md:hidden text-lg w-full text-center">史</span>
-                            <span className="hidden md:inline">生成历史</span>
                         </button>
                         <button type="button" onClick={() => setActiveTab('presets')} className={标签按钮样式(activeTab === 'presets')}>
                             <span className="md:hidden text-lg w-full text-center">设</span>
@@ -5199,8 +5195,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                             <span>当前视图</span>
                                             <span className="text-wuxia-gold font-medium tracking-widest drop-shadow-md">
                                             {activeTab === 'library' && `${npcLibraryGroups.length} 个角色`}
-                                            {activeTab === 'queue' && `${filteredCombinedQueue.length} 条任务`}
-                                            {activeTab === 'history' && `${combinedHistoryRecords.length} 条记录`}
+                                            {activeTab === 'queue' && `${filteredCombinedQueue.length} 条队列 · ${combinedHistoryRecords.length} 条历史`}
                                             </span>
                                         </div>
                                     </div>
@@ -5218,8 +5213,7 @@ const ImageManagerModal: React.FC<Props> = ({
                             {activeTab === 'manual' && renderManualTab()}
                             {activeTab === 'library' && renderLibraryTab()}
                             {activeTab === 'scene' && renderSceneTab()}
-                            {activeTab === 'queue' && renderQueueTab()}
-                            {activeTab === 'history' && renderHistoryTab()}
+                            {activeTab === 'queue' && <>{renderQueueTab()}<div className="mt-6">{renderHistoryTab()}</div></>}
                             {activeTab === 'presets' && renderPresetsTab()}
                             {activeTab === 'rules' && renderRulesTab()}
                             {activeTab === 'migration' && renderMigrationTab()}

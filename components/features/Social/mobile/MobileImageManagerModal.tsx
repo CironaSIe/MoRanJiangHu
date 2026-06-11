@@ -413,9 +413,7 @@ const MobileImageManagerModal: React.FC<Props> = ({
             case 'scene':
                 return <SceneTabContent {...propsForTabs} />;
             case 'queue':
-                return <QueueTabContent {...propsForTabs} />;
-            case 'history':
-                return <HistoryTabContent {...propsForTabs} />;
+                return <><QueueTabContent {...propsForTabs} /><div className="mt-4"><HistoryTabContent {...propsForTabs} /></div></>;
             case 'presets':
                 return <PresetsTabContent {...propsForTabs} />;
             case 'rules':
@@ -477,7 +475,6 @@ const MobileImageManagerModal: React.FC<Props> = ({
                     <button className={标签按钮样式(activeTab === 'library')} onClick={() => setActiveTab('library')}>图库</button>
                     <button className={标签按钮样式(activeTab === 'scene')} onClick={() => setActiveTab('scene')}>场景</button>
                     <button className={标签按钮样式(activeTab === 'queue')} onClick={() => setActiveTab('queue')}>队列</button>
-                    <button className={标签按钮样式(activeTab === 'history')} onClick={() => setActiveTab('history')}>历史</button>
                     <button className={标签按钮样式(activeTab === 'presets')} onClick={() => setActiveTab('presets')}>资源</button>
                     <button className={标签按钮样式(activeTab === 'rules')} onClick={() => setActiveTab('rules')}>规则</button>
                     <button className={标签按钮样式(activeTab === 'migration')} onClick={() => setActiveTab('migration')}>迁移</button>

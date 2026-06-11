@@ -650,8 +650,23 @@ export const 执行NPC生图工作流 = async (
                 }
             }
         );
-        const localizedImageResult = await imageAIService.persistImageAssetLocally(imageResult);
+        let localizedImageResult: any;
+        try {
+            localizedImageResult = await imageAIService.persistImageAssetLocally(imageResult);
+        } catch (persistErr: any) {
+            console.error('[NPC生图链路] 图片本地化异常', npcName, persistErr?.message);
+            throw persistErr;
+        }
         const 调试链路 = Array.isArray(imageResult?.调试链路) ? imageResult.调试链路 : undefined;
+        console.info('[NPC生图链路] 本地化完成', {
+            npcName, 构图,
+            rawHasUrl: Boolean(imageResult?.图片URL),
+            rawHasPath: Boolean(imageResult?.本地路径),
+            localHasUrl: Boolean(localizedImageResult?.图片URL),
+            localHasPath: Boolean(localizedImageResult?.本地路径),
+            urlPrefix: typeof localizedImageResult?.图片URL === 'string' ? localizedImageResult.图片URL.slice(0, 60) : '',
+            pathPrefix: typeof localizedImageResult?.本地路径 === 'string' ? localizedImageResult.本地路径.slice(0, 60) : ''
+        });
         if (!localizedImageResult.图片URL && !localizedImageResult.本地路径) {
             throw new Error('图片已生成，但未得到可展示或可保存的图片资源。');
         }
@@ -745,10 +760,12 @@ export const 执行NPC生图工作流 = async (
             targetGender: 目标性别 || 'unknown',
             genderStatus: 目标性别状态,
             composition: 构图,
-            imageUrl: localizedImageResult.图片URL,
-            localPath: localizedImageResult.本地路径,
+            imageUrlPrefix: typeof localizedImageResult.图片URL === 'string' ? localizedImageResult.图片URL.slice(0, 60) : '(none)',
+            localPathPrefix: typeof localizedImageResult.本地路径 === 'string' ? localizedImageResult.本地路径.slice(0, 60) : '(none)',
             modelName,
-            status: 'success'
+            status: 'success',
+            selectedIconId: 已选头像图片ID,
+            selectedFullId: 已选立绘图片ID
         });
     } catch (error: any) {
         const errorMessage = typeof error?.message === 'string' && error.message.trim()
