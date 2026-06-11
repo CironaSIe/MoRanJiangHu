@@ -129,7 +129,7 @@ const 格式化命令展示路径 = (key: string): string => key.replace(/^gameS
 const 队列命令展示数量上限 = 120;
 const 队列命令展示单行上限 = 1800;
 const 主剧情首次响应超时毫秒 = 90_000;
-const 主剧情流式空闲超时毫秒 = 120_000;
+const 主剧情流式空闲超时毫秒 = 30_000;
 
 const 读取接口主机 = (baseUrl?: string): string => {
     const raw = typeof baseUrl === 'string' ? baseUrl.trim() : '';
@@ -309,7 +309,10 @@ export const 尝试解析完整主剧情流式草稿 = (
     }
 ): textAIService.StoryResponseResult | null => {
     const rawText = typeof draftText === 'string' ? draftText.trim() : '';
-    if (!主剧情流式草稿已具备完整协议(rawText, requestOptions)) return null;
+    // 快速检查只需验证核心必需标签（正文/短期记忆/命令），
+    // 行动选项/动态世界等可选标签不在此拦截——漏了也不影响草稿接受，
+    // 后续 parseStoryRawText 会自行处理可选标签的缺失与修复。
+    if (!主剧情流式草稿已具备完整协议(rawText)) return null;
     try {
         const response = textAIService.parseStoryRawText(rawText, {
             validateTagCompleteness: requestOptions?.validateTagCompleteness,
