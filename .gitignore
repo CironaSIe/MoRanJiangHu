@@ -48,17 +48,24 @@ lerna-debug.log*
 
 # Local UI verification screenshots and generated item-image scratch files
 /.tmp-screenshot*.webp
+/.tmp_*.png
 /cnb主页.png
-/output/playwright/*.png
-/output/test-*.png
+/output/
 /preset-items-preview.html
 /scripts/.tmp-*.png
 /scripts/gen-4-missing-preset-items.mjs
 /scripts/gen-audited-item-images.mjs
+/scripts/gen-infinite-preset-images.mjs
+/scripts/upload-preset-images.mjs
+/scripts/upload-apk-s3.mjs
+/moranjianghu/
+/codex对话.txt
+/primary-home-*.md
 
 # Local tooling state
 /.wrangler/
 /.codex/
+/.mimocode/
 
 # Sensitive local data, save packages, debug outputs, and generated app bundles
 /.tmp-release-assets/
@@ -71,8 +78,21 @@ lerna-debug.log*
 /final-mobile-topbar-validation.png
 /.codex-*.log
 /.tmp-*.log
+/.tmp_*.png
 /*.apk
 /*.aab
+/*.webp
+/character-body-bars-day-mode.png
+/discord-screenshot.png
+/discord_image.png
+/image-history-success-day-mode.png
+/inventory-detail-after.png
+/pc-detail-fullscreen.png
+/pc-layout-after.png
+/pc-map-grid-after.png
+/pc-map-grid-final.png
+/social-roster-horizontal.png
+/temp_image.png
 /android/local.properties
 /android/.gradle/
 /wuxia-saves-*.zip

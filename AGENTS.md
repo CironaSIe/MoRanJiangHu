@@ -649,6 +649,7 @@ If the task is "confirm this UI works" and the opening flow depends on external 
 - Do not use old root-level hi168 object URLs such as `https://s3.hi168.com/hi168-19275-07130td3/s3_*.png` or `.jpg` for preset registry entries. In this project those direct links are not publicly open and commonly return HTTP 403, so regenerate or reupload them under `MoRanJiangHu/preset-items/`.
 - hi168 S3 does not require Referer headers (unlike 111666 which has anti-hotlink), so images load reliably in all contexts.
 - Upload uses AWS Signature V4 signing with path-style addressing, region `auto`, service `s3`.
+- **CRITICAL**: S3 PUT must include `x-amz-acl: public-read` header AND this header must be included in the signed headers. Without this, uploaded objects return HTTP 403. The `x-amz-acl` header must appear in the canonical request's signed headers list.
 - The `scripts/regenerate-preset-images-gpt-image2.mjs` script should be updated to support `--host=hi168` for S3 upload.
 
 ## Item Image Prompt Filtering Rule
