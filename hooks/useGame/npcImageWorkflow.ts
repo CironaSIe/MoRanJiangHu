@@ -763,9 +763,7 @@ export const 执行NPC生图工作流 = async (
             imageUrlPrefix: typeof localizedImageResult.图片URL === 'string' ? localizedImageResult.图片URL.slice(0, 60) : '(none)',
             localPathPrefix: typeof localizedImageResult.本地路径 === 'string' ? localizedImageResult.本地路径.slice(0, 60) : '(none)',
             modelName,
-            status: 'success',
-            selectedIconId: 已选头像图片ID,
-            selectedFullId: 已选立绘图片ID
+            status: 'success'
         });
     } catch (error: any) {
         const errorMessage = typeof error?.message === 'string' && error.message.trim()
