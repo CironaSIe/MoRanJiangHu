@@ -278,6 +278,7 @@ const InputArea: React.FC<Props> = ({
         editedRaw: '',
         error: ''
     });
+    const [parseRepairBusy, setParseRepairBusy] = useState(false);
     const quickActionsRef = useRef<HTMLDivElement | null>(null);
     const dragRef = useRef({ active: false, startX: 0, startScrollLeft: 0, moved: false });
     const suppressClickUntilRef = useRef(0);
@@ -555,18 +556,23 @@ const InputArea: React.FC<Props> = ({
     };
 
     const handleApplyParseRepair = async (mode: 'auto' | 'manual') => {
+        setParseRepairBusy(true);
+        setParseRepairModal(prev => ({ ...prev, error: '' }));
         if (!onRecoverParseErrorRaw) {
             setParseRepairModal(prev => ({ ...prev, error: '当前版本未接入解析失败恢复能力。' }));
+            setParseRepairBusy(false);
             return;
         }
         const rawToUse = mode === 'auto' ? parseRepairModal.originalRaw : parseRepairModal.editedRaw;
         if (!rawToUse || !rawToUse.trim()) {
             setParseRepairModal(prev => ({ ...prev, error: '没有可恢复的原文内容。' }));
+            setParseRepairBusy(false);
             return;
         }
         const recoverError = await Promise.resolve(onRecoverParseErrorRaw(rawToUse, mode === 'auto'));
         if (typeof recoverError === 'string' && recoverError.trim().length > 0) {
             setParseRepairModal(prev => ({ ...prev, error: recoverError }));
+            setParseRepairBusy(false);
             return;
         }
         setParseRepairModal({
@@ -578,6 +584,7 @@ const InputArea: React.FC<Props> = ({
             editedRaw: '',
             error: ''
         });
+        setParseRepairBusy(false);
         setContent('');
         setLastSentContent('');
     };
@@ -1312,16 +1319,18 @@ const InputArea: React.FC<Props> = ({
                             <button
                                 type="button"
                                 onClick={() => { void handleApplyParseRepair('auto'); }}
-                                className="px-4 py-2 text-xs font-bold rounded border border-wuxia-cyan/50 text-wuxia-cyan hover:bg-wuxia-cyan/10"
+                                disabled={parseRepairBusy}
+                                className="px-4 py-2 text-xs font-bold rounded border border-wuxia-cyan/50 text-wuxia-cyan hover:bg-wuxia-cyan/10 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                自动修复并应用
+                                {parseRepairBusy ? '自动修复中...' : '自动修复并应用'}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => { void handleApplyParseRepair('manual'); }}
-                                className="px-4 py-2 text-xs font-bold rounded border border-wuxia-gold/50 text-wuxia-gold hover:bg-wuxia-gold/10"
+                                disabled={parseRepairBusy}
+                                className="px-4 py-2 text-xs font-bold rounded border border-wuxia-gold/50 text-wuxia-gold hover:bg-wuxia-gold/10 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                手动编辑后应用
+                                {parseRepairBusy ? '处理中...' : '手动编辑后应用'}
                             </button>
                             <button
                                 type="button"
