@@ -280,8 +280,20 @@ const 同步在场NPC当前位置 = (
     const locationPath = 构建环境位置路径(env);
     if (!currentLocation && !locationPath) return socialList;
 
-    return socialList.map((npc: any) => {
+    let skippedCount = 0;
+    let updatedCount = 0;
+    const result = socialList.map((npc: any) => {
         if (!npc || typeof npc !== 'object' || npc.是否在场 !== true) return npc;
+        const hasExplicitLocation = Boolean(
+            (typeof npc.位置路径 === 'string' && npc.位置路径.trim())
+            || (typeof npc.当前位置 === 'string' && npc.当前位置.trim())
+            || (typeof npc.当前地点 === 'string' && npc.当前地点.trim())
+            || (typeof npc.所在地点 === 'string' && npc.所在地点.trim())
+            || (typeof npc.所在位置 === 'string' && npc.所在位置.trim())
+            || (typeof npc.具体地点 === 'string' && npc.具体地点.trim())
+        );
+        if (hasExplicitLocation) { skippedCount++; return npc; }
+        updatedCount++;
         const next = { ...npc };
         if (currentLocation) {
             next.当前位置 = currentLocation;
@@ -290,6 +302,10 @@ const 同步在场NPC当前位置 = (
         if (locationPath) next.位置路径 = locationPath;
         return next;
     });
+    if (skippedCount > 0 || updatedCount > 0) {
+        console.info('[同步在场NPC位置]', { 保留原位: skippedCount, 填充当前位置: updatedCount, 当前地点: currentLocation || '(无)' });
+    }
+    return result;
 };
 
 const 同步当前视角在场状态 = (

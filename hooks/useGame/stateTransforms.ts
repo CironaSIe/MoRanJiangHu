@@ -1303,13 +1303,11 @@ const 合并角色图片档案对象 = (leftRaw: any, rightRaw: any): any | unde
         record?.构图 === '头像'
         && record?.状态 === 'success'
         && Boolean(record?.id)
-        && 图片资源记录含可恢复地址(record)
     );
     const 角色图片记录可作立绘 = (record: any): boolean => (
         (record?.构图 === '半身' || record?.构图 === '立绘')
         && record?.状态 === 'success'
         && Boolean(record?.id)
-        && 图片资源记录含可恢复地址(record)
     );
     const 已选头像图片ID = mergedHistory.some((item) => item?.id === 原始已选头像图片ID && 角色图片记录可作头像(item))
         ? 原始已选头像图片ID
