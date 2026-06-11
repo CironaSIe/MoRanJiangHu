@@ -556,7 +556,7 @@ export const 执行NPC生图工作流 = async (
             附加负面提示词: 合并负向画师串,
             PNG参数
         });
-        deps.更新NPC生图任务(task.id, (currentTask) => ({
+            deps.更新NPC生图任务(task.id, (currentTask) => ({
             ...currentTask,
             原始描述,
             生图词组,
@@ -570,6 +570,21 @@ export const 执行NPC生图工作流 = async (
             进度阶段: 'generating',
             进度文本: shouldUsePromptTransformer ? '词组转换完成，正在调用图片模型生成图片。' : '角色资料整理完成，正在调用图片模型生成图片。'
         }));
+        console.info('[npc.image.prompt]', {
+            npcKey,
+            npcName,
+            targetGender: 目标性别 || 'unknown',
+            genderStatus: 目标性别状态,
+            targetAge: 目标年龄,
+            composition: 构图,
+            useAIPromptTransformer: shouldUsePromptTransformer,
+            modelName,
+            style: 画风,
+            additionalRequirements: 额外要求,
+            finalPositivePrompt: 最终提示词.最终正向提示词?.slice(0, 500),
+            finalNegativePrompt: 最终提示词.最终负向提示词?.slice(0, 200),
+            rawTagsLength: 生图词组?.length || 0
+        });
         deps.更新NPC最近生图结果(npcKey, (currentNpc) => {
             const 当前结果 = currentNpc?.图片档案?.最近生图结果 || currentNpc?.最近生图结果 || {};
             const 处理中结果 = {
@@ -696,6 +711,17 @@ export const 执行NPC生图工作流 = async (
                 ? `${localizedImageResult.客户提示}，图片已生成并写入图片档案。`
                 : '图片已生成并写入图片档案。'
         }));
+        console.info('[npc.image.result]', {
+            npcKey,
+            npcName,
+            targetGender: 目标性别 || 'unknown',
+            genderStatus: 目标性别状态,
+            composition: 构图,
+            imageUrl: localizedImageResult.图片URL,
+            localPath: localizedImageResult.本地路径,
+            modelName,
+            status: 'success'
+        });
     } catch (error: any) {
         const errorMessage = typeof error?.message === 'string' && error.message.trim()
             ? error.message.trim()
