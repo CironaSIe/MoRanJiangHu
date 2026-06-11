@@ -570,35 +570,37 @@ const InputArea: React.FC<Props> = ({
     const handleApplyParseRepair = async (mode: 'auto' | 'manual') => {
         setParseRepairBusy(true);
         setParseRepairModal(prev => ({ ...prev, error: '' }));
-        if (!onRecoverParseErrorRaw) {
-            setParseRepairModal(prev => ({ ...prev, error: '当前版本未接入解析失败恢复能力。' }));
+        try {
+            if (!onRecoverParseErrorRaw) {
+                setParseRepairModal(prev => ({ ...prev, error: '当前版本未接入解析失败恢复能力。' }));
+                return;
+            }
+            const rawToUse = mode === 'auto' ? parseRepairModal.originalRaw : parseRepairModal.editedRaw;
+            if (!rawToUse || !rawToUse.trim()) {
+                setParseRepairModal(prev => ({ ...prev, error: '没有可恢复的原文内容。' }));
+                return;
+            }
+            const recoverError = await Promise.resolve(onRecoverParseErrorRaw(rawToUse, mode === 'auto'));
+            if (typeof recoverError === 'string' && recoverError.trim().length > 0) {
+                setParseRepairModal(prev => ({ ...prev, error: recoverError }));
+                return;
+            }
+            setParseRepairModal({
+                open: false,
+                title: '',
+                detail: '',
+                hint: '',
+                originalRaw: '',
+                editedRaw: '',
+                error: ''
+            });
+            setContent('');
+            setLastSentContent('');
+        } catch (error: any) {
+            setParseRepairModal(prev => ({ ...prev, error: error?.message || '恢复失败，请稍后再试。' }));
+        } finally {
             setParseRepairBusy(false);
-            return;
         }
-        const rawToUse = mode === 'auto' ? parseRepairModal.originalRaw : parseRepairModal.editedRaw;
-        if (!rawToUse || !rawToUse.trim()) {
-            setParseRepairModal(prev => ({ ...prev, error: '没有可恢复的原文内容。' }));
-            setParseRepairBusy(false);
-            return;
-        }
-        const recoverError = await Promise.resolve(onRecoverParseErrorRaw(rawToUse, mode === 'auto'));
-        if (typeof recoverError === 'string' && recoverError.trim().length > 0) {
-            setParseRepairModal(prev => ({ ...prev, error: recoverError }));
-            setParseRepairBusy(false);
-            return;
-        }
-        setParseRepairModal({
-            open: false,
-            title: '',
-            detail: '',
-            hint: '',
-            originalRaw: '',
-            editedRaw: '',
-            error: ''
-        });
-        setParseRepairBusy(false);
-        setContent('');
-        setLastSentContent('');
     };
 
     const handleQuickRestartSelect = async (mode: QuickRestartMode) => {

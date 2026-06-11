@@ -224,6 +224,11 @@ export const 创建手动图片动作工作流 = (deps: 手动图片动作工作
                 stack: typeof error?.stack === 'string' ? error.stack : undefined
             }]);
             console.error('手动NPC生图任务执行失败', error);
+            deps.推送右下角提示({
+                title: 'NPC生图失败',
+                message: `「${获取NPC名称(targetNpc)}」${error?.message || '手动生图失败'}`,
+                tone: 'error'
+            });
         });
     };
 
@@ -358,6 +363,11 @@ export const 创建手动图片动作工作流 = (deps: 手动图片动作工作
                 stack: typeof error?.stack === 'string' ? error.stack : undefined
             }]);
             console.error('重试NPC生图任务执行失败', error);
+            deps.推送右下角提示({
+                title: 'NPC生图重试失败',
+                message: `「${获取NPC名称(targetNpc)}」${error?.message || '重试生图失败'}`,
+                tone: 'error'
+            });
         });
     };
 

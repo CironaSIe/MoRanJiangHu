@@ -1983,8 +1983,7 @@ export const useGame = () => {
             生成NPC生图记录ID,
             追加NPC生图任务,
             更新NPC生图任务,
-            更新NPC最近生图结果,
-            推送右下角提示
+            更新NPC最近生图结果
         });
     };
 

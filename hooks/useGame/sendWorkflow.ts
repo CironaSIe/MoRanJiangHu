@@ -1401,39 +1401,12 @@ export const 执行主剧情发送工作流 = async (
                     : await 执行主剧情流式请求带空闲超时(
                         controller.signal,
                         (signal, markStreamActivity) => requestStory(signal, markStreamActivity),
-                        () => {
-                            const draft = latestStreamDraftText;
-                            const firstResult = 尝试解析完整主剧情流式草稿(draft, {
-                                validateTagCompleteness: runtimeGameConfig.启用标签检测完整性 === true,
-                                enableTagRepair: runtimeGameConfig.启用标签修复 !== false,
-                                requireActionOptionsTag: runtimeGameConfig.启用行动选项 !== false,
-                                validateDialogueFormat: true
-                            });
-                            if (firstResult) return firstResult;
-                            try {
-                                const emergencyResult = textAIService.parseStoryRawText(draft, {
-                                    enableTagRepair: true,
-                                    validateTagCompleteness: false,
-                                    validateDialogueFormat: false
-                                });
-                                const hasUsableBody = Array.isArray(emergencyResult?.logs)
-                                    && emergencyResult.logs.some((log) => typeof log?.text === 'string' && log.text.trim().length > 0);
-                                if (hasUsableBody) {
-                                    console.warn('[主剧情流式超时] 正常解析失败，强制抢救当前草稿成功', {
-                                        draftLength: draft?.length,
-                                        logCount: emergencyResult.logs.length
-                                    });
-                                    recordDiagnosticLog('warn', ['主剧情流式超时-强制抢救成功', {
-                                        draftLength: draft?.length
-                                    }]);
-                                    return { response: emergencyResult, rawText: draft };
-                                }
-                            } catch (e) {
-                                console.warn('[主剧情流式超时] 强制抢救失败', e);
-                                recordDiagnosticLog('warn', ['主剧情流式超时-强制抢救失败', { error: String(e) }]);
-                            }
-                            return null;
-                        }
+                        () => 尝试解析完整主剧情流式草稿(latestStreamDraftText, {
+                            validateTagCompleteness: runtimeGameConfig.启用标签检测完整性 === true,
+                            enableTagRepair: runtimeGameConfig.启用标签修复 !== false,
+                            requireActionOptionsTag: runtimeGameConfig.启用行动选项 !== false,
+                            validateDialogueFormat: true
+                        })
                     );
                 校验响应未命中女性姓名黑名单(
                     storyResult.response,
