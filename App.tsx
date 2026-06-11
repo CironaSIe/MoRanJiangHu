@@ -3148,6 +3148,7 @@ const App: React.FC = () => {
                                     variableGenerationRunning={meta.variableGenerationRunning}
                                     postStoryQueueRunning={meta.postStoryQueueRunning}
                                     canReroll={meta.canRerollLatest}
+                                    reRollCount={meta.reRollCount}
                                     canRetryLatestVariableGeneration={meta.canRetryLatestVariableGeneration}
                                     canQuickRestart={meta.canQuickRestart}
                                      openingWorldEvolutionProgress={meta.openingWorldEvolutionProgress}

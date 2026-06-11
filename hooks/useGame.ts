@@ -1983,7 +1983,8 @@ export const useGame = () => {
             生成NPC生图记录ID,
             追加NPC生图任务,
             更新NPC生图任务,
-            更新NPC最近生图结果
+            更新NPC最近生图结果,
+            推送右下角提示
         });
     };
 
@@ -3886,6 +3887,7 @@ export const useGame = () => {
         state: gameState,
         meta: {
             canRerollLatest: 可重Roll计数 > 0,
+            reRollCount: 可重Roll计数,
             canRetryLatestVariableGeneration: 可重Roll计数 > 0 && 最新AI回合可继续变量生成,
             canQuickRestart: Boolean(最近开局配置),
             worldEvolutionEnabled: 已进入主剧情回合() && apiConfig?.功能模型占位?.世界演变功能启用 !== false && 接口配置是否可用(获取世界演变接口配置(apiConfig)),

@@ -197,6 +197,7 @@ interface Props {
     variableGenerationRunning?: boolean;
     postStoryQueueRunning?: boolean;
     canReroll?: boolean;
+    reRollCount?: number;
     canRetryLatestVariableGeneration?: boolean;
     canQuickRestart?: boolean;
     options?: unknown[]; // Quick actions from the last turn
@@ -223,6 +224,7 @@ const InputArea: React.FC<Props> = ({
     variableGenerationRunning = false,
     postStoryQueueRunning = false,
     canReroll = true,
+    reRollCount = 0,
     canRetryLatestVariableGeneration = false,
     canQuickRestart = false,
     options = [],
@@ -521,6 +523,16 @@ const InputArea: React.FC<Props> = ({
     };
 
     const handleReroll = async () => {
+        if (reRollCount > 1 && requestConfirm) {
+            const accepted = await requestConfirm({
+                title: '确认回档',
+                message: `当前有 ${reRollCount} 个可回档回合。连续回档可能导致进度丢失，确定要回档到上一轮吗？`,
+                confirmText: '确定回档',
+                cancelText: '取消',
+                danger: true
+            });
+            if (!accepted) return;
+        }
         const restoredInput = await Promise.resolve(onRegenerate());
         if (!restoredInput) return;
         setContent(restoredInput);

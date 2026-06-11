@@ -60,6 +60,7 @@ type NPC生图工作流依赖 = {
     追加NPC生图任务: (task: NPC生图任务记录) => void;
     更新NPC生图任务: (taskId: string, updater: (task: NPC生图任务记录) => NPC生图任务记录) => void;
     更新NPC最近生图结果: (npcKey: string, updater: (npc: any) => any) => void;
+    推送右下角提示: (toast: { title: string; message: string; tone?: 'info' | 'success' | 'error'; previewUrl?: string }) => void;
 };
 
 const 图片记录有地址 = (record: any): boolean => (
@@ -771,6 +772,11 @@ export const 执行NPC生图工作流 = async (
             : 'NPC 生图失败';
         const 调试链路 = Array.isArray(error?.生图调试链路) ? error.生图调试链路 : undefined;
         console.error(`NPC 生图失败: ${npcName}`, error);
+        deps.推送右下角提示({
+            title: 'NPC生图失败',
+            message: `「${npcName}」${errorMessage}`,
+            tone: 'error'
+        });
         deps.更新NPC最近生图结果(npcKey, (currentNpc) => {
             const 失败结果 = {
                 id: currentNpc?.图片档案?.最近生图结果?.id || currentNpc?.最近生图结果?.id || deps.生成NPC生图记录ID(),
