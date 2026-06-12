@@ -243,13 +243,13 @@ export const 获取世界观货币层级配置 = (
     ];
 };
 
-const 默认CurrencySystem单位别名: Record<货币层级键, string[]> = {
+const 默认货币系统单位别名: Record<货币层级键, string[]> = {
     上层货币: ['上层货币', '金元宝', '元宝'],
     中层货币: ['中层货币', '银子', '银两'],
     底层货币: ['底层货币', '铜钱']
 };
 
-const 获取CurrencySystemFallback = (): CurrencySystem => ({
+const 获取货币系统Fallback = (): CurrencySystem => ({
     id: 'fallback-basic',
     name: '默认货币体系',
     baseUnitId: 'base',
@@ -282,8 +282,8 @@ const 规范化CurrencyUnit = (unit: Partial<CurrencyUnit> | null | undefined, f
     };
 };
 
-export const 规范化CurrencySystem = (system?: Partial<CurrencySystem> | null): CurrencySystem => {
-    const fallback = 获取CurrencySystemFallback();
+export const 规范化货币系统 = (system?: Partial<CurrencySystem> | null): CurrencySystem => {
+    const fallback = 获取货币系统Fallback();
     const sourceUnits = Array.isArray(system?.units) ? system.units : [];
     const units = sourceUnits.length > 0
         ? sourceUnits.map((unit, index) => 规范化CurrencyUnit(unit, {
@@ -309,16 +309,16 @@ export const 规范化CurrencySystem = (system?: Partial<CurrencySystem> | null)
     };
 };
 
-export const 获取默认CurrencySystemFromProfile = (
+export const 获取默认货币系统FromProfile = (
     profile?: ModeRuntimeProfile | null,
     mode: 货币显示模式 = 'wuxia'
 ): CurrencySystem => {
     if (profile?.economy?.currencySystem) {
-        return 规范化CurrencySystem(profile.economy.currencySystem);
+        return 规范化货币系统(profile.economy.currencySystem);
     }
     const slots = 获取世界观货币层级配置(profile, mode);
     const [upper, middle, lower] = slots;
-    return 规范化CurrencySystem({
+    return 规范化货币系统({
         id: `default-${mode}`,
         name: `${mode}货币体系`,
         baseUnitId: 'lower',
@@ -329,36 +329,36 @@ export const 获取默认CurrencySystemFromProfile = (
                 name: upper.fullLabel || upper.label,
                 baseRate: upper.multiplier,
                 order: 3,
-                aliases: Array.from(new Set([...默认CurrencySystem单位别名.上层货币, upper.label, upper.fullLabel].filter((item): item is string => Boolean(item))))
+                aliases: Array.from(new Set([...默认货币系统单位别名.上层货币, upper.label, upper.fullLabel].filter((item): item is string => Boolean(item))))
             },
             {
                 id: 'middle',
                 name: middle.fullLabel || middle.label,
                 baseRate: middle.multiplier,
                 order: 2,
-                aliases: Array.from(new Set([...默认CurrencySystem单位别名.中层货币, middle.label, middle.fullLabel].filter((item): item is string => Boolean(item))))
+                aliases: Array.from(new Set([...默认货币系统单位别名.中层货币, middle.label, middle.fullLabel].filter((item): item is string => Boolean(item))))
             },
             {
                 id: 'lower',
                 name: lower.fullLabel || lower.label,
                 baseRate: lower.multiplier,
                 order: 1,
-                aliases: Array.from(new Set([...默认CurrencySystem单位别名.底层货币, lower.label, lower.fullLabel].filter((item): item is string => Boolean(item))))
+                aliases: Array.from(new Set([...默认货币系统单位别名.底层货币, lower.label, lower.fullLabel].filter((item): item is string => Boolean(item))))
             }
         ]
     });
 };
 
 const 获取CurrencyUnit = (unitId: string, currencySystem?: Partial<CurrencySystem> | null): CurrencyUnit => {
-    const system = 规范化CurrencySystem(currencySystem);
+    const system = 规范化货币系统(currencySystem);
     const normalizedId = typeof unitId === 'string' ? unitId.trim() : '';
     return system.units.find((unit) => unit.id === normalizedId || unit.name === normalizedId || unit.aliases?.includes(normalizedId))
         || system.units.find((unit) => unit.id === system.baseUnitId)
         || system.units[0];
 };
 
-const 获取CurrencySystem排序单位 = (currencySystem?: Partial<CurrencySystem> | null): CurrencyUnit[] => (
-    规范化CurrencySystem(currencySystem).units
+const 获取货币系统排序单位 = (currencySystem?: Partial<CurrencySystem> | null): CurrencyUnit[] => (
+    规范化货币系统(currencySystem).units
         .slice()
         .sort((a, b) => b.baseRate - a.baseRate || b.order - a.order)
 );
@@ -377,8 +377,8 @@ export const fromBaseAmount = (
     currencySystem?: Partial<CurrencySystem> | null
 ): Record<string, number> => {
     let remaining = 读取非负整数金额(baseAmount);
-    const system = 规范化CurrencySystem(currencySystem);
-    const units = 获取CurrencySystem排序单位(system);
+    const system = 规范化货币系统(currencySystem);
+    const units = 获取货币系统排序单位(system);
     return units.reduce<Record<string, number>>((result, unit) => {
         const rate = Math.max(1, unit.baseRate);
         const value = Math.floor(remaining / rate);
@@ -392,14 +392,14 @@ export const formatCurrencyBaseAmount = (
     baseAmount: number,
     currencySystem?: Partial<CurrencySystem> | null
 ): string => {
-    const system = 规范化CurrencySystem(currencySystem);
+    const system = 规范化货币系统(currencySystem);
     const amount = 读取非负整数金额(baseAmount);
     if (system.formatStyle === 'single') {
         const baseUnit = 获取CurrencyUnit(system.baseUnitId, system);
         return `${amount.toLocaleString('zh-CN')} ${baseUnit.symbol || baseUnit.name}`;
     }
     const decomposed = fromBaseAmount(amount, system);
-    const units = 获取CurrencySystem排序单位(system);
+    const units = 获取货币系统排序单位(system);
     const parts = units
         .map((unit) => ({ unit, value: decomposed[unit.id] || 0 }))
         .filter((item) => item.value > 0);
@@ -411,18 +411,18 @@ export const formatCurrencyBaseAmount = (
         .join(' / ');
 };
 
-const 获取显式世界观CurrencySystem = (
+const 获取显式世界观货币系统 = (
     openingConfig?: OpeningConfig | null,
     character?: Partial<角色数据结构> | null
 ): CurrencySystem | null => {
     if (!openingConfig?.modeRuntimeProfile?.economy?.currencySystem) return null;
-    return 获取默认CurrencySystemFromProfile(
+    return 获取默认货币系统FromProfile(
         openingConfig.modeRuntimeProfile,
         获取货币显示模式(openingConfig, character)
     );
 };
 
-export const 是否启用显式CurrencySystem = (
+export const 是否启用显式货币系统 = (
     openingConfig?: OpeningConfig | null
 ): boolean => Boolean(openingConfig?.modeRuntimeProfile?.economy?.currencySystem);
 
@@ -431,7 +431,7 @@ export const 构建变量管理动态钱包视图 = (
     openingConfig?: OpeningConfig | null,
     character?: Partial<角色数据结构> | null
 ): 变量管理动态钱包视图 | null => {
-    const explicitSystem = 获取显式世界观CurrencySystem(openingConfig, character);
+    const explicitSystem = 获取显式世界观货币系统(openingConfig, character);
     if (!explicitSystem) return null;
     const baseAmount = 获取角色金钱BaseAmount(
         money,
@@ -454,7 +454,7 @@ export const 获取世界观BaseAmount单位标签 = (
     character?: Partial<角色数据结构> | null,
     fallback = ''
 ): string => {
-    const system = 获取显式世界观CurrencySystem(openingConfig, character);
+    const system = 获取显式世界观货币系统(openingConfig, character);
     if (!system) return fallback;
     const baseUnit = 获取CurrencyUnit(system.baseUnitId, system);
     return baseUnit.symbol || baseUnit.name;
@@ -466,7 +466,7 @@ export const 格式化世界观BaseAmount = (
     character?: Partial<角色数据结构> | null,
     fallback?: string
 ): string => {
-    const system = 获取显式世界观CurrencySystem(openingConfig, character);
+    const system = 获取显式世界观货币系统(openingConfig, character);
     if (system) return formatCurrencyBaseAmount(baseAmount, system);
     if (fallback != null) return fallback;
     const mode = 获取货币显示模式(openingConfig, character);
@@ -498,7 +498,7 @@ export const 构建角色金钱显示快照 = (
 ): 角色金钱世界观显示快照 => {
     const mode = 获取货币显示模式(openingConfig, character);
     const baseAmount = 获取角色金钱BaseAmount(money, openingConfig?.modeRuntimeProfile, mode);
-    const explicitSystem = 获取显式世界观CurrencySystem(openingConfig, character);
+    const explicitSystem = 获取显式世界观货币系统(openingConfig, character);
     if (explicitSystem) {
         const baseUnit = 获取CurrencyUnit(explicitSystem.baseUnitId, explicitSystem);
         return {

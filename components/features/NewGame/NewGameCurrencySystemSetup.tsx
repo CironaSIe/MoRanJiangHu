@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import InlineSelect from '../../ui/InlineSelect';
 import type { CurrencySystem, CurrencyUnit, ModeRuntimeProfile } from '../../../models/system';
 import {
-    构建CurrencySystem模板,
-    获取CurrencySystem预设模板列表,
-    校验CurrencySystem草稿,
-    type CurrencySystem预设模板ID
+    构建货币系统模板,
+    获取货币系统预设模板列表,
+    校验货币系统草稿,
+    type 货币系统预设模板ID
 } from '../../../utils/modeRuntimeProfile';
 
-type 模板选择值 = CurrencySystem预设模板ID | 'legacy' | 'custom';
+type 模板选择值 = 货币系统预设模板ID | 'legacy' | 'custom';
 
 interface Props {
     profile: ModeRuntimeProfile;
@@ -58,7 +58,7 @@ const 重算基础单位 = (draft: CurrencySystem, baseUnitId: string): Currency
     return { ...draft, baseUnitId, units: rebasedUnits as CurrencyUnit[] };
 };
 
-export const 规范化新开局轻量CurrencySystem = (draft: CurrencySystem): { currencySystem?: CurrencySystem; errors: string[] } => {
+export const 规范化新开局轻量货币系统 = (draft: CurrencySystem): { currencySystem?: CurrencySystem; errors: string[] } => {
     const units = Array.isArray(draft.units) ? draft.units : [];
     if (units.length <= 0) return { errors: ['至少需要 1 个货币单位。'] };
     const existingIds = new Set<string>();
@@ -83,7 +83,7 @@ export const 规范化新开局轻量CurrencySystem = (draft: CurrencySystem): {
     const baseUnitId = normalizedUnits.some((unit) => unit.id === draft.baseUnitId) ? draft.baseUnitId : fallbackBaseUnit;
     const rebasedDraft = 重算基础单位({ ...draft, units: normalizedUnits, baseUnitId }, baseUnitId);
     if (!rebasedDraft) return { errors: ['基础单位切换后会产生非整数换算比例，请先调整单位汇率。'] };
-    return 校验CurrencySystem草稿({
+    return 校验货币系统草稿({
         id: String(draft.id || '').trim() || 'custom-currency-system',
         name: String(draft.name || '').trim() || '自定义货币体系',
         baseUnitId,
@@ -124,27 +124,27 @@ const 货币系统指纹 = (system: CurrencySystem): string => JSON.stringify({
 const 匹配模板ID = (
     system: CurrencySystem,
     profile: ModeRuntimeProfile,
-    templates: Array<{ id: CurrencySystem预设模板ID; label: string }>
+    templates: Array<{ id: 货币系统预设模板ID; label: string }>
 ): 模板选择值 => {
     const currentFingerprint = 货币系统指纹(system);
     const matchedPreset = templates
         .filter((template) => template.id !== 'topic-default')
-        .find((template) => 货币系统指纹(构建CurrencySystem模板(template.id, profile)) === currentFingerprint);
+        .find((template) => 货币系统指纹(构建货币系统模板(template.id, profile)) === currentFingerprint);
     if (matchedPreset) return matchedPreset.id;
 
-    const topicDefault = 构建CurrencySystem模板('topic-default', 创建题材默认比对Profile(profile));
+    const topicDefault = 构建货币系统模板('topic-default', 创建题材默认比对Profile(profile));
     if (货币系统指纹(topicDefault) === currentFingerprint) return 'topic-default';
     return 'custom';
 };
 
 const NewGameCurrencySystemSetup: React.FC<Props> = ({ profile, onChangeProfile, onUseLegacyCurrency, compact = false, onTouched }) => {
-    const templates = useMemo(() => 获取CurrencySystem预设模板列表(), []);
+    const templates = useMemo(() => 获取货币系统预设模板列表(), []);
     const templateOptions = useMemo<Array<{ value: 模板选择值; label: string }>>(() => [
         ...templates.map((template) => ({ value: template.id, label: template.label })),
         { value: 'legacy', label: '旧版三层货币系统' },
         { value: 'custom', label: '自定义货币系统' }
     ], [templates]);
-    const [draft, setDraft] = useState<CurrencySystem>(() => 克隆(profile.economy.currencySystem || 构建CurrencySystem模板('topic-default', profile)));
+    const [draft, setDraft] = useState<CurrencySystem>(() => 克隆(profile.economy.currencySystem || 构建货币系统模板('topic-default', profile)));
     const [errors, setErrors] = useState<string[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<模板选择值>(() => (
         profile.economy.currencySystem
@@ -153,17 +153,18 @@ const NewGameCurrencySystemSetup: React.FC<Props> = ({ profile, onChangeProfile,
     ));
 
     useEffect(() => {
-        const nextDraft = 克隆(profile.economy.currencySystem || 构建CurrencySystem模板('topic-default', profile));
+        const nextDraft = 克隆(profile.economy.currencySystem || 构建货币系统模板('topic-default', profile));
         setDraft(nextDraft);
         setSelectedTemplateId(profile.economy.currencySystem ? 匹配模板ID(nextDraft, profile, templates) : 'legacy');
         setErrors([]);
     }, [profile.economy.currencySystem, profile.economy.currencyTiers, profile.economy.currencyDisplayMode, profile, templates]);
 
     const 写入草稿 = (nextDraft: CurrencySystem, touched = true, templateId: 模板选择值 = 'custom') => {
+        if (templateId === 'legacy' || selectedTemplateId === 'legacy') return;
         setDraft(nextDraft);
         setSelectedTemplateId(templateId);
         onTouched?.(touched && templateId !== 'topic-default', templateId);
-        const result = 规范化新开局轻量CurrencySystem(nextDraft);
+        const result = 规范化新开局轻量货币系统(nextDraft);
         setErrors(result.errors);
         if (!result.currencySystem) return;
         onChangeProfile({
@@ -175,9 +176,9 @@ const NewGameCurrencySystemSetup: React.FC<Props> = ({ profile, onChangeProfile,
         }, templateId === 'topic-default' ? 'follow_mode' : 'custom');
     };
 
-    const 应用模板 = (templateId: CurrencySystem预设模板ID) => {
+    const 应用模板 = (templateId: 货币系统预设模板ID) => {
         const sourceProfile = templateId === 'topic-default' ? 创建题材默认比对Profile(profile) : profile;
-        写入草稿(构建CurrencySystem模板(templateId, sourceProfile), true, templateId);
+        写入草稿(构建货币系统模板(templateId, sourceProfile), true, templateId);
     };
 
     const 更新单位 = (index: number, patch: Partial<CurrencyUnit>) => {
@@ -257,7 +258,12 @@ const NewGameCurrencySystemSetup: React.FC<Props> = ({ profile, onChangeProfile,
                     <div className="mt-1 text-[11px] text-wuxia-cyan">已自定义：当前货币体系与预设模板不完全一致。</div>
                 )}
             </label>
-            <div className="grid gap-3 md:grid-cols-2">
+            {selectedTemplateId === 'legacy' ? (
+                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-center text-[11px] leading-5 text-gray-400">
+                    旧版三层货币系统由题材配置决定，不支持直接编辑。如需自定义货币，请先在上方切换为自定义模式。
+                </div>
+            ) : (
+            <><div className="grid gap-3 md:grid-cols-2">
                 <label className="block text-xs text-gray-300">
                     货币体系名称
                     <input value={draft.name} onChange={(event) => 写入草稿({ ...draft, name: event.target.value })}
@@ -319,6 +325,7 @@ const NewGameCurrencySystemSetup: React.FC<Props> = ({ profile, onChangeProfile,
                 className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:border-wuxia-gold/35 hover:text-wuxia-gold">
                 新增货币单位
             </button>
+            </>)}
             {errors.length > 0 && (
                 <div className="rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-[11px] leading-5 text-red-200">
                     {errors.map((error) => <div key={error}>{error}</div>)}

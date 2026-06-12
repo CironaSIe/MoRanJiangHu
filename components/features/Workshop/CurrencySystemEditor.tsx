@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import InlineSelect from '../../ui/InlineSelect';
 import type { CurrencySystem, CurrencyUnit, ModeRuntimeProfile } from '../../../models/system';
 import {
-    构建CurrencySystem模板,
-    获取CurrencySystem预设模板列表,
-    校验CurrencySystem草稿,
-    type CurrencySystem预设模板ID
+    构建货币系统模板,
+    获取货币系统预设模板列表,
+    校验货币系统草稿,
+    type 货币系统预设模板ID
 } from '../../../utils/modeRuntimeProfile';
 
 interface Props {
@@ -17,7 +17,7 @@ interface Props {
 const 分割别名 = (value: string): string[] => value.split(/[，,、\n]+/u).map((item) => item.trim()).filter(Boolean);
 const 格式化别名 = (aliases?: string[]): string => (aliases || []).join('、');
 const 克隆 = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
-type 模板选择值 = CurrencySystem预设模板ID | 'custom';
+type 模板选择值 = 货币系统预设模板ID | 'custom';
 
 const 生成新增单位 = (units: CurrencyUnit[]): CurrencyUnit => {
     let index = units.length + 1;
@@ -57,33 +57,33 @@ const 货币系统指纹 = (system: CurrencySystem): string => JSON.stringify({
 const 匹配模板ID = (
     system: CurrencySystem,
     profile: ModeRuntimeProfile,
-    templates: Array<{ id: CurrencySystem预设模板ID; label: string }>
+    templates: Array<{ id: 货币系统预设模板ID; label: string }>
 ): 模板选择值 => {
     const currentFingerprint = 货币系统指纹(system);
     const matchedPreset = templates
         .filter((template) => template.id !== 'topic-default')
-        .find((template) => 货币系统指纹(构建CurrencySystem模板(template.id, profile)) === currentFingerprint);
+        .find((template) => 货币系统指纹(构建货币系统模板(template.id, profile)) === currentFingerprint);
     if (matchedPreset) return matchedPreset.id;
-    const topicDefault = 构建CurrencySystem模板('topic-default', 创建题材默认比对Profile(profile));
+    const topicDefault = 构建货币系统模板('topic-default', 创建题材默认比对Profile(profile));
     if (货币系统指纹(topicDefault) === currentFingerprint) return 'topic-default';
     return 'custom';
 };
 
 const CurrencySystemEditor: React.FC<Props> = ({ profile, onApply, onClear }) => {
-    const templates = useMemo(() => 获取CurrencySystem预设模板列表(), []);
+    const templates = useMemo(() => 获取货币系统预设模板列表(), []);
     const templateOptions = useMemo<Array<{ value: 模板选择值; label: string }>>(() => [
         ...templates.map((template) => ({ value: template.id, label: template.label })),
         { value: 'custom', label: '自定义货币系统' }
     ], [templates]);
     const 当前系统 = profile.economy.currencySystem;
-    const [draft, setDraft] = useState<CurrencySystem>(() => 克隆(当前系统 || 构建CurrencySystem模板('topic-default', profile)));
+    const [draft, setDraft] = useState<CurrencySystem>(() => 克隆(当前系统 || 构建货币系统模板('topic-default', profile)));
     const [errors, setErrors] = useState<string[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<模板选择值>(() => (
-        匹配模板ID(当前系统 || 构建CurrencySystem模板('topic-default', 创建题材默认比对Profile(profile)), profile, templates)
+        匹配模板ID(当前系统 || 构建货币系统模板('topic-default', 创建题材默认比对Profile(profile)), profile, templates)
     ));
 
     useEffect(() => {
-        const nextDraft = 克隆(当前系统 || 构建CurrencySystem模板('topic-default', profile));
+        const nextDraft = 克隆(当前系统 || 构建货币系统模板('topic-default', profile));
         setDraft(nextDraft);
         setSelectedTemplateId(匹配模板ID(nextDraft, profile, templates));
         setErrors([]);
@@ -92,7 +92,7 @@ const CurrencySystemEditor: React.FC<Props> = ({ profile, onApply, onClear }) =>
     const 应用草稿 = (next: CurrencySystem, templateId: 模板选择值 = 'custom') => {
         setDraft(next);
         setSelectedTemplateId(templateId);
-        const result = 校验CurrencySystem草稿(next);
+        const result = 校验货币系统草稿(next);
         setErrors(result.errors);
         if (result.currencySystem) onApply(result.currencySystem);
     };
@@ -117,9 +117,9 @@ const CurrencySystemEditor: React.FC<Props> = ({ profile, onApply, onClear }) =>
         应用草稿({ ...draft, units: [...draft.units, 生成新增单位(draft.units)] });
     };
 
-    const 应用模板 = (templateId: CurrencySystem预设模板ID) => {
+    const 应用模板 = (templateId: 货币系统预设模板ID) => {
         const sourceProfile = templateId === 'topic-default' ? 创建题材默认比对Profile(profile) : profile;
-        应用草稿(构建CurrencySystem模板(templateId, sourceProfile), templateId);
+        应用草稿(构建货币系统模板(templateId, sourceProfile), templateId);
     };
 
     return (

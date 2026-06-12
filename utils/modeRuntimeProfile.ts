@@ -55,7 +55,7 @@ const 读取非空字符串 = (value: unknown): string => (
     typeof value === 'string' ? value.trim() : ''
 );
 
-export const 校验CurrencySystem草稿 = (value: unknown): { currencySystem?: CurrencySystem; errors: string[] } => {
+export const 校验货币系统草稿 = (value: unknown): { currencySystem?: CurrencySystem; errors: string[] } => {
     const errors: string[] = [];
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return { errors: ['currencySystem 必须是对象。'] };
@@ -132,8 +132,8 @@ export const 校验CurrencySystem草稿 = (value: unknown): { currencySystem?: C
     };
 };
 
-export const 规范化显式CurrencySystem = (value: unknown): CurrencySystem | undefined => {
-    return 校验CurrencySystem草稿(value).currencySystem;
+export const 规范化显式货币系统 = (value: unknown): CurrencySystem | undefined => {
+    return 校验货币系统草稿(value).currencySystem;
 };
 
 export const 拆分模式配置短语 = (value: unknown): string[] => {
@@ -189,7 +189,7 @@ const 去重非空文本 = (items: string[]): string[] => (
     Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)))
 );
 
-export const 从CurrencyTiers生成CurrencySystem = (
+export const 从货币层次生成货币系统 = (
     currencyTiers: 货币层级配置,
     currencyDisplayMode: ModeRuntimeProfile['economy']['currencyDisplayMode']
 ): CurrencySystem => {
@@ -226,7 +226,7 @@ export const 从CurrencyTiers生成CurrencySystem = (
     };
 };
 
-export type CurrencySystem预设模板ID =
+export type 货币系统预设模板ID =
     | 'topic-default'
     | 'single'
     | 'modern-yuan'
@@ -237,7 +237,7 @@ export type CurrencySystem预设模板ID =
     | 'apocalypse'
     | 'infinite';
 
-export const 获取CurrencySystem预设模板列表 = (): Array<{ id: CurrencySystem预设模板ID; label: string }> => [
+export const 获取货币系统预设模板列表 = (): Array<{ id: 货币系统预设模板ID; label: string }> => [
     { id: 'topic-default', label: '题材默认' },
     { id: 'single', label: '单一货币' },
     { id: 'modern-yuan', label: '现代人民币' },
@@ -249,9 +249,9 @@ export const 获取CurrencySystem预设模板列表 = (): Array<{ id: CurrencySy
     { id: 'infinite', label: '无限流奖励点/支线剧情' }
 ];
 
-const 克隆CurrencySystem = (currencySystem: CurrencySystem): CurrencySystem => JSON.parse(JSON.stringify(currencySystem));
+const 克隆货币系统 = (currencySystem: CurrencySystem): CurrencySystem => JSON.parse(JSON.stringify(currencySystem));
 
-const 构建单币种CurrencySystem = (id: string, name: string, unitName: string, symbol = '', aliases: string[] = []): CurrencySystem => ({
+const 构建单币种货币系统 = (id: string, name: string, unitName: string, symbol = '', aliases: string[] = []): CurrencySystem => ({
     id,
     name,
     baseUnitId: 'base',
@@ -268,20 +268,20 @@ const 构建单币种CurrencySystem = (id: string, name: string, unitName: strin
     ]
 });
 
-export const 构建CurrencySystem模板 = (
-    templateId: CurrencySystem预设模板ID,
+export const 构建货币系统模板 = (
+    templateId: 货币系统预设模板ID,
     profile?: ModeRuntimeProfile
 ): CurrencySystem => {
     if (templateId === 'topic-default') {
-        if (profile?.economy.currencySystem) return 克隆CurrencySystem(profile.economy.currencySystem);
+        if (profile?.economy.currencySystem) return 克隆货币系统(profile.economy.currencySystem);
         if (profile?.economy.currencyTiers) {
-            return 从CurrencyTiers生成CurrencySystem(profile.economy.currencyTiers, profile.economy.currencyDisplayMode);
+            return 从货币层次生成货币系统(profile.economy.currencyTiers, profile.economy.currencyDisplayMode);
         }
-        return 从CurrencyTiers生成CurrencySystem(构建默认货币层级('wuxia'), 'wuxia');
+        return 从货币层次生成货币系统(构建默认货币层级('wuxia'), 'wuxia');
     }
-    if (templateId === 'single') return 构建单币种CurrencySystem('single-currency', '单一货币体系', '货币', '', ['基础货币']);
-    if (templateId === 'modern-yuan') return 构建单币种CurrencySystem('modern-yuan', '人民币体系', '元', '¥', ['人民币', '现金', '电子支付']);
-    if (templateId === 'credit') return 构建单币种CurrencySystem('credit-point', '信用点体系', '信用点', '点', ['信用', '点数']);
+    if (templateId === 'single') return 构建单币种货币系统('single-currency', '单一货币体系', '货币', '', ['基础货币']);
+    if (templateId === 'modern-yuan') return 构建单币种货币系统('modern-yuan', '人民币体系', '元', '¥', ['人民币', '现金', '电子支付']);
+    if (templateId === 'credit') return 构建单币种货币系统('credit-point', '信用点体系', '信用点', '点', ['信用', '点数']);
     if (templateId === 'wuxia') {
         return {
             id: 'wuxia-gold-silver-copper',
@@ -668,7 +668,7 @@ export const 构建官方模式运行时配置 = (
             accountingUnit: 取记账单位(profile.currencyDisplayMode),
             exchangeRules: profile.currencyExchangePrompt,
             currencyTiers,
-            currencySystem: 从CurrencyTiers生成CurrencySystem(currencyTiers, profile.currencyDisplayMode),
+            currencySystem: 从货币层次生成货币系统(currencyTiers, profile.currencyDisplayMode),
             marketName: profile.auctionName,
             marketVerb: profile.marketVerb,
             allowedItemTypes: items.exclusiveItemTypes,
@@ -763,7 +763,7 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
     const baseMode = 规范化题材模式(raw?.identity?.baseMode || fallback.identity.baseMode);
     const official = 构建官方模式运行时配置基础(baseMode);
     const resource = raw?.items?.resourceToggles || {};
-    const currencySystem = 规范化显式CurrencySystem(raw?.economy?.currencySystem);
+    const currencySystem = 规范化显式货币系统(raw?.economy?.currencySystem);
     const 旧资源转列表 = (r: Record<string, boolean>): string[] => {
         const list: string[] = [];
         if (r.food) list.push('饱腹');
@@ -925,7 +925,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             accountingUnit: 取记账单位(profile.currencyDisplayMode),
             exchangeRules: profile.currencyExchangePrompt,
             currencyTiers,
-            currencySystem: 从CurrencyTiers生成CurrencySystem(currencyTiers, profile.currencyDisplayMode),
+            currencySystem: 从货币层次生成货币系统(currencyTiers, profile.currencyDisplayMode),
             marketName: profile.auctionName,
             marketVerb: profile.marketVerb,
             allowedItemTypes: items.exclusiveItemTypes,

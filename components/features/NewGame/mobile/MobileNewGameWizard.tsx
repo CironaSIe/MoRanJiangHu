@@ -766,7 +766,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
         允许生成性别: 规范化开局生成性别列表(modeRuntimeProfile?.opening?.allowedGeneratedGenders),
         生成性别锁定: modeRuntimeProfile?.opening?.lockGeneratedGenders === true
     });
-    const 清除运行时CurrencySystem = <T extends OpeningConfig['modeRuntimeProfile']>(modeRuntimeProfile: T): T => {
+    const 清除运行时货币系统 = <T extends OpeningConfig['modeRuntimeProfile']>(modeRuntimeProfile: T): T => {
         if (!modeRuntimeProfile) return modeRuntimeProfile;
         return {
             ...modeRuntimeProfile,
@@ -777,7 +777,7 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
         } as T;
     };
     const 保留自定义货币系统 = (modeRuntimeProfile: NonNullable<OpeningConfig['modeRuntimeProfile']>) => {
-        if (货币偏好 === 'legacy') return 清除运行时CurrencySystem(modeRuntimeProfile);
+        if (货币偏好 === 'legacy') return 清除运行时货币系统(modeRuntimeProfile);
         const currentCurrencySystem = openingConfig.modeRuntimeProfile?.economy.currencySystem;
         if (货币偏好 !== 'custom' || !currentCurrencySystem) return modeRuntimeProfile;
         return {
@@ -806,11 +806,11 @@ const MobileNewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, a
         设置货币偏好('legacy');
         setOpeningConfig((prev) => ({
             ...prev,
-            modeRuntimeProfile: 清除运行时CurrencySystem(prev.modeRuntimeProfile)
+            modeRuntimeProfile: 清除运行时货币系统(prev.modeRuntimeProfile)
         }));
         setWorldConfig((prev) => ({
             ...prev,
-            modeRuntimeProfile: 清除运行时CurrencySystem(prev.modeRuntimeProfile)
+            modeRuntimeProfile: 清除运行时货币系统(prev.modeRuntimeProfile)
         }));
     };
     const 出身剩余重Roll次数 = Math.max(0, 当前难度设定.天赋重Roll次数 - 出身已重Roll次数);

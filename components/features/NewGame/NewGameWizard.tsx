@@ -45,7 +45,7 @@ import {
     获取题材模式配置,
     题材模式顺序
 } from '../../../utils/workshopEngine';
-import { 构建官方模式运行时配置, 规范化模式运行时配置 } from '../../../utils/modeRuntimeProfile';
+import { 构建官方模式运行时配置, 构建货币系统模板, 规范化模式运行时配置 } from '../../../utils/modeRuntimeProfile';
 import { 构建默认技艺 } from '../../../utils/skillDefaults';
 import { 默认境界母板提示词 } from '../../../prompts/runtime/fandom';
 import { 设置键 } from '../../../utils/settingsSchema';
@@ -762,9 +762,21 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         const normalizedPartner = normalizedPartnerList[0] || 默认初始伙伴配置();
         setOpeningConfigEnabled(Boolean(normalizedOpeningConfig) && normalizedOpeningConfig?.配置约束启用 !== false);
         setOpeningConfig(restoredOpeningConfig);
-        设置货币偏好(restoredOpeningConfig.modeRuntimeProfile?.economy.currencySystem
-            ? 'custom'
-            : restoredOpeningConfig.modeRuntimeProfile ? 'legacy' : 'follow_mode');
+        const restoredCurrencySystem = restoredOpeningConfig.modeRuntimeProfile?.economy.currencySystem;
+        设置货币偏好(!restoredCurrencySystem
+            ? (restoredOpeningConfig.modeRuntimeProfile ? 'legacy' : 'follow_mode')
+            : (() => {
+                const topicDefault = 构建货币系统模板('topic-default', {
+                    ...restoredOpeningConfig.modeRuntimeProfile!,
+                    economy: { ...restoredOpeningConfig.modeRuntimeProfile!.economy, currencySystem: undefined }
+                });
+                const fingerprint = (s: CurrencySystem) => JSON.stringify({
+                    id: s.id, name: s.name, baseUnitId: s.baseUnitId,
+                    formatStyle: s.formatStyle || 'compound',
+                    units: (s.units || []).map(u => ({ id: u.id, name: u.name, symbol: u.symbol || '', baseRate: Number(u.baseRate) || 1, order: Number(u.order) || 1 }))
+                });
+                return fingerprint(restoredCurrencySystem) === fingerprint(topicDefault) ? 'follow_mode' : 'custom';
+            })());
         setPartnerList(normalizedPartnerList);
         setActivePartnerIndex(0);
         载入伙伴配置到表单(normalizedPartner);
@@ -964,7 +976,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         允许生成性别: 规范化开局生成性别列表(modeRuntimeProfile?.opening?.allowedGeneratedGenders),
         生成性别锁定: modeRuntimeProfile?.opening?.lockGeneratedGenders === true
     });
-    const 清除运行时CurrencySystem = <T extends OpeningConfig['modeRuntimeProfile']>(modeRuntimeProfile: T): T => {
+    const 清除运行时货币系统 = <T extends OpeningConfig['modeRuntimeProfile']>(modeRuntimeProfile: T): T => {
         if (!modeRuntimeProfile) return modeRuntimeProfile;
         return {
             ...modeRuntimeProfile,
@@ -975,7 +987,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         } as T;
     };
     const 保留自定义货币系统 = (modeRuntimeProfile: NonNullable<OpeningConfig['modeRuntimeProfile']>) => {
-        if (货币偏好 === 'legacy') return 清除运行时CurrencySystem(modeRuntimeProfile);
+        if (货币偏好 === 'legacy') return 清除运行时货币系统(modeRuntimeProfile);
         const currentCurrencySystem = openingConfig.modeRuntimeProfile?.economy.currencySystem;
         if (货币偏好 !== 'custom' || !currentCurrencySystem) return modeRuntimeProfile;
         return {
@@ -1004,11 +1016,11 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         设置货币偏好('legacy');
         setOpeningConfig((prev) => ({
             ...prev,
-            modeRuntimeProfile: 清除运行时CurrencySystem(prev.modeRuntimeProfile)
+            modeRuntimeProfile: 清除运行时货币系统(prev.modeRuntimeProfile)
         }));
         setWorldConfig((prev) => ({
             ...prev,
-            modeRuntimeProfile: 清除运行时CurrencySystem(prev.modeRuntimeProfile)
+            modeRuntimeProfile: 清除运行时货币系统(prev.modeRuntimeProfile)
         }));
     };
     const 更新题材模式 = (题材模式: OpeningConfig['题材模式']) => {

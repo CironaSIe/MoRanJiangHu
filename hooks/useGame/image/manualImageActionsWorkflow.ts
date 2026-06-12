@@ -368,6 +368,7 @@ export const 创建手动图片动作工作流 = (deps: 手动图片动作工作
                 message: `「${获取NPC名称(targetNpc)}」${error?.message || '重试生图失败'}`,
                 tone: 'error'
             });
+            throw error;
         });
     };
 

@@ -12,7 +12,7 @@ const 结尾引号正则 = /[”"」』]$/;
 const 说话尾迹正则 = /(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/;
 const 语气修饰尾迹正则 = /(?:轻声|低声|沉声|冷声|温声|柔声|厉声|朗声|小声|淡淡|缓缓|忽然|忽地|笑着|苦笑着|皱眉|抬眼|侧首|回头|点头|摇头|叹息|压低声音)\s*$/;
 const 动作修饰尾迹正则 = /(?:点点头|摇摇头|点点|摇摇|皱了皱眉|皱了皱|皱眉|抬头|低头|回头|转头|转身|侧首|抬眼|垂眼|看着|望着|盯着|瞥向|注视|沉默片刻|轻咳一声|冷笑一声|苦笑一声|笑了笑|叹了口气|压低声音|放低声音)\s*$/;
-const 泛称说话人正则 = /^(?:他|她|它|你|我|这人|那人|有人|众人|众弟子|众门人|众侍从|众士卒|众人齐声|众弟子齐声|众门人齐声|众侍从齐声|众士卒齐声|对方|男子|女子|少年|少女|老人|老者|汉子|侍女|侍从|弟子|门人|店小二)$/;
+const 泛称说话人正则 = /^(?:他|她|它|你|我|这人|那人|有人|众人|众弟子|众门人|众侍从|众士卒|众人齐声|众弟子齐声|众门人齐声|众侍从齐声|众士卒齐声|对方|男子|女子|少年|少女|老人|老者|汉子|侍女|侍从|弟子|门人|店小二|台词|旁白|独白|内心|心理|画外音|旁白音)$/;
 const 非单一说话人正则 = /^(?:旁白|判定|NSFW判定|系统|众人|众弟子|众门人|众侍从|众士卒|众人齐声|众弟子齐声|众门人齐声|众侍从齐声|众士卒齐声|所有人|全场|人群|群声|齐声|同门|弟子们|门人们)$/;
 const 语气词说话人正则 = /^(?:轻声|低声|沉声|冷声|温声|柔声|厉声|朗声|小声|淡淡|缓缓|忽然|忽地|笑着|苦笑着)$/;
 const 非人名短语说话人正则 = /^(?:随着|伴随|当他|当她|当你|当我|如果|若是|只是|这是|那是|这个|那个|这种|那种|此时|这时|随后|然后|接着|同时|终于|突然|忽然|仍然|已经|开始|继续|所有|全场|一切|空气|雨声|风声|灯光|夜色|晨光|脚步|声音)/;
@@ -424,6 +424,60 @@ const 拆分旁白夹杂无标签对白 = (log: GameLog): GameLog[] => {
                 && !拟声词正则.test(speech)
             ) {
                 result.push(附加原始片段({ sender: bracketSpeakerName, text: speech }, rawSource));
+                continue;
+            }
+        }
+
+        result.push(附加原始片段({ sender: '旁白', text: line }, rawSource));
+    }
+
+    return result.length > 1 ? 合并相邻同发送者(result) : [log];
+};
+
+const 裸名引号对白行正则 = /^([\u4e00-\u9fff·]{2,4})\s*([""「『].{1,800}[」』""])$/;
+
+const 拆分旁白中的裸名引号对白 = (log: GameLog): GameLog[] => {
+    const source = typeof log?.text === 'string' ? log.text.replace(/\r\n/g, '\n') : '';
+    if (!source) return [log];
+    const rawSource = 读取日志原始片段(log);
+
+    const lines = source.includes('\n') ? source.split('\n') : [source];
+    const result: GameLog[] = [];
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+
+        const bracketSpeaker = line.match(方括号说话人行正则);
+        const bracketSpeakerName = (bracketSpeaker?.[1] || '').trim();
+        if (bracketSpeaker && bracketSpeakerName) {
+            const rawSpeech = (bracketSpeaker[2] || '').trim();
+            const hasQuotedSpeech = 开头引号正则.test(rawSpeech);
+            const speech = 剥离外层引号(rawSpeech);
+            if (
+                speech
+                && bracketSpeakerName.length <= (hasQuotedSpeech ? 12 : 4)
+                && (hasQuotedSpeech || !可疑方括号无引号旁白标签正则.test(bracketSpeakerName))
+                && !非单一说话人正则.test(bracketSpeakerName)
+                && !泛称说话人正则.test(bracketSpeakerName)
+                && !拟声词正则.test(speech)
+            ) {
+                result.push(附加原始片段({ sender: bracketSpeakerName, text: speech }, rawSource));
+                continue;
+            }
+        }
+
+        const bareMatch = line.match(裸名引号对白行正则);
+        if (bareMatch) {
+            const rawName = (bareMatch[1] || '').trim();
+            const rawSpeech = (bareMatch[2] || '').trim();
+            const speaker = 清理说话人(rawName);
+            if (
+                speaker
+                && !非单一说话人正则.test(speaker)
+                && !泛称说话人正则.test(speaker)
+                && !拟声词正则.test(rawSpeech)
+            ) {
+                result.push(附加原始片段({ sender: speaker, text: rawSpeech }, rawSource));
                 continue;
             }
         }

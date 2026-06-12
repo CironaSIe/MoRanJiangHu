@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import LeftPanel from '../components/layout/LeftPanel';
-import { 规范化新开局轻量CurrencySystem } from '../components/features/NewGame/NewGameCurrencySystemSetup';
+import { 规范化新开局轻量货币系统 } from '../components/features/NewGame/NewGameCurrencySystemSetup';
 import { 创建开场空白角色 } from '../hooks/useGame/storyState';
 import { 设置默认技艺运行时配置, 规范化角色物品容器映射 } from '../hooks/useGame/stateTransforms';
 import { 核心_数据格式 } from '../prompts/core/data';
@@ -12,7 +12,7 @@ import { 默认游戏设置 } from '../utils/gameSettings';
 import {
     formatCurrencyBaseAmount,
     fromBaseAmount,
-    获取默认CurrencySystemFromProfile,
+    获取默认货币系统FromProfile,
     获取世界观BaseAmount单位标签,
     获取世界观简短货币汇率说明,
     获取世界观货币槽位,
@@ -29,9 +29,9 @@ import {
     toBaseAmount
 } from '../utils/currencyDisplay';
 import {
-    构建CurrencySystem模板,
+    构建货币系统模板,
     构建官方模式运行时配置,
-    校验CurrencySystem草稿,
+    校验货币系统草稿,
     渲染模式运行时配置世界书内容,
     规范化模式运行时配置
 } from '../utils/modeRuntimeProfile';
@@ -82,7 +82,7 @@ const 单币种货币开局配置 = {
     }
 } as any;
 
-const 三层CurrencySystem开局配置 = {
+const 三层货币系统开局配置 = {
     ...无限流开局配置,
     题材模式: '武侠',
     modeRuntimeProfile: {
@@ -228,8 +228,8 @@ describe('货币显示', () => {
     });
 
     it('有三层 currencySystem 时世界观 baseAmount UI 包装可以复合显示', () => {
-        expect(获取世界观BaseAmount单位标签(三层CurrencySystem开局配置, makeInfiniteCharacter(), '铜钱')).toBe('铜');
-        expect(格式化世界观BaseAmount(12345, 三层CurrencySystem开局配置, makeInfiniteCharacter(), '12,345 铜钱')).toBe('1 金 / 23 银 / 45 铜');
+        expect(获取世界观BaseAmount单位标签(三层货币系统开局配置, makeInfiniteCharacter(), '铜钱')).toBe('铜');
+        expect(格式化世界观BaseAmount(12345, 三层货币系统开局配置, makeInfiniteCharacter(), '12,345 铜钱')).toBe('1 金 / 23 银 / 45 铜');
     });
 
     it('角色金钱显示列表没有 currencySystem 时保持旧三层显示', () => {
@@ -263,7 +263,7 @@ describe('货币显示', () => {
             baseAmount: 12345
         };
 
-        expect(获取角色金钱显示列表(character.金钱, 三层CurrencySystem开局配置, character)).toEqual(['1 金 / 23 银 / 45 铜']);
+        expect(获取角色金钱显示列表(character.金钱, 三层货币系统开局配置, character)).toEqual(['1 金 / 23 银 / 45 铜']);
     });
 
     it('现代题材无显式 currencySystem 时金钱快照使用世界观货币名称', () => {
@@ -518,7 +518,7 @@ describe('货币显示', () => {
     });
 
     it('三层配置可以安全转换成 CurrencySystem，异常配置有 fallback', () => {
-        const system = 获取默认CurrencySystemFromProfile(无限流运行时配置, 'infinite');
+        const system = 获取默认货币系统FromProfile(无限流运行时配置, 'infinite');
 
         expect(system.baseUnitId).toBe('lower');
         expect(system.units.map((unit) => [unit.id, unit.name, unit.baseRate])).toEqual([
@@ -528,7 +528,7 @@ describe('货币显示', () => {
         ]);
         expect(formatCurrencyBaseAmount(101234, system)).toBe('1 C级支线剧情 / 1 D级支线剧情 / 234 奖励点');
 
-        const fallbackSystem = 获取默认CurrencySystemFromProfile({
+        const fallbackSystem = 获取默认货币系统FromProfile({
             economy: {
                 currencySystem: {
                     id: '',
@@ -636,8 +636,8 @@ describe('货币显示', () => {
     });
 
     it('人民币模板生成单 unit currencySystem', () => {
-        const system = 构建CurrencySystem模板('modern-yuan');
-        const validation = 校验CurrencySystem草稿(system);
+        const system = 构建货币系统模板('modern-yuan');
+        const validation = 校验货币系统草稿(system);
 
         expect(validation.errors).toEqual([]);
         expect(validation.currencySystem).toMatchObject({
@@ -652,8 +652,8 @@ describe('货币显示', () => {
     });
 
     it('修仙灵石模板生成多层 currencySystem', () => {
-        const system = 构建CurrencySystem模板('xianxia');
-        const validation = 校验CurrencySystem草稿(system);
+        const system = 构建货币系统模板('xianxia');
+        const validation = 校验货币系统草稿(system);
 
         expect(validation.errors).toEqual([]);
         expect(system.baseUnitId).toBe('low');
@@ -662,18 +662,18 @@ describe('货币显示', () => {
     });
 
     it('西幻模板汇率正确，不使用现代三层比例', () => {
-        const system = 构建CurrencySystem模板('fantasy');
+        const system = 构建货币系统模板('fantasy');
 
         expect(system.units).toEqual([
             expect.objectContaining({ id: 'gold', name: '金币', baseRate: 10000 }),
             expect.objectContaining({ id: 'silver', name: '银币', baseRate: 100 }),
             expect.objectContaining({ id: 'copper', name: '铜币', baseRate: 1 })
         ]);
-        expect(校验CurrencySystem草稿(system).errors).toEqual([]);
+        expect(校验货币系统草稿(system).errors).toEqual([]);
     });
 
     it('新开局轻量单币种编辑可以生成合法 currencySystem', () => {
-        const result = 规范化新开局轻量CurrencySystem({
+        const result = 规范化新开局轻量货币系统({
             id: 'custom-currency-system',
             name: '信用点体系',
             baseUnitId: 'credit',
@@ -697,7 +697,7 @@ describe('货币显示', () => {
     });
 
     it('新开局轻量多单位编辑会自动生成 order 和 aliases', () => {
-        const result = 规范化新开局轻量CurrencySystem({
+        const result = 规范化新开局轻量货币系统({
             id: 'custom-currency-system',
             name: '三层货币',
             baseUnitId: 'copper',
@@ -717,7 +717,7 @@ describe('货币显示', () => {
     });
 
     it('新开局轻量编辑删除基础单位后会自动兜底到有效 baseUnitId', () => {
-        const result = 规范化新开局轻量CurrencySystem({
+        const result = 规范化新开局轻量货币系统({
             id: 'custom-currency-system',
             name: '剩余货币',
             baseUnitId: 'missing',
@@ -735,7 +735,7 @@ describe('货币显示', () => {
     });
 
     it('校验 helper 能返回具体错误信息', () => {
-        const validation = 校验CurrencySystem草稿({
+        const validation = 校验货币系统草稿({
             id: '',
             name: '',
             baseUnitId: 'missing',
@@ -752,7 +752,7 @@ describe('货币显示', () => {
     });
 
     it('非法 baseUnitId、重复 unit.id 和错误 base unit 汇率会报错', () => {
-        const duplicated = 校验CurrencySystem草稿({
+        const duplicated = 校验货币系统草稿({
             id: 'bad',
             name: '坏货币',
             baseUnitId: 'copper',
@@ -765,7 +765,7 @@ describe('货币显示', () => {
         expect(duplicated.errors).toContain('unit.id 不可重复：coin。');
         expect(duplicated.errors).toContain('baseUnitId 必须命中某个 unit.id。');
 
-        const badBaseRate = 校验CurrencySystem草稿({
+        const badBaseRate = 校验货币系统草稿({
             id: 'bad-base',
             name: '坏基础单位',
             baseUnitId: 'coin',

@@ -672,7 +672,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                 changed = true;
                 console.info('[npc.image.slot.set]', {
                     npcId,
-                    npcName: npc?.名称 || `NPC(${npcId})`,
+                    npcName: npc?.姓名 || `NPC(${npcId})`,
                     field,
                     imageId: imageId || undefined,
                     previousImageId: archive?.[field] || undefined,

@@ -5,7 +5,7 @@ import {
     底层总值转角色金钱,
     获取角色金钱BaseAmount,
     获取货币层级倍率,
-    规范化CurrencySystem,
+    规范化货币系统,
     规范化角色金钱
 } from './currencyDisplay';
 
@@ -93,7 +93,7 @@ const 解析动态货币奖励 = (
 ): { label: string; amount: number; baseAmount: number } | null => {
     const systemSource = runtimeProfile?.economy?.currencySystem;
     if (!systemSource) return null;
-    const system = 规范化CurrencySystem(systemSource);
+    const system = 规范化货币系统(systemSource);
     const candidates = system.units.flatMap((unit) => [
         unit.name,
         unit.symbol || '',
