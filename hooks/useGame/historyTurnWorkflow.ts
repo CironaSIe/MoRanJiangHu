@@ -466,7 +466,6 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
     };
 
     const handleRecoverFromParseErrorRaw = async (rawText: string, forceRepair: boolean = false): Promise<string | null> => {
-        if (deps.loading) return '当前仍在处理中，请稍后再试。';
         const snapshot = deps.获取最新快照();
         if (!snapshot) return '没有可恢复的解析失败回合。';
 

@@ -3197,3 +3197,5 @@ export const 强制彻底清空全部数据 = async (): Promise<void> => {
 export const 清空数据库 = async (保留APIKey: boolean): Promise<void> => {
     await 清空全部数据({ 保留APIKey });
 };
+
+export { 收集存档树节点ID, 删除存档树并重新保存全量存档 } from './dbService_saveTree';

@@ -67,6 +67,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const [selectedSeriesKey, setSelectedSeriesKey] = useState<string | null>(null);
     const [lineageMigrationStatus, setLineageMigrationStatus] = useState(() => dbService.读取旧存档谱系迁移状态());
     const [hydratingVisibleSummaries, setHydratingVisibleSummaries] = useState(false);
+    const [saveMenuOpen, setSaveMenuOpen] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const hydratedSummaryIdsRef = useRef<Set<number>>(new Set());
     const hydratedSummaryCountRef = useRef(0);
@@ -364,6 +365,37 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             console.error(error);
             setTransferMessage(`删除失败：${error?.message || '未知错误'}`);
             alert(`删除失败：${error?.message || '未知错误'}`);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleDeleteTreeAndRebuild = async (id: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSaveMenuOpen(null);
+        if (saveProtectionEnabled) {
+            alert('存档保护已开启，请先在"设置-数据存储"中关闭后再操作。');
+            return;
+        }
+        const ok = requestConfirm
+            ? await requestConfirm({
+                title: '删除存档树并重建',
+                message: '将删除整个存档树（包括所有分支和历史版本），然后重新保存当前存档为全量存档。确定继续吗？',
+                confirmText: '删除树并重建',
+                danger: true
+            })
+            : true;
+        if (!ok) return;
+        setSyncing(true);
+        setTransferMessage('正在删除存档树并重建...');
+        try {
+            await dbService.删除存档树并重新保存全量存档(id);
+            setTransferMessage('存档树已删除，当前存档已重新保存为全量存档。');
+            await loadSaves();
+        } catch (error: any) {
+            console.error(error);
+            setTransferMessage(`操作失败：${error?.message || '未知错误'}`);
+            alert(`操作失败：${error?.message || '未知错误'}`);
         } finally {
             setSyncing(false);
         }
@@ -772,6 +804,28 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                     转云端游玩
                 </button>
 
+
+                {save.类型 === 'manual' && (
+                    <>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setSaveMenuOpen(saveMenuOpen === save.id ? null : save.id); }}
+                            className="absolute top-3 right-14 inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-600 bg-black/50 text-gray-300 opacity-0 transition-all hover:border-wuxia-gold hover:text-wuxia-gold group-hover:opacity-100"
+                            title="更多操作"
+                        >
+                            <span className="text-lg leading-none">⋮</span>
+                        </button>
+                        {saveMenuOpen === save.id && (
+                            <div className="absolute top-12 right-3 z-10 min-w-[160px] rounded border border-gray-700 bg-black/95 shadow-xl">
+                                <button
+                                    onClick={(e) => { void handleDeleteTreeAndRebuild(save.id!, e); }}
+                                    className="w-full px-4 py-2 text-left text-sm text-red-300 hover:bg-red-900/20"
+                                >
+                                    删除存档树并重建
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
                 <button
                     onClick={(e) => { void handleDelete(save.id, e); }}
                     className={删除按钮类名}

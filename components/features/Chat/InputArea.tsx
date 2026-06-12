@@ -197,6 +197,7 @@ interface Props {
     variableGenerationRunning?: boolean;
     postStoryQueueRunning?: boolean;
     canReroll?: boolean;
+    reRollCount?: number;
     canRetryLatestVariableGeneration?: boolean;
     canQuickRestart?: boolean;
     options?: unknown[]; // Quick actions from the last turn
@@ -223,6 +224,7 @@ const InputArea: React.FC<Props> = ({
     variableGenerationRunning = false,
     postStoryQueueRunning = false,
     canReroll = true,
+    reRollCount = 0,
     canRetryLatestVariableGeneration = false,
     canQuickRestart = false,
     options = [],
@@ -295,6 +297,7 @@ const InputArea: React.FC<Props> = ({
         editedRaw: '',
         error: ''
     });
+    const [parseRepairBusy, setParseRepairBusy] = useState(false);
     const quickActionsRef = useRef<HTMLDivElement | null>(null);
     const dragRef = useRef({ active: false, startX: 0, startScrollLeft: 0, moved: false });
     const suppressClickUntilRef = useRef(0);
@@ -537,6 +540,16 @@ const InputArea: React.FC<Props> = ({
     };
 
     const handleReroll = async () => {
+        if (reRollCount > 1 && requestConfirm) {
+            const accepted = await requestConfirm({
+                title: '确认回档',
+                message: `当前有 ${reRollCount} 个可回档回合。连续回档可能导致进度丢失，确定要回档到上一轮吗？`,
+                confirmText: '确定回档',
+                cancelText: '取消',
+                danger: true
+            });
+            if (!accepted) return;
+        }
         const restoredInput = await Promise.resolve(onRegenerate());
         if (!restoredInput) return;
         setContent(restoredInput);
@@ -572,31 +585,39 @@ const InputArea: React.FC<Props> = ({
     };
 
     const handleApplyParseRepair = async (mode: 'auto' | 'manual') => {
-        if (!onRecoverParseErrorRaw) {
-            setParseRepairModal(prev => ({ ...prev, error: '当前版本未接入解析失败恢复能力。' }));
-            return;
+        setParseRepairBusy(true);
+        setParseRepairModal(prev => ({ ...prev, error: '' }));
+        try {
+            if (!onRecoverParseErrorRaw) {
+                setParseRepairModal(prev => ({ ...prev, error: '当前版本未接入解析失败恢复能力。' }));
+                return;
+            }
+            const rawToUse = mode === 'auto' ? parseRepairModal.originalRaw : parseRepairModal.editedRaw;
+            if (!rawToUse || !rawToUse.trim()) {
+                setParseRepairModal(prev => ({ ...prev, error: '没有可恢复的原文内容。' }));
+                return;
+            }
+            const recoverError = await Promise.resolve(onRecoverParseErrorRaw(rawToUse, mode === 'auto'));
+            if (typeof recoverError === 'string' && recoverError.trim().length > 0) {
+                setParseRepairModal(prev => ({ ...prev, error: recoverError }));
+                return;
+            }
+            setParseRepairModal({
+                open: false,
+                title: '',
+                detail: '',
+                hint: '',
+                originalRaw: '',
+                editedRaw: '',
+                error: ''
+            });
+            setContent('');
+            setLastSentContent('');
+        } catch (error: any) {
+            setParseRepairModal(prev => ({ ...prev, error: error?.message || '恢复失败，请稍后再试。' }));
+        } finally {
+            setParseRepairBusy(false);
         }
-        const rawToUse = mode === 'auto' ? parseRepairModal.originalRaw : parseRepairModal.editedRaw;
-        if (!rawToUse || !rawToUse.trim()) {
-            setParseRepairModal(prev => ({ ...prev, error: '没有可恢复的原文内容。' }));
-            return;
-        }
-        const recoverError = await Promise.resolve(onRecoverParseErrorRaw(rawToUse, mode === 'auto'));
-        if (typeof recoverError === 'string' && recoverError.trim().length > 0) {
-            setParseRepairModal(prev => ({ ...prev, error: recoverError }));
-            return;
-        }
-        setParseRepairModal({
-            open: false,
-            title: '',
-            detail: '',
-            hint: '',
-            originalRaw: '',
-            editedRaw: '',
-            error: ''
-        });
-        setContent('');
-        setLastSentContent('');
     };
 
     const handleQuickRestartSelect = async (mode: QuickRestartMode) => {
@@ -1258,7 +1279,7 @@ const InputArea: React.FC<Props> = ({
                             </div>
                         )}
                     <button 
-                        onClick={variableGenerationRunning && onCancelVariableGeneration ? onCancelVariableGeneration : handleStop}
+                        onClick={postStoryQueueRunning ? handleStop : (variableGenerationRunning && onCancelVariableGeneration ? onCancelVariableGeneration : handleStop)}
                         className="w-10 sm:w-12 h-9 sm:h-11 shrink-0 bg-wuxia-red text-white rounded-lg sm:rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(163,24,24,0.3)] hover:bg-red-600 hover:scale-105 active:scale-95 transition-all"
                         title={variableGenerationRunning ? "取消变量生成" : (recallRunning ? "取消检索" : (postStoryQueueRunning ? "强制终止AI推演" : "停止生成"))}
                     >
@@ -1320,16 +1341,18 @@ const InputArea: React.FC<Props> = ({
                             <button
                                 type="button"
                                 onClick={() => { void handleApplyParseRepair('auto'); }}
-                                className="px-4 py-2 text-xs font-bold rounded border border-wuxia-cyan/50 text-wuxia-cyan hover:bg-wuxia-cyan/10"
+                                disabled={parseRepairBusy}
+                                className="px-4 py-2 text-xs font-bold rounded border border-wuxia-cyan/50 text-wuxia-cyan hover:bg-wuxia-cyan/10 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                自动修复并应用
+                                {parseRepairBusy ? '自动修复中...' : '自动修复并应用'}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => { void handleApplyParseRepair('manual'); }}
-                                className="px-4 py-2 text-xs font-bold rounded border border-wuxia-gold/50 text-wuxia-gold hover:bg-wuxia-gold/10"
+                                disabled={parseRepairBusy}
+                                className="px-4 py-2 text-xs font-bold rounded border border-wuxia-gold/50 text-wuxia-gold hover:bg-wuxia-gold/10 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                手动编辑后应用
+                                {parseRepairBusy ? '处理中...' : '手动编辑后应用'}
                             </button>
                             <button
                                 type="button"

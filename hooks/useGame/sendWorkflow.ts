@@ -1906,6 +1906,9 @@ export const 执行主剧情发送工作流 = async (
                         });
                     }
                 }
+                if (controller.signal.aborted) {
+                    throw controller.signal.reason || new DOMException('Aborted', 'AbortError');
+                }
                 let worldEvolutionResult: 世界演变执行结果 | null = null;
                 let planningResult: Awaited<ReturnType<typeof deps.后台执行统一规划分析>> | null = null;
                 let mapUpdateResult: 地图更新执行结果 | null = null;
@@ -2173,6 +2176,9 @@ export const 执行主剧情发送工作流 = async (
                         });
                         return;
                     }
+                    if (controller.signal.aborted) {
+                        throw controller.signal.reason || new DOMException('Aborted', 'AbortError');
+                    }
                     if (worldEvolutionResult && worldEvolutionResult.commands.length > 0) {
                         responseForExecution = {
                             ...responseForExecution,
@@ -2196,6 +2202,9 @@ export const 执行主剧情发送工作流 = async (
                         });
                         return;
                     }
+                    if (controller.signal.aborted) {
+                        throw controller.signal.reason || new DOMException('Aborted', 'AbortError');
+                    }
                     if (planningResult?.commands?.length) {
                         responseForExecution = {
                             ...responseForExecution,
@@ -2212,6 +2221,9 @@ export const 执行主剧情发送工作流 = async (
                         );
                     }
                     mapUpdateResult = await 执行地图更新阶段(simulatedState, responseForExecution, displayAiData);
+                }
+                if (controller.signal.aborted) {
+                    throw controller.signal.reason || new DOMException('Aborted', 'AbortError');
                 }
 
                 if (!本次仍是最新前台回合()) {
