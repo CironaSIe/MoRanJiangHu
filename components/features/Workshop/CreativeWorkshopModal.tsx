@@ -772,6 +772,9 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
     const [status, setStatus] = useState('');
     const [loading, setLoading] = useState(false);
     const [busyId, setBusyId] = useState('');
+    const [reportTarget, setReportTarget] = useState<{ id: string; title: string } | null>(null);
+    const [reportText, setReportText] = useState('');
+    const [reportGameText, setReportGameText] = useState('');
     const [contributor, setContributor] = useState('');
     const [anonymousContribution, setAnonymousContribution] = useState(false);
     const [cloudUsername, setCloudUsername] = useState('');
@@ -824,8 +827,31 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
         const nextDraft = 空贡献草稿();
         setContributionDraft(nextDraft);
         setCurrencySystemJsonDraft(格式化CurrencySystemJson(nextDraft.modeRuntimeProfile));
-        setCurrencySystemJsonError('');
-        setCurrencySystemEditMode(nextDraft.modeRuntimeProfile.economy.currencySystem ? 'dynamic' : 'legacy');
+
+    };
+
+    const 提交工坊反馈 = () => {
+        if (!reportTarget || !reportText.trim()) return;
+        const key = `moranjianghu.workshop.reports.${reportTarget.id}`;
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        existing.push({
+            text: reportText.trim(),
+            gameText: reportGameText.trim() || undefined,
+            createdAt: new Date().toISOString(),
+            userAgent: navigator.userAgent.slice(0, 120)
+        });
+        localStorage.setItem(key, JSON.stringify(existing));
+        setStatus(`已提交对「${reportTarget.title}」的反馈，感谢！`);
+        setReportTarget(null);
+        setReportText('');
+        setReportGameText('');
+    };
+
+    const 获取反馈数量 = (entryId: string): number => {
+        try {
+            const key = `moranjianghu.workshop.reports.${entryId}`;
+            return JSON.parse(localStorage.getItem(key) || '[]').length;
+        } catch { return 0; }
     };
 
     const 更新CurrencySystemJson = (value: string) => {
@@ -947,6 +973,15 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
             group.versions.push(entry);
         }
         for (const group of groups.values()) {
+            group.versions.sort((a, b) => {
+                const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return aTime - bTime;
+            });
+            group.versions.forEach((v, i) => {
+                if (!v.version || v.version < 1) v.version = i + 1;
+                if (!v.baseModuleId) v.baseModuleId = group.key;
+            });
             group.versions.sort((a, b) => (b.version || 1) - (a.version || 1));
         }
         return Array.from(groups.values());
@@ -2004,6 +2039,19 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <h3 className="text-base font-serif font-bold text-gray-100">{entry.title}{typeof entry.version === 'number' && entry.version > 1 ? <span className="ml-2 inline-block rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[11px] font-mono text-amber-200">v{entry.version}</span> : null}</h3>
+                                            {hasVersions && (
+                                                <select
+                                                    value={entry.id}
+                                                    onChange={(e) => setSelectedVersionByGroup(prev => ({ ...prev, [group.key]: e.target.value }))}
+                                                    className="mt-1 h-7 rounded border border-amber-500/30 bg-black/50 px-2 text-[11px] text-amber-200 outline-none"
+                                                >
+                                                    {group.versions.map(v => (
+                                                        <option key={v.id} value={v.id}>
+                                                            v{v.version || 1}{v.versionNote ? ` - ${v.versionNote}` : ''} ({v.createdAt ? new Date(v.createdAt).toLocaleDateString() : '未知日期'})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
                                             <div className="mt-1 text-xs text-wuxia-gold/80">{entry.subtitle}</div>
                                             <div className="mt-1 text-[11px] text-gray-500">{entry.source === 'cloud' ? '社区贡献' : entry.source === 'local' ? '本地导入' : '官方预设'} · {entry.contributor || '匿名'}{entry.versionNote ? ` · ${entry.versionNote}` : ''}</div>
                                         </div>
@@ -2049,6 +2097,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                         {canManageEntry ? (
                                             <button type="button" onClick={() => void 删除社区模块(entry)} disabled={Boolean(busyId)} className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200 hover:bg-red-500/15 disabled:opacity-50">删除投稿</button>
                                         ) : null}
+                                        <button type="button" onClick={() => { setReportTarget({ id: entry.id, title: entry.title }); setReportText(''); setReportGameText(''); }} className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 hover:bg-amber-500/15">反馈问题{获取反馈数量(entry.id) > 0 ? ` (${获取反馈数量(entry.id)})` : ''}</button>
                                     </div>
                                 </div>
                             );
@@ -2058,6 +2107,30 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                     )}
                 </div>
             </div>
+            {reportTarget && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setReportTarget(null)}>
+                    <div className="w-full max-w-lg rounded-xl border border-amber-500/30 bg-[#11100d] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-amber-200">反馈「{reportTarget.title}」</h3>
+                        <p className="mt-1 text-xs text-gray-400">你的反馈会帮助贡献者定位和修复问题。</p>
+                        <textarea
+                            value={reportText}
+                            onChange={(e) => setReportText(e.target.value)}
+                            placeholder="描述你遇到的问题..."
+                            className="mt-4 h-24 w-full rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-amber-500/40 resize-none"
+                        />
+                        <textarea
+                            value={reportGameText}
+                            onChange={(e) => setReportGameText(e.target.value)}
+                            placeholder="粘贴相关游玩文本记录（可选，帮助贡献者理解问题情境）..."
+                            className="mt-2 h-20 w-full rounded-lg border border-white/10 bg-black/30 p-3 text-[11px] text-gray-300 outline-none placeholder:text-gray-500 focus:border-amber-500/40 resize-none font-mono"
+                        />
+                        <div className="mt-4 flex justify-end gap-2">
+                            <button type="button" onClick={() => setReportTarget(null)} className="rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-200 hover:border-white/25">取消</button>
+                            <button type="button" onClick={提交工坊反馈} disabled={!reportText.trim()} className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-4 py-2 text-xs font-bold text-amber-100 hover:bg-amber-500/25 disabled:opacity-40">提交反馈</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

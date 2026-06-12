@@ -13,6 +13,7 @@ interface Props {
     onExchange?: (goodId: string, price: number) => void;
     learnedBookIds?: string[];
     env?: 环境信息结构;
+    socialList?: any[];
 }
 
 type Tab = 'hall' | 'exchange' | 'library' | 'members';
@@ -199,8 +200,16 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
     };
 };
 
-const MemberAvatar: React.FC<{ member: any }> = ({ member }) => {
-    const src = 提取人物头像地址(member);
+const MemberAvatar: React.FC<{ member: any; socialList?: any[] }> = ({ member, socialList }) => {
+    const src = (() => {
+        const directSrc = 提取人物头像地址(member);
+        if (directSrc) return directSrc;
+        if (!Array.isArray(socialList)) return '';
+        const name = String(member?.姓名 || '').trim();
+        if (!name) return '';
+        const matchedNpc = socialList.find((npc: any) => String(npc?.姓名 || '').trim() === name);
+        return matchedNpc ? 提取人物头像地址(matchedNpc) : '';
+    })();
     const first = String(member?.姓名 || '人').slice(0, 1) || '人';
     return (
         <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border shrink-0 overflow-hidden ${member?.性别 === '女' ? 'border-pink-900 bg-pink-900/10 text-pink-500' : 'border-blue-900 bg-blue-900/10 text-blue-500'}`}>
@@ -249,7 +258,7 @@ const 估算月俸数量 = (sectData: 详细门派结构): number => {
     return Math.max(0, base + contributionBonus + scaleBonus);
 };
 
-const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook, onClaimMonthlyStipend, onExchange, learnedBookIds = [], env }) => {
+const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook, onClaimMonthlyStipend, onExchange, learnedBookIds = [], env, socialList }) => {
     const [activeTab, setActiveTab] = useState<Tab>('hall');
     const 文案 = useMemo(() => 获取组织显示文案(sectData), [sectData]);
     const 显示职位 = (rank?: string) => 文案.rankMap[String(rank || '').trim()] || rank || '无';
@@ -620,7 +629,7 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                         className="w-full text-left bg-black/40 border border-gray-700 p-4 rounded-lg flex flex-col gap-3 relative overflow-hidden group hover:bg-black/60 hover:border-wuxia-gold/40 transition-colors"
                                     >
                                         <div className="flex items-start gap-4 z-10">
-                                            <MemberAvatar member={mem} />
+                                            <MemberAvatar member={mem} socialList={socialList} />
                                             <div className="flex-1">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className="text-gray-200 font-bold text-lg">{mem.姓名}</span>

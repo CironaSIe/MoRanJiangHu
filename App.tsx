@@ -4221,6 +4221,7 @@ const App: React.FC = () => {
                                     onExchange={handleSectExchange}
                                     learnedBookIds={learnedSectBookIds}
                                     onClose={() => setters.setShowSect(false)}
+                                    socialList={state.社交}
                                 />
                             ) : (
                                 <SectModal
@@ -4232,6 +4233,7 @@ const App: React.FC = () => {
                                     onExchange={handleSectExchange}
                                     learnedBookIds={learnedSectBookIds}
                                     onClose={() => setters.setShowSect(false)}
+                                    socialList={state.社交}
                                 />
                             )}
                         </懒加载边界>

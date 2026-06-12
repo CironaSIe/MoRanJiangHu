@@ -12,6 +12,7 @@ interface Props {
     onExchange?: (goodId: string, price: number) => void;
     learnedBookIds?: string[];
     env?: 环境信息结构;
+    socialList?: any[];
 }
 
 type Tab = 'hall' | 'exchange' | 'library' | 'members';
@@ -165,8 +166,16 @@ const 获取组织显示文案 = (sectData: 详细门派结构) => {
     };
 };
 
-const MemberAvatar: React.FC<{ member: any }> = ({ member }) => {
-    const src = 提取人物头像地址(member);
+const MemberAvatar: React.FC<{ member: any; socialList?: any[] }> = ({ member, socialList }) => {
+    const src = (() => {
+        const directSrc = 提取人物头像地址(member);
+        if (directSrc) return directSrc;
+        if (!Array.isArray(socialList)) return '';
+        const name = String(member?.姓名 || '').trim();
+        if (!name) return '';
+        const matchedNpc = socialList.find((npc: any) => String(npc?.姓名 || '').trim() === name);
+        return matchedNpc ? 提取人物头像地址(matchedNpc) : '';
+    })();
     const first = String(member?.姓名 || '人').slice(0, 1) || '人';
     return (
         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-base border shrink-0 overflow-hidden ${
@@ -217,7 +226,7 @@ const 估算月俸数量 = (sectData: 详细门派结构): number => {
     return Math.max(0, base + contributionBonus + scaleBonus);
 };
 
-const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook, onClaimMonthlyStipend, onExchange, learnedBookIds = [], env }) => {
+const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook, onClaimMonthlyStipend, onExchange, learnedBookIds = [], env, socialList }) => {
     const [activeTab, setActiveTab] = useState<Tab>('hall');
     const 文案 = useMemo(() => 获取组织显示文案(sectData), [sectData]);
     const 显示职位 = (rank?: string) => 文案.rankMap[String(rank || '').trim()] || rank || '无';
@@ -466,7 +475,7 @@ const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook
                         <div className="space-y-3">
                             {sectData.重要成员.map(mem => (
                                 <button key={mem.id} type="button" onClick={() => onOpenNpc?.(mem)} className="w-full text-left bg-black/40 border border-gray-800 rounded-xl p-4 flex items-start gap-3 hover:border-wuxia-gold/40">
-                                    <MemberAvatar member={mem} />
+                                    <MemberAvatar member={mem} socialList={socialList} />
                                     <div className="flex-1">
                                         <div className="flex items-center justify-between">
                                             <span className="text-gray-200 font-bold">{mem.姓名}</span>
