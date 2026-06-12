@@ -48,6 +48,9 @@ export interface 创意工坊模块条目 {
     sha256?: string;
     ownerUserId?: string;
     ownerUsername?: string;
+    version?: number;
+    baseModuleId?: string;
+    versionNote?: string;
     anonymous?: boolean;
 }
 

@@ -223,6 +223,7 @@ type 贡献草稿 = {
     safetyNotes: string;
     style: string;
     scope: 'main' | 'scene' | 'nsfw' | 'all';
+    versionNote: string;
 };
 
 const 创建默认模式元数据草稿 = (mode: 题材模式类型): Pick<贡献草稿, 'currencyDisplayMode' | 'auctionName' | 'marketVerb' | 'mapPrompt' | 'skillNames' | 'presetItemKeywords' | 'backgroundSuggestions' | 'talentSuggestions' | 'modeRuntimeProfile'> => {
@@ -296,7 +297,8 @@ const 空贡献草稿 = (): 贡献草稿 => ({
     usagePrompt: '',
     safetyNotes: '',
     style: '',
-    scope: 'main'
+    scope: 'main',
+    versionNote: ''
 });
 
 const 分割文本行 = (value: string): string[] => value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -550,8 +552,11 @@ const 构建贡献模式世界书 = (draft: 贡献草稿, suiteId: string, suite
     ].filter((entry) => entry.内容)
 }];
 
-const 构建贡献模块 = (draft: 贡献草稿, contributor: string): 创意工坊模块条目 => {
+const 构建贡献模块 = (draft: 贡献草稿, contributor: string, existingEntries?: 创意工坊模块条目[]): 创意工坊模块条目 => {
     const title = draft.title.trim();
+    const baseId = existingEntries?.find(e => e.title === title && e.contributor === contributor)?.baseModuleId || `mod_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+    const existingVersions = existingEntries?.filter(e => (e.baseModuleId === baseId) || (e.title === title && e.contributor === contributor && !e.baseModuleId)) || [];
+    const nextVersion = existingVersions.length + 1;
     const bodyLines = 分割文本行(draft.body);
     const tags = [
         draft.mode,
@@ -609,14 +614,20 @@ const 构建贡献模块 = (draft: 贡献草稿, contributor: string): 创意工
         source: 'local',
         contributor: contributor.trim(),
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        version: nextVersion,
+        baseModuleId: baseId,
+        versionNote: draft.versionNote?.trim() || ''
     };
 };
 
-const 构建模式包模块 = (draft: 贡献草稿, contributor: string): 创意工坊模块条目 => {
+const 构建模式包模块 = (draft: 贡献草稿, contributor: string, existingEntries?: 创意工坊模块条目[]): 创意工坊模块条目 => {
     const stamp = Date.now();
     const suiteTitle = draft.title.trim();
-    const suiteId = `suite-${draft.mode}-${stamp}`;
+    const baseId = existingEntries?.find(e => e.title === suiteTitle && e.contributor === contributor)?.baseModuleId || `suite-${draft.mode}-${stamp}`;
+    const existingVersions = existingEntries?.filter(e => (e.baseModuleId === baseId) || (e.title === suiteTitle && e.contributor === contributor && !e.baseModuleId)) || [];
+    const nextVersion = existingVersions.length + 1;
+    const suiteId = baseId;
     const baseMode = draft.modeRuntimeProfile.identity.baseMode || draft.mode;
     const tags = [
         baseMode,
@@ -747,7 +758,10 @@ const 构建模式包模块 = (draft: 贡献草稿, contributor: string): 创意
         source: 'local',
         contributor: contributor.trim(),
         createdAt: new Date(stamp).toISOString(),
-        updatedAt: new Date(stamp).toISOString()
+        updatedAt: new Date(stamp).toISOString(),
+        version: nextVersion,
+        baseModuleId: baseId,
+        versionNote: draft.versionNote?.trim() || ''
     };
 };
 
@@ -770,13 +784,13 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
     const [currencySystemEditMode, setCurrencySystemEditMode] = useState<货币系统编辑模式>(() => (
         空贡献草稿().modeRuntimeProfile.economy.currencySystem ? 'dynamic' : 'legacy'
     ));
-    const [showContributionForm, setShowContributionForm] = useState(true);
+    const [showContributionForm, setShowContributionForm] = useState(false);
     const jsonImportInputRef = useRef<HTMLInputElement | null>(null);
-    const contributionModule = useMemo(() => 构建贡献模块(contributionDraft, contributor), [contributionDraft, contributor]);
+    const contributionModule = useMemo(() => 构建贡献模块(contributionDraft, contributor, entries), [contributionDraft, contributor, entries]);
     const contributionModules = useMemo(() => (
         contributionDraft.type === 'comfy_workflow'
             ? [contributionModule]
-            : [构建模式包模块(contributionDraft, contributor)]
+            : [构建模式包模块(contributionDraft, contributor, entries)]
     ), [contributionDraft, contributionModule, contributor]);
     const worldDetailsReady = contributionDraft.aiGenerateWorldDetails || 世界细节配置有自定义内容(构建世界细节生成配置(contributionDraft));
     const contributionReady = contributionDraft.title.trim().length > 0 && (
@@ -1478,6 +1492,10 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                         副标题
                                         <input value={contributionDraft.subtitle} onChange={(event) => setContributionDraft((prev) => ({ ...prev, subtitle: event.target.value }))} placeholder="例如：势力渗透、暗线追踪" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
                                     </label>
+                                    <label className="block text-xs text-gray-300">
+                                        版本说明
+                                        <input value={contributionDraft.versionNote} onChange={(event) => setContributionDraft((prev) => ({ ...prev, versionNote: event.target.value }))} placeholder="如：修复XX、新增YY" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                    </label>
                                 </div>
                                 <div className="grid gap-3 sm:grid-cols-3">
                                     <label className="block text-xs text-gray-300">
@@ -1955,9 +1973,9 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                 <div key={`${entry.source || 'builtin'}:${entry.id}`} className="rounded-xl border border-white/10 bg-black/25 p-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <h3 className="text-base font-serif font-bold text-gray-100">{entry.title}</h3>
+                                            <h3 className="text-base font-serif font-bold text-gray-100">{entry.title}{typeof entry.version === 'number' && entry.version > 1 ? <span className="ml-2 inline-block rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[11px] font-mono text-amber-200">v{entry.version}</span> : null}</h3>
                                             <div className="mt-1 text-xs text-wuxia-gold/80">{entry.subtitle}</div>
-                                            <div className="mt-1 text-[11px] text-gray-500">{entry.source === 'cloud' ? '社区贡献' : entry.source === 'local' ? '本地导入' : '官方预设'} · {entry.contributor || '匿名'}</div>
+                                            <div className="mt-1 text-[11px] text-gray-500">{entry.source === 'cloud' ? '社区贡献' : entry.source === 'local' ? '本地导入' : '官方预设'} · {entry.contributor || '匿名'}{entry.versionNote ? ` · ${entry.versionNote}` : ''}</div>
                                         </div>
                                         <div className="shrink-0 border border-white/15 px-2 py-0.5 text-[10px] text-gray-300">可注入</div>
                                     </div>
