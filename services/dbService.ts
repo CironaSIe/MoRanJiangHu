@@ -2377,7 +2377,7 @@ export const 删除存档 = async (id: number): Promise<void> => {
     await 清理未引用图片资源();
 };
 
-export const 批量删除存档 = async (ids: number[]): Promise<number> => {
+export const 批量删除存档 = async (ids: number[], skipCleanup?: boolean): Promise<number> => {
     if (await 读取存档保护状态()) {
         throw new Error('存档保护已开启，请先在“设置-数据存储”中关闭后再删除存档。');
     }
@@ -2400,7 +2400,9 @@ export const 批量删除存档 = async (ids: number[]): Promise<number> => {
         transaction.onerror = () => reject(transaction.error);
         transaction.onabort = () => reject(transaction.error || new Error('批量删除存档事务已中止。'));
     });
-    await 清理未引用图片资源();
+    if (!skipCleanup) {
+        await 清理未引用图片资源();
+    }
     return uniqueIds.length;
 };
 
