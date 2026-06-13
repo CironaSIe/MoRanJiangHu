@@ -29,6 +29,7 @@ export type 世界演变触发参数 = {
     currentResponse?: GameResponse;
     stateBase?: Partial<响应命令处理状态>;
     signal?: AbortSignal;
+    onStreamDelta?: (delta: string, accumulated: string) => void;
 };
 
 export type 世界演变执行结果 = {
@@ -378,6 +379,8 @@ export const 执行世界演变更新工作流 = async (
             fandomEnabled: fandomPromptBundle.enabled
         });
 
+        const 世界演变非流式输出 = worldRuntimeGameConfig.启用非流式输出
+            || deps.apiSettings.功能模型占位?.世界演变非流式输出 === true;
         const result = await probe.timeAsync('世界演变模型请求总耗时', () => 执行世界演变带超时(signal => (
             textAIService.generateWorldEvolutionUpdate(
                 worldContext,
@@ -387,7 +390,12 @@ export const 执行世界演变更新工作流 = async (
                 worldCotPseudoPrompt,
                 worldCotPrompt,
                 fandomPromptBundle.enabled,
-                独立世界演变GPT模式
+                独立世界演变GPT模式,
+                世界演变非流式输出
+                    ? undefined
+                    : params.onStreamDelta
+                        ? { stream: true, onDelta: params.onStreamDelta }
+                        : undefined
             )
         ), params?.signal), { timeoutMs: 世界演变请求超时毫秒 });
         检查世界演变中断(params?.signal);

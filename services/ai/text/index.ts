@@ -32,5 +32,6 @@ export type {
     StoryRequestOptions,
     VariableCalibrationResult,
     WorldFoundationResult,
-    WorldEvolutionResult
+    WorldEvolutionResult,
+    WorldStreamOptions
 } from '../storyTasks';

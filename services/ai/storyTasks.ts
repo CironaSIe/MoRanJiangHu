@@ -224,7 +224,7 @@ export interface StoryRequestOptions {
     prefixMode?: boolean;
 }
 
-interface WorldStreamOptions {
+export interface WorldStreamOptions {
     stream?: boolean;
     onDelta?: (delta: string, accumulated: string) => void;
 }
@@ -784,7 +784,8 @@ export const generateWorldEvolutionUpdate = async (
     cotPseudoHistoryPrompt?: string,
     cotPrompt?: string,
     fandomEnabled?: boolean,
-    gptMode?: boolean
+    gptMode?: boolean,
+    streamOptions?: WorldStreamOptions
 ): Promise<WorldEvolutionResult> => {
     if (!apiConfig.apiKey) throw new Error('Missing API Key');
 
@@ -831,7 +832,8 @@ export const generateWorldEvolutionUpdate = async (
     const rawText = await 请求模型文本(apiConfig, messages, {
         temperature: 0.4,
         signal,
-        errorDetailLimit: Number.POSITIVE_INFINITY
+        errorDetailLimit: Number.POSITIVE_INFINITY,
+        streamOptions
     });
     const parsed = 解析世界演变响应(rawText);
     return {

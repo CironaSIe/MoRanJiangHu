@@ -102,6 +102,19 @@ const stageToggleTips: Record<string, StageToggleConfig> = {
     }
 };
 
+const stageNonStreamKeys: Record<string, keyof 功能模型占位配置结构> = {
+    main: '主剧情非流式输出',
+    recall: '剧情回忆非流式输出',
+    polish: '文章优化非流式输出',
+    variable: '变量计算非流式输出',
+    world: '世界演变非流式输出',
+    planning: '规划分析非流式输出',
+    map: '地图自动更新非流式输出',
+    summary: '记忆总结非流式输出',
+    refine: '记忆精炼非流式输出',
+    novel: '小说拆分非流式输出'
+};
+
 const statusClass: Record<StageStatus, string> = {
     enabled: 'border-emerald-400/45 bg-emerald-950/25 text-emerald-100',
     disabled: 'border-gray-700 bg-black/25 text-gray-400',
@@ -763,6 +776,41 @@ const WorkflowGraphSettings: React.FC<{
                     </button>
                     <span className="text-[10px] text-gray-300">{isToggleOn !== false ? '开启' : '关闭'}</span>
                     <StageTipTooltip tipText={toggleConfig.tipText} />
+                </div>
+            )}
+            {stageNonStreamKeys[stage.id] && (
+                <div className="mt-1.5 flex items-center gap-2">
+                    <button
+                        type="button"
+                        aria-label={`${stage.title}输出模式：${normalized.功能模型占位[stageNonStreamKeys[stage.id]!] === true ? '非流式' : '流式'}`}
+                        aria-pressed={normalized.功能模型占位[stageNonStreamKeys[stage.id]!] === true}
+                        onClick={() => {
+                            if (!onSave) return;
+                            const key = stageNonStreamKeys[stage.id]!;
+                            const next = normalized.功能模型占位[key] !== true;
+                            persistForm((prev) => ({
+                                ...prev,
+                                功能模型占位: { ...prev.功能模型占位, [key]: next }
+                            }));
+                        }}
+                        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
+                            normalized.功能模型占位[stageNonStreamKeys[stage.id]!] === true
+                                ? 'bg-amber-500/70 [html[data-theme="day"]_&]:bg-amber-600'
+                                : 'bg-gray-600/60 [html[data-theme="day"]_&]:bg-gray-300'
+                        } ${onSave ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                    >
+                        <span className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
+                            normalized.功能模型占位[stageNonStreamKeys[stage.id]!] === true
+                                ? 'translate-x-[14px]' : 'translate-x-[2px]'
+                        }`} />
+                    </button>
+                    <span className={`text-[9px] ${
+                        normalized.功能模型占位[stageNonStreamKeys[stage.id]!] === true
+                            ? 'text-amber-300/90 [html[data-theme="day"]_&]:text-amber-800'
+                            : 'text-gray-500 [html[data-theme="day"]_&]:text-gray-700'
+                    }`}>
+                        {normalized.功能模型占位[stageNonStreamKeys[stage.id]!] === true ? '非流式' : '流式'}
+                    </span>
                 </div>
             )}
             <div className="mt-1 space-y-0.5 text-[10px] leading-4">

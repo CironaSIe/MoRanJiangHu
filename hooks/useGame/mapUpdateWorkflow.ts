@@ -452,15 +452,19 @@ export const 生成地图更新 = async (
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
     ], { 保留System: true, 合并同角色: false });
+    const shouldNonStream = params.gameConfig?.启用非流式输出
+        || params.apiSettings.功能模型占位?.地图自动更新非流式输出 === true;
     const rawText = await 请求模型文本(api as 当前可用接口结构, messages, {
         temperature: params.mode === 'auto_incremental' ? 0.35 : 0.7,
         signal: params.signal,
-        streamOptions: params.onDelta
-            ? {
-                stream: true,
-                onDelta: params.onDelta
-            }
-            : undefined,
+        streamOptions: shouldNonStream
+            ? undefined
+            : params.onDelta
+                ? {
+                    stream: true,
+                    onDelta: params.onDelta
+                }
+                : undefined,
         errorDetailLimit: Number.POSITIVE_INFINITY
     });
 

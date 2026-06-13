@@ -533,6 +533,7 @@ export const 执行正文润色 = async (
         : '';
     const polishCotPseudoPrompt = '';
     const guardedOnDelta = 构建文章优化流式守卫(deps.onDelta);
+    const shouldNonStream = deps.gameConfig?.启用非流式输出 || featureConfig?.文章优化非流式输出;
 
     const sourceLogs = Array.isArray(baseResponse.body_original_logs) && baseResponse.body_original_logs.length > 0
         ? baseResponse.body_original_logs
@@ -551,7 +552,7 @@ export const 执行正文润色 = async (
             options?.signal,
             polishExtraPrompt,
             polishCotPseudoPrompt,
-            guardedOnDelta ? { stream: true, onDelta: guardedOnDelta } : undefined
+            !shouldNonStream && guardedOnDelta ? { stream: true, onDelta: guardedOnDelta } : undefined
         );
         const pollution = 检测文章优化协议确认污染(result.rawText || result.bodyText || '');
         if (pollution.polluted) {
