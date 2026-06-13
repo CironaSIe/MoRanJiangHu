@@ -2986,7 +2986,7 @@ const App: React.FC = () => {
                             loading={state.loading}
                             apiConfig={state.apiConfig}
                             requestConfirm={requestConfirm}
-                            isStreamingDefault={!state.gameConfig?.启用非流式输出}
+                            isStreamingDefault={!(state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.主剧情非流式输出)}
                         />
                     ) : (
                         <NewGameWizard
@@ -2997,7 +2997,7 @@ const App: React.FC = () => {
                             loading={state.loading}
                             apiConfig={state.apiConfig}
                             requestConfirm={requestConfirm}
-                            isStreamingDefault={!state.gameConfig?.启用非流式输出}
+                            isStreamingDefault={!(state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.主剧情非流式输出)}
                         />
                     )}
                 </懒加载边界>
@@ -3201,7 +3201,19 @@ const App: React.FC = () => {
                                      mainStoryModelInfo={mainStoryApiInfo}
                                      externalDraft={chatDraftRequest}
                                      options={currentOptions}
-                                     isStreamingDefault={!state.gameConfig?.启用非流式输出}
+                                     isStreamingDefault={!(state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.主剧情非流式输出)}
+                                     stageStreamMode={{
+                                         main: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.主剧情非流式输出 ? 'non-stream' : 'stream',
+                                         polish: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.文章优化非流式输出 ? 'non-stream' : 'stream',
+                                         variable: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.变量计算非流式输出 ? 'non-stream' : 'stream',
+                                         world: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.世界演变非流式输出 ? 'non-stream' : 'stream',
+                                         planning: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.规划分析非流式输出 ? 'non-stream' : 'stream',
+                                         map: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.地图自动更新非流式输出 ? 'non-stream' : 'stream',
+                                         recall: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.剧情回忆非流式输出 ? 'non-stream' : 'stream',
+                                         summary: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.记忆总结非流式输出 ? 'non-stream' : 'stream',
+                                         refine: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.记忆精炼非流式输出 ? 'non-stream' : 'stream',
+                                         novel: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.小说拆分非流式输出 ? 'non-stream' : 'stream',
+                                     }}
                                  />
                             </div>
                             {sceneQuickGenToastVisible && (

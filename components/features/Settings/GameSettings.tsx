@@ -565,13 +565,13 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
             <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
                 <div className="flex items-center justify-between gap-4">
                     <div>
-                        <div className="text-sm text-wuxia-cyan font-bold">非流式输出 (Beta)</div>
-                        <div className="text-xs text-gray-400 mt-1">开启后，主剧情与开局生成将使用非流式请求，AI 一次性返回完整结果。适合稳定性要求高于响应速度的场景。默认关闭（流式输出）。</div>
+                        <div className="text-sm text-wuxia-cyan font-bold">全局非流式输出</div>
+                        <div className="text-xs text-gray-400 mt-1">开启后强制所有阶段使用非流式请求（AI 一次性返回），覆盖各阶段的独立设置。默认关闭（流式输出，逐段返回结果）。各阶段的独立非流式开关可在「流程页面」每阶段设置区中调整。</div>
                     </div>
                     <ToggleSwitch
                         checked={form.启用非流式输出 === true}
                         onChange={(next) => 实时应用更新({ 启用非流式输出: next })}
-                        ariaLabel="切换非流式输出"
+                        ariaLabel="切换全局非流式输出"
                     />
                 </div>
             </div>

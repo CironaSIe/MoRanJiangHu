@@ -209,6 +209,7 @@ interface Props {
     openingVariableGenerationProgress?: VariableGenerationProgress | null;
     openingMapUpdateProgress?: MapUpdateProgress | null;
     isStreamingDefault?: boolean;
+    stageStreamMode?: Record<string, 'stream' | 'non-stream'>;
 }
 
 const InputArea: React.FC<Props> = ({
@@ -235,7 +236,8 @@ const InputArea: React.FC<Props> = ({
     openingPlanningProgress = null,
     openingVariableGenerationProgress = null,
     openingMapUpdateProgress = null,
-    isStreamingDefault = true
+    isStreamingDefault = true,
+    stageStreamMode = {}
 }) => {
     const [content, setContent] = useState('');
     const [isStreaming, setIsStreaming] = useState(isStreamingDefault);
@@ -931,6 +933,15 @@ const InputArea: React.FC<Props> = ({
                                                         )}
                                                         <span className="text-sm text-gray-100">{stage.label}</span>
                                                         {elapsedText && <span className="text-[11px] text-gray-500 font-mono">{elapsedText}</span>}
+                                                        {(() => {
+                                                            const id = stage.id.replace(/^opening-/, '').replace(/^story$/, 'main');
+                                                            const mode = stageStreamMode[id];
+                                                            return mode ? (
+                                                                <span className={`text-[10px] font-mono ml-1 ${mode === 'non-stream' ? 'text-amber-500/70' : 'text-cyan-500/60'}`}>
+                                                                    {mode === 'non-stream' ? '[非流式]' : '[流式]'}
+                                                                </span>
+                                                            ) : null;
+                                                        })()}
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         {isVariableStage && phase === 'start' && variableGenerationRunning && onCancelVariableGeneration && (

@@ -89,7 +89,7 @@ type 规划分析进度 = {
 };
 
 type 世界演变进度 = {
-    phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
+    phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled' | 'stream';
     text?: string;
     rawText?: string;
     commandTexts?: string[];
@@ -992,7 +992,8 @@ export const 执行主剧情发送工作流 = async (
                         onDelta: (_delta, accumulated) => {
                             options?.onRecallProgress?.({ phase: 'stream', text: accumulated });
                         }
-                    }
+                    },
+                    currentState.gameConfig
                 ).then(resolve).catch(reject).finally(() => {
                     window.clearTimeout(timeoutId);
                 });

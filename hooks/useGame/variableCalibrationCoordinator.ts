@@ -258,6 +258,8 @@ export const 创建变量校准协调器 = (deps: 变量生成工作流依赖) =
                 isOpeningRound,
                 worldEvolutionEnabled
             });
+            const 变量计算非流式 = deps.gameConfig?.启用非流式输出
+                || deps.apiConfig?.功能模型占位?.变量计算非流式输出 === true;
             const variableCalibration = await 执行变量模型带流式空闲超时(() => deps.执行变量模型校准工作流(
                 {
                     playerInput: params.playerInput,
@@ -273,12 +275,14 @@ export const 创建变量校准协调器 = (deps: 变量生成工作流依赖) =
                     extraPromptAppend: params.extraPromptAppend,
                     recentRounds,
                     isOpeningRound,
-                    onStreamDelta: (_delta: string, accumulated: string) => {
-                        if (controller.signal.aborted) return;
-                        最近流式文本 = accumulated;
-                        流式空闲重置回调?.();
-                        推送流式进度();
-                    }
+                    onStreamDelta: 变量计算非流式
+                        ? undefined
+                        : (_delta: string, accumulated: string) => {
+                            if (controller.signal.aborted) return;
+                            最近流式文本 = accumulated;
+                            流式空闲重置回调?.();
+                            推送流式进度();
+                        }
                 },
                 {
                     apiConfig: deps.apiConfig,

@@ -410,11 +410,21 @@ export interface 功能模型占位配置结构 {
     地图生成渠道ID?: string;
     地图生成API地址: string;
     地图生成API密钥: string;
-    地图自动更新独立模型开关: boolean;
-    地图自动更新使用模型: string;
-    地图自动更新渠道ID?: string;
-    地图自动更新API地址: string;
-    地图自动更新API密钥: string;
+     地图自动更新独立模型开关: boolean;
+     地图自动更新使用模型: string;
+     地图自动更新渠道ID?: string;
+     地图自动更新API地址: string;
+     地图自动更新API密钥: string;
+     主剧情非流式输出?: boolean;
+     剧情回忆非流式输出?: boolean;
+     文章优化非流式输出?: boolean;
+     变量计算非流式输出?: boolean;
+     世界演变非流式输出?: boolean;
+     规划分析非流式输出?: boolean;
+     地图自动更新非流式输出?: boolean;
+     记忆总结非流式输出?: boolean;
+     记忆精炼非流式输出?: boolean;
+     小说拆分非流式输出?: boolean;
 }
 
 export interface 接口设置结构 {

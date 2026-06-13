@@ -545,6 +545,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         });
 
         检查规划分析中断(params.signal);
+        const 规划分析非流式输出 = normalizedGameConfig.启用非流式输出 || normalizedGameConfig.功能模型占位?.规划分析非流式输出;
         const result = await probe.timeAsync('规划分析模型请求总耗时', () => 执行规划分析带超时和重试((signal, markStreamActivity) => textAIService.generatePlanningAnalysis({
             playerName: (deps.角色?.姓名 || '').trim() || '未命名',
             currentStoryJson,
@@ -561,7 +562,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             fandomEnabled,
             extraPrompt: planningExtraPrompt,
             gptMode: 独立规划分析GPT模式
-        }, planningApi, signal, {
+        }, planningApi, signal, 规划分析非流式输出 ? undefined : {
             stream: true,
             onDelta: markStreamActivity
         }), params.onRetry, params.signal), {

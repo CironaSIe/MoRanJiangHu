@@ -1,5 +1,5 @@
 import * as textAIService from '../../services/ai/text';
-import { 接口设置结构, 记忆系统结构 } from '../../types';
+import { 接口设置结构, 记忆系统结构, 游戏设置结构 } from '../../types';
 import { 获取剧情回忆接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import {
     剧情回忆检索COT提示词,
@@ -29,7 +29,8 @@ export const 执行剧情回忆检索 = async (
         onDelta?: (delta: string, accumulated: string) => void;
         extraPrompt?: string;
         cotPseudoHistoryPrompt?: string;
-    }
+    },
+    gameConfig?: Partial<游戏设置结构>,
 ): Promise<剧情回忆检索结果> => {
     const recallApi = 获取剧情回忆接口配置(apiConfig);
     if (!接口配置是否可用(recallApi)) {
@@ -48,12 +49,13 @@ export const 执行剧情回忆检索 = async (
     const userPrompt = 构建剧情回忆检索用户提示词(playerInput, memoryCorpus);
     let parsed = localFallback;
     try {
+        const shouldNonStream = gameConfig?.启用非流式输出 || recallConfig.剧情回忆非流式输出 === true;
         const raw = await textAIService.generateMemoryRecall(
             systemPrompt,
             userPrompt,
             recallApi,
             options?.signal,
-            options?.onDelta
+            !shouldNonStream && options?.onDelta
                 ? {
                     stream: true,
                     onDelta: options.onDelta
