@@ -27,8 +27,8 @@ describe('additional name support (non-standard CJK names)', () => {
             expect(是否可信角色发送者('阿卡菲尔')).toBe(false);
         });
 
-        it('rejects 5-char CJK name (超过6字上限)', () => {
-            expect(是否可信角色发送者('伊丽莎白万岁')).toBe(false);
+        it('rejects 7-char CJK name (超过6字上限)', () => {
+            expect(是否可信角色发送者('伊丽莎白万万岁')).toBe(false);
         });
 
         it('rejects obvious narration noise (她轻声细语地)', () => {

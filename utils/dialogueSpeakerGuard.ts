@@ -56,7 +56,7 @@ export const 是否疑似叙事短语标签 = (senderRaw: string): boolean => {
     const sender = 规范化正文发送者名(senderRaw);
     if (!sender || sender === '旁白') return false;
     if (结构或句子符号正则.test(sender)) return true;
-    if (sender.length > 4) return true;
+    if (sender.length > 6) return true;
     if (泛称或非角色标签正则.test(sender)) return true;
     if (身体部位或物件标签正则.test(sender)) return true;
     if (明显叙事短语起始正则.test(sender)) return true;
