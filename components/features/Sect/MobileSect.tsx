@@ -406,16 +406,25 @@ const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook
                                                     <span className={isCurrent ? 'text-wuxia-gold' : 'text-gray-400'}>{显示职位(rank)}</span>
                                                     {isCurrent && <span className="text-[9px] text-wuxia-gold border border-wuxia-gold px-2 rounded">当前</span>}
                                                 </div>
-                                            );
-                                        })}
-                                </div>
+                                 );
+                            })}
+
+                        </div>
                             </div>
                         </>
                     )}
 
                     {activeTab === 'exchange' && (
                         <div className="grid grid-cols-2 gap-3">
-                            {sectData.兑换列表.map(good => {
+                            {(() => {
+                                const seen = new Set<string>();
+                                return sectData.兑换列表.filter((good: any) => {
+                                    const key = String(good?.物品名称 || '').trim();
+                                    if (!key) return false;
+                                    if (seen.has(key)) return false;
+                                    seen.add(key);
+                                    return true;
+                                }).map(good => {
                                 const discountedPrice = 计算折后贡献(good.兑换价格);
                                 const canExchange = 职位可达(good.要求职位) && sectData.玩家贡献 >= discountedPrice && good.库存 > 0;
                                 return (
@@ -434,8 +443,9 @@ const MobileSect: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook
                                             {canExchange ? '可兑换' : !职位可达(good.要求职位) ? '身份不足' : '贡献不足'}
                                         </button>
                                     </div>
-                                );
-                            })}
+                                 );
+                            });
+                            })()}
                         </div>
                     )}
 

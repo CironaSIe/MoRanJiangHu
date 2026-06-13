@@ -215,6 +215,47 @@ export const 校验响应未命中女性姓名黑名单 = (
     throw error;
 };
 
+export const 校验响应人称一致性 = (
+    response: GameResponse,
+    rawText: string,
+    expectedPov: string
+) => {
+    const bodyText = Array.isArray(response?.logs)
+        ? response.logs.map((log: any) => typeof log?.text === 'string' ? log.text : '').join('')
+        : '';
+    if (!bodyText) return;
+    const sample = bodyText.slice(0, 2000);
+    const playerName = typeof response?.角色?.姓名 === 'string' ? response.角色.姓名.trim() : '';
+    if (expectedPov === '第二人称') {
+        const hasYou = /你/.test(sample);
+        const hasHeShe = playerName && new RegExp(playerName).test(sample);
+        if (!hasYou && hasHeShe) {
+            const detail = `叙事人称不符：设置了第二人称但正文使用了第三人称（出现主角姓名"${playerName}"而未出现"你"）。请用第二人称"你"重新生成正文。`;
+            const error = new textAIService.StoryResponseParseError(detail, rawText, detail);
+            (error as any).parseDetail = detail;
+            throw error;
+        }
+    } else if (expectedPov === '第一人称') {
+        const hasI = /[\u4e00-\u9fff]我/.test(sample) || /^我/.test(sample);
+        const hasYou = /你/.test(sample);
+        if (!hasI && hasYou) {
+            const detail = '叙事人称不符：设置了第一人称但正文使用了第二人称。请用第一人称"我"重新生成正文。';
+            const error = new textAIService.StoryResponseParseError(detail, rawText, detail);
+            (error as any).parseDetail = detail;
+            throw error;
+        }
+    } else if (expectedPov === '第三人称') {
+        const hasHeShe = playerName && new RegExp(playerName).test(sample);
+        const hasYou = /你/.test(sample);
+        if (!hasHeShe && hasYou) {
+            const detail = `叙事人称不符：设置了第三人称但正文使用了第二人称。请用第三人称"${playerName || '他/她'}"重新生成正文。`;
+            const error = new textAIService.StoryResponseParseError(detail, rawText, detail);
+            (error as any).parseDetail = detail;
+            throw error;
+        }
+    }
+};
+
 const 规范化姓名键 = (value: unknown): string => (
     typeof value === 'string'
         ? value.trim().replace(/[\s\u3000]+/g, '')
@@ -1419,6 +1460,11 @@ export const 执行主剧情发送工作流 = async (
                     deps.获取原始AI消息(storyResult.rawText),
                     "主剧情",
                     currentState.社交
+                );
+                校验响应人称一致性(
+                    storyResult.response,
+                    deps.获取原始AI消息(storyResult.rawText),
+                    runtimeGameConfig.叙事人称 || '第二人称'
                 );
                 校验响应未改写既有NPC姓名(
                     storyResult.response,

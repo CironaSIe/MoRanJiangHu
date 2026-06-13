@@ -459,9 +459,10 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                                         {isCurrent && <span className="text-xs text-wuxia-gold border border-wuxia-gold px-2 rounded">当前</span>}
                                                         {!isCurrent && contributionReady && <span className="text-xs text-emerald-200 border border-emerald-400/50 px-2 rounded">贡献达标</span>}
                                                     </div>
-                                                )
-                                            })}
-                                        </div>
+                                                 )
+                                      })}
+
+                                  </div>
                                      </div>
                                      <div className="bg-black/30 border border-gray-700 p-6 rounded-lg">
                                           <h4 className="text-gray-100 font-bold text-sm uppercase tracking-widest mb-4">{文案.contribution}总览</h4>
@@ -542,7 +543,15 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                      <p className="mt-2 text-sm leading-6 text-gray-300">{文案.exchangeHint}</p>
                                  </div>
                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                                     {sectData.兑换列表.map(good => {
+                                      {(() => {
+                                          const seen = new Set<string>();
+                                          return sectData.兑换列表.filter((good: any) => {
+                                              const key = String(good?.物品名称 || '').trim();
+                                              if (!key) return false;
+                                              if (seen.has(key)) return false;
+                                              seen.add(key);
+                                              return true;
+                                          }).map(good => {
                                          const discountedPrice = 计算折后贡献(good.兑换价格);
                                          const canExchange = 职位可达(good.要求职位) && sectData.玩家贡献 >= discountedPrice && good.库存 > 0;
                                          return (
@@ -571,10 +580,12 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                                                   >
                                                      {canExchange ? '可兑换' : !职位可达(good.要求职位) ? '身份不足' : '贡献不足'}
                                                  </button>
-                                             </div>
-                                         );
-                                     })}
-                                 </div>
+                                              </div>
+                                                  );
+                                      });
+                                      })()}
+
+                                   </div>
                              </div>
                         )}
 

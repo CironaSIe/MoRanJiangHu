@@ -2060,7 +2060,7 @@ const App: React.FC = () => {
         const nextCharacter = stipendAsContribution
             ? state.角色
             : { ...state.角色, 金钱: 规范化角色金钱({ ...currentMoney, 底层货币: Math.max(0, Number(currentMoney.底层货币 || 0)) + amount }) };
-        setters.setPlayerSect(nextSect);
+        actions.setPlayerSect(nextSect);
         setters.setCharacter(nextCharacter);
         void actions.performAutoSave?.({ role: nextCharacter, sect: nextSect, force: true });
         actions.pushNotification({
