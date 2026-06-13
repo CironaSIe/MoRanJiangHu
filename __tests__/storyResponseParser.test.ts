@@ -375,16 +375,44 @@ describe('storyResponseParser', () => {
         expect(parsed.logs[3].sender).toBe('旁白');
     });
 
-    it('ignores noise sender without <角色名单> declaration', () => {
+    it('repairs incomplete <角色名单> tag (missing closing tag)', () => {
         const parsed = parseStoryRawText([
+            '<角色名单>',
+            '芙莉莲',
+            '琪亚娜',
             '<正文>',
-            '【阿卡菲尔】"没有这个人物。"',
-            '【旁白】四周寂静无人。',
+            '【芙莉莲】"你好。"',
             '</正文>',
-            '<短期记忆>无事发生。</短期记忆>'
+            '<短期记忆>test</短期记忆>'
         ].join('\n'));
 
-        expect(parsed.logs).toHaveLength(1);
-        expect(parsed.logs[0].sender).toBe('旁白');
+        expect(parsed.declaredSpeakers).toEqual(['芙莉莲', '琪亚娜']);
+        expect(parsed.logs[0].sender).toBe('芙莉莲');
+    });
+
+    it('handles wrong closing tag with 兼容错误闭合', () => {
+        const parsed = parseStoryRawText([
+            '<角色名单>芙莉莲<角色名单>',
+            '<正文>',
+            '【芙莉莲】"测试。"',
+            '</正文>',
+            '<短期记忆>test</短期记忆>'
+        ].join('\n'));
+
+        expect(parsed.declaredSpeakers).toEqual(['芙莉莲']);
+        expect(parsed.logs[0].sender).toBe('芙莉莲');
+    });
+
+    it('recognizes English aliases for 角色名单', () => {
+        const parsed = parseStoryRawText([
+            '<rolelist>芙莉莲, 琪亚娜</rolelist>',
+            '<正文>',
+            '【芙莉莲】"Hi."',
+            '</正文>',
+            '<短期记忆>test</短期记忆>'
+        ].join('\n'));
+
+        expect(parsed.declaredSpeakers).toEqual(['芙莉莲', '琪亚娜']);
+        expect(parsed.logs[0].sender).toBe('芙莉莲');
     });
 });
