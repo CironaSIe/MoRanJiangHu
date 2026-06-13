@@ -151,4 +151,14 @@ export interface 角色数据结构 {
 
     玩家BUFF: 玩家BUFF结构[];
     突破条件: 突破条件结构[];
+
+    // 香闺秘档私密描述（女性/男娘/扶她主角）
+    胸部描述?: string;
+    小穴描述?: string;
+    屁穴描述?: string;
+    肉棒描述?: string;
+    男娘设定?: string;
+    扶她设定?: string;
+    性癖?: string;
+    敏感点?: string;
 }

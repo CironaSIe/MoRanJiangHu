@@ -30,7 +30,10 @@ interface Props {
     visualConfig?: 视觉设置结构;
     apiConfig?: 接口设置结构;
     playerAnchor?: 角色锚点结构 | null;
+    nsfwEnabled?: boolean;
+    femboyNsfwEnabled?: boolean;
     onGeneratePlayerImage?: (options?: 主角生图选项) => Promise<void> | void;
+    onGeneratePlayerSecretPartImage?: (part: string) => Promise<void> | void;
     onExtractPlayerAnchor?: (options?: { 名称?: string; 额外要求?: string }) => Promise<角色锚点结构 | null | void> | 角色锚点结构 | null | void;
     onSavePlayerAnchor?: (anchor: 角色锚点结构) => Promise<角色锚点结构 | null | void> | 角色锚点结构 | null | void;
     onDeletePlayerAnchor?: (anchorId: string) => Promise<void> | void;
@@ -112,7 +115,10 @@ const CharacterModal: React.FC<Props> = ({
     visualConfig,
     apiConfig,
     playerAnchor,
+    nsfwEnabled = false,
+    femboyNsfwEnabled = true,
     onGeneratePlayerImage,
+    onGeneratePlayerSecretPartImage,
     onExtractPlayerAnchor,
     onSavePlayerAnchor,
     onDeletePlayerAnchor,
@@ -177,6 +183,32 @@ const CharacterModal: React.FC<Props> = ({
         () => pngStylePresets.find((item) => item.id === (generateOptions.PNG画风预设ID || '').trim()) || null,
         [pngStylePresets, generateOptions.PNG画风预设ID]
     );
+
+    const 主角性别 = String(character?.性别 || '').trim();
+    const 主角是扶她 = 主角性别.includes('扶她') || Boolean(String((character as any)?.扶她设定 || '').trim());
+    const 主角是男娘 = 主角性别.includes('男娘') || Boolean(String((character as any)?.男娘设定 || '').trim());
+    const 主角是男性纯 = 主角性别 === '男' && !主角是男娘 && !主角是扶她;
+    const 主角展示香闺秘档 = nsfwEnabled && !主角是男性纯;
+
+    const 主角香闺部位列表: Array<{ key: string; label: string; text: string }> = 主角展示香闺秘档
+        ? (主角是扶她
+            ? [
+                { key: '胸部', label: '胸部描述', text: (character as any)?.胸部描述 || '暂无记录' },
+                { key: '小穴', label: '小穴描述', text: (character as any)?.小穴描述 || '暂无记录' },
+                { key: '屁穴', label: '屁穴描述', text: (character as any)?.屁穴描述 || '暂无记录' },
+                { key: '肉棒', label: '肉棒描述', text: (character as any)?.肉棒描述 || '暂无记录' }
+            ]
+            : 主角是男娘
+            ? [
+                { key: '肉棒', label: '肉棒描述', text: (character as any)?.肉棒描述 || '暂无记录' },
+                { key: '屁穴', label: '屁穴描述', text: (character as any)?.屁穴描述 || '暂无记录' }
+            ]
+            : [
+                { key: '胸部', label: '胸部描述', text: (character as any)?.胸部描述 || '暂无记录' },
+                { key: '小穴', label: '小穴描述', text: (character as any)?.小穴描述 || '暂无记录' },
+                { key: '屁穴', label: '屁穴描述', text: (character as any)?.屁穴描述 || '暂无记录' }
+            ])
+        : [];
 
     React.useEffect(() => {
         setAnchorDraft(playerAnchor ? { ...playerAnchor } : null);
@@ -678,6 +710,62 @@ const CharacterModal: React.FC<Props> = ({
                                     </div>
                                 )}
                             </section>
+
+                            {主角展示香闺秘档 && 主角香闺部位列表.length > 0 && (
+                                <section className="min-h-0 rounded-2xl border border-pink-500/20 bg-[linear-gradient(180deg,rgba(20,12,16,0.96),rgba(8,8,8,0.96))] p-5 shadow-[0_0_35px_rgba(0,0,0,0.45)]">
+                                    <div className="flex items-start justify-between gap-3 border-b border-pink-500/10 pb-4">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-sm font-bold tracking-[0.2em] text-pink-300">香闺秘档</div>
+                                                <span className="rounded-full border border-pink-400/30 bg-pink-500/10 px-2 py-0.5 text-[9px] font-bold tracking-[0.15em] text-pink-300/80">TOP SECRET</span>
+                                            </div>
+                                            <div className="mt-1 text-[11px] text-gray-500">主角私密部位档案</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 grid grid-cols-3 gap-3">
+                                        {主角香闺部位列表.map((item) => {
+                                            const partArchive = archive?.香闺秘档部位档案?.[item.key as keyof typeof archive.香闺秘档部位档案];
+                                            const imageUrl = partArchive ? 获取图片展示地址(partArchive as any) : '';
+                                            const hasImage = Boolean(imageUrl);
+
+                                            return (
+                                                <div key={item.key} className="overflow-hidden rounded-xl border border-pink-500/15 bg-black/35">
+                                                    <div className="relative h-36 bg-black">
+                                                        {hasImage ? (
+                                                            <img src={imageUrl} alt={`${character.姓名}${item.label}`} className="h-full w-full object-cover" />
+                                                        ) : (
+                                                            <div className="flex h-full items-center justify-center text-xs text-gray-600">暂无图片</div>
+                                                        )}
+                                                        <div className="absolute left-2 top-2 rounded-full border border-pink-400/25 bg-black/65 px-2 py-0.5 text-[10px] text-pink-300">{item.label}</div>
+                                                    </div>
+                                                    <div className="p-2.5">
+                                                        <div className="line-clamp-3 text-[11px] leading-5 text-gray-400">{item.text}</div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onGeneratePlayerSecretPartImage?.(item.key)}
+                                                            className="mt-2 w-full rounded-lg border border-pink-500/25 bg-pink-500/8 px-2 py-1.5 text-[10px] text-pink-200 transition-colors hover:border-pink-400/40 hover:bg-pink-500/15"
+                                                        >
+                                                            {hasImage ? '重新生成' : '生成图片'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {((character as any)?.性癖 || (character as any)?.敏感点) && (
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            {(character as any)?.性癖 && (
+                                                <span className="rounded-full border border-pink-500/20 bg-pink-500/8 px-2.5 py-1 text-[10px] text-pink-200/80">性癖：{(character as any).性癖}</span>
+                                            )}
+                                            {(character as any)?.敏感点 && (
+                                                <span className="rounded-full border border-pink-500/20 bg-pink-500/8 px-2.5 py-1 text-[10px] text-pink-200/80">敏感点：{(character as any).敏感点}</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </section>
+                            )}
                         </div>
                         </div>
                     )}

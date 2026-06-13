@@ -1392,7 +1392,8 @@ export const 提取角色锚点提示词 = async (
     });
 
     try {
-        const repaired = parseJsonWithRepair<any>(raw);
+        const stripped = raw.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
+        const repaired = parseJsonWithRepair<any>(stripped || raw);
         const parsed = repaired.value;
         if (!parsed || typeof parsed !== 'object') {
             throw new Error(repaired.error || '角色锚点提取结果不是有效 JSON 对象');

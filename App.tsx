@@ -2022,7 +2022,7 @@ const App: React.FC = () => {
         };
         const currentItems = Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : [];
         const nextCharacter = { ...state.角色, 物品列表: [...currentItems, newItem] };
-        setters.set玩家门派(nextSect);
+        actions.setPlayerSect(nextSect);
         setters.setCharacter(nextCharacter);
         void actions.performAutoSave?.({ sect: nextSect, role: nextCharacter, force: true });
         actions.pushNotification({ title: '兑换成功', message: `已兑换「${newItem.名称}」，消耗 ${price} 贡献。`, tone: 'success' });
@@ -3977,13 +3977,16 @@ const App: React.FC = () => {
                     {showCharacter && (
                         <懒加载边界>
                             {isMobile ? (
-                                <MobileCharacter
+                                 <MobileCharacter
                                     character={state.角色}
                                     gameConfig={state.gameConfig}
                                     openingConfig={state.开局配置}
                                     apiConfig={state.apiConfig}
                                     playerAnchor={主角锚点}
+                                    nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
+                                    femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
                                     onGeneratePlayerImage={actions.generatePlayerImageManually}
+                                    onGeneratePlayerSecretPartImage={actions.generatePlayerSecretPartImage}
                                     onSelectPlayerAvatarImage={actions.selectPlayerAvatarImage}
                                     onClearPlayerAvatarImage={actions.clearPlayerAvatarImage}
                                     onSelectPlayerPortraitImage={actions.selectPlayerPortraitImage}
@@ -3993,13 +3996,16 @@ const App: React.FC = () => {
                                     onClose={() => setShowCharacter(false)}
                                 />
                             ) : (
-                                <CharacterModal
+                                 <CharacterModal
                                     character={state.角色}
                                     onClose={() => setShowCharacter(false)}
                                     visualConfig={effectiveVisualConfig}
                                     apiConfig={state.apiConfig}
                                     playerAnchor={主角锚点}
+                                    nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
+                                    femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
                                     onGeneratePlayerImage={actions.generatePlayerImageManually}
+                                    onGeneratePlayerSecretPartImage={actions.generatePlayerSecretPartImage}
                                     onExtractPlayerAnchor={actions.extractPlayerCharacterAnchor}
                                     onSavePlayerAnchor={actions.saveCharacterAnchor}
                                     onDeletePlayerAnchor={actions.deleteCharacterAnchor}

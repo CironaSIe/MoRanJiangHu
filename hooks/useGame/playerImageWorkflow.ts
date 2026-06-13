@@ -356,6 +356,89 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
         }
     };
 
+    const generatePlayerSecretPartImage = async (part: string) => {
+        const player = deps.获取角色();
+        const secretKey = `player_secret_${part}`;
+        if (deps.主角生图进行中集合.has(secretKey)) return;
+        deps.主角生图进行中集合.add(secretKey);
+        try {
+            const npcWorkflow = await deps.加载NPC生图工作流();
+            const secretArchive = (player as any)?.图片档案?.香闺秘档部位档案?.[part];
+            const description = (player as any)?.[`${part}描述`] || '';
+            if (!description) {
+                deps.推送右下角提示({
+                    title: `主角${part}描述为空`,
+                    message: `请先在变量中为主角添加${part}描述，再生成图片。`,
+                    tone: 'error'
+                });
+                return;
+            }
+            const artist串 = deps.获取生图画师串预设(deps.apiConfig, 'npc');
+            const anchor = deps.读取主角角色锚点();
+            const result = await npcWorkflow.执行NPC香闺秘档部位生图?.(
+                { ...player, 是否主要角色: true, 姓名: player.姓名 },
+                part,
+                { source: 'manual' },
+                {
+                    获取文生图接口配置: deps.获取文生图接口配置,
+                    获取生图词组转化器接口配置: deps.获取生图词组转化器接口配置,
+                    获取生图画师串预设: deps.获取生图画师串预设,
+                    获取当前PNG画风预设: deps.获取当前PNG画风预设,
+                    读取主角角色锚点: deps.读取主角角色锚点,
+                    接口配置是否可用: deps.接口配置是否可用,
+                    读取文生图功能配置: deps.读取文生图功能配置,
+                    获取词组转化器预设提示词: deps.获取词组转化器预设提示词,
+                    自动角色锚点已启用: deps.自动角色锚点已启用,
+                    提取主角生图基础数据: deps.提取主角生图基础数据,
+                    创建NPC生图任务: deps.创建NPC生图任务,
+                    生成NPC生图记录ID: deps.生成NPC生图记录ID,
+                    追加NPC生图任务: deps.追加NPC生图任务,
+                    更新NPC生图任务: deps.更新NPC生图任务,
+                    构建文生图额外要求: deps.构建文生图额外要求,
+                    设置社交: () => {},
+                    规范化社交列表: (l: any[]) => l,
+                    执行社交自动存档: () => {},
+                    获取社交列表: () => [],
+                    获取NPC唯一标识: () => '__player__',
+                    设置NPC生图任务队列: () => {},
+                    写入NPC香闺秘档部位记录: (_npcKey: string, _part: string, record: any) => {
+                        deps.设置角色((prev) => {
+                            const prevArchive = (prev as any)?.图片档案 && typeof (prev as any).图片档案 === 'object'
+                                ? (prev as any).图片档案
+                                : {};
+                            const prevSecret = prevArchive.香闺秘档部位档案 && typeof prevArchive.香闺秘档部位档案 === 'object'
+                                ? prevArchive.香闺秘档部位档案
+                                : {};
+                            return {
+                                ...prev,
+                                图片档案: {
+                                    ...prevArchive,
+                                    香闺秘档部位档案: { ...prevSecret, [part]: record }
+                                }
+                            };
+                        });
+                    }
+                }
+            );
+            if (result !== false) {
+                deps.推送右下角提示({
+                    title: `主角${part}图片生成完成`,
+                    message: '可在角色档案中查看。',
+                    tone: 'success'
+                });
+            }
+        } catch (error) {
+            console.warn(`主角${part}私密部位生图失败`, error);
+            deps.推送右下角提示({
+                title: `主角${part}图片生成失败`,
+                message: error instanceof Error ? error.message : '未知错误',
+                tone: 'error'
+            });
+        } finally {
+            deps.主角生图进行中集合.delete(secretKey);
+        }
+    };
+
     return {
         updatePlayerAvatar,
         selectPlayerAvatarImage,
@@ -365,6 +448,7 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
         removePlayerImageRecord,
         generatePlayerImageManually,
         generatePlayerImagesAutomatically,
-        ensurePlayerAvatarEachTurn
+        ensurePlayerAvatarEachTurn,
+        generatePlayerSecretPartImage
     };
 };

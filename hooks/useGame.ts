@@ -3841,7 +3841,8 @@ export const useGame = () => {
         removePlayerImageRecord: 删除主角图片记录,
         generatePlayerImageManually: 生成主角图片,
         generatePlayerImagesAutomatically: 自动生成主角图片,
-        ensurePlayerAvatarEachTurn: 检查主角每回合头像
+        ensurePlayerAvatarEachTurn: 检查主角每回合头像,
+        generatePlayerSecretPartImage: 生成主角私密部位图片
     } = 创建主角图片工作流({
         获取角色: () => 角色,
         设置角色,
@@ -3973,6 +3974,7 @@ export const useGame = () => {
             retryNpcImageGeneration,
             updatePlayerAvatar: 更新玩家头像,
             generatePlayerImageManually: 生成主角图片,
+            generatePlayerSecretPartImage: 生成主角私密部位图片,
             selectPlayerAvatarImage: 选择主角头像图片,
             clearPlayerAvatarImage: 清除主角头像图片,
             selectPlayerPortraitImage: 选择主角立绘图片,
