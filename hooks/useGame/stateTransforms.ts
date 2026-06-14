@@ -2972,7 +2972,7 @@ const 是否噪声NPC姓名 = (value: unknown): boolean => {
         return false;
     }
     if (/^[\u4e00-\u9fa5]{4,6}$/u.test(name) && !姓名含已知中文姓氏(name)) return true;
-    if (/^(旁白|判定|NSFW判定|免责声明|disclaimer)$/.test(name)) return true;
+    if (/^(旁白|判定|NSFW判定|免责声明|disclaimer|主神|系统|提示|公告)$/.test(name)) return true;
     if (/^(?:自己|自身|本人|主角|玩家|他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人)(?:已经|没有|只能|只好|仍旧|还是|刚刚|继续|再|又|便|就|不再|无法|不能)?.*$/u.test(name)) return true;
     if (噪声NPC姓名完整短语正则.test(name)) return true;
     if (/^(?:自己|自身|本人|主角|玩家|他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人).{1,10}$/.test(name) && 噪声NPC姓名片段正则.test(name)) return true;
@@ -2985,7 +2985,7 @@ const 是否真实NPC姓名 = (value: unknown): boolean => {
     if (name.length < NPC真实姓名最小长度 || name.length > NPC真实姓名最大长度) return false;
     if (!/^[\u4e00-\u9fa5]{2,4}$/u.test(name)) return false;
     if (是否噪声NPC姓名(name)) return false;
-    if (/^(?:未知|无名|未命名|某人|路人|角色|人物|NPC|同门|随行者|队友|弟子)\d*$/u.test(name)) return false;
+    if (/^(?:未知|无名|未命名|某人|路人|角色|人物|NPC|同门|随行者|队友|弟子|主神|系统|提示|公告)\d*$/u.test(name)) return false;
     if (/(?:女子|女人|少女|姑娘|男子|男人|少年|老者|老人|太监|内侍|侍卫|护卫|弟子|同门|掌柜|管事|宫女|丫鬟|小厮|车夫)$/u.test(name)) return false;
     return true;
 };

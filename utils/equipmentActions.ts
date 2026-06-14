@@ -71,11 +71,11 @@ const 推断防具槽位 = (item: any): 装备槽位[] => {
     if (/头|冠|帽|盔|簪/.test(nameText)) slots.push('头部');
     if (/内衬|里衣|内甲|亵衣|贴身/.test(nameText)) slots.push('内衬');
     if (/盔甲|铠|甲胄|护甲|软甲/.test(nameText)) slots.push('盔甲');
-    if (/胸|衣|袍|衫|上装|护心/.test(nameText)) slots.push('胸部');
+    if (/胸|衣|袍|衫|上装|护心|背心/.test(nameText)) slots.push('胸部');
     if (/腿|裤|裙|下装/.test(nameText)) slots.push('腿部');
     if (/手|腕|臂|护腕|手套|拳套/.test(nameText)) slots.push('手部');
     if (/足|靴|鞋|履/.test(nameText)) slots.push('足部');
-    if (/背|披风|斗篷|背负/.test(nameText)) slots.push('背部');
+    if (/背(?!心)|披风|斗篷|背负/.test(nameText)) slots.push('背部');
     if (/腰|带|佩|坠|符|戒|镯|项链|挂饰/.test(nameText)) slots.push('腰部');
 
     const position = 取文本(item?.装备位置);

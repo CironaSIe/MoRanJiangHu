@@ -152,7 +152,7 @@ const 是否噪声对白发送者 = (sender: string): boolean => {
 const 是否对白NPC发送者 = (senderRaw: unknown, playerNameRaw: unknown): boolean => {
     const sender = typeof senderRaw === 'string' ? senderRaw.trim() : '';
     if (!sender) return false;
-    if (/^【?(?:旁白|判定|NSFW判定|免责声明|系统|旁述|叙述|作者|提示|错误)】?$/i.test(sender)) return false;
+    if (/^【?(?:旁白|判定|NSFW判定|免责声明|系统|旁述|叙述|作者|提示|错误|主神|公告)】?$/i.test(sender)) return false;
     if (/^(?:disclaimer|system|narrator|assistant|user)$/i.test(sender)) return false;
     if (是否噪声对白发送者(sender)) return false;
     if (/^[\u4e00-\u9fa5]{2,4}$/u.test(sender) && !姓名含已知中文姓氏(sender)) return false;
