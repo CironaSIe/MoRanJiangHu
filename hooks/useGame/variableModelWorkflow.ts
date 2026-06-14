@@ -15,6 +15,7 @@ import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据
 import { 构建变量路径登记提示, 校验变量命令是否登记 } from '../../utils/variableRegistry';
 import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
 import { 提取命中新女性角色姓名黑名单 } from '../../utils/femaleNameSelector';
+import { 提取命中模板姓名黑名单, 构建模板姓名黑名单提示词 } from '../../utils/templateNameBlacklist';
 import { 检测社交删除风险命令 } from '../../utils/npcRetentionGuard';
 import { 检测NPC死亡判定风险命令 } from '../../utils/npcDeathGuard';
 
@@ -550,6 +551,7 @@ export const 执行变量模型校准工作流 = async (
         count: 100,
         fandomEnabled: params.openingConfig?.同人融合?.enabled === true
     });
+    const templateNameBlacklistPrompt = 构建模板姓名黑名单提示词();
     const mergedExtraPrompt = [
         runtimeExtraPrompt,
         playerXianxiaAuditPrompt,
@@ -567,6 +569,7 @@ export const 执行变量模型校准工作流 = async (
         dialogueNpcAuditPrompt,
         socialCompletenessAuditPrompt,
         femaleNameCandidatePrompt,
+        templateNameBlacklistPrompt,
         variableRegistryPrompt,
         获取繁体输出指令(runtimeGameConfig),
         按功能开关过滤提示词内容((params.extraPromptAppend || '').trim(), runtimeGameConfig)
@@ -644,14 +647,36 @@ export const 执行变量模型校准工作流 = async (
             throw error;
         }
 
+        const templateNameHits = 提取命中模板姓名黑名单({
+            commands: dedupedCommands,
+            currentSocial: params.baseState.社交
+        });
+        if (templateNameHits.length > 0) {
+            const message = `变量生成命中男性/中性模板姓名黑名单：${templateNameHits.join('、')}。这些是被反复使用的模板名，请重新生成变量命令，为本局队友、伙伴、关键 NPC 起不同的原创姓名。`;
+            const error = new Error(message);
+            (error as any).parseDetail = message;
+            throw error;
+        }
+
         const playerName = typeof params.baseState?.角色?.姓名 === 'string' ? params.baseState.角色.姓名.trim() : '';
         if (playerName) {
             const normalizeKey = (v: unknown): string => typeof v === 'string' ? v.trim().replace(/\s+/g, '').toLowerCase() : '';
             const playerKey = normalizeKey(playerName);
             const protagonistAsNpc = dedupedCommands.filter((cmd: any) => {
-                if (cmd.type !== 'push' || cmd.path !== '社交') return false;
-                const npcName = typeof cmd.value?.姓名 === 'string' ? cmd.value.姓名.trim() : '';
-                return npcName && normalizeKey(npcName) === playerKey;
+                const action = cmd?.action || 'set';
+                const rawKey = typeof cmd?.key === 'string' ? cmd.key : '';
+                const normalizedKey = normalizeStateCommandKey(rawKey).replace(/^gameState\./, '');
+                // push 社交 = {...}：新增 NPC
+                if (action === 'push' && (normalizedKey === '社交' || /^社交\[/.test(normalizedKey))) {
+                    const npcName = typeof cmd.value?.姓名 === 'string' ? cmd.value.姓名.trim() : '';
+                    return npcName && normalizeKey(npcName) === playerKey;
+                }
+                // set 社交[i].姓名 = "主角名"：把既有 NPC 改名成主角
+                if (action === 'set' && /^社交\[\d+\]\.姓名$/.test(normalizedKey)) {
+                    const nextName = typeof cmd.value === 'string' ? cmd.value.trim() : '';
+                    return nextName && normalizeKey(nextName) === playerKey;
+                }
+                return false;
             });
             if (protagonistAsNpc.length > 0) {
                 const message = `变量生成试图将主角「${playerName}」作为 NPC 加入社交列表，这是禁止的。社交列表只存储 NPC 和配角，不包含主角。请重新生成变量命令，移除所有与主角同名的社交条目。`;

@@ -2382,7 +2382,7 @@ export const useGame = () => {
                     })
                 ]);
                 if (finished === false) {
-                    console.warn('全部NPC头像自动补全超时，已继续处理后续 NPC', npcId);
+                    输出NPC自动生图调试(`单个 NPC 头像补全超过 ${单个NPC自动补全等待上限}ms，已跳过并继续后续 NPC`, { npcId });
                 }
             } catch (error) {
                 console.warn('全部NPC头像自动补全失败', npcId, error);

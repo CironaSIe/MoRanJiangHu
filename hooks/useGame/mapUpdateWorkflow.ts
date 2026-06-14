@@ -194,12 +194,10 @@ export const 构建地图更新用户提示词 = (params: {
             '2. 地图层级只能是：寰宇、大地点、中地点、小地点、区地点、子地点。',
             '3. 大地点=世界/大陆/秘境大世界；中地点=大洲/区域；小地点=城镇/山门/村庄；区地点=建筑/地标/街区；子地点=房间/院落/室内空间。',
             '4. 这是全量重建任务：旧地图会在写入前被删除，绝对不要为了保留旧数据而复制旧层级；只写回忆库和当前状态能支持的地点。',
-            traditionalChinesePrompt,
-            '5. 不要生成坐标、道路、建筑列表、地图人物等旧字段。',
-            '6. 【硬约束】同一个角色只能出现在一个最细叶子地点节点中。如果正文没有明确提到某个角色的位置变化，该角色保持在上一次已知位置，不要随意移动。禁止把同一人同时写在多个不同地点的在场人物数组中。',
-            '7. 地点若能判断势力控制或势力影响，必须补充 控制势力 / 势力影响 / 势力标签；看不出势力时不要硬编。',
-            '8. 每个地点节点如果能判断有谁在场，必须补充 在场人物 字段（字符串数组，填写在场角色姓名）。根据正文和人物位置线索判断每个角色所在的最细叶子地点，只在最细叶子节点填写在场人物，上级节点由系统自动汇总。【禁止重复】同一角色姓名不得出现在多个不同地点节点的在场人物数组中。',
-            '9. 只输出 JSON，格式为 {"地点树":[{"名称":"...","层级":"...","父级ID":"父级名称或ID","描述":"...","控制势力":"...","势力影响":"...","势力标签":["..."],"在场人物":["角色名"]}]}，不要输出命令。'
+            '5. 不要生成坐标、道路、建筑列表、地图人物等旧字段。地图层级节点也不要写 `在场人物` 字段——人物显示由社交档案里的 NPC 位置（`当前位置`/`位置路径`/`具体地点`）驱动，与地图层级无关。',
+            '6. 地点若能判断势力控制或势力影响，必须补充 控制势力 / 势力影响 / 势力标签；看不出势力时不要硬编。',
+            '7. 只输出 JSON，格式为 {"地点树":[{"名称":"...","层级":"...","父级ID":"父级名称或ID","描述":"...","控制势力":"...","势力影响":"...","势力标签":["..."]}]}，不要输出命令，也不要输出 `在场人物`。',
+            traditionalChinesePrompt
         ].join('\n');
     }
 
@@ -234,7 +232,7 @@ export const 构建地图更新用户提示词 = (params: {
         '5. 父级ID优先填写已有节点 ID；若只能确定父级名称，也可以填写父级名称，系统会自动解析。',
         '6. 地点必须尽量体现势力分布：若正文、当前位置、已知势力版图能判断控制方或影响方，push 对象里写入 控制势力 / 势力影响 / 势力标签；描述里也要用一句话说明势力痕迹。',
         '7. 禁止输出旧地图坐标字段：世界.地图、世界.建筑、世界.地图建筑、世界.地图道路、世界.地图人物。',
-        '8. 同一个角色只能有一个最细叶子位置；不要把同一人同时写入多个层级。父级地图会自动覆盖显示其子层级人物。',
+        '8. 同一个角色只能有一个最细叶子位置；不要把同一人同时写入多个层级。地图层级的显示由社交档案里 NPC 的 `当前位置`/`位置路径`/`具体地点` 字段驱动，地图层级节点本身不要写 `在场人物` 字段。',
         isOpeningEmptyMap ? '9. 开局空地图必须输出 push 命令，不得输出“无”。' : '9. 若无新增或修复需求，<命令> 输出“无”。',
         traditionalChinesePrompt,
         '',
@@ -286,8 +284,7 @@ export const 构建地图层级替换结果 = (
             描述: 取文本(node?.描述),
             控制势力: 取文本(node?.控制势力),
             势力影响: 取文本(node?.势力影响),
-            势力标签: Array.isArray(node?.势力标签) ? node.势力标签.map(取文本).filter(Boolean) : [],
-            在场人物: Array.isArray(node?.在场人物) ? node.在场人物.map(取文本).filter(Boolean) : []
+            势力标签: Array.isArray(node?.势力标签) ? node.势力标签.map(取文本).filter(Boolean) : []
         }))
         .filter((node) => node.名称);
     if (!normalizedNodes.some((node) => node.层级 === '寰宇')) {
@@ -332,39 +329,11 @@ export const 构建地图层级替换结果 = (
         控制势力: node.控制势力,
         势力影响: node.势力影响,
         势力标签: node.势力标签,
-        在场人物: node.在场人物,
         归属: { 大地点: '', 中地点: '', 小地点: '' }
     }));
 };
 
 const 地图层级顺序表 = ['寰宇', '大地点', '中地点', '小地点', '区地点', '子地点'] as const;
-
-export const 校验地图在场人物唯一性 = (layers: Array<{ 名称: string; 层级: string; 父级ID: string; 在场人物?: string[] }>): string[] => {
-    const errors: string[] = [];
-    const childMap = new Map<string, string[]>();
-    layers.forEach(node => {
-        const parentId = node.父级ID || '';
-        if (!childMap.has(parentId)) childMap.set(parentId, []);
-        childMap.get(parentId)!.push(node.名称);
-    });
-    const isLeaf = (name: string): boolean => !childMap.has(name) || childMap.get(name)!.length === 0;
-    const leafNodes = layers.filter(node => isLeaf(node.名称));
-    const characterLocations = new Map<string, string[]>();
-    leafNodes.forEach(node => {
-        (node.在场人物 || []).forEach(name => {
-            const key = name.trim();
-            if (!key) return;
-            if (!characterLocations.has(key)) characterLocations.set(key, []);
-            characterLocations.get(key)!.push(node.名称);
-        });
-    });
-    characterLocations.forEach((locations, name) => {
-        if (locations.length > 1) {
-            errors.push(`角色「${name}」同时出现在多个叶子地点：${locations.join('、')}，同一角色只能出现在一个最细地点。`);
-        }
-    });
-    return errors;
-};
 
 const 提取命令块 = (rawText: string): string => {
     const source = (rawText || '').trim();
@@ -431,13 +400,6 @@ export const 解析地图自动更新命令 = (rawText: string, currentWorld?: a
         try {
             const rawNodes = 解析地图重生成节点(rawText);
             const newLayers = 构建地图层级替换结果(rawNodes, currentWorld);
-            const 在场人物冲突 = 校验地图在场人物唯一性(newLayers);
-            if (在场人物冲突.length > 0) {
-                const message = `地图在场人物校验失败：${在场人物冲突.join('；')}。请修正后重新生成，同一角色只能出现在一个最细叶子地点节点中。`;
-                const error = new Error(message);
-                (error as any).parseDetail = message;
-                throw error;
-            }
             if (newLayers.length > 0) {
                 return [{
                     action: 'set',
@@ -509,14 +471,6 @@ export const 生成地图更新 = async (
     if (params.mode === 'memory_regenerate') {
         const rawNodes = 解析地图重生成节点(rawText);
         const newLayers = 构建地图层级替换结果(rawNodes, world);
-        const 在场人物冲突 = 校验地图在场人物唯一性(newLayers);
-        if (在场人物冲突.length > 0) {
-            return {
-                ok: false,
-                phase: 'error',
-                message: `地图在场人物校验失败：${在场人物冲突.join('；')}。请修正后重新生成，同一角色只能出现在一个最细叶子地点节点中。`
-            };
-        }
         return {
             ok: true,
             phase: newLayers.length > 0 ? 'done' : 'skipped',

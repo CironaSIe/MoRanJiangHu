@@ -72,6 +72,7 @@ import { 执行变量模型校准工作流 } from './variableModelWorkflow';
 import { 合并变量校准结果到响应 as 合并变量生成结果到响应 } from './variableCalibrationMerge';
 import { 保护开局生成门派状态 } from './storyState';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
+import { 同步在场NPC当前位置 } from './responseCommandProcessor';
 import { 生成地图更新 } from './mapUpdateWorkflow';
 
 const 开局规划分析请求超时毫秒 = 90000;
@@ -2044,6 +2045,10 @@ export const 执行开场剧情生成工作流 = async (
             options?.开局配置,
             openingStateAfterCommands.角色 || commandBaseState.角色
         );
+        // 修复开局伙伴社交列表可能补入 AI 尚未生成的种子伙伴（位置为空），
+        // 这里再同步一次：把没有显式位置的在场 NPC 的 当前位置/位置路径 用当前环境地点填充，
+        // 确保开局伙伴能正确显示在地图上（地图显示由社交 NPC 位置字段驱动）。
+        openingStateAfterCommands.社交 = 同步在场NPC当前位置(openingStateAfterCommands.社交, openingStateAfterCommands.环境);
         const openingNewNpcList = deps.提取新增NPC列表(commandBaseState.社交, openingStateAfterCommands.社交);
         const hasOpeningCommands = Array.isArray(responseForExecution?.tavern_commands) && responseForExecution.tavern_commands.length > 0;
         if (!hasOpeningCommands) {

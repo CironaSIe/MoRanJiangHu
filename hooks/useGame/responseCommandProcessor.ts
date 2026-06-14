@@ -267,7 +267,7 @@ const 构建环境位置路径 = (env?: Partial<环境信息结构> | null): str
         .join(' > ')
 );
 
-const 同步在场NPC当前位置 = (
+export const 同步在场NPC当前位置 = (
     socialList: any[],
     env?: Partial<环境信息结构> | null
 ): any[] => {

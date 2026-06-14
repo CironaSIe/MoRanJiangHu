@@ -74,6 +74,9 @@ const 构建单个初始伙伴NPC = (
     openingConfig?: OpeningConfig,
     player?: Partial<角色数据结构>
 ): NPC结构 | null => {
+    // 兜底：若玩家把开局伙伴姓名填成主角本人姓名，跳过该伙伴，避免主角被当作 NPC 进入社交列表。
+    const playerKey = 规范化文本键(player?.姓名);
+    if (playerKey && 规范化文本键(name) === playerKey) return null;
     const relation = 取文本(partner.关系, '开局伙伴');
     const birthday = `${取数字(partner.出生月, 1)}月${取数字(partner.出生日, 1)}日`;
     const attrs = partner.属性 || {};
@@ -86,7 +89,10 @@ const 构建单个初始伙伴NPC = (
     const maxHp = Math.max(30, 体质 * 10);
     const maxEnergy = Math.max(30, 体质 * 8);
     const maxInternal = Math.max(20, (根骨 + 悟性) * 4);
-    const location = 取文本((player as any)?.当前位置 || (player as any)?.当前地点 || (player as any)?.具体地点, '主角身边');
+    // 开局伙伴的初始位置不要硬编码为"主角身边"——该字符串与地图节点名对不上，
+    // 又会被 `同步在场NPC当前位置` 当作"已有显式位置"而跳过同步，导致伙伴无法在地图显示。
+    // 这里留空，后续由 `同步在场NPC当前位置` 从环境信息正确填充到真实地点名。
+    const location = 取文本((player as any)?.当前位置 || (player as any)?.当前地点 || (player as any)?.具体地点, '');
     const isInfinite = openingConfig?.题材模式 === '无限流';
     const introParts = [
         `${name}是主角的${relation}。`,

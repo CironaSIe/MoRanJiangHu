@@ -64,6 +64,7 @@ import { 构建女主规划专项提示词 } from '../../prompts/core/heroinePla
 import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 构建题材模式提示词 } from '../../prompts/runtime/openingConfig';
 import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
+import { 构建模板姓名黑名单提示词 } from '../../utils/templateNameBlacklist';
 import { 构建角色金钱显示快照 } from '../../utils/currencyDisplay';
 
 export type 运行时提示词状态 = {
@@ -1546,6 +1547,7 @@ export const 构建系统提示词 = ({
             count: 100,
             fandomEnabled: openingConfig?.同人融合?.enabled === true
         }),
+        构建模板姓名黑名单提示词(),
         fandomSummaryPrompt,
         genreModePrompt,
         realmTemplatePrompt,

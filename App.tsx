@@ -2022,7 +2022,7 @@ const App: React.FC = () => {
         };
         const currentItems = Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : [];
         const nextCharacter = { ...state.角色, 物品列表: [...currentItems, newItem] };
-        actions.setPlayerSect(nextSect);
+        setters.setPlayerSect(nextSect);
         setters.setCharacter(nextCharacter);
         void actions.performAutoSave?.({ sect: nextSect, role: nextCharacter, force: true });
         actions.pushNotification({ title: '兑换成功', message: `已兑换「${newItem.名称}」，消耗 ${price} 贡献。`, tone: 'success' });
@@ -2060,7 +2060,7 @@ const App: React.FC = () => {
         const nextCharacter = stipendAsContribution
             ? state.角色
             : { ...state.角色, 金钱: 规范化角色金钱({ ...currentMoney, 底层货币: Math.max(0, Number(currentMoney.底层货币 || 0)) + amount }) };
-        actions.setPlayerSect(nextSect);
+        setters.setPlayerSect(nextSect);
         setters.setCharacter(nextCharacter);
         void actions.performAutoSave?.({ role: nextCharacter, sect: nextSect, force: true });
         actions.pushNotification({
