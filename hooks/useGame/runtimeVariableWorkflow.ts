@@ -196,7 +196,15 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
                 return;
             }
             case '社交': {
-                const nextValue = deps.规范化社交列表(Array.isArray(value) ? value : [], { 合并同名: false, 保留非姓名库主要女性名: true });
+                let nextValue = deps.规范化社交列表(Array.isArray(value) ? value : [], { 合并同名: false, 保留非姓名库主要女性名: true });
+                // 过滤与主角同名的NPC条目，防止主角被NPC化
+                const playerName = typeof 当前状态.角色?.姓名 === 'string' ? 当前状态.角色.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
+                if (playerName) {
+                    nextValue = nextValue.filter((npc: any) => {
+                        const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
+                        return !npcName || npcName !== playerName;
+                    });
+                }
                 deps.设置社交(nextValue);
                 void deps.performAutoSave({ social: nextValue, history: 历史记录, force: true });
                 return;

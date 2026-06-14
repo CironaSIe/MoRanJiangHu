@@ -15,6 +15,7 @@ const 图片资源缓存 = new Map<string, string>();
 const 图片资源缓存最大条目数 = 80;
 const 图片资源缓存最大字符数 = 42 * 1024 * 1024;
 let 图片资源缓存字符数 = 0;
+const 受保护图片资源集合 = new Set<string>();
 const 远程图片兜底缓存键 = 'moranjianghu.remoteImageFallbacks.v1';
 const 远程图片兜底最大数量 = 600;
 let 远程图片兜底缓存: Record<string, string> | null = null;
@@ -156,16 +157,38 @@ export const 注册图片资源缓存 = (assetId: string, dataUrl: string): void
     }
     图片资源缓存.set(ref, normalized);
     图片资源缓存字符数 += normalized.length;
+    let 淘汰尝试次数 = 0;
+    const 最大淘汰尝试次数 = 图片资源缓存.size + 1;
     while (
-        图片资源缓存.size > 图片资源缓存最大条目数
-        || 图片资源缓存字符数 > 图片资源缓存最大字符数
+        (图片资源缓存.size > 图片资源缓存最大条目数
+        || 图片资源缓存字符数 > 图片资源缓存最大字符数)
+        && 淘汰尝试次数 < 最大淘汰尝试次数
     ) {
+        淘汰尝试次数 += 1;
         const oldestKey = 图片资源缓存.keys().next().value;
         if (!oldestKey) break;
+        if (受保护图片资源集合.has(oldestKey)) {
+            // 受保护条目不淘汰，跳过并尝试下一个最旧条目
+            // 为避免死循环，将该条目移到最新位置
+            const oldestValue = 图片资源缓存.get(oldestKey) || '';
+            图片资源缓存.delete(oldestKey);
+            图片资源缓存.set(oldestKey, oldestValue);
+            continue;
+        }
         const oldestValue = 图片资源缓存.get(oldestKey) || '';
         图片资源缓存.delete(oldestKey);
         图片资源缓存字符数 -= oldestValue.length;
     }
+};
+
+export const 注册受保护图片资源 = (assetIdOrRef: string): void => {
+    const ref = 创建图片资源引用(assetIdOrRef) || 读取文本(assetIdOrRef);
+    if (ref) 受保护图片资源集合.add(ref);
+};
+
+export const 取消受保护图片资源 = (assetIdOrRef: string): void => {
+    const ref = 创建图片资源引用(assetIdOrRef) || 读取文本(assetIdOrRef);
+    if (ref) 受保护图片资源集合.delete(ref);
 };
 
 export const 批量注册图片资源缓存 = (entries: Array<{ id: string; dataUrl: string }>): void => {
@@ -176,6 +199,7 @@ export const 批量注册图片资源缓存 = (entries: Array<{ id: string; data
 export const 清空图片资源缓存 = (): void => {
     图片资源缓存.clear();
     图片资源缓存字符数 = 0;
+    受保护图片资源集合.clear();
 };
 
 export const 读取图片资源缓存 = (value: unknown): string => {

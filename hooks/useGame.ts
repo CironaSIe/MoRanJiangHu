@@ -692,7 +692,15 @@ export const useGame = () => {
         nextSocial: NPC结构[],
         options?: { 静默NPC总结提示?: boolean }
     ): NPC结构[] => {
-        const normalized = 规范化社交列表安全(nextSocial, { 合并同名: false });
+        let normalized = 规范化社交列表安全(nextSocial, { 合并同名: false });
+        // 过滤与主角同名的NPC条目，防止主角被NPC化
+        const playerNameKey = typeof 角色?.姓名 === 'string' ? 角色.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
+        if (playerNameKey) {
+            normalized = normalized.filter((npc: any) => {
+                const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
+                return !npcName || npcName !== playerNameKey;
+            });
+        }
         设置社交(normalized);
         刷新NPC记忆总结队列(normalized, { 静默: options?.静默NPC总结提示 === true });
         void performAutoSave({ social: normalized, history: 历史记录, force: true });

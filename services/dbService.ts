@@ -827,6 +827,7 @@ export const 保存图片资源 = async (dataUrl: string, preferredIdOrOptions?:
     }
     const id = (typeof options.preferredId === 'string' ? options.preferredId.trim() : '') || 生成图片资源ID();
     await 写入图片资源记录(id, normalized);
+    注册图片资源缓存(id, normalized);
     const ref = 创建图片资源引用(id);
     if (signature) {
         图片资源签名缓存.set(signature, ref);

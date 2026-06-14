@@ -713,8 +713,8 @@ const 创建开局主线任务 = (sect: 详细门派结构, openingConfig?: Open
     const location = topic === '无限流' ? '主神空间' : (organizationName || (topic === '末日丧尸' ? '临时落脚点' : topic === '现代都市' ? '当前城市' : topic === '仙侠' ? '当前落脚处' : '当前落脚处'));
     if (topic === '无限流') {
         return {
-            标题: '主神任务倒计时',
-            描述: '主神已经把新人投放到任务世界，主角需要确认任务目标、当前威胁、队友状态与可用撤离线索。',
+            标题: '确认主神首轮任务',
+            描述: `${publisher}的光球在头顶闪烁，屏幕上跳出本轮任务的标题、存活时限和失败惩罚。主角必须在倒计时归零前弄清楚：任务目标到底是什么、当前环境中最致命的威胁在哪里、队友各自擅长什么、以及如果局势失控该往哪撤。`,
             类型: '主线',
             发布人: publisher,
             发布地点: location,
@@ -722,9 +722,19 @@ const 创建开局主线任务 = (sect: 详细门派结构, openingConfig?: Open
             推荐境界: '新人轮回者',
             当前状态: '进行中',
             目标列表: [{
-                描述: '确认主神任务目标、至少一项直接威胁和一条继续行动的线索。',
+                描述: '从主神光球或任务腕表上读到本轮任务的标题、存活时限和失败惩罚。',
                 当前进度: 0,
-                总需进度: 3,
+                总需进度: 1,
+                完成状态: false
+            }, {
+                描述: '确认当前任务世界中最直接的一项致命威胁（怪物、陷阱、环境或敌对轮回者）。',
+                当前进度: 0,
+                总需进度: 1,
+                完成状态: false
+            }, {
+                描述: '摸清至少一名队友的战斗特长或可用技能，以及一条可撤退的路线或安全点。',
+                当前进度: 0,
+                总需进度: 1,
                 完成状态: false
             }],
             奖励描述: ['主神结算奖励（按完成度判定）'],
@@ -810,6 +820,8 @@ const 创建开局主线任务 = (sect: 详细门派结构, openingConfig?: Open
 const 确保开局主线任务 = (tasks: 任务结构[], sect: 详细门派结构, openingConfig?: OpeningConfig): 任务结构[] => {
     const safeTasks = Array.isArray(tasks) ? tasks : [];
     if (safeTasks.some((task) => 取文本(task?.类型) === '主线')) return safeTasks;
+    // 无限流不使用硬编码模板，由AI根据剧情自动生成个性化主线任务
+    if (是无限流题材(openingConfig)) return safeTasks;
     return [创建开局主线任务(sect, openingConfig), ...safeTasks];
 };
 
@@ -818,8 +830,8 @@ const 创建默认兑换列表 = (sectName = '本门', openingConfig?: OpeningCo
     if (是无限流题材(openingConfig)) {
         return [
             { id: `infinite_shop_${生成稳定哈希(`${sectName}|hemostatic`).toString(36)}`, 物品名称: '止血喷雾', 类型: '医疗补给', 兑换价格: 30, 库存: 4 + (seed % 3), 要求职位: '新人' },
-            { id: `infinite_shop_${生成稳定哈希(`${sectName}|flashlight`).toString(36)}`, 物品名称: '战术手电', 类型: '任务装备', 兑换价格: 45, 库存: 2 + (seed % 2), 要求职位: '新人' },
-            { id: `infinite_shop_${生成稳定哈希(`${sectName}|vest`).toString(36)}`, 物品名称: '轻型防护背心', 类型: '防护装备', 兑换价格: 120, 库存: 2, 要求职位: '正式队员' },
+            { id: `infinite_shop_${生成稳定哈希(`${sectName}|flashlight`).toString(36)}`, 物品名称: '战术手电', 类型: '工具', 兑换价格: 45, 库存: 2 + (seed % 2), 要求职位: '新人' },
+            { id: `infinite_shop_${生成稳定哈希(`${sectName}|vest`).toString(36)}`, 物品名称: '轻型防护背心', 类型: '上衣', 兑换价格: 120, 库存: 2, 要求职位: '正式队员' },
             { id: `infinite_shop_${生成稳定哈希(`${sectName}|stabilizer`).toString(36)}`, 物品名称: '精神稳定剂', 类型: '精神补给', 兑换价格: 180, 库存: 1 + (seed % 2), 要求职位: '资深者' }
         ] as any;
     }
@@ -841,12 +853,12 @@ const 创建默认兑换列表 = (sectName = '本门', openingConfig?: OpeningCo
         return [
             { id: `xianxia_shop_${生成稳定哈希(`${sectName}|dan`).toString(36)}`, 物品名称: '回气丹', 类型: '丹药', 兑换价格: 45, 库存: 5, 要求职位: '杂役弟子' },
             { id: `xianxia_shop_${生成稳定哈希(`${sectName}|paper`).toString(36)}`, 物品名称: '符纸一沓', 类型: '材料', 兑换价格: 35, 库存: 6, 要求职位: '杂役弟子' },
-            { id: `xianxia_shop_${生成稳定哈希(`${sectName}|jade`).toString(36)}`, 物品名称: '聚灵玉佩', 类型: '装备', 兑换价格: 180, 库存: 1, 要求职位: '外门弟子' }
+            { id: `xianxia_shop_${生成稳定哈希(`${sectName}|jade`).toString(36)}`, 物品名称: '聚灵玉佩', 类型: '饰品', 兑换价格: 180, 库存: 1, 要求职位: '外门弟子' }
         ] as any;
     }
     return [
         { id: `sect_shop_${生成稳定哈希(`${sectName}|medicine`).toString(36)}`, 物品名称: '金疮药', 类型: '丹药', 兑换价格: 30, 库存: 6, 要求职位: '杂役弟子' },
-        { id: `sect_shop_${生成稳定哈希(`${sectName}|guard`).toString(36)}`, 物品名称: '软皮护腕', 类型: '装备', 兑换价格: 80, 库存: 3, 要求职位: '杂役弟子' },
+        { id: `sect_shop_${生成稳定哈希(`${sectName}|guard`).toString(36)}`, 物品名称: '软皮护腕', 类型: '防具', 兑换价格: 80, 库存: 3, 要求职位: '杂役弟子' },
         { id: `sect_shop_${生成稳定哈希(`${sectName}|manual`).toString(36)}`, 物品名称: `${提取门派典籍前缀(sectName)}入门手札`, 类型: '武学', 兑换价格: 150, 库存: 2, 要求职位: '外门弟子' }
     ];
 };

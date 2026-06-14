@@ -101,7 +101,7 @@ export const 获取物品可装备槽位 = (item: any): 装备槽位[] => {
         if (/盾|副手|短刃|匕首|护手/.test(text)) return ['副武器'];
         return ['主武器'];
     }
-    if (type === '防具') return 推断防具槽位(item);
+    if (type === '防具' || type === '上衣' || type === '防护装备' || type === '装备') return 推断防具槽位(item);
     if (type === '饰品') return 推断防具槽位({ ...item, 装备位置: '腰部' });
     if (/坐骑|马|驴|骡|车|舟|船/.test(text)) return ['坐骑'];
     return [];

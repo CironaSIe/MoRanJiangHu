@@ -1523,6 +1523,15 @@ export const 执行响应命令处理 = (
         { 合并同名: false }
     );
 
+    // 过滤与主角同名的NPC条目，防止主角被NPC化
+    const playerNormKey = typeof charBuffer?.姓名 === 'string' ? charBuffer.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
+    if (playerNormKey) {
+        normalizedSocial = normalizedSocial.filter((npc: any) => {
+            const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
+            return !npcName || npcName !== playerNormKey;
+        });
+    }
+
     let finalState: 响应命令处理状态 = {
         角色: charBuffer,
         环境: normalizedEnv,
