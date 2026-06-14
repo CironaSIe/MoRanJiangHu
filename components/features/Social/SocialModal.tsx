@@ -257,11 +257,13 @@ const SocialModal: React.FC<Props> = ({
             .filter((item) => item.部位 && item.名称);
     };
     const 读取香闺秘档图片结果 = (npc: NPC结构, part: 香闺秘档部位类型) => {
-        const history = Array.isArray((npc as any)?.图片档案?.生图历史) ? (npc as any).图片档案.生图历史 : [];
-        const match = history.find((item: any) => item?.部位 === part && 获取图片展示地址(item));
-        if (match) return match;
         const source = (npc as any)?.图片档案?.香闺秘档部位档案?.[part];
         if (source && typeof source === 'object' && 获取图片展示地址(source)) return source;
+        const history = Array.isArray((npc as any)?.图片档案?.生图历史) ? (npc as any).图片档案.生图历史 : [];
+        const match = history
+            .filter((item: any) => item?.部位 === part && item?.状态 !== 'failed' && item?.状态 !== 'pending' && 获取图片展示地址(item))
+            .sort((a: any, b: any) => Number(b?.生成时间 || 0) - Number(a?.生成时间 || 0))[0];
+        if (match) return match;
         return undefined;
     };
     const 读取关系网 = (npc: NPC结构): Array<{ 对象姓名: string; 关系: string; 备注?: string }> => {

@@ -25,7 +25,8 @@ import {
     自动扣除BaseAmount,
     自动扣除铜钱,
     自动增加BaseAmount,
-    自动增加铜钱
+    自动增加铜钱,
+    读取拍卖行状态
 } from '../services/auctionHouse';
 
 afterEach(() => {
@@ -170,6 +171,41 @@ describe('拍卖行默认补货', () => {
             }
         });
         expect(blocked.拍卖品列表.some((entry) => entry.物品.名称 === '储物戒')).toBe(false);
+    });
+
+    it('读取无限流拍卖行旧缓存时会清理武侠行情', () => {
+        const now = Date.now();
+        const rawState = {
+            拍卖品列表: [],
+            交易记录: [],
+            最近补货时间: 0,
+            行情列表: [
+                {
+                    ID: 'market_wuxia_old',
+                    标题: '雅玩回落',
+                    描述: '富户收手观望，饰品与旧玩更容易压价成交。',
+                    影响类型: '饰品',
+                    价格倍率: 0.92,
+                    过期时间: now + 60_000,
+                    热点标签: '雅玩回落'
+                }
+            ],
+            最近行情时间: now
+        };
+        const localStorageMock = {
+            getItem: vi.fn(() => JSON.stringify(rawState)),
+            setItem: vi.fn(),
+            removeItem: vi.fn(),
+            key: vi.fn(),
+            length: 1
+        };
+        vi.stubGlobal('window', { localStorage: localStorageMock });
+
+        const state = 读取拍卖行状态('infinite-old-cache', { 题材模式: '无限流' });
+
+        expect(state.行情列表.some((item) => item.标题 === '雅玩回落')).toBe(false);
+        expect(state.行情列表.length).toBeGreaterThan(0);
+        expect(state.行情列表.every((item) => ['恐怖片高发期', '基因锁热潮', '军备囤积', '支线剧情荒', '主神补货'].includes(item.标题))).toBe(true);
     });
 
     it('localStorage 配额不足时不会打断应用加载', () => {

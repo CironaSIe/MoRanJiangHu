@@ -317,11 +317,18 @@ const 同步当前视角在场状态 = (
     const responseFactText = 提取响应事实文本(response);
     if (!responseFactText.trim()) return socialList;
     const dialogueSenderKeys = 提取对白发送者集合(response, playerName);
+    const hasCurrentSceneAnchor = 拆分事实句(responseFactText).some((sentence) => (
+        现场确认事实正则.test(sentence)
+        && !现场缺席事实正则.test(sentence)
+    )) || dialogueSenderKeys.size > 0;
     return socialList.map((npc: any) => {
         if (!npc || typeof npc !== 'object') return npc;
         if (NPC已死亡(npc)) return { ...npc, 是否在场: false };
         const nextPresent = 判断NPC本回合是否在场(npc, responseFactText, dialogueSenderKeys);
-        if (nextPresent === undefined) return npc;
+        if (nextPresent === undefined) {
+            if (hasCurrentSceneAnchor && npc.是否在场 === true) return { ...npc, 是否在场: false };
+            return npc;
+        }
         return npc.是否在场 === nextPresent ? npc : { ...npc, 是否在场: nextPresent };
     });
 };
@@ -1269,6 +1276,28 @@ const 净化新增社交命令 = (
     return null;
 };
 
+const 规范化人物键 = (value: unknown): string => (
+    typeof value === 'string'
+        ? value.trim().replace(/\s+/g, '').toLowerCase()
+        : ''
+);
+
+const 过滤玩家本人门派成员 = (sect: any, playerName?: string): any => {
+    if (!sect || typeof sect !== 'object' || !Array.isArray(sect.重要成员)) return sect;
+    const playerKey = 规范化人物键(playerName);
+    const nextMembers = sect.重要成员.filter((member: any) => {
+        if (!member || typeof member !== 'object') return true;
+        if (member.是否玩家本人 === true) return false;
+        const id = typeof member.id === 'string' ? member.id : '';
+        if (id.includes('sect_member_player_')) return false;
+        if (playerKey && 规范化人物键(member.姓名) === playerKey) return false;
+        return true;
+    });
+    return nextMembers.length === sect.重要成员.length
+        ? sect
+        : { ...sect, 重要成员: nextMembers };
+};
+
 export const 执行响应命令处理 = (
     response: GameResponse,
     currentState: 响应命令处理状态,
@@ -1442,7 +1471,7 @@ export const 执行响应命令处理 = (
             社交: socialBuffer,
             世界: deps.规范化世界状态(worldBuffer),
             战斗: battleBuffer,
-            玩家门派: deps.规范化门派状态(sectBuffer),
+            玩家门派: deps.规范化门派状态(过滤玩家本人门派成员(sectBuffer, charBuffer?.姓名)),
             任务列表: 规范化任务列表自动结算(Array.isArray(tasksBuffer) ? tasksBuffer : []),
             约定列表: Array.isArray(agreementsBuffer) ? agreementsBuffer : [],
             剧情: storyBuffer,

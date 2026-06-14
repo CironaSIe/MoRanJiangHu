@@ -409,14 +409,26 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
                             const prevSecret = prevArchive.香闺秘档部位档案 && typeof prevArchive.香闺秘档部位档案 === 'object'
                                 ? prevArchive.香闺秘档部位档案
                                 : {};
+                            const nextRecord = {
+                                ...record,
+                                部位: part,
+                                构图: '部位特写' as const,
+                                状态: record?.状态 || 'success'
+                            };
+                            const history = Array.isArray(prevArchive.生图历史)
+                                ? prevArchive.生图历史.filter((item: any) => item && item.id !== nextRecord.id)
+                                : [];
                             return {
                                 ...prev,
                                 图片档案: {
                                     ...prevArchive,
-                                    香闺秘档部位档案: { ...prevSecret, [part]: record }
+                                    最近生图结果: prevArchive.最近生图结果,
+                                    生图历史: [nextRecord, ...history],
+                                    香闺秘档部位档案: { ...prevSecret, [part]: nextRecord }
                                 }
                             };
                         });
+                        return true;
                     }
                 }
             );

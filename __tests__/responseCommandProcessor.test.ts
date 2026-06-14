@@ -97,6 +97,34 @@ describe('responseCommandProcessor dialogue social sync', () => {
         });
     });
 
+    it('filters player self entries from sect important members after commands are applied', () => {
+        const state = 构建基础状态();
+        state.玩家门派 = {
+            名称: '主神小队',
+            重要成员: [
+                { id: 'member_existing', 姓名: '林雪', 身份: '轮回者' }
+            ]
+        } as any;
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '主神空间刷新了轮回者名录。' }
+            ],
+            tavern_commands: [
+                {
+                    action: 'set',
+                    key: '玩家门派.重要成员',
+                    value: [
+                        { id: 'sect_member_player_yangpeiqiang', 姓名: '杨培强', 身份: '队长', 是否玩家本人: true },
+                        { id: 'member_linxue', 姓名: '林雪', 身份: '轮回者' }
+                    ]
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.玩家门派.重要成员.map((member: any) => member.姓名)).toEqual(['林雪']);
+    });
+
     it('adds a child NPC when an adult pregnant character gives birth', () => {
         const state = 构建基础状态();
         state.环境 = { 时间: '1:02:01:00:00' } as any;
@@ -299,7 +327,7 @@ describe('responseCommandProcessor current scene presence sync', () => {
 
         const result = 执行响应命令处理({
             logs: [
-                { sender: '旁白', text: '站在杨长风身侧的沈若嫣，那双清冷的桃花眼中，终于绽放出一抹明亮。' }
+                { sender: '旁白', text: '站在杨培强身侧的沈若嫣，那双清冷的桃花眼中，终于绽放出一抹明亮。' }
             ],
             tavern_commands: []
         } as any, state, deps, undefined, { applyState: false });

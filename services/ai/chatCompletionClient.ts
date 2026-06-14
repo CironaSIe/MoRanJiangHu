@@ -282,6 +282,26 @@ const 是否Claude模型 = (modelRaw: string): boolean => {
     return (modelRaw || '').toLowerCase().includes('claude');
 };
 
+const 是否GeminiDeepResearch模型 = (modelRaw: string): boolean => {
+    const model = 标准化模型名(modelRaw || '');
+    return model.includes('deep-research');
+};
+
+const 是否Gemini接口地址 = (baseUrlRaw: string): boolean => {
+    const baseUrl = (baseUrlRaw || '').toLowerCase();
+    return baseUrl.includes('generativelanguage.googleapis.com') || baseUrl.includes('googleapis.com');
+};
+
+const 构建GeminiInteractions端点 = (baseUrlRaw: string): string => {
+    const base = 清理末尾斜杠(baseUrlRaw || '');
+    if (!base) return '';
+    if (/\/v1beta\/interactions$/i.test(base) || /\/v1\/interactions$/i.test(base)) return base;
+    if (/\/v1beta\/openai$/i.test(base)) return `${base.replace(/\/openai$/i, '')}/interactions`;
+    if (/\/v1\/openai$/i.test(base)) return `${base.replace(/\/openai$/i, '')}/interactions`;
+    if (/\/v1beta$/i.test(base) || /\/v1$/i.test(base)) return `${base}/interactions`;
+    return `${base}/v1beta/interactions`;
+};
+
 const 是否Claude兼容末尾User模型 = (apiConfig: 当前可用接口结构): boolean => {
     const model = (apiConfig.model || '').toLowerCase();
     const baseUrl = (apiConfig.baseUrl || '').toLowerCase();
@@ -1098,6 +1118,146 @@ const 解析可能是JSON字符串 = (text: string): any | null => {
     }
 };
 
+const 构建GeminiInteractions输入 = (messages: 通用消息[]): string => {
+    return 规范化文本补全消息链(messages, { 保留System: true, 合并同角色: true })
+        .map((msg) => {
+            const content = (msg.content || '').trim();
+            if (!content) return '';
+            if (msg.role === 'system') return `【系统规则】\n${content}`;
+            if (msg.role === 'assistant') return `【既有回复】\n${content}`;
+            return content;
+        })
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
+};
+
+const 提取GeminiInteractions文本 = (payload: any): string => {
+    const direct = payload?.output_text ?? payload?.outputText ?? payload?.text;
+    if (typeof direct === 'string' && direct.trim()) return direct.trim();
+
+    const output = payload?.output ?? payload?.response ?? payload?.result;
+    if (typeof output === 'string' && output.trim()) return output.trim();
+    if (typeof output?.text === 'string' && output.text.trim()) return output.text.trim();
+    if (typeof output?.output_text === 'string' && output.output_text.trim()) return output.output_text.trim();
+
+    const candidates = payload?.candidates;
+    if (Array.isArray(candidates)) {
+        const text = candidates
+            .map((candidate: any) => candidate?.content?.parts || candidate?.parts || [])
+            .flat()
+            .map((part: any) => typeof part?.text === 'string' ? part.text : '')
+            .filter(Boolean)
+            .join('\n')
+            .trim();
+        if (text) return text;
+    }
+
+    return '';
+};
+
+const 提取GeminiInteractionId = (payload: any): string => {
+    const raw = payload?.id ?? payload?.name ?? payload?.interaction?.id ?? payload?.interaction?.name;
+    if (typeof raw !== 'string') return '';
+    const trimmed = raw.trim();
+    return trimmed.includes('/') ? (trimmed.split('/').pop() || trimmed) : trimmed;
+};
+
+const 读取GeminiInteraction状态 = (payload: any): string => {
+    return String(payload?.status ?? payload?.state ?? payload?.interaction?.status ?? '').trim().toLowerCase();
+};
+
+const 请求GeminiInteractions文本 = async (
+    apiConfig: 当前可用接口结构,
+    messages: 通用消息[],
+    signal?: AbortSignal,
+    streamOptions?: 通用流式选项,
+    errorDetailLimit?: number
+): Promise<string> => {
+    if (!apiConfig.apiKey) throw new Error('Missing API Key');
+    const endpoint = 构建GeminiInteractions端点(apiConfig.baseUrl);
+    if (!endpoint) throw new Error('Missing API Base URL');
+
+    const agent = 规范化请求模型名称(apiConfig.model).replace(/^models\//i, '');
+    const input = 构建GeminiInteractions输入(messages);
+    if (!agent) throw new Error('Missing Gemini Deep Research agent model');
+    if (!input) throw new Error('Gemini Deep Research input is empty');
+
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiConfig.apiKey,
+        'Api-Revision': '2026-05-20'
+    };
+    const requestBody = JSON.stringify({
+        agent,
+        input,
+        agent_config: {
+            type: 'deep-research',
+            thinking_summaries: 'auto'
+        },
+        background: true,
+        store: true
+    });
+
+    const createResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: requestBody,
+        signal
+    });
+    if (!createResponse.ok) {
+        const detail = await 读取失败详情文本(createResponse, errorDetailLimit);
+        throw new 协议请求错误(`Gemini Interactions API Error: ${createResponse.status}${detail ? ` - ${detail}` : ''}`, createResponse.status, detail);
+    }
+
+    const created = 解析可能是JSON字符串(await createResponse.text()) || {};
+    const createdText = 提取GeminiInteractions文本(created);
+    const createdStatus = 读取GeminiInteraction状态(created);
+    if (createdText && (createdStatus === 'completed' || createdStatus === 'succeeded' || createdStatus === 'done' || !createdStatus)) {
+        非流式回填流式回调(createdText, streamOptions);
+        return createdText;
+    }
+
+    const interactionId = 提取GeminiInteractionId(created);
+    if (!interactionId) {
+        throw new 协议请求错误('Gemini Interactions API did not return an interaction id');
+    }
+
+    const pollEndpoint = `${endpoint.replace(/\/+$/u, '')}/${encodeURIComponent(interactionId)}`;
+    for (let attempt = 0; attempt < 240; attempt += 1) {
+        await 等待可中断(attempt === 0 ? 1500 : 5000, signal);
+        const pollResponse = await fetch(pollEndpoint, {
+            method: 'GET',
+            headers: {
+                'x-goog-api-key': apiConfig.apiKey,
+                'Api-Revision': '2026-05-20'
+            },
+            signal
+        });
+        if (!pollResponse.ok) {
+            const detail = await 读取失败详情文本(pollResponse, errorDetailLimit);
+            throw new 协议请求错误(`Gemini Interactions API Error: ${pollResponse.status}${detail ? ` - ${detail}` : ''}`, pollResponse.status, detail);
+        }
+
+        const payload = 解析可能是JSON字符串(await pollResponse.text()) || {};
+        const status = 读取GeminiInteraction状态(payload);
+        if (status === 'failed' || status === 'error' || status === 'cancelled' || status === 'canceled') {
+            const errorText = typeof payload?.error === 'string'
+                ? payload.error
+                : (payload?.error?.message || payload?.message || 'unknown error');
+            throw new 协议请求错误(`Gemini Deep Research failed: ${errorText}`);
+        }
+
+        const text = 提取GeminiInteractions文本(payload);
+        if (text && (status === 'completed' || status === 'succeeded' || status === 'done' || status === 'complete')) {
+            非流式回填流式回调(text, streamOptions);
+            return text;
+        }
+    }
+
+    throw new 协议请求错误(`Gemini Deep Research timed out while waiting for interaction ${interactionId}`);
+};
+
 const 构建OpenAI端点 = (
     baseUrlRaw: string,
     supplier: 当前可用接口结构['供应商'],
@@ -1340,14 +1500,22 @@ export const 请求模型文本 = async (
         prefixMode?: boolean;
     }
 ): Promise<string> => {
-    // 检测不支持 OpenAI 兼容端点的 Gemini 模型
-    const modelId = (apiConfig.model || '').toLowerCase();
-    if (/deep-research|thinking/.test(modelId) && /gemini|generativelanguage/.test((apiConfig.baseUrl || '').toLowerCase())) {
-        throw new Error(
-            `模型 ${apiConfig.model} 仅支持 Gemini Interactions API，不支持 OpenAI 兼容端点。` +
-            `请在设置中切换到其他 Gemini 模型（如 gemini-2.0-flash、gemini-2.5-pro）或使用第三方 OpenAI 兼容供应商。`
-        );
+    if (是否GeminiDeepResearch模型(apiConfig.model) && 是否Gemini接口地址(apiConfig.baseUrl)) {
+        return 带重试执行('请求模型文本(gemini-interactions)', async () => {
+            return 请求GeminiInteractions文本(
+                apiConfig,
+                messages,
+                options.signal,
+                options.streamOptions,
+                options.errorDetailLimit
+            );
+        }, {
+            signal: options.signal,
+            retries: 1,
+            baseDelayMs: 1200
+        });
     }
+
     const protocol = 解析请求协议类型(apiConfig);
     const resolvedTemperature = 计算请求温度(apiConfig, options.temperature);
     const requestedResponseFormat = options.responseFormat;

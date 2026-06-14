@@ -257,9 +257,23 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
                 return;
             }
             case '玩家门派': {
+                const playerNameKey = typeof 当前状态.角色?.姓名 === 'string'
+                    ? 当前状态.角色.姓名.trim().replace(/\s+/g, '').toLowerCase()
+                    : '';
+                const rawSect = value && typeof value === 'object' ? { ...value } : value;
+                if (rawSect && typeof rawSect === 'object' && Array.isArray((rawSect as any).重要成员)) {
+                    (rawSect as any).重要成员 = (rawSect as any).重要成员.filter((member: any) => {
+                        if (!member || typeof member !== 'object') return false;
+                        if (member.是否玩家本人 === true) return false;
+                        const id = String(member.id || member.ID || '').trim();
+                        if (id.includes('sect_member_player_')) return false;
+                        const nameKey = typeof member.姓名 === 'string' ? member.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
+                        return !playerNameKey || !nameKey || nameKey !== playerNameKey;
+                    });
+                }
                 const synced = 同步角色与门派状态({
                     角色: 当前状态.角色,
-                    玩家门派: deps.规范化门派状态(value)
+                    玩家门派: deps.规范化门派状态(rawSect)
                 });
                 deps.设置角色(synced.角色);
                 deps.设置玩家门派(synced.玩家门派);

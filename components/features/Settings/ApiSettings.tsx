@@ -143,6 +143,10 @@ const 匹配模型输出推荐 = (modelRaw: string): 模型输出推荐项 | nul
     return 模型输出推荐数据.find((item) => item.matchers.some((matcher) => matcher.test(model))) || null;
 };
 
+const 是否GeminiDeepResearch配置 = (modelRaw: string, baseUrlRaw: string): boolean => {
+    return /deep-research/i.test(modelRaw || '') && /gemini|generativelanguage|googleapis/i.test(baseUrlRaw || '');
+};
+
 const 提取模型版本数字 = (model: string): number[] => (
     (model || '')
         .match(/\d+(?:\.\d+)?/g)
@@ -205,6 +209,10 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
     const 主剧情解析模型 = useMemo(() => {
         return (activeConfig?.model || '').trim() || (form.功能模型占位.主剧情使用模型 || '').trim();
     }, [activeConfig?.model, form.功能模型占位.主剧情使用模型]);
+
+    const 主剧情BaseUrl = useMemo(() => {
+        return (activeConfig?.baseUrl || '').trim();
+    }, [activeConfig?.baseUrl]);
 
     const 当前最大输出档位 = useMemo<最大输出档位 | null>(() => {
         return 推断最大输出档位(activeConfig?.maxTokens);
@@ -368,7 +376,8 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
             const models = await fetchModelsFromCurrentConfig();
             if (models && models.length > 0) {
                 setMainModelOptions(models);
-                const bestModel = 选择最佳可用模型(models);
+                const shouldKeepManualModel = 是否GeminiDeepResearch配置(modelForTest, configForTest.baseUrl);
+                const bestModel = shouldKeepManualModel ? '' : 选择最佳可用模型(models);
                 if (bestModel) {
                     modelForTest = bestModel;
                     const nextConfig = { ...activeConfig, model: bestModel, updatedAt: Date.now() };
@@ -742,10 +751,10 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
                             <div className="text-gray-500">参考：{当前模型推荐.sourceLabel}（{当前模型推荐.updatedAt}）</div>
                         </div>
                     )}
-                    {/deep-research/i.test(主剧情解析模型) && /gemini|generativelanguage/i.test(主剧情BaseUrl) && (
-                        <div className="rounded-md border border-red-500/40 bg-red-950/20 p-3 text-[11px] leading-5 text-red-200">
-                            <div className="font-bold">⚠️ 此模型不兼容</div>
-                            <div>Deep Research 模型仅支持 Gemini Interactions API，不支持 OpenAI 兼容端点。请切换到其他 Gemini 模型（如 gemini-2.5-pro、gemini-2.0-flash）。</div>
+                    {是否GeminiDeepResearch配置(主剧情解析模型, 主剧情BaseUrl) && (
+                        <div className="rounded-md border border-amber-500/40 bg-amber-950/20 p-3 text-[11px] leading-5 text-amber-100">
+                            <div className="font-bold">Gemini Deep Research 将使用 Interactions API</div>
+                            <div>此类模型不能走 OpenAI 兼容的 chat/completions。系统会自动改用 Gemini Interactions API（/v1beta/interactions），并轮询后台研究结果。</div>
                         </div>
                     )}
                 </div>

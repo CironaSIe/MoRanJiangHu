@@ -19,6 +19,9 @@ interface Props {
 type Tab = 'hall' | 'exchange' | 'library' | 'members';
 type RankStep = { rank: string; lvl: number; required: number; discount: number; perks: string[] };
 const 无组织标识集合 = new Set(['', 'none', '无', '无门无派', '未加入', '散人']);
+const 规范化人物键 = (value: unknown): string => (
+    typeof value === 'string' ? value.trim().replace(/\s+/g, '').toLowerCase() : ''
+);
 
 const 是否未加入组织 = (sectData?: 详细门派结构): boolean => {
     if (!sectData) return true;
@@ -304,7 +307,25 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
     const 月俸规则 = sectData.月俸规则;
     const 月俸可领取 = Boolean(月俸规则) && 本月月俸可领取(sectData, env);
     const 月俸数量 = 估算月俸数量(sectData);
-    const 实际轮回者人数 = Math.max(1, Array.isArray(sectData.重要成员) ? sectData.重要成员.length : 0);
+    const playerMember = useMemo(() => (
+        Array.isArray(sectData.重要成员)
+            ? sectData.重要成员.find((member: any) => member?.是否玩家本人 === true || String(member?.id || '').includes('sect_member_player_'))
+            : undefined
+    ), [sectData.重要成员]);
+    const playerNameKey = 规范化人物键((playerMember as any)?.姓名);
+    const 展示成员列表 = useMemo(() => (
+        Array.isArray(sectData.重要成员)
+            ? sectData.重要成员.filter((member: any) => {
+                if (!member || typeof member !== 'object') return false;
+                if (member.是否玩家本人 === true) return false;
+                const id = String(member.id || '').trim();
+                if (id.includes('sect_member_player_')) return false;
+                const nameKey = 规范化人物键(member.姓名);
+                return !playerNameKey || !nameKey || nameKey !== playerNameKey;
+            })
+            : []
+    ), [playerNameKey, sectData.重要成员]);
+    const 实际轮回者人数 = Math.max(1, 文案.isInfinite ? 展示成员列表.length : (Array.isArray(sectData.重要成员) ? sectData.重要成员.length : 0));
     const 展示人数 = 文案.isInfinite
         ? (Number(sectData.弟子总数 || 0) > 12 ? 实际轮回者人数 : Math.max(实际轮回者人数, Number(sectData.弟子总数 || 0) || 0))
         : (sectData.弟子总数 || 0);
@@ -632,7 +653,7 @@ const SectModal: React.FC<Props> = ({ sectData, onClose, onOpenNpc, onLearnBook,
                         {/* --- MEMBERS --- */}
                         {activeTab === 'members' && (
                             <div className="space-y-4 animate-slide-in">
-                                {sectData.重要成员.map(mem => (
+                                {展示成员列表.map(mem => (
                                     <button
                                         key={mem.id}
                                         type="button"

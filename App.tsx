@@ -499,7 +499,7 @@ const App: React.FC = () => {
     const [showCloudPlay, setShowCloudPlay] = React.useState(false);
     const [auctionHouseState, setAuctionHouseState] = React.useState<拍卖行状态>(() => {
         try {
-            return 读取拍卖行状态();
+            return 读取拍卖行状态(undefined, { 题材模式: state.开局配置?.题材模式 });
         } catch (error) {
             recordDiagnosticLog('warn', ['拍卖行初始化失败，已使用空状态兜底', error]);
             return 清理并补货({
@@ -508,7 +508,7 @@ const App: React.FC = () => {
                 最近补货时间: 0,
                 行情列表: [],
                 最近行情时间: 0
-            }, { 允许系统补货: false });
+            }, { 允许系统补货: false, 题材模式: state.开局配置?.题材模式 });
         }
     });
     const auctionCurrencyOptions = React.useMemo(() => ({
@@ -669,7 +669,7 @@ const App: React.FC = () => {
         return unsubscribe;
     }, [actions]);
     React.useEffect(() => {
-        const next = 清理并补货(读取拍卖行状态(auctionHouseScope), { 题材模式: state.开局配置?.题材模式 });
+        const next = 清理并补货(读取拍卖行状态(auctionHouseScope, { 题材模式: state.开局配置?.题材模式 }), { 题材模式: state.开局配置?.题材模式 });
         setAuctionHouseState(next);
         保存拍卖行状态(next, auctionHouseScope);
     }, [auctionHouseScope, state.开局配置?.题材模式]);

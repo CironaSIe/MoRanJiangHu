@@ -95,6 +95,57 @@ describe('chatCompletionClient Claude compatible message normalization', () => {
         expect(requestBody.model).toBe('gemini-3.1-pro-high-search');
     });
 
+    it('routes Gemini Deep Research models through the Interactions API', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch')
+            .mockResolvedValueOnce(new Response(JSON.stringify({
+                id: 'interaction-123',
+                status: 'in_progress'
+            }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' }
+            }))
+            .mockResolvedValueOnce(new Response(JSON.stringify({
+                id: 'interaction-123',
+                status: 'completed',
+                output_text: 'research-ok'
+            }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' }
+            }));
+
+        const result = await 请求模型文本({
+            ...baseConfig,
+            供应商: 'gemini',
+            baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+            model: 'models/deep-research-pro-preview-12-2025'
+        }, [
+            { role: 'system', content: '规则' },
+            { role: 'user', content: '研究一下测试主题' }
+        ], {
+            temperature: 0.7,
+            signal: undefined,
+            streamOptions: { stream: false },
+            errorDetailLimit: 500
+        });
+
+        expect(result).toBe('research-ok');
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(String(fetchMock.mock.calls[0][0])).toBe('https://generativelanguage.googleapis.com/v1beta/interactions');
+        expect(String(fetchMock.mock.calls[1][0])).toBe('https://generativelanguage.googleapis.com/v1beta/interactions/interaction-123');
+
+        const createOptions = fetchMock.mock.calls[0][1] as RequestInit;
+        expect((createOptions.headers as Record<string, string>)['x-goog-api-key']).toBe('test-key');
+        expect((createOptions.headers as Record<string, string>)['Api-Revision']).toBe('2026-05-20');
+
+        const requestBody = JSON.parse(String(createOptions.body));
+        expect(requestBody.agent).toBe('deep-research-pro-preview-12-2025');
+        expect(requestBody.input).toContain('【系统规则】');
+        expect(requestBody.input).toContain('研究一下测试主题');
+        expect(requestBody.agent_config.type).toBe('deep-research');
+        expect(requestBody.background).toBe(true);
+        expect(requestBody.store).toBe(true);
+    });
+
     it('treats Android OkHttp stream truncation as a retryable transport error', async () => {
         const fetchMock = vi.spyOn(globalThis, 'fetch')
             .mockRejectedValueOnce(new Error('unexpected end of stream on com.android.okhttp.Address@4ea9fa8e'))

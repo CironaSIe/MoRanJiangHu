@@ -157,6 +157,46 @@ const 序列化变量模型状态 = (
 
 const 读取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
+const 任务奖励占位正则 = /(?:未知|不明|未明|未定|待定|待确认|暂定|另议|看情况|视情况|暂无|无奖励|无酬劳|无结算|奖励未知|未知奖励|奖励待定|待定奖励|奖励未定|未定奖励)/u;
+
+const 提取命令中的任务奖励占位 = (commands: TavernCommand[]): string[] => {
+    const issues: string[] = [];
+    const collectReward = (reward: unknown, source: string) => {
+        const list = Array.isArray(reward) ? reward : (typeof reward === 'string' ? [reward] : []);
+        list.forEach((item) => {
+            const text = 读取文本(item);
+            if (!text) return;
+            const normalized = ` ${text} `;
+            if (任务奖励占位正则.test(normalized)) {
+                issues.push(`${source} 奖励描述存在占位词“${text}”`);
+            }
+        });
+    };
+    const collectTask = (task: any, source: string) => {
+        if (!task || typeof task !== 'object') return;
+        collectReward(task.奖励描述, source);
+    };
+
+    commands.forEach((cmd: any) => {
+        const action = cmd?.action || 'set';
+        const rawKey = typeof cmd?.key === 'string' ? cmd.key : '';
+        const normalizedKey = normalizeStateCommandKey(rawKey).replace(/^gameState\./, '');
+        if (!/^任务列表(?:$|\[|\.)/.test(normalizedKey)) return;
+        if (/奖励描述$/.test(normalizedKey)) {
+            collectReward(cmd.value, normalizedKey);
+            return;
+        }
+        if ((action === 'set' || action === 'add') && normalizedKey === '任务列表' && Array.isArray(cmd.value)) {
+            cmd.value.forEach((task: any, index: number) => collectTask(task, `任务列表[${index}]`));
+            return;
+        }
+        if (action === 'push' || /^任务列表\[\d+\]$/.test(normalizedKey)) {
+            collectTask(cmd.value, normalizedKey);
+        }
+    });
+    return Array.from(new Set(issues));
+};
+
 const 标准化人物匹配文本 = (value: unknown): string => (
     读取文本(value).replace(/\s+/g, '').replace(/[·・\-—_【】（）()《》“”"'，,。！？!?:：；;]/g, '')
 );
@@ -697,6 +737,14 @@ export const 执行变量模型校准工作流 = async (
         const deletionIssues = 检测社交删除风险命令(dedupedCommands, params.baseState.社交);
         if (deletionIssues.length > 0) {
             const message = `变量生成试图删除或替换既有 NPC：${deletionIssues.join('；')}。未经玩家手动确认，变量生成只能更新 NPC 字段，不能删除角色或整组覆盖社交列表。`;
+            const error = new Error(message);
+            (error as any).parseDetail = message;
+            throw error;
+        }
+
+        const rewardPlaceholderIssues = 提取命令中的任务奖励占位(dedupedCommands);
+        if (rewardPlaceholderIssues.length > 0) {
+            const message = `变量生成写入了不可结算的任务奖励：${rewardPlaceholderIssues.join('；')}。请重新生成任务变量命令：奖励描述必须明确到可显示、可结算的奖励，例如“奖励点 +100”“D级支线剧情 +1”“可分配属性点 +1”“急救包 x1”，不能写未知、待定、看情况或无奖励。`;
             const error = new Error(message);
             (error as any).parseDetail = message;
             throw error;
