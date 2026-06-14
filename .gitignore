@@ -102,10 +102,14 @@ lerna-debug.log*
 *.key
 
 # Local test and debug artifacts
+/.local-debug/
+/.playwright-cli/
 /.playwright-mcp/
 /test-results/
 /diff_output.txt
 /nul
+/test_screenshot.png
+*.mp3
 
 # Editor directories and files
 .vscode/*
