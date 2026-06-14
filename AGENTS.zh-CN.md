@@ -318,6 +318,16 @@
 - **错误用法**：`powershell.exe -Command "..." 2>&1 | tail -10` —— 会导致静默返回空输出，看起来像命令卡住或失败了，实际上命令已成功。
 - 对于 Gradle 构建，构建可能已成功（APK 文件存在且时间戳正确），但管道返回空，导致误判为"超时"或"空输出"。
 
+## 后台进程规则
+
+- **有限命令**（构建、测试、编译、安装）：直接运行——它们会自行退出。
+- **无限命令**（HTTP 服务器、文件监听、开发服务器、监听器）：必须后台运行——它们永远不会退出。
+- 在 Windows 上，`command &` 在 Git Bash/MSYS2 中不能可靠地分离进程。Bash 工具会等待退出，所以会永远卡住。
+- **无限进程的正确做法**：使用 `powershell.exe -Command "Start-Process -FilePath <cmd> -ArgumentList <args> -WindowStyle Hidden"` 启动后台进程，然后用 HTTP/请求检查验证。
+- **错误做法**：`python -m http.server 4173 -d dist &` —— 会无限期阻塞 Bash 工具。
+- **必须后台运行的命令示例**：`python -m http.server`、`npx vite preview`、`npm run dev`、`npx wrangler dev`、`tail -f`、任何 `watch` 模式。
+- **直接运行的有限命令示例**：`npm run build`、`gradlew assembleRelease`、`npm run test:run`、`git push`。
+
 ## 2026-05-17 地图重构与同步记忆
 
 - 原作者项目：`ypq123456789/MoRanJiangHu`。

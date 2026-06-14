@@ -119,6 +119,16 @@
 - **Incorrect pattern**: `powershell.exe -Command "..." 2>&1 | tail -10` — this causes silent empty output, making it appear the command hung or failed when it actually succeeded.
 - For Gradle builds specifically, the build may succeed (APK file exists with correct timestamp) but the pipe returns nothing, leading to false "timeout" or "empty output" diagnoses.
 
+## Background Process Rule
+
+- **Finite commands** (build, test, compile, install): run directly — they will exit on their own.
+- **Infinite commands** (HTTP servers, file watchers, dev servers, listeners): must run in background — they never exit.
+- On Windows, `command &` does NOT reliably detach a process in Git Bash/MSYS2. The Bash tool waits for exit, so it hangs forever.
+- **Correct pattern for infinite processes**: Use `powershell.exe -Command "Start-Process -FilePath <cmd> -ArgumentList <args> -WindowStyle Hidden"` to spawn a detached background process. Then verify with a quick HTTP/request check.
+- **Incorrect pattern**: `python -m http.server 4173 -d dist &` — this blocks the Bash tool indefinitely.
+- **Examples of infinite commands that MUST background**: `python -m http.server`, `npx vite preview`, `npm run dev`, `npx wrangler dev`, `tail -f`, any `watch` mode.
+- **Examples of finite commands that run directly**: `npm run build`, `gradlew assembleRelease`, `npm run test:run`, `git push`.
+
 ## Root-Cause Bugfix Rule
 
 - When the user asks to fix a problem, first consider whether the symptom is isolated or part of a larger workflow/data-integrity issue. If it is part of a larger issue, fix the whole chain, not only the visible symptom.

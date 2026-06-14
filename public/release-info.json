@@ -1,8 +1,8 @@
 {
-  "versionCode": 472,
-  "versionName": "1.0.472",
+  "versionCode": 473,
+  "versionName": "1.0.473",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-06-14 02:24",
+  "releasePublishedAt": "2026-06-14T10:16:30",
   "releaseNotes": [
     "再次修复门派兑换报错（setPlayerSect is not a function）：修复了领取月俸时同一错误的第二个调用点。",
     "修复香闺密档图片不显示：简化图片查找逻辑，直接从生图历史按部位匹配。",
