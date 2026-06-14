@@ -251,7 +251,7 @@ const 判断NPC本回合是否在场 = (
     const names = 读取NPC名称列表(npc);
     const keys = names.map(归一化文本键).filter(Boolean);
     if (keys.some((key) => dialogueSenderKeys.has(key))) return true;
-    if (names.length <= 0 || !names.some((name) => responseFactText.includes(name))) return false;
+    if (names.length <= 0 || !names.some((name) => responseFactText.includes(name))) return undefined;
     const relatedSentences = 拆分事实句(responseFactText).filter((sentence) => names.some((name) => sentence.includes(name)));
     if (relatedSentences.length <= 0) return false;
     if (relatedSentences.some((sentence) => 现场缺席事实正则.test(sentence))) return false;
@@ -455,6 +455,8 @@ const 应用同行事实到队伍 = (
             return { ...npc, 是否队友: false };
         }
         if (!relatedSentences.some((sentence) => 同行强确认事实正则.test(sentence))) return npc;
+        // 敌对或阻拦事实不应设为队友
+        if (relatedSentences.some((sentence) => 敌对或阻拦事实正则.test(sentence))) return npc;
         if (npc.是否队友 === true && npc.是否在场 === true) return npc;
         changed = true;
         return {
