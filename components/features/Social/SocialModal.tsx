@@ -87,7 +87,13 @@ const SocialModal: React.FC<Props> = ({
             return socialList.indexOf(a) - socialList.indexOf(b);
         })
     ), [socialList]);
-    use图片资源回源预取(sortedSocialList);
+    const adjacentNPCs = React.useMemo(() => {
+        if (!currentNPC) return [] as typeof sortedSocialList;
+        const currentIndex = sortedSocialList.findIndex((npc, index) => 获取NPC稳定ID(npc, index) === selectedId);
+        if (currentIndex < 0) return [currentNPC];
+        return sortedSocialList.filter((_, index) => Math.abs(index - currentIndex) <= 1);
+    }, [currentNPC, sortedSocialList, selectedId, 获取NPC稳定ID]);
+    use图片资源回源预取(currentNPC, adjacentNPCs);
     const 显示境界 = cultivationSystemEnabled !== false;
     const 获取NPC稳定ID = React.useCallback((npc: any, index = 0): string => (
         String(npc?.id || npc?.ID || npc?.姓名 || `npc-${index}`).trim()

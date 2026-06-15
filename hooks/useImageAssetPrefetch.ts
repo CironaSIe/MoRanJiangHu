@@ -57,7 +57,7 @@ export const use图片资源回源预取 = (...sources: unknown[]): void => {
     useEffect(() => {
         let cancelled = false;
         const native = isNativeCapacitorEnvironment();
-        const maxRefs = native ? 8 : 24;
+        const maxRefs = native ? 8 : 48;
         const poolSize = native ? 1 : 2;
         const unresolvedRefs = refList.filter((ref) => !读取图片资源缓存(ref)).slice(0, maxRefs);
         if (unresolvedRefs.length === 0) return;
