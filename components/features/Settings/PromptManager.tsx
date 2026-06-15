@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { 提示词结构, PromptCategory } from '../../../types';
 import GameButton from '../../ui/GameButton';
 import ToggleSwitch from '../../ui/ToggleSwitch';
-import { 创建并记录ObjectURL, 延迟释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
+import { 导出提示词到文件 } from '../../../utils/promptExport';
 
 type RuntimePromptState = {
     当前启用: boolean;
@@ -75,22 +75,13 @@ const PromptManager: React.FC<Props> = ({ prompts, onUpdate, requestConfirm, run
         onUpdate(newPrompts);
     };
 
-    const handleExport = () => {
-        const blob = new Blob([JSON.stringify(prompts, null, 2)], { type: 'application/json' });
-        const url = 创建并记录ObjectURL(blob, {
-            source: 'PromptManager.handleExport',
-            kind: 'prompt-export',
-            detail: { promptCount: prompts.length }
-        });
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'wuxia_prompts.json';
-        a.click();
-        延迟释放并记录ObjectURL(url, {
-            source: 'PromptManager.handleExport',
-            kind: 'prompt-export',
-            detail: { reason: 'download-clicked' }
-        }, 1000);
+    const handleExport = async () => {
+        try {
+            const result = await 导出提示词到文件(prompts);
+            pushNotice('success', result.message);
+        } catch (error: any) {
+            pushNotice('error', `导出失败：${error?.message || '未知错误'}`);
+        }
     };
 
     const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,7 +188,7 @@ const PromptManager: React.FC<Props> = ({ prompts, onUpdate, requestConfirm, run
                     </GameButton>
                 </div>
                 <div className="flex gap-3">
-                    <GameButton onClick={handleExport} variant="secondary" className="text-xs px-4 py-2">导出</GameButton>
+                    <GameButton onClick={() => { void handleExport(); }} variant="secondary" className="text-xs px-4 py-2">导出</GameButton>
                     <label className="relative cursor-pointer group">
                         <span className="relative z-10 block px-4 py-2 font-serif font-bold uppercase transition-all duration-200 transform border-2 border-wuxia-cyan text-wuxia-cyan text-xs clip-path-polygon group-hover:-translate-y-1 bg-black/50">导入</span>
                         <input type="file" onChange={handleImport} className="hidden" accept=".json" />

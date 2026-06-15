@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { 规范化社交列表 } from '../hooks/useGame/stateTransforms';
+import { 合并NPC图片档案 } from '../hooks/useGame/npcImageStateWorkflow';
 
 describe('NPC old save compatibility', () => {
     it('repairs teammate combat caps without inventing equipment or bag contents', () => {
@@ -385,5 +386,50 @@ describe('NPC old save compatibility', () => {
         ]);
 
         expect(npc.性别).toBe('女');
+    });
+
+    it('keeps earlier successful secret part images when a later async write uses an older NPC snapshot', () => {
+        const baseNpc = {
+            id: 'npc_secret_async',
+            姓名: '俞月荷',
+            性别: '女',
+            是否主要角色: true,
+            图片档案: {}
+        };
+        const vulvaRecord = {
+            id: 'npc_secret_vulva',
+            部位: '小穴',
+            构图: '部位特写',
+            状态: 'success',
+            图片URL: 'wuxia-asset://img_vulva',
+            生成时间: 100
+        };
+        const anusRecord = {
+            id: 'npc_secret_anus',
+            部位: '屁穴',
+            构图: '部位特写',
+            状态: 'success',
+            图片URL: 'wuxia-asset://img_anus',
+            生成时间: 200
+        };
+
+        const afterVulva = {
+            ...baseNpc,
+            图片档案: 合并NPC图片档案(baseNpc, {
+                图片档案: {
+                    生图历史: [vulvaRecord],
+                    香闺秘档部位档案: { 小穴: vulvaRecord }
+                }
+            })
+        };
+        const afterAnusFromStaleSnapshot = 合并NPC图片档案(baseNpc, {
+            图片档案: {
+                生图历史: [anusRecord, ...(afterVulva.图片档案.生图历史 || [])],
+                香闺秘档部位档案: { 屁穴: anusRecord }
+            }
+        });
+
+        expect(afterAnusFromStaleSnapshot.香闺秘档部位档案?.小穴?.图片URL).toBe('wuxia-asset://img_vulva');
+        expect(afterAnusFromStaleSnapshot.香闺秘档部位档案?.屁穴?.图片URL).toBe('wuxia-asset://img_anus');
     });
 });

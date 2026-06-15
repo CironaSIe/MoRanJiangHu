@@ -1,5 +1,5 @@
 import type { NPC生图任务记录, 香闺秘档部位类型 } from '../../types';
-import { 获取图片展示地址, 压缩图片资源字段 } from '../../utils/imageAssets';
+import { 获取图片展示地址, 图片资源记录含可恢复地址, 压缩图片资源字段 } from '../../utils/imageAssets';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
 
 type NPC图片状态工作流依赖 = {
@@ -136,17 +136,19 @@ const 是否可作香闺秘档部位图片 = (record: any): boolean => {
         && status !== 'failed'
         && status !== 'pending'
         && Boolean(record?.id)
-        && Boolean(获取图片展示地址(record));
+        && 图片资源记录含可恢复地址(record);
 };
 
-const 从历史回填香闺秘档部位档案 = (currentArchive: any, history: any[], meta?: { npcKey?: string; npcName?: string; source?: string }) => {
+export const 从历史回填香闺秘档部位档案 = (currentArchive: any, history: any[], meta?: { npcKey?: string; npcName?: string; source?: string }) => {
     const currentSecretArchive = 标准化香闺秘档部位档案(currentArchive?.香闺秘档部位档案) || {};
     let changed = false;
     const nextSecretArchive: any = { ...currentSecretArchive };
     香闺秘档部位列表.forEach((part) => {
         const current = nextSecretArchive?.[part];
-        if (current && 获取图片展示地址(current)) return;
-        const fallback = history.find((item: any) => item?.部位 === part && 是否可作香闺秘档部位图片(item));
+        if (current && 图片资源记录含可恢复地址(current)) return;
+        const fallback = history
+            .filter((item: any) => item?.部位 === part && 是否可作香闺秘档部位图片(item))
+            .sort((a: any, b: any) => Number(b?.生成时间 || 0) - Number(a?.生成时间 || 0))[0];
         if (!fallback) return;
         nextSecretArchive[part] = fallback;
         changed = true;
