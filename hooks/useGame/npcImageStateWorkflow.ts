@@ -25,8 +25,13 @@ export const 标准化NPC图片结果 = (raw: any) => {
 
 export const 标准化香闺秘档部位结果 = (raw: any, part: 香闺秘档部位类型) => {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+    // 保留原始图片URL：压缩图片资源字段在有本地路径时会丢弃图片URL，
+    // 但香闺秘档部位档案的图片URL是恢复本地资源的必要兜底信息，
+    // 不应被压缩掉。先从原始数据读取图片URL，再应用压缩。
+    const rawImageUrl = typeof raw?.图片URL === 'string' ? raw.图片URL.trim() : undefined;
     const normalizedAsset = 压缩图片资源字段(raw);
-    const 图片URL = typeof normalizedAsset?.图片URL === 'string' ? normalizedAsset.图片URL.trim() : undefined;
+    // 如果压缩后的图片URL为空但原始数据有图片URL，恢复它
+    const 图片URL = (typeof normalizedAsset?.图片URL === 'string' ? normalizedAsset.图片URL.trim() : undefined) || rawImageUrl || undefined;
     const 本地路径 = typeof normalizedAsset?.本地路径 === 'string' ? normalizedAsset.本地路径.trim() : undefined;
     const 生图词组 = typeof raw?.生图词组 === 'string' ? raw.生图词组.trim() : '';
     const 原始描述 = typeof raw?.原始描述 === 'string' ? raw.原始描述.trim() : '';
