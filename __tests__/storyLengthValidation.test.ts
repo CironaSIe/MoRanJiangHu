@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { 校验响应人称一致性, 校验主剧情正文最低字数, 获取主剧情正文不足信息, 统计正文字符数 } from '../hooks/useGame/sendWorkflow';
+import { 校验响应人称一致性, 校验响应未泄露名器档案名称, 校验主剧情正文最低字数, 获取主剧情正文不足信息, 统计正文字符数 } from '../hooks/useGame/sendWorkflow';
 import { 净化角色对白行, 评估润色长度结果, 检测文章优化协议确认污染, 解析正文日志文本 } from '../hooks/useGame/bodyPolish';
 import { 清理润色正文输出 } from '../services/ai/storyTasks';
 import { 构建主剧情请求参数, type 主剧情系统上下文 } from '../hooks/useGame/mainStoryRequest';
@@ -398,5 +398,40 @@ describe('主剧情叙事人称校验', () => {
                 { sender: '林清月', text: '你先别急，外面还有人。' }
             ]
         } as any, rawText, '第一人称')).not.toThrow();
+    });
+});
+
+describe('主剧情名器档案名称正文泄露校验', () => {
+    const rawText = '<正文>测试正文</正文>';
+
+    it('正文直接写出已有名器档案名称时会退回重生', () => {
+        expect(() => 校验响应未泄露名器档案名称({
+            logs: [
+                { sender: '旁白', text: '她强忍羞意，低声提到了雪玉灵窍这个隐秘名字。' }
+            ]
+        } as any, [
+            {
+                姓名: '林清月',
+                名器档案: [
+                    { 部位: '小穴', 名称: '雪玉灵窍', 品质: '极品', 稳定描述: '档案描述', 效果: { 说明: '机制说明' } },
+                    { 部位: '胸部', 名称: '无名器', 品质: '无', 稳定描述: '档案描述', 效果: { 说明: '机制说明' } }
+                ]
+            }
+        ], rawText, '主剧情')).toThrow(/名器档案名称/);
+    });
+
+    it('正文只写代称不写档案名称时允许通过', () => {
+        expect(() => 校验响应未泄露名器档案名称({
+            logs: [
+                { sender: '旁白', text: '她只以含糊代称带过那处隐秘体质，没有把档案名说出口。' }
+            ]
+        } as any, [
+            {
+                姓名: '林清月',
+                名器档案: [
+                    { 部位: '小穴', 名称: '雪玉灵窍', 品质: '极品', 稳定描述: '档案描述', 效果: { 说明: '机制说明' } }
+                ]
+            }
+        ], rawText, '主剧情')).not.toThrow();
     });
 });

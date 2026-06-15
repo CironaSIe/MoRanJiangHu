@@ -251,6 +251,51 @@ export const 校验响应人称一致性 = (
     }
 };
 
+const 名器档案占位名称集合 = new Set(['无', '无名器', '无对应名器', '普通', '正常', '暂无', '不详', '未知', '待补充']);
+
+const 规范化名器档案名称 = (value: unknown): string => (
+    typeof value === 'string'
+        ? value.trim().replace(/[\s\u3000]+/g, '')
+        : ''
+);
+
+const 收集有效名器档案名称 = (currentSocial: any[]): string[] => {
+    if (!Array.isArray(currentSocial)) return [];
+    const names = new Set<string>();
+    currentSocial.forEach((npc) => {
+        const archives = Array.isArray(npc?.名器档案) ? npc.名器档案 : [];
+        archives.forEach((item: any) => {
+            const name = 规范化名器档案名称(item?.名称);
+            if (!name || name.length < 2 || 名器档案占位名称集合.has(name)) return;
+            names.add(name);
+        });
+    });
+    return Array.from(names).sort((a, b) => b.length - a.length);
+};
+
+const 构建玩家可见正文文本 = (response: GameResponse): string => (
+    (Array.isArray(response?.logs) ? response.logs : [])
+        .map((log: any) => typeof log?.text === 'string' ? log.text : '')
+        .filter(Boolean)
+        .join('\n')
+);
+
+export const 校验响应未泄露名器档案名称 = (
+    response: GameResponse,
+    currentSocial: any[],
+    rawText: string,
+    stageLabel = '主剧情'
+) => {
+    const bodyText = 规范化名器档案名称(构建玩家可见正文文本(response));
+    if (!bodyText) return;
+    const leaked = 收集有效名器档案名称(currentSocial).filter((name) => bodyText.includes(name));
+    if (leaked.length <= 0) return;
+    const detail = `${stageLabel}正文泄露了内部名器档案名称：${leaked.slice(0, 5).join('、')}。名器档案名称只能用于结构化档案、判定和生图内部提示，不得出现在玩家可见正文；请完整重写本回合正文，改用代称、体质特征或自然描写。`;
+    const error = new textAIService.StoryResponseParseError(detail, rawText, detail);
+    (error as any).parseDetail = detail;
+    throw error;
+};
+
 const 叙事人称元信息行正则 = /(?:玩家输入|玩家指令|当前指令|系统提示|任务提示|行动选项|选项|提示|总结|Step|已知事实|协议命中|当前地点|当前时间)/i;
 const 第二人称叙述动作正则 = /你\s*(?:走|来到|进入|推开|看见|望向|抬手|伸手|感到|觉得|意识到|决定|继续|停下|听见|发现|坐下|站起|转身|拿起|打开|闭上|回头|靠近|离开)/g;
 const 第一人称叙述动作正则 = /我\s*(?:走|来到|进入|推开|看见|望向|抬手|伸手|感到|觉得|意识到|决定|继续|停下|听见|发现|坐下|站起|转身|拿起|打开|闭上|回头|靠近|离开)/g;
@@ -1504,6 +1549,12 @@ export const 执行主剧情发送工作流 = async (
                     storyResult.response,
                     deps.获取原始AI消息(storyResult.rawText),
                     runtimeGameConfig.叙事人称 || '第二人称'
+                );
+                校验响应未泄露名器档案名称(
+                    storyResult.response,
+                    currentState.社交,
+                    deps.获取原始AI消息(storyResult.rawText),
+                    "主剧情"
                 );
                 校验响应未改写既有NPC姓名(
                     storyResult.response,

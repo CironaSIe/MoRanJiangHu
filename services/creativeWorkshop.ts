@@ -313,6 +313,13 @@ export const 导入本地创意工坊模块 = (module: 创意工坊模块条目)
     return normalized;
 };
 
+export const 删除本地创意工坊模块 = (id: string): void => {
+    const targetId = typeof id === 'string' ? id.trim() : '';
+    if (!targetId) return;
+    const next = 读取本地创意工坊模块().filter((item) => item.id !== targetId);
+    保存本地创意工坊模块(next);
+};
+
 export const 列出创意工坊模块 = async (): Promise<创意工坊模块条目[]> => {
     let cloudEntries: 创意工坊模块条目[] = [];
     try {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { 导入本地创意工坊模块, 列出创意工坊模块, 本地创意工坊模块存储键, 读取本地创意工坊模块 } from '../services/creativeWorkshop';
+import { 删除本地创意工坊模块, 导入本地创意工坊模块, 列出创意工坊模块, 本地创意工坊模块存储键, 读取本地创意工坊模块 } from '../services/creativeWorkshop';
 
 const createLocalStorageMock = () => {
     const store = new Map<string, string>();
@@ -100,5 +100,15 @@ describe('creativeWorkshop service compatibility', () => {
         expect(migrated?.id).toBe('legacy-opening-legacy-opening-demo-mode-package');
         expect(migrated?.modeRuntimeProfile?.opening?.lockGeneratedGenders).toBe(true);
         expect(String(migrated?.payload?.manualWorldPrompt || '')).toContain('旧版开局模块正文');
+    });
+
+    it('本地导入的模块可以从本地测试列表删除', () => {
+        const imported = 导入本地创意工坊模块(创建旧版开局模块() as any);
+
+        expect(读取本地创意工坊模块().some((entry) => entry.id === imported.id)).toBe(true);
+
+        删除本地创意工坊模块(imported.id);
+
+        expect(读取本地创意工坊模块().some((entry) => entry.id === imported.id)).toBe(false);
     });
 });

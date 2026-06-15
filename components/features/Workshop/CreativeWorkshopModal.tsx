@@ -8,6 +8,7 @@ import { 开局生成性别选项 } from '../../../utils/openingConfig';
 import {
     编辑创意工坊模块,
     删除创意工坊模块,
+    删除本地创意工坊模块,
     发布创意工坊模块,
     导入本地创意工坊模块,
     列出创意工坊模块,
@@ -1131,6 +1132,21 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
         }
     };
 
+    const 删除本地模块 = async (entry: 创意工坊模块条目) => {
+        if (!window.confirm(`确定删除本地导入「${entry.title}」吗？这只会移除当前浏览器/设备里的测试副本，不会删除社区投稿。`)) return;
+        setBusyId(entry.id);
+        try {
+            删除本地创意工坊模块(entry.id);
+            setStatus(`已删除本地导入：${entry.title}。`);
+            if (previewEntry?.id === entry.id) setPreviewEntry(null);
+            await refreshEntries();
+        } catch (error: any) {
+            setStatus(`删除本地导入失败：${error?.message || '未知错误'}`);
+        } finally {
+            setBusyId('');
+        }
+    };
+
     const 保存贡献模块到本地 = async () => {
         if (!contributionReady) {
             setStatus('请先填写模块名称和注入内容。');
@@ -1140,8 +1156,8 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
             const modules = contributionModules.map((module) => 导入本地创意工坊模块(module));
             const first = modules[0];
             setStatus(contributionDraft.type === 'comfy_workflow'
-                ? `已保存本地贡献「${first.title}」，可以在本地导入分区预览或发布。`
-                : `已保存完整模式包「${contributionDraft.title.trim()}」。`);
+                ? `已保存本地测试「${first.title}」，可在本地导入分区预览；要分享给其他玩家请点击发布到社区。`
+                : `已保存完整模式包「${contributionDraft.title.trim()}」到本地测试列表；要分享给其他玩家请点击发布到社区。`);
             setActiveType(first.type);
             setSourceFilter('local');
             setPreviewEntry(first);
@@ -1178,7 +1194,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                 modules.forEach((module) => imported.push(导入本地创意工坊模块(module)));
             }
             const first = imported[0];
-            setStatus(`已导入 ${imported.length} 个本地 JSON 预设${first ? `：${first.title}` : ''}`);
+            setStatus(`已导入 ${imported.length} 个本地 JSON 预设${first ? `：${first.title}` : ''}。本地导入只保存在当前浏览器/设备，用于预览和测试；需要公开分享时请点击发布到社区。`);
             if (first) {
                 setActiveType(first.type);
                 setPreviewEntry(first);
@@ -1539,7 +1555,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                 匿名发布
                             </label>
                             <span className="text-[11px] text-gray-500">{cloudUsername ? `联机账号：${cloudUsername}` : '发布社区投稿需要先登录联机账号'}</span>
-                            <button type="button" onClick={() => jsonImportInputRef.current?.click()} disabled={busyId === 'import-json'} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/15 disabled:opacity-50">{busyId === 'import-json' ? '导入中' : '导入 JSON'}</button>
+                            <button type="button" onClick={() => jsonImportInputRef.current?.click()} disabled={busyId === 'import-json'} title="导入 JSON 只保存到当前浏览器/设备，用于本地预览和测试。完整 JSON 可以让 AI 生成后直接导入。" className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/15 disabled:opacity-50">{busyId === 'import-json' ? '导入中' : '导入 JSON 测试'}</button>
                             <button type="button" onClick={() => setShowContributionForm((value) => !value)} className="rounded-lg border border-wuxia-gold/25 px-3 py-2 text-xs text-wuxia-gold hover:border-wuxia-gold/45">{showContributionForm ? '收起贡献表单' : '贡献新预设'}</button>
                             <button type="button" onClick={() => void refreshEntries()} disabled={loading} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-200 hover:border-white/25 disabled:opacity-50">{loading ? '刷新中' : '刷新社区'}</button>
                         </div>
@@ -2034,6 +2050,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                 entry.type === 'comfy_workflow' || typeof (entry.payload as any)?.suiteId === 'string'
                             );
                             const canManageEntry = entry.source === 'cloud' && Boolean(cloudUsername) && entry.ownerUsername === cloudUsername;
+                            const canDeleteLocalEntry = entry.source === 'local';
                             const editing = editingEntryId === entry.id;
                             const hasVersions = group.versions.length > 1;
                             return (
@@ -2085,8 +2102,11 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                                         <button type="button" onClick={() => 下载JSON(entry)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">下载 JSON</button>
                                         <button type="button" onClick={() => void 复制文本(构建模块摘要(entry)).then((ok) => setStatus(ok ? `已复制「${entry.title}」注入摘要。` : '复制失败，请改用下载 JSON。'))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">复制摘要</button>
                                         {canPublishEntry && (
-                                            <button type="button" onClick={() => void 发布模块(entry)} disabled={Boolean(busyId)} title={cloudUsername ? '贡献社区' : '点击后先登录联机账号'} className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15 disabled:opacity-50">贡献社区</button>
+                                            <button type="button" onClick={() => void 发布模块(entry)} disabled={Boolean(busyId)} title={cloudUsername ? '把这个本地测试模块发布到社区工坊' : '点击后先登录联机账号'} className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15 disabled:opacity-50">发布到社区</button>
                                         )}
+                                        {canDeleteLocalEntry ? (
+                                            <button type="button" onClick={() => void 删除本地模块(entry)} disabled={Boolean(busyId)} className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200 hover:bg-red-500/15 disabled:opacity-50">删除本地导入</button>
+                                        ) : null}
                                         {canManageEntry && !editing ? (
                                             <button type="button" onClick={() => 开始编辑社区模块(entry)} className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15">编辑投稿</button>
                                         ) : null}
