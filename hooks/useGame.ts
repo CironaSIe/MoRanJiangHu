@@ -229,7 +229,8 @@ export const 从历史与回忆恢复游戏初始时间 = (
         .map((item: any) => item?.gameTime);
     const 回忆档案 = Array.isArray(记忆系统?.回忆档案) ? 记忆系统.回忆档案 : [];
     const 开局回忆 = 回忆档案.filter((item: any) => item?.回合 === 1 || item?.名称 === '【回忆001】');
-    const 回忆候选来源 = 开局回忆.length > 0 ? 开局回忆 : 回忆档案;
+    const 非开局回忆 = 回忆档案.filter((item: any) => !(item?.回合 === 1 || item?.名称 === '【回忆001】'));
+    const 回忆候选来源 = [...开局回忆, ...非开局回忆];
     const 回忆候选 = 回忆候选来源.flatMap((item: any) => [
         item?.记录时间,
         item?.时间戳,
