@@ -26,6 +26,8 @@ import { 自动场景横屏尺寸选项, 自动场景竖屏尺寸选项 } from '
 import { IconScroll } from '../../ui/Icons';
 import { 获取本地图片图床迁移状态, 订阅本地图片图床迁移状态 } from '../../../services/dbService';
 import ImageMigrationStatusPanel from './ImageMigrationStatusPanel';
+import { NPC是否男性或男娘 } from '../../../utils/npcGenderFlags';
+import { 构建角色锚点绑定选项, 主角角色锚点绑定ID } from '../../../utils/characterAnchorOptions';
 
 type 物品历史展示记录 = 物品生图结果 & {
     id: string;
@@ -99,7 +101,7 @@ type NPC图库分组 = {
     records: NPC图片记录[];
 };
 
-const 主角图库标识 = '__player__';
+const 主角图库标识 = 主角角色锚点绑定ID;
 
 type 合并队列记录 = {
     类型: 'npc' | 'scene' | 'item';
@@ -239,16 +241,6 @@ const 获取NPC构图文案 = (构图?: NPC生图任务记录['构图'] | 场景
     if (构图 === '立绘') return '立绘';
     if (构图 === '半身') return '3:4半身像';
     return '1:1头像';
-};
-
-const NPC是否男性或男娘 = (npc?: any): boolean => {
-    const gender = String(npc?.性别 || '').trim();
-    return gender === '男'
-        || gender === '男性'
-        || gender.includes('男娘')
-        || gender.includes('扶她')
-        || Boolean(String(npc?.男娘设定 || '').trim())
-        || Boolean(String(npc?.扶她设定 || '').trim());
 };
 
 const 格式化时间 = (timestamp?: number): string => {
@@ -817,29 +809,11 @@ const ImageManagerModal: React.FC<Props> = ({
         () => (Array.isArray(presetFeature?.角色锚点列表) ? presetFeature.角色锚点列表 : []),
         [presetFeature?.角色锚点列表]
     );
-    const characterAnchorNpcOptions = React.useMemo(() => {
-        const optionMap = new Map<string, { id: string; 姓名: string; 是否失效: boolean }>();
-        npcOptions.forEach((npc) => {
-            const npcId = typeof npc?.id === 'string' ? npc.id.trim() : '';
-            if (!npcId) return;
-            optionMap.set(npcId, {
-                id: npcId,
-                姓名: typeof npc?.姓名 === 'string' && npc.姓名.trim() ? npc.姓名.trim() : npcId,
-                是否失效: false
-            });
-        });
-        characterAnchors.forEach((anchor) => {
-            const npcId = typeof anchor?.npcId === 'string' ? anchor.npcId.trim() : '';
-            if (!npcId || optionMap.has(npcId)) return;
-            const fallbackName = (anchor?.名称 || '').trim() || npcId;
-            optionMap.set(npcId, {
-                id: npcId,
-                姓名: `${fallbackName} · 已失效`,
-                是否失效: true
-            });
-        });
-        return Array.from(optionMap.values());
-    }, [characterAnchors, npcOptions]);
+    const characterAnchorNpcOptions = React.useMemo(() => 构建角色锚点绑定选项({
+        npcList: npcOptions,
+        anchors: characterAnchors,
+        playerName: playerCharacter?.姓名
+    }), [characterAnchors, npcOptions, playerCharacter?.姓名]);
     const autoNpcArtistPresets = React.useMemo(
         () => editorArtistPresets.filter((item) => item.适用范围 === 'npc' || item.适用范围 === 'all'),
         [editorArtistPresets]
@@ -4348,7 +4322,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                         ) : (
                                             characterAnchors.map((anchor) => {
                                                 const isSelected = anchor.id === characterAnchorEditorId;
-                                                const npcName = characterAnchorNpcOptions.find((item) => item.id === anchor.npcId)?.姓名 || anchor.名称;
+                                                const npcName = characterAnchorNpcOptions.find((item) => item.id === anchor.npcId)?.label || anchor.名称;
                                                 return (
                                                     <button
                                                         key={anchor.id}
@@ -4394,7 +4368,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                         >
                                             <option value="">请选择角色</option>
                                             {characterAnchorNpcOptions.map((npc) => (
-                                                <option key={npc.id} value={npc.id}>{npc.姓名}</option>
+                                                <option key={npc.id} value={npc.id}>{npc.label}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -4494,7 +4468,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                                 <div className="text-[11px] text-wuxia-gold/60 uppercase tracking-wider">当前状态</div>
                                                 <div className="text-[11px] text-gray-400">来源：{characterAnchorDraft.来源}</div>
                                                 <div className="text-[11px] text-gray-400">模型：{characterAnchorDraft.提取模型信息 || '未记录'}</div>
-                                                <div className="text-[11px] text-gray-400">绑定角色：{characterAnchorNpcOptions.find((item) => item.id === characterAnchorDraft.npcId)?.姓名 || '未绑定'}</div>
+                                                <div className="text-[11px] text-gray-400">绑定角色：{characterAnchorNpcOptions.find((item) => item.id === characterAnchorDraft.npcId)?.label || '未绑定'}</div>
                                             </div>
                                         </div>
                                     </>

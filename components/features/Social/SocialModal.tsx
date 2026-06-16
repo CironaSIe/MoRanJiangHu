@@ -10,6 +10,7 @@ import { 格式化月日 } from '../../../utils/characterVitals';
 import type { OpeningConfig } from '../../../types';
 import { 获取题材界面文案, 获取题材资源文案 } from '../../../utils/resourceLabels';
 import { IconBeads, IconHeart, IconMars, IconScroll, IconSparkles } from '../../ui/Icons';
+import { NPC是否扶她, NPC是否男性或男娘 } from '../../../utils/npcGenderFlags';
 
 interface Props {
     socialList: NPC结构[];
@@ -169,12 +170,8 @@ const SocialModal: React.FC<Props> = ({
         [currentNPC]
     );
     const 当前角色是女性 = 是女性角色(currentNPC);
-    const 当前角色性别 = String(currentNPC?.性别 || '').trim();
-    const 当前角色是扶她 = 当前角色性别.includes('扶她') || Boolean(String((currentNPC as any)?.扶她设定 || '').trim());
-    const 当前角色是男性 = currentNPC?.性别 === '男'
-        || 当前角色性别.includes('男娘')
-        || 当前角色是扶她
-        || Boolean(String((currentNPC as any)?.男娘设定 || '').trim());
+    const 当前角色是扶她 = NPC是否扶她(currentNPC);
+    const 当前角色是男性 = NPC是否男性或男娘(currentNPC);
     const 当前角色已死亡 = NPC是否死亡(currentNPC);
     const 展示女性扩展 = 当前角色是女性 && !当前角色是扶她 && Boolean(currentNPC?.是否主要角色);
     const 展示女性私密档案 = 展示女性扩展 && nsfwEnabled;

@@ -1,5 +1,6 @@
 import type { 香闺秘档部位类型 } from '../../../types';
 import { recordDiagnosticLog } from '../../../services/diagnosticLog';
+import { NPC是否扶她, NPC是否男性或男娘, NPC是否女性 } from '../../../utils/npcGenderFlags';
 
 type 右下角提示参数 = {
     title: string;
@@ -54,26 +55,6 @@ const 香闺秘档部位描述字段映射: Record<香闺秘档部位类型, str
     肉棒: '肉棒描述'
 };
 const 占位私密描述正则 = /^(?:空无|无|暂无|暂无记录|无记录|未记录|未知|不详|待补充|待完善|普通|正常|无描述)$/u;
-
-const NPC是否男性或男娘 = (npc: any): boolean => {
-    const gender = String(npc?.性别 || '').trim();
-    return gender === '男'
-        || gender === '男性'
-        || gender.includes('男娘')
-        || gender.includes('扶她')
-        || Boolean(String(npc?.男娘设定 || '').trim())
-        || Boolean(String(npc?.扶她设定 || '').trim());
-};
-
-const NPC是否扶她 = (npc: any): boolean => {
-    const gender = String(npc?.性别 || '').trim();
-    return gender.includes('扶她') || Boolean(String(npc?.扶她设定 || '').trim());
-};
-
-const NPC是否女性 = (npc: any): boolean => {
-    const gender = String(npc?.性别 || '').trim();
-    return gender === '女' || gender === '女性';
-};
 
 const 读取NPC香闺秘档部位列表 = (npc: any): 香闺秘档部位类型[] => (
     NPC是否扶她(npc)

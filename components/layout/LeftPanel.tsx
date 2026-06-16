@@ -2,10 +2,11 @@ import React from 'react';
 import { OpeningConfig, 角色数据结构, 游戏设置结构, 视觉设置结构 } from '../../types';
 import { use图片资源回源预取 } from '../../hooks/useImageAssetPrefetch';
 import { 构建区域文字样式 } from '../../utils/visualSettings';
-import { 获取图片资源文本地址, 注册受保护图片资源, 取消受保护图片资源, 是否图片资源引用 } from '../../utils/imageAssets';
+import { 注册受保护图片资源, 取消受保护图片资源, 是否图片资源引用 } from '../../utils/imageAssets';
 import { 计算角色总气血 } from '../../utils/characterVitals';
 import { 格式化世界观BaseAmount, 获取世界观简短货币汇率说明, 获取世界观货币槽位, 获取角色金钱BaseAmount, 获取货币显示模式, 获取货币兼容字段路径, 规范化角色金钱 } from '../../utils/currencyDisplay';
 import { 获取题材资源文案 } from '../../utils/resourceLabels';
+import { 提取人物头像地址, 提取人物头像资源引用 } from '../../utils/personAvatar';
 
 interface Props {
     角色: 角色数据结构;
@@ -183,29 +184,11 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
     const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
     const [身躯折叠, set身躯折叠] = React.useState(false);
     const [行头折叠, set行头折叠] = React.useState(false);
-    const 玩家头像地址 = React.useMemo(() => {
-        const archive = 角色?.图片档案;
-        const selectedAvatarId = typeof archive?.已选头像图片ID === 'string' ? archive.已选头像图片ID.trim() : '';
-        const history = Array.isArray(archive?.生图历史) ? archive!.生图历史 : [];
-        const recent = archive?.最近生图结果;
-        const selectedAvatar = history.find((item: any) => item?.id === selectedAvatarId)
-            || (recent?.id === selectedAvatarId ? recent : null)
-            || history.find((item: any) => item?.构图 === '头像' && item?.状态 === 'success')
-            || (recent?.构图 === '头像' && recent?.状态 === 'success' ? recent : null);
-        return 获取图片资源文本地址(selectedAvatar?.本地路径 || selectedAvatar?.图片URL || 角色.头像图片URL);
-    }, [角色]);
+    const 玩家头像地址 = 提取人物头像地址(角色);
 
     // 保护主角头像的图片资源引用，防止被物品生图等批量图片操作淘汰出缓存
     React.useEffect(() => {
-        const archive = 角色?.图片档案;
-        const selectedAvatarId = typeof archive?.已选头像图片ID === 'string' ? archive.已选头像图片ID.trim() : '';
-        const history = Array.isArray(archive?.生图历史) ? archive!.生图历史 : [];
-        const recent = archive?.最近生图结果;
-        const selectedAvatar = history.find((item: any) => item?.id === selectedAvatarId)
-            || (recent?.id === selectedAvatarId ? recent : null)
-            || history.find((item: any) => item?.构图 === '头像' && item?.状态 === 'success')
-            || (recent?.构图 === '头像' && recent?.状态 === 'success' ? recent : null);
-        const avatarRef = selectedAvatar?.本地路径 || selectedAvatar?.图片URL || 角色.头像图片URL;
+        const avatarRef = 提取人物头像资源引用(角色);
         if (avatarRef && 是否图片资源引用(avatarRef)) {
             注册受保护图片资源(avatarRef);
         }
@@ -214,7 +197,7 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
                 取消受保护图片资源(avatarRef);
             }
         };
-    }, [角色?.图片档案, 角色.头像图片URL]);
+    }, [角色]);
 
     const bodyParts = [
         { name: '头部', current: 角色.头部当前血量, max: 角色.头部最大血量, status: 角色.头部状态 },

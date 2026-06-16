@@ -43,9 +43,11 @@ const normalizePath = (pathRaw: unknown): string => {
 const buildTargetUrl = (targetBaseRaw: string, path: string, requestUrl: URL): string => {
     const targetBase = new URL(targetBaseRaw.replace(/\/+$/, ''));
     const basePath = targetBase.pathname.replace(/\/+$/, '');
-    const normalizedPath = path.startsWith('/v1/')
-        ? path
-        : `${basePath.endsWith('/v1') ? '' : '/v1'}${path}`;
+    const normalizedPath = (() => {
+        if (basePath.endsWith('/v1') && path.startsWith('/v1/')) return path.replace(/^\/v1/i, '');
+        if (path.startsWith('/v1/')) return path;
+        return `${basePath.endsWith('/v1') ? '' : '/v1'}${path}`;
+    })();
     targetBase.pathname = `${basePath}${normalizedPath}`;
     targetBase.search = '';
     requestUrl.searchParams.forEach((value, key) => {

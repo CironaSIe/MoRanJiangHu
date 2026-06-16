@@ -41,11 +41,11 @@ import type { 创意工坊模块条目 } from '../../../data/creativeWorkshopMod
 import {
     构建ComfyUI精确连接失败提示,
     构建ComfyUI运行时代理端点,
-    构建OpenAI图片生成端点,
     翻译连接测试错误,
     规范化OpenAI图片基础地址,
     规范化OpenAI图片模型名称
 } from '../../../services/ai/imageGenerationDiagnostics';
+import { 测试OpenAI兼容图片接口 } from '../../../services/ai/openaiImageTest';
 import { generateImageByPrompt } from '../../../services/ai/image';
 import { 校验ComfyUI工作流可生图 } from '../../../services/ai/comfyWorkflowValidation';
 
@@ -130,84 +130,6 @@ const 读取文生图接口路径 = (
         return feature.文生图接口路径 || 读取文生图预设路径(backend, feature.文生图预设接口路径);
     }
     return 读取文生图预设路径(backend, feature.文生图预设接口路径);
-};
-
-const 判断OpenAI图片测试参数错误 = (detail: string): boolean => {
-    return /prompt|message|messages|required|required parameter|missing|缺少|不能为空|参数|invalid_request/i.test(detail);
-};
-
-const 判断OpenAI图片测试模型错误 = (detail: string): boolean => {
-    return /invalid model|unknown model|model[^，。]*?(not|invalid|unknown|unsupported|does not exist)|模型[^，。]*?(不存在|无效|未知|不支持)|不支持[^，。]*?模型/i.test(detail);
-};
-
-const OPENAI图片测试超时MS = 25_000;
-
-const 测试OpenAI兼容图片接口 = async (params: {
-    rawBaseUrl: string;
-    apiKey: string;
-    model: string;
-    path?: string;
-    responseFormat?: 功能模型占位配置结构['文生图响应格式'];
-    label: string;
-}): Promise<string> => {
-    const endpoint = 构建OpenAI图片生成端点(params.rawBaseUrl, params.path, { useRuntimeProxy: true });
-    if (!endpoint) throw new Error('OpenAI 兼容图片接口缺少 API 地址。');
-    const rawModel = (params.model || '').trim();
-    const model = 规范化OpenAI图片模型名称(rawModel) || 'gpt-image-2';
-    const headers: Record<string, string> = {
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-    };
-    if (params.apiKey) {
-        headers.Authorization = `Bearer ${params.apiKey}`;
-    }
-    const abortController = new AbortController();
-    const timeoutId = window.setTimeout(() => abortController.abort(), OPENAI图片测试超时MS);
-    let response: Response;
-    try {
-        response = await fetch(endpoint, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                model,
-                prompt: '一张干净的连接测试图片，plain connection test image',
-                n: 1,
-                size: '1024x1024',
-                response_format: params.responseFormat || 'b64_json'
-            }),
-            signal: abortController.signal
-        });
-    } catch (error: any) {
-        if (error?.name === 'AbortError') {
-            throw new Error(`OpenAI 兼容图片接口测试超时（${Math.round(OPENAI图片测试超时MS / 1000)} 秒）。接口地址可稍后重试；若服务端正在排队生图，测试按钮不会继续无限等待。`);
-        }
-        throw error;
-    } finally {
-        window.clearTimeout(timeoutId);
-    }
-    const detail = await response.text().catch(() => '');
-    const normalizedBase = 规范化OpenAI图片基础地址(params.rawBaseUrl);
-    const normalizedNote = normalizedBase && normalizedBase !== params.rawBaseUrl.replace(/\/+$/, '')
-        ? `已自动把网页地址识别为 API 根地址：${normalizedBase}。`
-        : '';
-    const modelNote = rawModel && rawModel !== model
-        ? `模型名已按 ${model} 测试。`
-        : `模型：${model}。`;
-
-    if (response.ok) {
-        return `${params.label}连接成功：${endpoint} 可访问。${normalizedNote}${modelNote}本次测试未提交实际 prompt。`;
-    }
-
-    if ((response.status === 401 || response.status === 403) && !params.apiKey) {
-        return `${params.label}地址可达，但还没有填写 API Key。${normalizedNote}已测试端点：${endpoint}。`;
-    }
-
-    if (response.status === 400 && (!detail || 判断OpenAI图片测试参数错误(detail)) && !判断OpenAI图片测试模型错误(detail)) {
-        const authNote = params.apiKey ? 'API Key 已通过基础验证。' : '接口已返回参数校验结果。';
-        return `${params.label}连接可达，${authNote}${normalizedNote}已测试端点：${endpoint}。${modelNote}本次测试未提交实际 prompt，不会消耗生图次数。`;
-    }
-
-    throw new Error(`HTTP ${response.status} ${detail}`.trim());
 };
 
 const OpenAI图片模型建议 = ['gpt-image-2', 'gpt-image-1'];
@@ -364,6 +286,8 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const [message, setMessage] = useState('');
     const [mainConnectionMessage, setMainConnectionMessage] = useState('');
     const [nsfwConnectionMessage, setNsfwConnectionMessage] = useState('');
+    const [mainConnectionPreviewUrl, setMainConnectionPreviewUrl] = useState('');
+    const [nsfwConnectionPreviewUrl, setNsfwConnectionPreviewUrl] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
     const [discoveredBackends, setDiscoveredBackends] = useState<发现图片后端记录结构[]>([]);
     const [backendConnectionStats, setBackendConnectionStats] = useState<ImageBackendConnectionStats>(() => readImageBackendConnectionStats());
@@ -1308,6 +1232,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         setTestingImageConnection(true);
         setMessage('');
         setMainConnectionMessage('正在测试文生图连接...');
+        setMainConnectionPreviewUrl('');
         try {
             const base = rawBaseUrl.replace(/\/+$/, '');
             if (backend === 'comfyui') {
@@ -1357,16 +1282,18 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             if (feature.文生图模型使用模型 !== normalizedModel) {
                 updatePlaceholder('文生图模型使用模型', normalizedModel);
             }
-            const message = await 测试OpenAI兼容图片接口({
+            const result = await 测试OpenAI兼容图片接口({
                 rawBaseUrl,
                 apiKey,
                 model: normalizedModel,
-                path: 读取文生图接口路径(feature, backend),
+                path: /^(gpt-image|chatgpt-image)/i.test(normalizedModel) ? '/v1/images/generations' : 读取文生图接口路径(feature, backend),
                 responseFormat: feature.文生图响应格式,
                 label: 'OpenAI 兼容文生图接口'
             });
-            setMainConnectionMessage(message);
+            setMainConnectionMessage(result.message);
+            setMainConnectionPreviewUrl(result.previewUrl || '');
         } catch (error: any) {
+            setMainConnectionPreviewUrl('');
             setMainConnectionMessage(backend === 'comfyui'
                 ? await 构建ComfyUI精确连接失败提示(rawBaseUrl, error)
                 : 翻译连接测试错误(error, {
@@ -1383,6 +1310,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         setTestingNsfwConnection(true);
         setMessage('');
         setNsfwConnectionMessage('正在测试 NSFW 文生图连接...');
+        setNsfwConnectionPreviewUrl('');
         try {
             const nsfwConfig = 获取NSFW文生图接口配置(form);
             if (!nsfwConfig || !接口配置是否可用(nsfwConfig)) {
@@ -1421,16 +1349,18 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 setNsfwConnectionMessage(`NSFW ${await 测试NovelAI官方连接(nsfwConfig)}（${base}）`);
                 return;
             }
-            const message = await 测试OpenAI兼容图片接口({
+            const result = await 测试OpenAI兼容图片接口({
                 rawBaseUrl: base,
                 apiKey,
                 model: nsfwConfig.model || 'gpt-image-2',
-                path: nsfwConfig.图片接口路径 || '/v1/images/generations',
+                path: /^(gpt-image|chatgpt-image)/i.test(nsfwConfig.model || 'gpt-image-2') ? '/v1/images/generations' : (nsfwConfig.图片接口路径 || '/v1/images/generations'),
                 responseFormat: nsfwConfig.图片响应格式 || 'url',
                 label: 'NSFW OpenAI 兼容接口'
             });
-            setNsfwConnectionMessage(message);
+            setNsfwConnectionMessage(result.message);
+            setNsfwConnectionPreviewUrl(result.previewUrl || '');
         } catch (error: any) {
+            setNsfwConnectionPreviewUrl('');
             const nsfwConfig = 获取NSFW文生图接口配置(form);
             const base = nsfwConfig?.baseUrl || '';
             const backend = nsfwConfig?.图片后端类型 || 'openai';
@@ -1651,6 +1581,15 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 {nsfwConnectionMessage && (
                     <div className="whitespace-pre-wrap rounded-xl border border-rose-400/25 bg-rose-950/20 px-4 py-3 text-xs leading-6 text-rose-100">
                         {nsfwConnectionMessage}
+                    </div>
+                )}
+                {nsfwConnectionPreviewUrl && (
+                    <div className="rounded-xl border border-rose-400/25 bg-black/30 p-3">
+                        <img
+                            src={nsfwConnectionPreviewUrl}
+                            alt="NSFW 测试生图预览"
+                            className="max-h-80 w-auto rounded-lg object-contain"
+                        />
                     </div>
                 )}
             </div>
@@ -1913,6 +1852,15 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                     {mainConnectionMessage && (
                         <div className="whitespace-pre-wrap rounded-xl border border-sky-400/25 bg-sky-950/20 px-4 py-3 text-xs leading-6 text-sky-100">
                             {mainConnectionMessage}
+                        </div>
+                    )}
+                    {mainConnectionPreviewUrl && (
+                        <div className="rounded-xl border border-sky-400/25 bg-black/30 p-3">
+                            <img
+                                src={mainConnectionPreviewUrl}
+                                alt="文生图测试预览"
+                                className="max-h-80 w-auto rounded-lg object-contain"
+                            />
                         </div>
                     )}
                 </div>

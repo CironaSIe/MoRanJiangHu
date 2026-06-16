@@ -27,6 +27,8 @@ import { 获取命中模型词组转化器预设, 规范化接口设置 } from '
 import { 自动场景横屏尺寸选项, 自动场景竖屏尺寸选项 } from '../../../../utils/imageSizeOptions';
 import { 获取本地图片图床迁移状态, 订阅本地图片图床迁移状态 } from '../../../../services/dbService';
 import ImageMigrationStatusPanel from '../ImageMigrationStatusPanel';
+import { NPC是否男性或男娘 } from '../../../../utils/npcGenderFlags';
+import { 构建角色锚点绑定选项 } from '../../../../utils/characterAnchorOptions';
 
 type 物品历史展示记录 = 物品生图结果 & {
     id: string;
@@ -226,16 +228,6 @@ const 渲染生图调试链路 = (trace?: any[]) => {
     );
 };
 
-const NPC是否男性或男娘 = (npc?: any): boolean => {
-    const gender = String(npc?.性别 || '').trim();
-    return gender === '男'
-        || gender === '男性'
-        || gender.includes('男娘')
-        || gender.includes('扶她')
-        || Boolean(String(npc?.男娘设定 || '').trim())
-        || Boolean(String(npc?.扶她设定 || '').trim());
-};
-
 const 格式化时间 = (timestamp?: number): string => {
     if (!timestamp || !Number.isFinite(timestamp)) return '未记录';
     return new Date(timestamp).toLocaleString();
@@ -322,6 +314,7 @@ const 空状态: React.FC<{ title: string; desc?: string }> = ({ title, desc }) 
 
 const MobileImageManagerModal: React.FC<Props> = ({
     socialList,
+    playerCharacter,
     cultivationSystemEnabled = true,
     femboyNsfwEnabled = true,
     itemImageSequence = [],
@@ -378,7 +371,7 @@ const MobileImageManagerModal: React.FC<Props> = ({
     onImportPresets,
     onExportPresets
 }) => {
-    use图片资源回源预取(socialList, sceneArchive, currentPersistentWallpaper, apiConfig);
+    use图片资源回源预取(socialList, playerCharacter, sceneArchive, currentPersistentWallpaper, apiConfig);
     const [activeTab, setActiveTab] = React.useState<页面标签类型>('manual');
     const [busyActionKey, setBusyActionKey] = React.useState('');
     const [actionError, setActionError] = React.useState('');
@@ -2241,29 +2234,16 @@ const PresetsTabContent: React.FC<TabProps> = ({
         () => (Array.isArray(feature?.角色锚点列表) ? feature.角色锚点列表 : []).filter((item) => item && typeof item === 'object'),
         [feature?.角色锚点列表]
     );
-    const characterAnchorNpcOptions = React.useMemo(() => {
-        const optionMap = new Map<string, { value: string; label: string; 是否失效: boolean }>();
-        (Array.isArray(socialList) ? socialList : []).forEach((npc) => {
-            const npcId = typeof npc?.id === 'string' ? npc.id.trim() : '';
-            if (!npcId) return;
-            optionMap.set(npcId, {
-                value: npcId,
-                label: typeof npc?.姓名 === 'string' && npc.姓名.trim() ? npc.姓名.trim() : npcId,
-                是否失效: false
-            });
-        });
-        characterAnchors.forEach((anchor) => {
-            const npcId = typeof anchor?.npcId === 'string' ? anchor.npcId.trim() : '';
-            if (!npcId || optionMap.has(npcId)) return;
-            const fallbackName = (anchor?.名称 || '').trim() || npcId;
-            optionMap.set(npcId, {
-                value: npcId,
-                label: `${fallbackName} · 已失效`,
-                是否失效: true
-            });
-        });
-        return Array.from(optionMap.values());
-    }, [characterAnchors, socialList]);
+    const characterAnchorNpcOptions = React.useMemo(() => 构建角色锚点绑定选项({
+        npcList: socialList,
+        anchors: characterAnchors,
+        playerName: playerCharacter?.姓名
+    }).map((item) => ({
+        value: item.id,
+        label: item.label,
+        是否失效: item.是否失效,
+        是否主控角色: item.是否主控角色
+    })), [characterAnchors, playerCharacter?.姓名, socialList]);
     React.useEffect(() => {
         if (pngPresetEditorId && pngStylePresets.some((item) => item.id === pngPresetEditorId)) return;
         setPngPresetEditorId(pngStylePresets[0]?.id || '');

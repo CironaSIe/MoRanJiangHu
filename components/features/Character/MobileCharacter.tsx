@@ -16,6 +16,7 @@ import { 计算角色总气血 } from '../../../utils/characterVitals';
 import { 获取世界观货币卡片信息, 获取角色金钱显示列表 } from '../../../utils/currencyDisplay';
 import { 读取可分配属性点, type 可分配六维属性键 } from '../../../utils/characterAttributePoints';
 import { 获取题材资源文案 } from '../../../utils/resourceLabels';
+import { NPC是否扶她, NPC是否男娘 } from '../../../utils/npcGenderFlags';
 
 interface Props {
     character: 角色数据结构;
@@ -203,8 +204,8 @@ const MobileCharacter: React.FC<Props> = ({
     );
 
     const 主角性别 = String(character?.性别 || '').trim();
-    const 主角是扶她 = 主角性别.includes('扶她') || Boolean(String((character as any)?.扶她设定 || '').trim());
-    const 主角是男娘 = 主角性别.includes('男娘') || Boolean(String((character as any)?.男娘设定 || '').trim());
+    const 主角是扶她 = NPC是否扶她(character);
+    const 主角是男娘 = NPC是否男娘(character);
     const 主角是男性纯 = 主角性别 === '男' && !主角是男娘 && !主角是扶她;
     const 主角展示香闺秘档 = nsfwEnabled && !主角是男性纯;
 

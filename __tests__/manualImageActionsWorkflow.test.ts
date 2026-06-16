@@ -71,6 +71,29 @@ describe('manualImageActionsWorkflow', () => {
         }));
     });
 
+    it('全部生成时不会把 false 扶她设定的男性误判为扶她', async () => {
+        const deps = 创建依赖([{
+            id: 'npc_male_false_futa',
+            姓名: '陆沉',
+            性别: '男',
+            是否主要角色: true,
+            男娘设定: '无',
+            扶她设定: 'false',
+            胸部描述: '不应生成胸部特写。',
+            小穴描述: '不应生成小穴特写。',
+            肉棒描述: '已有男性私密档案。',
+            屁穴描述: '已有后庭档案。',
+            图片档案: {}
+        }]);
+        const workflow = 创建手动图片动作工作流(deps);
+
+        await workflow.generateNpcSecretPartImage('npc_male_false_futa', '全部');
+
+        expect(deps.执行NPC香闺秘档部位生图).toHaveBeenCalledTimes(2);
+        expect(deps.执行NPC香闺秘档部位生图).toHaveBeenNthCalledWith(1, expect.objectContaining({ id: 'npc_male_false_futa' }), '屁穴', undefined);
+        expect(deps.执行NPC香闺秘档部位生图).toHaveBeenNthCalledWith(2, expect.objectContaining({ id: 'npc_male_false_futa' }), '肉棒', undefined);
+    });
+
     it('全部生成时扶她主要角色走肉棒和屁穴两处特写', async () => {
         const deps = 创建依赖([{
             id: 'npc_futa',
