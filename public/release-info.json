@@ -1,17 +1,30 @@
 {
-  "versionCode": 497,
-  "versionName": "1.0.497",
+  "versionCode": 498,
+  "versionName": "1.0.498",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-06-17T18:57:35+08:00",
+  "releasePublishedAt": "2026-06-17T19:41:05+08:00",
   "releaseNotes": [
-    "新增小米 MiMo 接口支持：接口设置中可直接选择“小米 MiMo API”和“小米 MiMo Token Plan”。",
-    "小米 Token Plan 默认使用官方 OpenAI 兼容地址和 mimo-v2.5-pro 模型，配置更省心。",
-    "优化小米 MiMo 请求兼容性，自动使用小米认证方式和输出 Token 字段，并避免思考内容混入剧情正文。",
+    "优化小米 MiMo 模型超参：默认按官方推荐发送 temperature 和 top_p，剧情模型默认 1.0 / 0.95。",
+    "接口设置新增 Top P 可调项，小米 MiMo 玩家可在官方范围内自定义采样多样性。",
+    "小米 MiMo 温度范围按官方限制收敛为 0-1.5，避免不兼容参数影响剧情生成稳定性。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/",
-    "同步更新 Web、APK 与更新清单到 v1.0.497。"
+    "同步更新 Web、APK 与更新清单到 v1.0.498。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.498",
+      "versionCode": 498,
+      "publishedAt": "2026-06-17T19:41:05+08:00",
+      "changes": [
+        "优化小米 MiMo 模型超参：默认按官方推荐发送 temperature 和 top_p，剧情模型默认 1.0 / 0.95。",
+        "接口设置新增 Top P 可调项，小米 MiMo 玩家可在官方范围内自定义采样多样性。",
+        "小米 MiMo 温度范围按官方限制收敛为 0-1.5，避免不兼容参数影响剧情生成稳定性。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "备用站：https://msjh.bacon.de5.net/",
+        "同步更新 Web、APK 与更新清单到 v1.0.498。"
+      ]
+    },
     {
       "versionName": "1.0.493",
       "versionCode": 493,
@@ -878,12 +891,12 @@
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html",
   "changes": [
-    "新增小米 MiMo 接口支持：接口设置中可直接选择“小米 MiMo API”和“小米 MiMo Token Plan”。",
-    "小米 Token Plan 默认使用官方 OpenAI 兼容地址和 mimo-v2.5-pro 模型，配置更省心。",
-    "优化小米 MiMo 请求兼容性，自动使用小米认证方式和输出 Token 字段，并避免思考内容混入剧情正文。",
+    "优化小米 MiMo 模型超参：默认按官方推荐发送 temperature 和 top_p，剧情模型默认 1.0 / 0.95。",
+    "接口设置新增 Top P 可调项，小米 MiMo 玩家可在官方范围内自定义采样多样性。",
+    "小米 MiMo 温度范围按官方限制收敛为 0-1.5，避免不兼容参数影响剧情生成稳定性。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/",
-    "同步更新 Web、APK 与更新清单到 v1.0.497。"
+    "同步更新 Web、APK 与更新清单到 v1.0.498。"
   ],
-  "notes": "新增小米 MiMo 接口支持：接口设置中可直接选择“小米 MiMo API”和“小米 MiMo Token Plan”。\n小米 Token Plan 默认使用官方 OpenAI 兼容地址和 mimo-v2.5-pro 模型，配置更省心。\n优化小米 MiMo 请求兼容性，自动使用小米认证方式和输出 Token 字段，并避免思考内容混入剧情正文。\n官网：https://msjh.bacon159.pp.ua/\n备用站：https://msjh.bacon.de5.net/\n同步更新 Web、APK 与更新清单到 v1.0.497。"
+  "notes": "优化小米 MiMo 模型超参：默认按官方推荐发送 temperature 和 top_p，剧情模型默认 1.0 / 0.95。\n接口设置新增 Top P 可调项，小米 MiMo 玩家可在官方范围内自定义采样多样性。\n小米 MiMo 温度范围按官方限制收敛为 0-1.5，避免不兼容参数影响剧情生成稳定性。\n官网：https://msjh.bacon159.pp.ua/\n备用站：https://msjh.bacon.de5.net/\n同步更新 Web、APK 与更新清单到 v1.0.498。"
 }

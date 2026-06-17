@@ -162,6 +162,17 @@ export const 是否小米MiMo接口配置 = (apiConfig: 当前可用接口结构
     return baseUrl.includes('xiaomimimo.com');
 };
 
+const 读取小米MiMo推荐超参 = (modelRaw: string): { temperature: number; topP: number; maxTemperature: number; minTopP: number; maxTopP: number } => {
+    const model = 标准化模型名(modelRaw || '');
+    if (model.includes('tts')) {
+        return { temperature: 0.6, topP: 0.95, maxTemperature: 1.5, minTopP: 0.01, maxTopP: 1 };
+    }
+    if (model === 'mimo-v2-flash') {
+        return { temperature: 0.3, topP: 0.95, maxTemperature: 1.5, minTopP: 0.01, maxTopP: 1 };
+    }
+    return { temperature: 1.0, topP: 0.95, maxTemperature: 1.5, minTopP: 0.01, maxTopP: 1 };
+};
+
 export const 构建OpenAI家族请求头 = (apiConfig: 当前可用接口结构): Record<string, string> => {
     const headers: Record<string, string> = {
         'Content-Type': 'application/json'
@@ -228,6 +239,14 @@ const 读取自定义温度 = (apiConfig: 当前可用接口结构): number | un
     return undefined;
 };
 
+const 读取自定义TopP = (apiConfig: 当前可用接口结构): number | undefined => {
+    const raw = apiConfig.topP;
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+        return raw;
+    }
+    return undefined;
+};
+
 const 约束数值范围 = (value: number, min: number, max: number): number => {
     return Math.min(max, Math.max(min, value));
 };
@@ -274,11 +293,29 @@ const 计算最大输出Token = (apiConfig: 当前可用接口结构): number =>
 
 const 计算请求温度 = (apiConfig: 当前可用接口结构, fallback: number): number => {
     const configured = 读取自定义温度(apiConfig);
+    if (是否小米MiMo接口配置(apiConfig)) {
+        const recommended = 读取小米MiMo推荐超参(apiConfig.model);
+        const base = typeof configured === 'number' ? configured : recommended.temperature;
+        if (!Number.isFinite(base)) {
+            return recommended.temperature;
+        }
+        return 约束数值范围(base, 0, recommended.maxTemperature);
+    }
     const base = typeof configured === 'number' ? configured : fallback;
     if (!Number.isFinite(base)) {
         return 0.7;
     }
     return 约束数值范围(base, 0, 2);
+};
+
+const 计算小米MiMoTopP = (apiConfig: 当前可用接口结构, requestModel?: string): number => {
+    const recommended = 读取小米MiMo推荐超参(requestModel || apiConfig.model);
+    const configured = 读取自定义TopP(apiConfig);
+    const base = typeof configured === 'number' ? configured : recommended.topP;
+    if (!Number.isFinite(base)) {
+        return recommended.topP;
+    }
+    return 约束数值范围(base, recommended.minTopP, recommended.maxTopP);
 };
 
 const 响应格式疑似不受支持 = (baseUrlRaw: string, modelRaw: string): boolean => {
@@ -1352,6 +1389,7 @@ const 请求OpenAI家族文本 = async (
             stream: useStream
         };
         if (是否小米MiMo接口配置(apiConfig)) {
+            body.top_p = 计算小米MiMoTopP(apiConfig, String(requestModel || apiConfig.model));
             body.max_completion_tokens = maxOutputTokens;
             body.thinking = { type: 'disabled' };
         } else {

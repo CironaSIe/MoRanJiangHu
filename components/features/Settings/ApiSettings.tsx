@@ -222,6 +222,16 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
         return 匹配模型输出推荐(主剧情解析模型);
     }, [主剧情解析模型]);
     const 是否DeepSeek模式 = /deepseek/i.test(主剧情解析模型);
+    const 是否MiMo模式 = activeConfig?.供应商 === 'mimo_api'
+        || activeConfig?.供应商 === 'mimo_token_plan'
+        || 主剧情BaseUrl.toLowerCase().includes('xiaomimimo.com');
+    const 温度上限 = 是否MiMo模式 ? 1.5 : 2;
+    const 温度提示 = 是否MiMo模式
+        ? '留空按小米官方默认（剧情模型1.0/Flash 0.3/TTS 0.6）'
+        : '留空按场景默认（主剧情0.7/世界0.8/回忆0.2）';
+    const 温度说明 = 是否MiMo模式
+        ? '小米 MiMo 官方温度范围 0-1.5；剧情模型推荐 1.0。'
+        : 'OpenAI/Gemini/DeepSeek 范围 0-2；Claude 范围 0-1（超过 1 会自动按 1 发送）。';
 
     const updateActiveConfig = (patch: Partial<单接口配置结构>) => {
         if (!activeConfig) return;
@@ -420,6 +430,7 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
                 `模型: ${modelForTest}`,
                 `最大输出Token: ${typeof configForTest.maxTokens === 'number' ? configForTest.maxTokens : '未设置'}`,
                 `温度: ${typeof configForTest.temperature === 'number' ? configForTest.temperature : '按场景默认'}`,
+                `Top P: ${typeof configForTest.topP === 'number' ? configForTest.topP : '按模型默认'}`,
                 `Base URL: ${configForTest.baseUrl}`,
                 '',
                 '---',
@@ -629,7 +640,7 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 <input
                                     type="number"
                                     min={0}
-                                    max={2}
+                                    max={温度上限}
                                     step={0.1}
                                     value={typeof activeConfig.temperature === 'number' ? String(activeConfig.temperature) : ''}
                                     onChange={(e) => {
@@ -640,15 +651,44 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
                                         }
                                         const parsed = Number(raw);
                                         updateActiveConfig({
-                                            temperature: Number.isFinite(parsed) && parsed >= 0 && parsed <= 2
+                                            temperature: Number.isFinite(parsed) && parsed >= 0 && parsed <= 温度上限
                                                 ? Math.round(parsed * 100) / 100
                                                 : undefined
                                         });
                                     }}
-                                    placeholder="留空按场景默认（主剧情0.7/世界0.8/回忆0.2）"
+                                    placeholder={温度提示}
                                     className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-wuxia-gold"
                                 />
-                                <div className="text-[11px] text-gray-400">OpenAI/Gemini/DeepSeek 范围 0-2；Claude 范围 0-1（超过 1 会自动按 1 发送）。</div>
+                                <div className="text-[11px] text-gray-400">{温度说明}</div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-wuxia-cyan">Top P（留空按模型默认）</label>
+                                <input
+                                    type="number"
+                                    min={0.01}
+                                    max={1}
+                                    step={0.01}
+                                    value={typeof activeConfig.topP === 'number' ? String(activeConfig.topP) : ''}
+                                    onChange={(e) => {
+                                        const raw = e.target.value.trim();
+                                        if (!raw) {
+                                            updateActiveConfig({ topP: undefined });
+                                            return;
+                                        }
+                                        const parsed = Number(raw);
+                                        updateActiveConfig({
+                                            topP: Number.isFinite(parsed) && parsed >= 0.01 && parsed <= 1
+                                                ? Math.round(parsed * 100) / 100
+                                                : undefined
+                                        });
+                                    }}
+                                    placeholder={是否MiMo模式 ? '留空按小米官方默认 0.95' : '留空不额外发送'}
+                                    className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-wuxia-gold"
+                                />
+                                <div className="text-[11px] text-gray-400">
+                                    {是否MiMo模式 ? '小米 MiMo 官方 Top P 范围 0.01-1.0，推荐默认 0.95。' : '目前仅小米 MiMo 请求会发送 Top P；其他渠道保留原有行为。'}
+                                </div>
                             </div>
 
                             <div className="pt-1">

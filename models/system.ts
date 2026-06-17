@@ -215,6 +215,7 @@ export interface 单接口配置结构 {
     model: string;
     maxTokens?: number;
     temperature?: number;
+    topP?: number;
     createdAt: number;
     updatedAt: number;
 }

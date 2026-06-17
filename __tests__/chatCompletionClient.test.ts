@@ -134,7 +134,41 @@ describe('chatCompletionClient Claude compatible message normalization', () => {
         const requestBody = JSON.parse(String(requestOptions.body));
         expect(requestBody.max_completion_tokens).toBe(4096);
         expect(requestBody.max_tokens).toBeUndefined();
+        expect(requestBody.temperature).toBe(1.0);
+        expect(requestBody.top_p).toBe(0.95);
         expect(requestBody.thinking).toEqual({ type: 'disabled' });
+    });
+
+    it('allows Xiaomi MiMo top_p and temperature to follow player overrides within official ranges', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+            choices: [{
+                message: {
+                    content: '自定义超参正文'
+                }
+            }]
+        }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' }
+        }));
+
+        await 请求模型文本({
+            ...baseConfig,
+            供应商: 'mimo_token_plan',
+            baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1',
+            apiKey: 'tp-mimo-test',
+            model: 'mimo-v2.5-pro',
+            temperature: 1.8,
+            topP: 0.72
+        }, [{ role: 'user', content: 'ping' }], {
+            temperature: 0.7,
+            signal: undefined,
+            streamOptions: { stream: false },
+            errorDetailLimit: 500
+        });
+
+        const requestBody = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
+        expect(requestBody.temperature).toBe(1.5);
+        expect(requestBody.top_p).toBe(0.72);
     });
 
     it('keeps Xiaomi MiMo two-turn chat history usable without leaking reasoning content', async () => {
