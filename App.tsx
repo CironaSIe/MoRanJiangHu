@@ -1194,13 +1194,18 @@ const App: React.FC = () => {
         社交: state.社交,
         世界: state.世界,
         战斗: state.战斗,
-        剧情: state.剧情,
-        女主剧情规划: state.女主剧情规划,
+        剧情: {
+            ...(state.剧情 || {}),
+            当前章任务: state.剧情规划?.当前章任务,
+            待触发事件: state.剧情规划?.待触发事件,
+            镜头规划: state.剧情规划?.镜头规划,
+            跨章延续事项: state.剧情规划?.跨章延续事项
+        },
         玩家门派: state.玩家门派,
         任务列表: state.任务列表,
         约定列表: state.约定列表,
         记忆系统: state.记忆系统
-    }), [state.角色, state.环境, state.社交, state.世界, state.战斗, state.剧情, state.女主剧情规划, state.玩家门派, state.任务列表, state.约定列表, state.记忆系统]);
+    }), [state.角色, state.环境, state.社交, state.世界, state.战斗, state.剧情, state.剧情规划, state.玩家门派, state.任务列表, state.约定列表, state.记忆系统]);
 
     const latestAssistantMessage = React.useMemo(
         () => [...state.历史记录]
