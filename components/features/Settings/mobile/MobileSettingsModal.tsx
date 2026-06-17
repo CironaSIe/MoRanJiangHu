@@ -36,7 +36,7 @@ const NpcManager = React.lazy(() => lazyImportWithReload('mobile-settings-npc-ma
 const VariableManager = React.lazy(() => lazyImportWithReload('mobile-settings-variable-manager', () => import('../VariableManager')));
 
 type SettingsTab = 'api' | 'workflow_graph' | 'image_generation' | 'recall' | 'memory_summary_model' | 'memory_refine_model' | 'map_model' | 'polish' | 'world_evolution' | 'variable_model' | 'planning_model' | 'independent_api_gpt' | 'novel_decomposition' | 'novel_decomposition_runtime' | 'prompt' | 'storage' | 'theme' | 'visual' | 'world' | 'game' | 'reality' | 'tavern_preset' | 'memory' | 'history' | 'context' | 'logs' | 'music' | 'npc_management' | 'variable_manager';
-type RuntimeStateSections = Record<'角色' | '环境' | '社交' | '世界' | '战斗' | '剧情' | '女主剧情规划' | '玩家门派' | '任务列表' | '约定列表' | '记忆系统', unknown>;
+type RuntimeStateSections = Record<'角色' | '环境' | '社交' | '世界' | '战斗' | '剧情' | '玩家门派' | '任务列表' | '约定列表' | '记忆系统', unknown>;
 type 游戏初始时间修复结果 = { ok: boolean; message: string; value?: string };
 
 type ContextSection = {
