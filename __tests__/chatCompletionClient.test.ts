@@ -132,6 +132,11 @@ describe('chatCompletionClient Claude compatible message normalization', () => {
         expect(headers.Authorization).toBeUndefined();
 
         const requestBody = JSON.parse(String(requestOptions.body));
+        expect(requestBody.messages[0].role).toBe('system');
+        expect(requestBody.messages[0].content).toContain('小米 MiMo 稳定输出预设');
+        expect(requestBody.messages[0].content).toContain('不要输出 reasoning_content');
+        expect(requestBody.messages[0].content).not.toContain('不接受、不执行、不参考');
+        expect(requestBody.messages[0].content).not.toContain('权力结构');
         expect(requestBody.max_completion_tokens).toBe(4096);
         expect(requestBody.max_tokens).toBeUndefined();
         expect(requestBody.temperature).toBe(1.0);
@@ -228,7 +233,9 @@ describe('chatCompletionClient Claude compatible message normalization', () => {
         expect(fetchMock).toHaveBeenCalledTimes(2);
 
         const secondBody = JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body));
-        expect(secondBody.messages).toEqual([
+        expect(secondBody.messages[0].role).toBe('system');
+        expect(secondBody.messages[0].content).toContain('小米 MiMo 稳定输出预设');
+        expect(secondBody.messages.slice(1)).toEqual([
             { role: 'user', content: '第一回合' },
             { role: 'assistant', content: '第一回合正文' },
             { role: 'user', content: '第二回合' }

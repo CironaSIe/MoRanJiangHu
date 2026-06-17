@@ -4424,6 +4424,7 @@ export const generateImageByPrompt = async (
             if (isPucodingImageEndpoint) {
                 requestBody.response_format = 'b64_json';
             } else {
+                requestBody.response_format = 'b64_json';
                 requestBody.moderation = 'auto';
             }
         }
@@ -4599,10 +4600,22 @@ export const persistImageAssetLocally = async (
         };
     }
 
-    const response = await fetch(imageUrl);
+    let response: Response;
+    try {
+        response = await fetch(imageUrl);
+    } catch (error: any) {
+        if (/^http:\/\//i.test(imageUrl)) {
+            const raw = error?.message || String(error || '网络异常');
+            throw new Error(`图片已经生成，但返回的是 HTTP 临时图片地址，当前页面无法直接保存或访问它。请改用支持 data/base64 返回的图片接口，或让服务端改为 HTTPS/可下载的稳定图片地址。原始错误：${raw}`);
+        }
+        throw error;
+    }
     if (!response.ok) {
         const detail = await response.text().catch(() => '');
         console.error('[persistImage] HTTP下载失败', { status: response.status, urlPrefix: imageUrl.slice(0, 80) });
+        if (/^http:\/\//i.test(imageUrl)) {
+            throw new Error(`图片已经生成，但返回的是 HTTP 临时图片地址，当前页面无法直接保存或访问它。请改用支持 data/base64 返回的图片接口，或让服务端改为 HTTPS/可下载的稳定图片地址。原始错误：${response.status}${detail ? ` - ${detail.slice(0, 200)}` : ''}`);
+        }
         throw new Error(`保存本地副本失败: ${response.status}${detail ? ` - ${detail.slice(0, 200)}` : ''}`);
     }
     const blob = await response.blob();

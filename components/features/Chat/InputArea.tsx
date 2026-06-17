@@ -155,7 +155,9 @@ interface Props {
     ) => Promise<SendResult> | SendResult;
     onStop: () => void;
     onCancelVariableGeneration?: () => void;
-    onRetryLatestVariableGeneration?: () => Promise<string | null> | string | null;
+    onRetryLatestVariableGeneration?: (options?: {
+        onVariableGenerationProgress?: (progress: VariableGenerationProgress) => void;
+    }) => Promise<string | null> | string | null;
     onRegenerate: () => Promise<string | null> | string | null;
     onRecoverParseErrorRaw?: (rawText: string, forceRepair?: boolean) => Promise<string | null> | string | null;
     onQuickRestart?: (mode: QuickRestartMode) => void | Promise<void>;
@@ -526,8 +528,19 @@ const InputArea: React.FC<Props> = ({
 
     const handleRetryVariableGeneration = async () => {
         if (!onRetryLatestVariableGeneration) return;
-        const retryError = await Promise.resolve(onRetryLatestVariableGeneration());
+        setVariableGenerationProgress({
+            phase: 'start',
+            text: '正在基于当前正文继续变量生成...'
+        });
+        setQueueCollapsed(false);
+        const retryError = await Promise.resolve(onRetryLatestVariableGeneration({
+            onVariableGenerationProgress: (progress) => 记录并设置队列进度('variable.manual-retry', progress, setVariableGenerationProgress)
+        }));
         if (typeof retryError === 'string' && retryError.trim().length > 0) {
+            setVariableGenerationProgress({
+                phase: 'error',
+                text: `${retryError.trim()}\n已保留当前正文，可稍后继续生成。`
+            });
             setErrorModal({
                 open: true,
                 title: '继续变量生成失败',

@@ -73,6 +73,26 @@ type 历史回合工作流依赖 = {
     processResponseCommands: (response: GameResponse, baseState?: any, options?: { applyState?: boolean }) => any;
     按世界演变分流净化响应: (response: GameResponse, enabled: boolean) => { response: GameResponse };
     世界演变功能已开启: () => boolean;
+    后台执行变量生成?: (params: {
+        snapshot: 回合快照结构;
+        parsedResponse: GameResponse;
+        displayResponse?: GameResponse;
+        rawText: string;
+        playerInput: string;
+        inputTokens?: number;
+        responseDurationSec?: number;
+        onProgress?: (progress: {
+            phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
+            text?: string;
+            rawText?: string;
+            commandTexts?: string[];
+            channelName?: string;
+            modelName?: string;
+            startedAt?: number;
+            finishedAt?: number;
+            elapsedMs?: number;
+        }) => void;
+    }) => Promise<void>;
     执行重解析变量生成: (params: {
         snapshot: 回合快照结构;
         playerInput: string;
@@ -401,7 +421,19 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
         return snapshot.玩家输入;
     };
 
-    const handleRetryLatestVariableGeneration = async (): Promise<string | null> => {
+    const handleRetryLatestVariableGeneration = async (options?: {
+        onVariableGenerationProgress?: (progress: {
+            phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
+            text?: string;
+            rawText?: string;
+            commandTexts?: string[];
+            channelName?: string;
+            modelName?: string;
+            startedAt?: number;
+            finishedAt?: number;
+            elapsedMs?: number;
+        }) => void;
+    }): Promise<string | null> => {
         if (deps.loading) return '当前仍在处理中，请稍后再试。';
         if (deps.变量生成中) return '变量生成进行中，请勿重复触发。';
         const snapshot = deps.获取最新快照();
@@ -451,6 +483,35 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
                 parsed = deps.parseStoryRawText(rawSource, deps.构建标签解析选项(runtimeGameConfig));
             } catch (error: any) {
                 return deps.提取解析失败原始信息(error) || '无法从原始响应恢复结构化正文。';
+            }
+        }
+
+        if (deps.后台执行变量生成) {
+            try {
+                options?.onVariableGenerationProgress?.({
+                    phase: 'start',
+                    text: '正在基于当前正文继续变量生成...'
+                });
+                await deps.后台执行变量生成({
+                    snapshot,
+                    parsedResponse: parsed,
+                    displayResponse: target.structuredResponse || parsed,
+                    rawText: typeof target.rawJson === 'string' ? target.rawJson : '',
+                    playerInput: isOpeningTurn ? '' : playerInput,
+                    inputTokens: target.inputTokens,
+                    responseDurationSec: target.responseDurationSec,
+                    onProgress: options?.onVariableGenerationProgress
+                });
+                return null;
+            } catch (error: any) {
+                const message = deps.提取原始报错详情(error)
+                    || error?.message
+                    || '变量生成失败';
+                options?.onVariableGenerationProgress?.({
+                    phase: 'error',
+                    text: `${message}\n已保留当前正文，可稍后继续生成。`
+                });
+                return message;
             }
         }
 

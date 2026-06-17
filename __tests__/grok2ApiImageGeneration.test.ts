@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { generateImageByPrompt } from '../services/ai/image';
+import { generateImageByPrompt, persistImageAssetLocally } from '../services/ai/image';
+
+vi.mock('../services/dbService', () => ({
+    保存图片资源: vi.fn(async () => 'wuxia-asset://saved-image')
+}));
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -7,6 +11,47 @@ afterEach(() => {
 });
 
 describe('Grok2Api image generation compatibility', () => {
+    it('requests base64 payloads for GPT image models to avoid unstable temporary HTTP links', async () => {
+        let requestBody: any = null;
+        vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+            requestBody = JSON.parse(String(init?.body || '{}'));
+            return new Response(JSON.stringify({
+                data: [
+                    { b64_json: 'aGVsbG8=' }
+                ]
+            }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' }
+            });
+        }));
+
+        const result = await generateImageByPrompt('测试 GPT 图片模型', {
+            id: 'gpt-image',
+            名称: 'GPT Image',
+            供应商: 'openai_compatible',
+            协议覆盖: 'auto',
+            baseUrl: 'https://image.example',
+            apiKey: 'test-key',
+            model: 'gpt-image-2',
+            图片后端类型: 'openai',
+            图片接口路径: '/v1/images/generations',
+            图片响应格式: 'url'
+        } as any);
+
+        expect(requestBody.response_format).toBe('b64_json');
+        expect(result.图片URL).toBe('data:image/png;base64,aGVsbG8=');
+    });
+
+    it('explains GPT image local persistence failures caused by HTTP temporary image links', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => {
+            throw new TypeError('Failed to fetch');
+        }));
+
+        await expect(persistImageAssetLocally({
+            图片URL: 'http://70.39.197.55:3000/generated/test.png'
+        })).rejects.toThrow(/图片已经生成，但返回的是 HTTP 临时图片地址/);
+    });
+
     it('sends OpenAI-compatible image payload fields accepted by Grok2Api', async () => {
         let requestedUrl = '';
         let requestBody: any = null;

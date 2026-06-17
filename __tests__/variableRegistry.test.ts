@@ -29,7 +29,15 @@ const baseState = {
     },
     战斗: {},
     剧情: {},
-    剧情规划: {},
+    剧情规划: {
+        当前章任务: ['追查旧案'],
+        待触发事件: ['夜访藏书阁'],
+        镜头规划: ['雨夜对峙'],
+        跨章延续事项: ['线索未明']
+    },
+    女主剧情规划: {
+        女主条目: []
+    },
     玩家门派: {}
 };
 
@@ -65,6 +73,15 @@ describe('variableRegistry', () => {
         expect(prompt).toContain('【变量路径登记表】');
         expect(prompt).toContain('- 角色.当前精力');
         expect(prompt).toContain('- 社交[0].记忆');
+    });
+
+    it('keeps story planning roots registered as editable runtime sections', () => {
+        const prompt = 构建变量路径登记提示(baseState);
+
+        expect(prompt).toContain('- 剧情规划');
+        expect(prompt).toContain('- 剧情规划.当前章任务');
+        expect(prompt).toContain('- 女主剧情规划');
+        expect(prompt).toContain('- 女主剧情规划.女主条目');
     });
 
     it('allows important male NSFW profile fields to be added to social records', () => {

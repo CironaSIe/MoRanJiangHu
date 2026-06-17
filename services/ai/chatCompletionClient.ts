@@ -1,6 +1,7 @@
 import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
+import { 小米MiMo稳定输出预设 } from '../../prompts/providers/xiaomiMiMoStablePreset';
 
 export type 通用消息角色 = 'system' | 'user' | 'assistant';
 
@@ -1373,6 +1374,12 @@ const 请求OpenAI家族文本 = async (
     let downgradedFromStream = false;
     let usePrefixMode = requestOptions?.prefixMode === true && protocol === 'deepseek';
     let requestMessages = messages;
+    if (是否小米MiMo接口配置(apiConfig)) {
+        requestMessages = [
+            { role: 'system', content: 小米MiMo稳定输出预设 },
+            ...requestMessages
+        ];
+    }
 
     for (let pass = 0; pass < 3; pass++) {
         const requestModel = 规范化请求模型名称(apiConfig.model);

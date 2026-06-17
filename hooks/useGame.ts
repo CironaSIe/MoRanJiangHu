@@ -3153,6 +3153,7 @@ export const useGame = () => {
         playerInput: string;
         parsedResponse: GameResponse;
     }): Promise<GameResponse> => params.parsedResponse;
+    let 后台执行变量生成委托 = async (_params: any): Promise<void> => undefined;
 
     const {
         使用快照重建解析回合,
@@ -3203,6 +3204,7 @@ export const useGame = () => {
         processResponseCommands,
         按世界演变分流净化响应,
         世界演变功能已开启,
+        后台执行变量生成: (params) => 后台执行变量生成委托(params),
         执行重解析变量生成: (params) => 执行重解析变量生成委托(params),
         应用并同步记忆系统,
         performAutoSave: (...args) => performAutoSave(...args),
@@ -3244,6 +3246,7 @@ export const useGame = () => {
         序列化变量生成命令: 序列化变量校准命令,
         使用快照重建解析回合
     });
+    后台执行变量生成委托 = 后台执行变量生成;
     执行重解析变量生成委托 = 执行重解析变量生成;
 
     const handleStop = () => {
