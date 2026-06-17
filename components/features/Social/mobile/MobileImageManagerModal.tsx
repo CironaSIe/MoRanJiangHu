@@ -2187,6 +2187,7 @@ const PresetEditor: React.FC<PresetEditorProps> = ({ editState, onClose, onSave,
 
 const PresetsTabContent: React.FC<TabProps> = ({
     socialList,
+    playerCharacter,
     apiConfig,
     onSaveApiConfig,
     withBusyAction,

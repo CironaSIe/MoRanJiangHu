@@ -1,32 +1,16 @@
 {
-  "versionCode": 495,
-  "versionName": "1.0.495",
+  "versionCode": 496,
+  "versionName": "1.0.496",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-06-16T12:03:53.230+08:00",
+  "releasePublishedAt": "2026-06-17T12:55:44+08:00",
   "releaseNotes": [
-    "修复历程天数重置：新建存档的历程天数不再因意外丢失初始时间而归零，系统会自动从历史记录和回忆档案中恢复。",
-    "新增高级存档修复：设置页新增「高级存档修复」区块，支持手动输入游戏起始时间修正历程天数。",
-    "命令保护：酒馆等命令操作不会意外覆盖游戏初始时间设置。",
+    "修复移动端图册打开资源页时可能出现“playerCharacter is not defined”的问题，图片管理可正常进入角色锚点、PNG画风和预设管理。",
+    "优化移动端图片管理稳定性，避免图册被错误边界拦截显示“图册打开失败”。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/",
-    "同步更新 Web 与更新清单到 v1.0.495。"
+    "同步更新 Web、APK 与更新清单到 v1.0.496。"
   ],
   "releaseHistory": [
-    {
-      "versionName": "1.0.494",
-      "versionCode": 494,
-      "publishedAt": "2026-06-16T08:16:11+08:00",
-      "changes": [
-        "修复香闺秘档胸部、小穴、屁穴三张特写的生成与显示链路，ComfyUI 端到端验收已确认三格都能生成并展示。",
-        "网页端 GPT Image 2 生图测试改为走 Images Generations 接口，避免被 OpenAI 兼容网关错误转到 Responses/Chat 接口。",
-        "新增 GPT Image 2 顶级 CG 通用质感预设，整合玩家提供的高级 CG 画质规则，角色图、场景图和场景判定都会自动使用对应规则。",
-        "修复 APK 中“生图提示词”导出失败的问题，APK 会改用系统文档保存流程，浏览器端继续保留下载文件方式。",
-        "修复开局男性 NPC 被误标为扶她、读档后主控头像不自动显示、主控角色锚点误显示“已失效”等问题。",
-        "官网：https://msjh.bacon159.pp.ua/",
-        "备用站：https://msjh.bacon.de5.net/",
-        "同步更新 Web、APK 与更新清单到 v1.0.494。"
-      ]
-    },
     {
       "versionName": "1.0.493",
       "versionCode": 493,
@@ -893,12 +877,14 @@
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html",
   "changes": [
-    "修复历程天数重置：新建存档的历程天数不再因意外丢失初始时间而归零，系统会自动从历史记录和回忆档案中恢复。",
-    "新增高级存档修复：设置页新增「高级存档修复」区块，支持手动输入游戏起始时间修正历程天数。",
-    "命令保护：酒馆等命令操作不会意外覆盖游戏初始时间设置。",
+    "修复香闺秘档胸部、小穴、屁穴三张特写的生成与显示链路，ComfyUI 端到端验收已确认三格都能生成并展示。",
+    "网页端 GPT Image 2 生图测试改为走 Images Generations 接口，避免被 OpenAI 兼容网关错误转到 Responses/Chat 接口。",
+    "新增 GPT Image 2 顶级 CG 通用质感预设，整合玩家提供的高级 CG 画质规则，角色图、场景图和场景判定都会自动使用对应规则。",
+    "修复 APK 中“生图提示词”导出失败的问题，APK 会改用系统文档保存流程，浏览器端继续保留下载文件方式。",
+    "修复开局男性 NPC 被误标为扶她、读档后主控头像不自动显示、主控角色锚点误显示“已失效”等问题。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/",
-    "同步更新 Web 与更新清单到 v1.0.495。"
+    "同步更新 Web、APK 与更新清单到 v1.0.494。"
   ],
-  "notes": "修复历程天数重置：新建存档的历程天数不再因意外丢失初始时间而归零，系统会自动从历史记录和回忆档案中恢复。\n新增高级存档修复：设置页新增「高级存档修复」区块，支持手动输入游戏起始时间修正历程天数。\n命令保护：酒馆等命令操作不会意外覆盖游戏初始时间设置。\n官网：https://msjh.bacon159.pp.ua/\n备用站：https://msjh.bacon.de5.net/\n同步更新 Web 与更新清单到 v1.0.495。"
+  "notes": "修复香闺秘档胸部、小穴、屁穴三张特写的生成与显示链路，ComfyUI 端到端验收已确认三格都能生成并展示。\n网页端 GPT Image 2 生图测试改为走 Images Generations 接口，避免被 OpenAI 兼容网关错误转到 Responses/Chat 接口。\n新增 GPT Image 2 顶级 CG 通用质感预设，整合玩家提供的高级 CG 画质规则，角色图、场景图和场景判定都会自动使用对应规则。\n修复 APK 中“生图提示词”导出失败的问题，APK 会改用系统文档保存流程，浏览器端继续保留下载文件方式。\n修复开局男性 NPC 被误标为扶她、读档后主控头像不自动显示、主控角色锚点误显示“已失效”等问题。\n官网：https://msjh.bacon159.pp.ua/\n备用站：https://msjh.bacon.de5.net/\n同步更新 Web、APK 与更新清单到 v1.0.494。"
 }
