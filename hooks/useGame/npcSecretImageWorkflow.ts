@@ -268,21 +268,11 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
         错误信息: undefined,
         描述文本: partDescription
     }));
-    deps.写入NPC图片历史记录(npcKey, {
-        id: recordId,
-        部位: part,
-        图片URL: undefined,
-        本地路径: undefined,
-        生图词组: '',
-        原始描述: JSON.stringify(baseData ?? {}, null, 2),
-        使用模型: modelName,
-        生成时间: Date.now(),
-        构图: '部位特写' as const,
-        画风,
-        画师串: 前置正向提示词,
-        状态: 'pending' as const,
-        错误信息: undefined
-    }, { 同步最近结果: false });
+    // [修复] 不在工作流前期写入 pending 历史记录：
+    // 空壳 pending 记录会污染生图历史，导致从历史回填逻辑误以为该部位已有记录（但无图），
+    // 也让 UI 显示的生图历史里挂着无图 pending 条目。
+    // 最终成功或失败后，写入NPC香闺秘档部位记录 / 失败分支的写入NPC图片历史记录 
+    // 会写入完整的含图记录或含错误信息的失败记录。
 
         const { 原始描述, 生图词组 } = shouldUsePromptTransformer && promptApiForTask
             ? await imageAIService.generateNpcSecretPartImagePrompt(
@@ -343,23 +333,7 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
             错误信息: undefined,
             描述文本: partDescription
         }));
-        deps.写入NPC图片历史记录(npcKey, {
-            id: recordId,
-            部位: part,
-            图片URL: undefined,
-            本地路径: undefined,
-            生图词组,
-            最终正向提示词: 最终提示词.最终正向提示词,
-            最终负向提示词: 最终提示词.最终负向提示词,
-            原始描述,
-            使用模型: modelName,
-            生成时间: Date.now(),
-            构图: '部位特写' as const,
-            画风,
-            画师串: 前置正向提示词,
-            状态: 'pending' as const,
-            错误信息: undefined
-        }, { 同步最近结果: false });
+        // [修复] 不在词组转换后写入 pending 历史记录，原因同上
         recordDiagnosticLog('info', '[NPC私密部位生图链路] 准备调用图片后端', {
             taskId: task.id,
             recordId,

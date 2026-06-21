@@ -1,16 +1,28 @@
 {
-  "versionCode": 506,
-  "versionName": "1.0.506",
+  "versionCode": 507,
+  "versionName": "1.0.507",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-06-21T17:17:24.546+08:00",
+  "releasePublishedAt": "2026-06-21T18:32:24.692+08:00",
   "releaseNotes": [
-    "修复主角上传头像图片不存入图片档案的问题——上传头像现在与 NPC 上传一致：先存入 IndexedDB 再写入图片历史，避免刷新后丢失。",
-    "添加香闺秘档私密部位图片写入→显示全链路调试日志：发送端（写入入口）、接收端（规范化前后对比）、显示端（ref 能否解析为可展示地址），方便追踪图片在哪一步丢失。",
+    "修复主要女NPC私密部位图片生成后不显示在香闺秘档的问题：去掉工作流前期写入生图历史的空壳pending记录（它们会污染历史，让回填逻辑误以为部位已有记录但无图），并在标准化时兜底恢复被压缩掉的图片URL。",
+    "修复生成小穴却显示胸部的问题：空壳pending记录混入生图历史导致部位错位，清理后历史只保留最终成功/失败记录，部位不再串位。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/",
-    "同步更新 Web、APK 与更新清单到 v1.0.506。"
+    "同步更新 Web、APK 与更新清单到 v1.0.507。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.507",
+      "versionCode": 507,
+      "releasePublishedAt": "2026-06-21T18:30:18.209+08:00",
+      "releaseNotes": [
+        "修复主要女NPC私密部位图片生成后不显示在香闺秘档的问题：去掉工作流前期写入生图历史的空壳pending记录（它们会污染历史，让回填逻辑误以为部位已有记录但无图），并在标准化时兜底恢复被压缩掉的图片URL。",
+        "修复生成小穴却显示胸部的问题：空壳pending记录混入生图历史导致部位错位，清理后历史只保留最终成功/失败记录，部位不再串位。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "备用站：https://msjh.bacon.de5.net/",
+        "同步更新 Web、APK 与更新清单到 v1.0.507。"
+      ]
+    },
     {
       "versionName": "1.0.505",
       "versionCode": 505,
