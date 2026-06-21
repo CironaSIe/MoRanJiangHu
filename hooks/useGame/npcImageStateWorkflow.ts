@@ -297,7 +297,56 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
         const baseList = deps.获取社交列表();
         const result = updater(Array.isArray(baseList) ? baseList : []);
         if (!result.changed) return false;
+        // [接收端调试] 规范化前：记录 result.nextList 中有香闺秘档部位档案的 NPC
+        const beforeNormalization = result.nextList
+            .filter((npc: any) => npc?.图片档案?.香闺秘档部位档案)
+            .map((npc: any) => {
+                const sa = npc.图片档案.香闺秘档部位档案;
+                const parts: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴', '肉棒'];
+                const partSummary: Record<string, any> = {};
+                for (const p of parts) {
+                    if (sa[p]) {
+                        partSummary[p] = {
+                            id: sa[p].id || '',
+                            状态: sa[p].状态 || '',
+                            hasLocalPath: Boolean(sa[p].本地路径),
+                            hasImageUrl: Boolean(sa[p].图片URL),
+                            localPathPrefix: typeof sa[p].本地路径 === 'string' ? sa[p].本地路径.slice(0, 50) : '',
+                        };
+                    }
+                }
+                return { name: npc.姓名 || '', partSummary };
+            });
         const normalizedList = deps.规范化社交列表(result.nextList, { 合并同名: false });
+        // [接收端调试] 规范化后：记录 normalizedList 中有香闺秘档部位档案的 NPC
+        const afterNormalization = normalizedList
+            .filter((npc: any) => npc?.图片档案?.香闺秘档部位档案)
+            .map((npc: any) => {
+                const sa = npc.图片档案.香闺秘档部位档案;
+                const parts: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴', '肉棒'];
+                const partSummary: Record<string, any> = {};
+                for (const p of parts) {
+                    if (sa[p]) {
+                        partSummary[p] = {
+                            id: sa[p].id || '',
+                            状态: sa[p].状态 || '',
+                            hasLocalPath: Boolean(sa[p].本地路径),
+                            hasImageUrl: Boolean(sa[p].图片URL),
+                            localPathPrefix: typeof sa[p].本地路径 === 'string' ? sa[p].本地路径.slice(0, 50) : '',
+                        };
+                    }
+                }
+                return { name: npc.姓名 || '', partSummary };
+            });
+        // 只在规范化前后有差异时输出，避免日志噪音
+        const beforeJson = JSON.stringify(beforeNormalization);
+        const afterJson = JSON.stringify(afterNormalization);
+        if (beforeJson !== afterJson) {
+            recordDiagnosticLog('warn', '[香闺秘档写入·接收端] 规范化前后香闺秘档部位档案有变化', {
+                before: beforeNormalization,
+                after: afterNormalization
+            });
+        }
         deps.设置社交(() => normalizedList);
         deps.执行社交自动存档(normalizedList);
         return true;
@@ -443,6 +492,30 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
     ): boolean => {
         if (!record || typeof record !== 'object') return false;
         const shouldUpdateRecent = options?.同步最近结果 !== false;
+        // [发送端调试] 记录入参关键字段，便于追踪图片在哪一步丢失
+        const baseListForLog = Array.isArray(deps.获取社交列表()) ? deps.获取社交列表() : [];
+        const matchedNpcForLog = baseListForLog.find((n: any, i: number) => deps.获取NPC唯一标识(n, i) === npcKey);
+        recordDiagnosticLog('info', '[香闺秘档写入·发送端] 进入写入流程', {
+            npcKey,
+            part,
+            recordId: record?.id,
+            recordHasImageUrl: Boolean(record?.图片URL),
+            recordHasLocalPath: Boolean(record?.本地路径),
+            recordLocalPathPrefix: typeof record?.本地路径 === 'string' ? record.本地路径.slice(0, 60) : '',
+            recordImageUrlPrefix: typeof record?.图片URL === 'string' ? record.图片URL.slice(0, 60) : '',
+            recordStatus: record?.状态,
+            recordComposition: record?.构图,
+            recordPart: record?.部位,
+            socialListSize: baseListForLog.length,
+            matchedNpcFound: Boolean(matchedNpcForLog),
+            matchedNpcName: typeof matchedNpcForLog?.姓名 === 'string' ? matchedNpcForLog.姓名 : '',
+            matchedNpcHasArchive: Boolean(matchedNpcForLog?.图片档案),
+            matchedNpcArchiveKeys: matchedNpcForLog?.图片档案 ? Object.keys(matchedNpcForLog.图片档案) : [],
+            allSocialKeys: baseListForLog.slice(0, 20).map((n: any, i: number) => ({
+                key: deps.获取NPC唯一标识(n, i),
+                name: typeof n?.姓名 === 'string' ? n.姓名 : ''
+            }))
+        });
         let writeInfo: any = null;
         const updated = 更新社交并自动存档((baseList) => {
             let changed = false;

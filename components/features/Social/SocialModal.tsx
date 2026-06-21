@@ -312,7 +312,19 @@ const SocialModal: React.FC<Props> = ({
     };
     const 读取香闺秘档图片结果 = (npc: NPC结构, part: 香闺秘档部位类型) => {
         const source = (npc as any)?.图片档案?.香闺秘档部位档案?.[part];
-        if (source && typeof source === 'object' && 获取图片展示地址(source)) return source;
+        const sourceDisplayUrl = source && typeof source === 'object' ? 获取图片展示地址(source) : '';
+        // [显示端调试] 记录读取时 ref 能否解析为可展示地址
+        if (source && !sourceDisplayUrl) {
+            console.warn(`[香闺秘档·显示端] ${npc?.姓名 || '?'} 的 ${part} 有部位档案但获取图片展示地址返回空`, {
+                hasLocalPath: Boolean(source?.本地路径),
+                localPathPrefix: typeof source?.本地路径 === 'string' ? source.本地路径.slice(0, 60) : '',
+                hasImageUrl: Boolean(source?.图片URL),
+                imageUrlPrefix: typeof source?.图片URL === 'string' ? source.图片URL.slice(0, 60) : '',
+                状态: source?.状态,
+                id: source?.id
+            });
+        }
+        if (source && sourceDisplayUrl) return source;
         const history = Array.isArray((npc as any)?.图片档案?.生图历史) ? (npc as any).图片档案.生图历史 : [];
         const match = history
             .filter((item: any) => item?.部位 === part && item?.状态 !== 'failed' && item?.状态 !== 'pending' && 获取图片展示地址(item))

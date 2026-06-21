@@ -3915,6 +3915,7 @@ export const useGame = () => {
         执行自动存档: performAutoSave,
         获取历史记录: () => 历史记录,
         推送右下角提示,
+        保存图片资源: dbService.保存图片资源,
         加载NPC生图工作流,
         apiConfig,
         获取文生图接口配置,

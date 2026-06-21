@@ -1,8 +1,9 @@
 import type { 生图任务来源类型, 角色数据结构 } from '../../types';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
+import type { 图片记录来源类型 } from '../../models/imageGeneration';
 import { 获取图片展示地址, 图片资源记录含可恢复地址 } from '../../utils/imageAssets';
 import { 主角角色锚点标识 } from './imagePresetWorkflow';
-import { 合并NPC图片档案, 标准化香闺秘档部位档案, 标准化香闺秘档部位结果 } from './npcImageStateWorkflow';
+import { 合并NPC图片档案, 标准化香闺秘档部位档案, 标准化香闺秘档部位结果, 生成NPC生图记录ID } from './npcImageStateWorkflow';
 
 type 主角生图选项 = {
     构图?: '头像' | '半身' | '立绘';
@@ -21,6 +22,7 @@ type 主角图片工作流依赖 = {
     执行自动存档: (snapshot?: { role?: 角色数据结构; history?: any[]; force?: boolean }) => Promise<unknown> | unknown;
     获取历史记录: () => any[];
     推送右下角提示: (toast: { title: string; message: string; tone?: 'info' | 'success' | 'error'; previewUrl?: string }) => void;
+    保存图片资源: (dataUrl: string) => Promise<string>;
     加载NPC生图工作流: () => Promise<any>;
     apiConfig: any;
     获取文生图接口配置: (config: any) => 当前可用接口结构 | null;
@@ -110,12 +112,46 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
         });
     };
 
-    const updatePlayerAvatar = (imageUrl: string) => {
-        更新角色并自动存档((prev) => ({
-            ...prev,
-            头像图片URL: typeof imageUrl === 'string' ? imageUrl : '',
-            图片档案: prev?.图片档案 ? { ...prev.图片档案, 已选头像图片ID: undefined } : prev?.图片档案
-        }));
+    const updatePlayerAvatar = async (imageUrl: string) => {
+        const dataUrl = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+        if (!dataUrl) return;
+
+        // 与 NPC 上传一致：存入 IndexedDB → 创建生图记录 → 写入图片档案
+        const assetRef = await deps.保存图片资源(dataUrl);
+        const uploadedAt = Date.now();
+        const record = {
+            id: 生成NPC生图记录ID(),
+            图片URL: assetRef,
+            本地路径: assetRef,
+            生图词组: '手动上传',
+            原始描述: '手动上传头像图片',
+            使用模型: 'manual_upload',
+            生成时间: uploadedAt,
+            状态: 'success' as const,
+            来源: 'upload' as 图片记录来源类型,
+            构图: '头像' as const,
+            上传文件名: '',
+            上传时间: uploadedAt
+        };
+
+        更新角色并自动存档((prev) => {
+            const archive = prev?.图片档案 && typeof prev.图片档案 === 'object' ? prev.图片档案 : {};
+            const currentHistory = Array.isArray(archive?.生图历史) ? archive.生图历史 : [];
+            const nextHistory = [record, ...currentHistory]
+                .sort((a: any, b: any) => (b?.生成时间 || 0) - (a?.生成时间 || 0));
+            return {
+                ...prev,
+                // 清除旧的裸 dataURL 字段，图片展示改为统一从图片档案取
+                头像图片URL: '',
+                图片档案: {
+                    ...archive,
+                    最近生图结果: record,
+                    生图历史: nextHistory,
+                    已选头像图片ID: record.id
+                },
+                最近生图结果: record
+            };
+        });
     };
 
     const 主角已有头像 = (playerSnapshot?: 角色数据结构): boolean => {
