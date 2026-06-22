@@ -324,15 +324,26 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const handleDelete = async (id: number, e: React.MouseEvent) => {
         e.stopPropagation();
         if (saveProtectionEnabled) {
-            alert('存档保护已开启，请先在“设置-数据存储”中关闭后再删除存档。');
+            alert('存档保护已开启，请先在”设置-数据存储”中关闭后再删除存档。');
             return;
         }
+        // [修复] 加强删除中间节点的警告——删除谱系树中间节点会导致后续节点不可用
         const ok = requestConfirm
-            ? await requestConfirm({ title: '删除存档', message: '确定删除此存档吗？', confirmText: '删除', danger: true })
+            ? await requestConfirm({
+                title: '删除存档',
+                message: '确定删除此存档吗？\n\n⚠ 警告：如果此存档是一棵谱系树的中间节点（非末尾），删除后同一棵树上更晚的节点将无法正常读取，甚至可能导致所有后续存档数据丢失。\n\n如果只想清理空间，建议删除整棵存档树（在存档详情中选择”删除存档树并重建”）。',
+                confirmText: '删除',
+                danger: true
+            })
             : true;
         if (!ok) return;
-        await dbService.删除存档(id);
-        await loadSaves();
+        try {
+            await dbService.删除存档(id);
+            await loadSaves();
+        } catch (error: any) {
+            console.error('删除存档失败:', error);
+            alert(`删除失败：${error?.message || '未知错误'}`);
+        }
     };
 
     const handleDeleteSeries = async (series: 本地时间树系列, e: React.MouseEvent) => {

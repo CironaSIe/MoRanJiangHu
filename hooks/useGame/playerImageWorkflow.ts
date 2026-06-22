@@ -154,6 +154,64 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
         });
     };
 
+    const updatePlayerPortrait = async (imageUrl: string) => {
+        const dataUrl = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+        if (!dataUrl) return;
+
+        // 与 NPC 立绘上传一致：存入 IndexedDB → 创建生图记录 → 写入图片档案
+        const assetRef = await deps.保存图片资源(dataUrl);
+        const uploadedAt = Date.now();
+        const record = {
+            id: 生成NPC生图记录ID(),
+            图片URL: assetRef,
+            本地路径: assetRef,
+            生图词组: '手动上传',
+            原始描述: '手动上传立绘图片',
+            使用模型: 'manual_upload',
+            生成时间: uploadedAt,
+            状态: 'success' as const,
+            来源: 'upload' as 图片记录来源类型,
+            构图: '立绘' as const,
+            上传文件名: '',
+            上传时间: uploadedAt
+        };
+
+        更新角色并自动存档((prev) => {
+            const archive = prev?.图片档案 && typeof prev.图片档案 === 'object' ? prev.图片档案 : {};
+            const currentHistory = Array.isArray(archive?.生图历史) ? archive.生图历史 : [];
+            const nextHistory = [record, ...currentHistory]
+                .sort((a: any, b: any) => (b?.生成时间 || 0) - (a?.生成时间 || 0));
+            return {
+                ...prev,
+                图片档案: {
+                    ...archive,
+                    最近生图结果: record,
+                    生图历史: nextHistory,
+                    已选立绘图片ID: record.id
+                },
+                最近生图结果: record
+            };
+        });
+    };
+
+    const selectPlayerPortrait = (imageId: string) => {
+        更新角色并自动存档((prev) => {
+            const archive = prev?.图片档案 && typeof prev.图片档案 === 'object' ? prev.图片档案 : {};
+            const currentSelectedPortraitId = typeof archive?.已选立绘图片ID === 'string' ? archive.已选立绘图片ID.trim() : '';
+            if (currentSelectedPortraitId === imageId) return prev;
+            const history = Array.isArray(archive?.生图历史) ? archive?.生图历史 : [];
+            const valid = history.some((item: any) => item?.id === imageId && item?.状态 === 'success' && (item?.构图 === '立绘' || item?.构图 === '半身') && 图片资源记录含可恢复地址(item));
+            if (!valid && imageId) return prev;
+            return {
+                ...prev,
+                图片档案: {
+                    ...archive,
+                    已选立绘图片ID: imageId || undefined
+                }
+            };
+        });
+    };
+
     const 主角已有头像 = (playerSnapshot?: 角色数据结构): boolean => {
         const player = playerSnapshot || deps.获取角色();
         if (typeof player?.头像图片URL === 'string' && player.头像图片URL.trim()) return true;
@@ -538,6 +596,8 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
 
     return {
         updatePlayerAvatar,
+        updatePlayerPortrait,
+        selectPlayerPortrait,
         selectPlayerAvatarImage,
         clearPlayerAvatarImage,
         selectPlayerPortraitImage,

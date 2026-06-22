@@ -40,8 +40,10 @@ interface Props {
     onDeletePlayerAnchor?: (anchorId: string) => Promise<void> | void;
     onSelectPlayerAvatarImage?: (imageId: string) => void;
     onClearPlayerAvatarImage?: () => void;
+    onUploadPlayerAvatar?: (imageUrl: string) => void;
     onSelectPlayerPortraitImage?: (imageId: string) => void;
     onClearPlayerPortraitImage?: () => void;
+    onUploadPlayerPortrait?: (imageUrl: string) => void;
     onRemovePlayerImageRecord?: (imageId: string) => void;
     onAllocateAttributePoint?: (key: 可分配六维属性键) => void;
 }
@@ -125,13 +127,29 @@ const CharacterModal: React.FC<Props> = ({
     onDeletePlayerAnchor,
     onSelectPlayerAvatarImage,
     onClearPlayerAvatarImage,
+    onUploadPlayerAvatar,
     onSelectPlayerPortraitImage,
     onClearPlayerPortraitImage,
+    onUploadPlayerPortrait,
     onRemovePlayerImageRecord,
     onAllocateAttributePoint
 }) => {
     use图片资源回源预取(character);
     const [activeTab, setActiveTab] = React.useState<页面标签>('image');
+    const avatarUploadInputRef = React.useRef<HTMLInputElement | null>(null);
+    const portraitUploadInputRef = React.useRef<HTMLInputElement | null>(null);
+
+    const handleUploadFile = (event: React.ChangeEvent<HTMLInputElement>, onUpload?: (imageUrl: string) => void) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = typeof reader.result === 'string' ? reader.result : '';
+            if (result) onUpload?.(result);
+        };
+        reader.readAsDataURL(file);
+    };
     const [busyAction, setBusyAction] = React.useState('');
     const [anchorExtractRequirement, setAnchorExtractRequirement] = React.useState('');
     const [anchorExtractStage, setAnchorExtractStage] = React.useState<'idle' | 'extracting' | 'done' | 'error'>('idle');
@@ -629,7 +647,25 @@ const CharacterModal: React.FC<Props> = ({
                                             {playerAnchor?.名称 ? ` · 当前锚点：${playerAnchor.名称}` : ' · 当前锚点：未建立'}
                                         </div>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 flex-wrap justify-end">
+                                        {onUploadPlayerAvatar && (
+                                            <button
+                                                type="button"
+                                                onClick={() => avatarUploadInputRef.current?.click()}
+                                                className="rounded-full border border-wuxia-gold/30 px-3 py-1 text-[11px] text-wuxia-gold/80 transition-colors hover:border-wuxia-gold hover:text-wuxia-gold"
+                                            >
+                                                上传头像
+                                            </button>
+                                        )}
+                                        {onUploadPlayerPortrait && (
+                                            <button
+                                                type="button"
+                                                onClick={() => portraitUploadInputRef.current?.click()}
+                                                className="rounded-full border border-wuxia-gold/30 px-3 py-1 text-[11px] text-wuxia-gold/80 transition-colors hover:border-wuxia-gold hover:text-wuxia-gold"
+                                            >
+                                                上传立绘
+                                            </button>
+                                        )}
                                         {selectedAvatarId && (
                                             <button
                                                 type="button"
@@ -650,6 +686,21 @@ const CharacterModal: React.FC<Props> = ({
                                         )}
                                     </div>
                                 </div>
+
+                                <input
+                                    ref={avatarUploadInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => handleUploadFile(e, onUploadPlayerAvatar)}
+                                />
+                                <input
+                                    ref={portraitUploadInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => handleUploadFile(e, onUploadPlayerPortrait)}
+                                />
 
                                 {history.length > 0 ? (
                                     <div className="mt-4 grid gap-4 max-h-[calc(88vh-260px)] overflow-y-auto pr-1 custom-scrollbar xl:grid-cols-2">

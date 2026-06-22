@@ -30,8 +30,10 @@ interface Props {
     onGeneratePlayerSecretPartImage?: (part: string) => Promise<void> | void;
     onSelectPlayerAvatarImage?: (imageId: string) => void;
     onClearPlayerAvatarImage?: () => void;
+    onUploadPlayerAvatar?: (imageUrl: string) => void;
     onSelectPlayerPortraitImage?: (imageId: string) => void;
     onClearPlayerPortraitImage?: () => void;
+    onUploadPlayerPortrait?: (imageUrl: string) => void;
     onRemovePlayerImageRecord?: (imageId: string) => void;
     onAllocateAttributePoint?: (key: 可分配六维属性键) => void;
     onClose: () => void;
@@ -129,13 +131,28 @@ const MobileCharacter: React.FC<Props> = ({
     onGeneratePlayerSecretPartImage,
     onSelectPlayerAvatarImage,
     onClearPlayerAvatarImage,
+    onUploadPlayerAvatar,
     onSelectPlayerPortraitImage,
     onClearPlayerPortraitImage,
+    onUploadPlayerPortrait,
     onRemovePlayerImageRecord,
     onAllocateAttributePoint,
     onClose
 }) => {
     use图片资源回源预取(character);
+    const avatarUploadInputRef = React.useRef<HTMLInputElement | null>(null);
+    const portraitUploadInputRef = React.useRef<HTMLInputElement | null>(null);
+    const handleUploadFile = (event: React.ChangeEvent<HTMLInputElement>, onUpload?: (imageUrl: string) => void) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = typeof reader.result === 'string' ? reader.result : '';
+            if (result) onUpload?.(result);
+        };
+        reader.readAsDataURL(file);
+    };
     const 总气血 = useMemo(() => 计算角色总气血(character), [character]);
     const 资源文案 = 获取题材资源文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
     const [activeView, setActiveView] = useState<MobileCharacterView>('profile');
@@ -698,6 +715,16 @@ const MobileCharacter: React.FC<Props> = ({
                             </div>
 
                             <div className="flex flex-wrap gap-2">
+                                {onUploadPlayerAvatar && (
+                                    <button type="button" onClick={() => avatarUploadInputRef.current?.click()} className="rounded-full border border-wuxia-gold/30 px-3 py-1.5 text-[11px] text-wuxia-gold/80 transition-colors hover:border-wuxia-gold hover:text-wuxia-gold">
+                                        上传头像
+                                    </button>
+                                )}
+                                {onUploadPlayerPortrait && (
+                                    <button type="button" onClick={() => portraitUploadInputRef.current?.click()} className="rounded-full border border-wuxia-gold/30 px-3 py-1.5 text-[11px] text-wuxia-gold/80 transition-colors hover:border-wuxia-gold hover:text-wuxia-gold">
+                                        上传立绘
+                                    </button>
+                                )}
                                 {selectedAvatarId && (
                                     <button type="button" onClick={() => onClearPlayerAvatarImage?.()} className="rounded-full border border-gray-700 px-3 py-1.5 text-[11px] text-gray-300 transition-colors hover:border-wuxia-red hover:text-wuxia-red">
                                         清空头像
@@ -709,6 +736,20 @@ const MobileCharacter: React.FC<Props> = ({
                                     </button>
                                 )}
                             </div>
+                            <input
+                                ref={avatarUploadInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => handleUploadFile(e, onUploadPlayerAvatar)}
+                            />
+                            <input
+                                ref={portraitUploadInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => handleUploadFile(e, onUploadPlayerPortrait)}
+                            />
 
                             <div className="rounded-2xl border border-wuxia-gold/20 bg-[linear-gradient(180deg,rgba(20,16,12,0.96),rgba(8,8,8,0.96))] p-4">
                                 <div className="border-b border-wuxia-gold/10 pb-3">

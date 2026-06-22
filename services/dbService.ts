@@ -2483,18 +2483,19 @@ export const 补全存档摘要 = async (id: number): Promise<存档摘要结构
 
 export const 删除存档 = async (id: number): Promise<void> => {
     if (await 读取存档保护状态()) {
-        throw new Error('存档保护已开启，请先在“设置-数据存储”中关闭后再删除存档。');
+        throw new Error('存档保护已开启，请先在”设置-数据存储”中关闭后再删除存档。');
     }
     const db = await 初始化数据库();
     await new Promise<void>((resolve, reject) => {
         const transaction = db.transaction([STORE_NAME, SAVE_SUMMARIES_STORE], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
         const summaryStore = transaction.objectStore(SAVE_SUMMARIES_STORE);
-        const request = store.delete(id);
+        store.delete(id);
         summaryStore.delete(id);
 
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error || new Error('删除存档事务失败。'));
+        transaction.onabort = () => reject(transaction.error || new Error('删除存档事务已中止。'));
     });
     await 清理未引用图片资源();
 };

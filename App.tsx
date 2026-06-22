@@ -4048,8 +4048,10 @@ const App: React.FC = () => {
                                     onGeneratePlayerSecretPartImage={actions.generatePlayerSecretPartImage}
                                     onSelectPlayerAvatarImage={actions.selectPlayerAvatarImage}
                                     onClearPlayerAvatarImage={actions.clearPlayerAvatarImage}
+                                    onUploadPlayerAvatar={actions.updatePlayerAvatar}
                                     onSelectPlayerPortraitImage={actions.selectPlayerPortraitImage}
                                     onClearPlayerPortraitImage={actions.clearPlayerPortraitImage}
+                                    onUploadPlayerPortrait={actions.updatePlayerPortrait}
                                     onRemovePlayerImageRecord={actions.removePlayerImageRecord}
                                     onAllocateAttributePoint={handleAllocateAttributePoint}
                                     onClose={() => setShowCharacter(false)}
@@ -4070,8 +4072,10 @@ const App: React.FC = () => {
                                     onDeletePlayerAnchor={actions.deleteCharacterAnchor}
                                     onSelectPlayerAvatarImage={actions.selectPlayerAvatarImage}
                                     onClearPlayerAvatarImage={actions.clearPlayerAvatarImage}
+                                    onUploadPlayerAvatar={actions.updatePlayerAvatar}
                                     onSelectPlayerPortraitImage={actions.selectPlayerPortraitImage}
                                     onClearPlayerPortraitImage={actions.clearPlayerPortraitImage}
+                                    onUploadPlayerPortrait={actions.updatePlayerPortrait}
                                     onRemovePlayerImageRecord={actions.removePlayerImageRecord}
                                     onAllocateAttributePoint={handleAllocateAttributePoint}
                                 />
