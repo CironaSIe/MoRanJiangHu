@@ -2964,10 +2964,19 @@ const 合并NPC图片档案对象 = (leftRaw: any, rightRaw: any): any | undefin
     const 已选立绘图片ID = mergedHistory.some((item) => item?.id === 原始已选立绘图片ID && NPC图片记录可作立绘(item))
         ? 原始已选立绘图片ID
         : '';
-    const rawSecretArchive = 标准化香闺秘档部位档案({
-        ...(leftSource?.香闺秘档部位档案 && typeof leftSource.香闺秘档部位档案 === 'object' ? leftSource.香闺秘档部位档案 : {}),
-        ...(rightSource?.香闺秘档部位档案 && typeof rightSource.香闺秘档部位档案 === 'object' ? rightSource.香闺秘档部位档案 : {})
-    });
+    const leftSecretArchive = leftSource?.香闺秘档部位档案 && typeof leftSource.香闺秘档部位档案 === 'object' ? leftSource.香闺秘档部位档案 : {};
+    const rightSecretArchive = rightSource?.香闺秘档部位档案 && typeof rightSource.香闺秘档部位档案 === 'object' ? rightSource.香闺秘档部位档案 : {};
+    // [修复] 先用 合并香闺秘档部位档案 语义合并（incoming 优先，current 兜底），
+    // 再交给 从历史回填NPC香闺秘档部位档案 补充缺失部位。
+    // 旧代码用展开运算符浅合并，如果任一侧的部位被标准化成 undefined 会覆盖另一侧已有值。
+    const mergedSecretArchive = 香闺秘档部位列表.reduce((acc: any, part: string) => {
+        const incoming = rightSecretArchive?.[part];
+        const current = leftSecretArchive?.[part];
+        const candidate = incoming || current;
+        if (candidate) acc[part] = candidate;
+        return acc;
+    }, {});
+    const rawSecretArchive = 标准化香闺秘档部位档案(mergedSecretArchive);
     const 香闺秘档部位档案 = 从历史回填NPC香闺秘档部位档案(rawSecretArchive, mergedHistory);
     if (!recent && mergedHistory.length <= 0 && !香闺秘档部位档案 && !已选头像图片ID && !已选立绘图片ID && !已选背景图片ID) {
         return undefined;
