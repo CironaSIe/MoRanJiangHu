@@ -1,14 +1,14 @@
 {
-  "versionCode": 515,
-  "versionName": "1.0.515",
+  "versionCode": 516,
+  "versionName": "1.0.516",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-06-23T00:10:07+08:00",
+  "releasePublishedAt": "2026-06-23T00:25:11+08:00",
   "releaseNotes": [
-    "主角香闺秘档新增NSFW档案记录：初夜记录、首次亲密档案、名器标签、子宫档案，与NPC面板保持一致。",
-    "新增香闺秘档部位图片全链路调试日志，方便定位图片丢失问题。",
+    "修复NSFW私密部位生图未触发的问题：移除部位描述字段的硬性要求，NPC是主要女性角色且NSFW开启即自动触发胸部/小穴/屁穴生图。",
+    "部位描述为空时使用外貌/身材描写作为降级描述，不再直接报错阻止生图。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/",
-    "同步更新 Web 到 v1.0.515。"
+    "同步更新 Web 到 v1.0.516。"
   ],
   "releaseHistory": [
     {

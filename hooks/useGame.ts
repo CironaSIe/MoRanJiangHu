@@ -2295,8 +2295,10 @@ export const useGame = () => {
                 ? 男性香闺秘档自动部位列表
                 : [];
         return parts.filter((part) => {
-            const field = part === '胸部' ? '胸部描述' : part === '小穴' ? '小穴描述' : part === '肉棒' ? '肉棒描述' : '屁穴描述';
-            return Boolean(读取NPC文本字段(npc, field)) && !NPC是否已有成功香闺秘档部位(npc, part);
+            // [修复] 只要NPC是符合条件的主要角色且该部位没有成功图片，就视为缺失
+            // 不再要求必须有部位描述字段（胸部描述/小穴描述等）
+            // 因为AI可能不会每次都生成这些描述字段，但NSFW生图仍应触发
+            return !NPC是否已有成功香闺秘档部位(npc, part);
         });
     };
 

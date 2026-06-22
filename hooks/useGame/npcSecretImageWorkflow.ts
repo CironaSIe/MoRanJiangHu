@@ -180,8 +180,22 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
         baseData = deps.提取NPC香闺秘档部位生图数据(npc, part);
         const partDescriptionField = part === '胸部' ? '胸部描述' : part === '小穴' ? '小穴描述' : part === '肉棒' ? '肉棒描述' : '屁穴描述';
         partDescription = typeof baseData?.[partDescriptionField] === 'string' ? baseData[partDescriptionField].trim() : '';
+        // [修复] 部位描述为空时，使用NPC外貌/身材描写作为降级描述，而不是直接报错
         if (!partDescription) {
-            throw new Error(`${part}描述为空，无法生成${part}特写。`);
+            const fallbackDesc = [
+                typeof baseData?.外貌 === 'string' ? baseData.外貌.trim() : '',
+                typeof baseData?.身材 === 'string' ? baseData.身材.trim() : ''
+            ].filter(Boolean).join('；');
+            if (fallbackDesc) {
+                partDescription = `${fallbackDesc}（${part}特写）`;
+                recordDiagnosticLog('info', '[NPC私密部位生图链路] 部位描述为空，使用外貌描写降级', {
+                    npcKey,
+                    part,
+                    fallbackLength: fallbackDesc.length
+                });
+            } else {
+                throw new Error(`${part}描述和外貌描写均为空，无法生成${part}特写。`);
+            }
         }
 
         const 强制裸体语义 = deps.apiConfig?.功能模型占位?.香闺秘档特写强制裸体语义 === true;
