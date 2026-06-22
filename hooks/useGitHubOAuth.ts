@@ -87,32 +87,13 @@ const parseJsonResponse = async <T>(response: Response): Promise<T> => {
     }
 };
 
-const openGitHubAuthPage = async (targetUrl: string, isNativeApp: boolean) => {
+const openGitHubAuthPage = async (targetUrl: string, _isNativeApp: boolean) => {
     if (!targetUrl) return;
-
-    if (isNativeApp) {
-        try {
-            const { Browser } = await import('@capacitor/browser');
-            await Browser.open({
-                url: targetUrl,
-                presentationStyle: 'fullscreen'
-            });
-            return;
-        } catch (error) {
-            console.warn('Failed to open native browser, fallback to window.open', error);
-        }
-    }
-
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
 };
 
 const closeGitHubAuthPageIfPossible = async () => {
-    try {
-        const { Browser } = await import('@capacitor/browser');
-        await Browser.close();
-    } catch {
-        // Browser.close is not supported on every platform; ignore.
-    }
+    // WebView 壳不再使用 Capacitor Browser 插件，无需关闭内嵌浏览器窗口。
 };
 
 const createOAuthStateValue = () => {

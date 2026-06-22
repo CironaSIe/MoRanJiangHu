@@ -142,12 +142,6 @@ export const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({ floating = t
         if (!value) return false;
 
         try {
-            if (isNativeApp) {
-                const { Clipboard } = await import('@capacitor/clipboard');
-                await Clipboard.write({ string: value });
-                return true;
-            }
-
             if (navigator.clipboard?.writeText) {
                 await navigator.clipboard.writeText(value);
                 return true;

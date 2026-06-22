@@ -1,21 +1,41 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Capacitor WebView 混合应用 ProGuard 规则
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# 保留 Capacitor 核心桥接类
+-keep class com.getcapacitor.** { *; }
+-keep class com.getcapacitor.plugin.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# 保留自定义 Capacitor 插件（JavascriptInterface 注解的方法必须保留）
+-keep class com.moranjianghu.game.** { *; }
+-keepclassmembers class com.moranjianghu.game.** {
+    @com.getcapacitor.annotation.CapacitorPlugin *;
+    @com.getcapacitor.annotation.PluginMethod *;
+    @android.webkit.JavascriptInterface *;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# 保留 Capacitor 注解
+-keep @com.getcapacitor.annotation.** class * { *; }
+-keepclassmembers class * {
+    @com.getcapacitor.annotation.** <methods>;
+}
+
+# 保留 WebView JavascriptInterface
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+
+# 保留 AndroidX 核心类
+-keep class androidx.** { *; }
+-keep interface androidx.** { *; }
+-dontwarn androidx.**
+
+# 保留 Cordova 兼容层
+-keep class org.apache.cordova.** { *; }
+
+# 保留源文件行号信息（方便崩溃排查）
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+
+# 通用优化设置
+-optimizationpasses 5
+-dontusemixedcaseclassnames
+-verbose

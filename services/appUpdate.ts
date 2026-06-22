@@ -129,14 +129,8 @@ const setPromptedReleaseKey = (value: string) => {
 export const openExternalUrl = async (url: string): Promise<void> => {
     if (!url) return;
 
-    if (isNativeCapacitorEnvironment()) {
-        const { Browser } = await import('@capacitor/browser');
-        const resolvedUrl = url.startsWith('/') ? `${(typeof RELEASE_INFO.websiteUrl === 'string' ? RELEASE_INFO.websiteUrl : 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '')}${url}` : url;
-        await Browser.open({ url: resolvedUrl });
-        return;
-    }
-
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const resolvedUrl = url.startsWith('/') ? `${(typeof RELEASE_INFO.websiteUrl === 'string' ? RELEASE_INFO.websiteUrl : 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '')}${url}` : url;
+    window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
 };
 
 const triggerBrowserFileDownload = (url: string, filename: string): void => {
