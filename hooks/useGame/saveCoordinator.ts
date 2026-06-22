@@ -283,6 +283,18 @@ const 构建存档历史记录 = (
     deps: Pick<存档协调依赖, '深拷贝'>
 ): 聊天记录结构[] => {
     const rawHistory = Array.isArray(sourceHistory) ? sourceHistory : [];
+    const historyLength = rawHistory.length;
+    if (historyLength <= 2 && rawHistory.some((item) => {
+        const content = typeof item?.content === 'string' ? item.content : '';
+        return content.includes('翻开') || content.includes('仔细研读') || content.includes('PLAYER ACTION');
+    })) {
+        console.warn('[存档预警] 历史记录异常短且内容像开局首条输入', {
+            historyLength,
+            firstContent: rawHistory[0]?.content?.slice(0, 80),
+            role: rawHistory[0]?.role,
+            timestamp: new Date().toISOString()
+        });
+    }
     return 清理历史瞬态滚动标记(deps.深拷贝(rawHistory));
 };
 
@@ -848,6 +860,17 @@ export const 执行读取存档 = async (
     const loadedHistoryForState = 清理历史瞬态滚动标记(
         Array.isArray(save.历史记录) ? deps.深拷贝(save.历史记录) : []
     );
+    const metadataCount = save?.元数据?.历史记录条数;
+    if (typeof metadataCount === 'number' && metadataCount >= 10 && loadedHistoryForState.length <= 2) {
+        console.error('[存档异常] 读档历史记录与元数据严重不符', {
+            id: save?.id,
+            元数据条数: metadataCount,
+            实际恢复: loadedHistoryForState.length,
+            首条内容: loadedHistoryForState[0]?.content?.slice(0, 80) || '(空)',
+            schemaVersion: save?.元数据?.schemaVersion,
+            时间戳: save?.时间戳
+        });
+    }
     trace('history.set.start', {
         history: buildHistoryDebugSummary(loadedHistoryForState)
     });
@@ -947,6 +970,27 @@ export const 执行读取存档 = async (
         restored: Boolean(restoredRerollSnapshot),
         historyCount: loadedHistory.length
     });
+
+    // [防御] 检测"开局中途存档"：历史记录只有一条 "正在生成开场内容..."
+    // 这种存档通常是在新游戏开局过程中（API 请求尚未完成时）被保存的，
+    // 读档后会导致主内容区空白、只显示开局占位消息。
+    const isOpeningIncomplete = loadedHistory.length === 1
+        && loadedHistory[0]?.role === 'system'
+        && typeof loadedHistory[0]?.content === 'string'
+        && loadedHistory[0].content.includes('正在生成开场内容');
+    if (isOpeningIncomplete) {
+        trace('incomplete.opening.save.detected', {
+            historyLength: loadedHistory.length,
+            historyContent: loadedHistory[0]?.content
+        });
+        deps.设置历史记录([
+            {
+                role: 'system',
+                content: '[系统] 检测到当前存档是在开局过程中保存的，开局内容未完成生成。请在聊天框输入任意指令重新触发开局，或返回主页开始新游戏。',
+                timestamp: Date.now()
+            }
+        ]);
+    }
 
     trace('view.set.start');
     deps.setHasSave(true);

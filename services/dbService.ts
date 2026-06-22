@@ -1798,6 +1798,18 @@ export const 保存存档 = async (存档: Omit<存档结构, 'id'>): Promise<nu
     if (!normalized) {
         throw new Error('保存存档失败：存档数据结构不完整');
     }
+    const historyLen = Array.isArray(normalized.历史记录) ? normalized.历史记录.length : 0;
+    const metaCount = normalized?.元数据?.历史记录条数;
+    if (typeof metaCount === 'number' && metaCount >= 10 && historyLen <= 2) {
+        console.error('[存档异常] 保存前历史记录已截断', {
+            元数据条数: metaCount,
+            实际条数: historyLen,
+            类型: normalized.类型,
+            角色名: normalized?.角色数据?.姓名,
+            时间戳: new Date(normalized.时间戳).toISOString(),
+            预估大小KB: Math.round(JSON.stringify(normalized).length / 1024)
+        });
+    }
     const existingSaves = await 读取存档列表().catch(() => []);
     const withLineage = 补全存档谱系元数据(normalized, existingSaves);
     const persistedSave = await 外置化图片字段(withLineage) as Omit<存档结构, 'id'>;
@@ -2248,6 +2260,22 @@ const 校正并写回本地存档谱系 = async (db: IDBDatabase, saves?: 存档
             return { saves: sorted, changed: false, repairedGroups: 0, repairedNodes: 0 };
         }
         // 轻量扫描检测到需修复，回退到完整存档路径保证正确性
+        const fullSaves = await 读取存档列表();
+        saves = fullSaves;
+    }
+
+    // [致命修复] 如果传入的 saves 是轻量视图（历史记录被截断），绝不能直接写回 IndexedDB。
+    // 旧代码在 启动旧存档谱系迁移 中传入轻量视图作为 saves 参数，
+    // 校正后用 saveStore.put(save) 写回，用只有2条历史记录的轻量视图覆盖了完整存档，
+    // 导致所有存档历史记录被截断为只剩第一句话。
+    // 检测轻量视图：历史记录存在但长度<=2 且没有 assistant 的 structuredResponse
+    const 是轻量视图 = Array.isArray(saves) && saves.some((save: any) => {
+        const historyLength = Array.isArray(save?.历史记录) ? save.历史记录.length : 0;
+        return historyLength > 0 && historyLength <= 2
+            && !save?.历史记录?.some((item: any) => item?.role === 'assistant' && (item as any)?.structuredResponse);
+    });
+    if (是轻量视图) {
+        // 回退到完整存档路径，避免轻量视图覆盖完整存档
         const fullSaves = await 读取存档列表();
         saves = fullSaves;
     }
