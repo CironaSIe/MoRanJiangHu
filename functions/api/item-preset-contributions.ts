@@ -1,3 +1,5 @@
+import { tryDbBucket } from './_shared/dbStore';
+
 const JSON_HEADERS = {
     'Content-Type': 'application/json; charset=utf-8'
 };
@@ -58,10 +60,12 @@ export function onRequestOptions(): Response {
 
 const readString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
-const getBucket = (env: any): R2Bucket | null => {
+const getBucket = (env: any): any => {
+    const dbBucket = tryDbBucket(env, 'preset_contributions');
+    if (dbBucket) return dbBucket;
     const candidate = env?.ITEM_PRESET_CONTRIBUTIONS_R2 || env?.CNB_SYNC_R2;
     if (!candidate || typeof candidate.get !== 'function' || typeof candidate.put !== 'function') return null;
-    return candidate as R2Bucket;
+    return candidate;
 };
 
 const getPrefix = (env: any): string => {

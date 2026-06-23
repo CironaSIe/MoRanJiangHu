@@ -1,3 +1,5 @@
+import { tryDbBucket } from '../_shared/dbStore';
+
 const JSON_HEADERS = {
     'Content-Type': 'application/json'
 };
@@ -96,12 +98,16 @@ const describeTrustedDiagnosticClient = (request: Request): { ip: string; locati
     };
 };
 
-const getBucket = (env: any): R2Bucket | null => {
+const getBucket = (env: any): any => {
+    // Prefer D1 – no R2 Class A writes.
+    const dbBucket = tryDbBucket(env, 'diagnostic_reports');
+    if (dbBucket) return dbBucket;
+    // R2 fallback.
     const candidate = env?.DIAGNOSTIC_REPORTS_R2 || env?.CNB_SYNC_R2;
     if (!candidate || typeof candidate.get !== 'function' || typeof candidate.put !== 'function') {
         return null;
     }
-    return candidate as R2Bucket;
+    return candidate;
 };
 
 const getRetentionDays = (env: any): number => Math.min(365, toPositiveInt(env?.DIAGNOSTIC_REPORT_RETENTION_DAYS, RETENTION_DAYS));
