@@ -323,6 +323,54 @@ describe('NPC old save compatibility', () => {
         expect(npc.名器档案.every((item: any) => item.效果?.说明)).toBe(true);
     });
 
+    it('repairs artifact names from labels and descriptions when the name field is blank', () => {
+        const [npc] = 规范化社交列表([
+            {
+                id: 'npc_major_artifact_names',
+                姓名: '若兰',
+                性别: '女',
+                是否主要角色: true,
+                小穴描述: '名器标签：九曲回廊，作为长期私密档案锚点。',
+                名器档案: [
+                    {
+                        部位: '胸部',
+                        名称: '',
+                        品质: '普通',
+                        稳定描述: '胸部拥有“玲珑柔韵”名器标签，作为长期档案与后续判定依据。',
+                        效果: {
+                            标签: ['玲珑柔韵', '胸部', '名器'],
+                            说明: '测试用说明。'
+                        }
+                    },
+                    {
+                        部位: '小穴',
+                        名称: '未命名名器',
+                        品质: '稀有',
+                        稳定描述: '',
+                        效果: {
+                            标签: ['小穴', '名器'],
+                            说明: '测试用说明。'
+                        }
+                    },
+                    {
+                        部位: '屁穴',
+                        品质: '普通',
+                        稳定描述: '幽韵天成：作为长期档案与后续判定依据。',
+                        效果: {
+                            标签: ['屁穴', '名器'],
+                            说明: '测试用说明。'
+                        }
+                    }
+                ]
+            }
+        ], { 合并同名: false });
+
+        const byPart = new Map(npc.名器档案.map((item: any) => [item.部位, item]));
+        expect(byPart.get('胸部')?.名称).toBe('玲珑柔韵');
+        expect(byPart.get('小穴')?.名称).toBe('九曲回廊');
+        expect(byPart.get('屁穴')?.名称).toBe('幽韵天成');
+    });
+
     it('filters impossible femboy vaginal records but keeps anal sex loss', () => {
         const [npc] = 规范化社交列表([
             {

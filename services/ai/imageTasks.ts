@@ -4499,17 +4499,38 @@ export const generateSceneImagePrompt = async (
     };
 };
 
+// 在未开启 NSFW 模式时，从正向提示词中移除会被生图 API 误解为成人内容的标签。
+// 问题背景：部分词组转化器或 NPC 外观描述可能包含 "breast" "cleavage" "nude" 等词，
+// 即使是描述正常着装（如盔甲胸部护板），中转 API 的内容审核也会因这些词拒绝请求。
+const 非NSFW正向提示词禁用标签正则 = /\b(?:nsfw|nude|naked|topless|bottomless|nipples?|areolae?|genital(?:ia|s)?|penis|vagina|vulva|clitoris|anus|anal|pussy|cock|dick|porn|hentai|erotic|sexual|sex\s*(?:ual)?\s*(?:act|intercourse|content)?|explicit|pornographic|masturbat(?:e|ion)|orgasm|cum|semen|ejaculat(?:e|ion))\b/gi;
+
+const 净化非NSFW正向提示词 = (prompt: string): string => {
+    if (!prompt) return prompt;
+    const cleaned = prompt.replace(非NSFW正向提示词禁用标签正则, '').replace(/\s+/g, ' ').replace(/,\s*,/g, ',').replace(/^,|,$/g, '').trim();
+    // 记录清理详情用于调试
+    if (cleaned !== prompt) {
+        const removed = prompt.replace(cleaned, '').replace(/\s+/g, ' ').trim();
+        if (removed) {
+            console.debug('[生图安全] 非 NSFW 模式，已从正向提示词中移除疑似成人标签:', { removed: removed.slice(0, 200) });
+        }
+    }
+    return cleaned || prompt; // 如果清理后为空，保留原始内容（避免空 prompt）
+};
+
 export const generateImageByPrompt = async (
     prompt: string,
     apiConfig: 当前可用接口结构,
     signal?: AbortSignal,
-    options?: { 构图?: 生图构图类型; 场景类型?: 场景生成类型; 附加正向提示词?: string; 附加负面提示词?: string; 尺寸?: string; 跳过基础负面提示词?: boolean; PNG参数?: PNG解析参数结构 }
+    options?: { 构图?: 生图构图类型; 场景类型?: 场景生成类型; 附加正向提示词?: string; 附加负面提示词?: string; 尺寸?: string; 跳过基础负面提示词?: boolean; PNG参数?: PNG解析参数结构; 启用NSFW模式?: boolean }
 ): Promise<图片生成结果> => {
     const endpoint = 构建图片端点(apiConfig.baseUrl, apiConfig.图片接口路径);
     if (!endpoint) throw new Error('Missing API Base URL');
     const promptBundle = 构建最终图片提示词(prompt, apiConfig, options);
-    const normalizedPrompt = promptBundle.最终正向提示词;
-    if (!normalizedPrompt) throw new Error('Missing image prompt');
+    const normalizedPromptRaw = promptBundle.最终正向提示词;
+    if (!normalizedPromptRaw) throw new Error('Missing image prompt');
+    // 非 NSFW 模式下，从正向提示词中剥离已知的成人/敏感词，避免正常着装和普通场景被生图 API 误判拦截。
+    const nsfwModeEnabled = options?.启用NSFW模式 === true;
+    const normalizedPrompt = nsfwModeEnabled ? normalizedPromptRaw : 净化非NSFW正向提示词(normalizedPromptRaw);
 
     const responseFormat: 图片响应格式类型 = apiConfig.图片响应格式 === 'b64_json' || apiConfig.图片响应格式 === 'base64'
         ? apiConfig.图片响应格式

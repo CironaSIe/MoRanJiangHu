@@ -922,9 +922,20 @@ export interface 酒馆预设顺序结构 {
     order: 酒馆预设顺序项结构[];
 }
 
+export interface 酒馆预设兼容性结构 {
+    正则脚本总数: number;
+    安全清理脚本数: number;
+    选项渲染脚本数: number;
+    仅保留元数据脚本数: number;
+    跳过脚本数: number;
+    说明: string[];
+}
+
 export interface 酒馆预设结构 {
     prompts: 酒馆预设提示词结构[];
     prompt_order: 酒馆预设顺序结构[];
+    extensions?: Record<string, unknown>;
+    兼容性?: 酒馆预设兼容性结构;
 }
 
 export interface 酒馆预设条目结构 {

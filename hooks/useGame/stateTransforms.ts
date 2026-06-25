@@ -1876,15 +1876,101 @@ const 生成主要角色默认敏感点 = (npc: any): string => {
 const 名器档案部位列表 = ['胸部', '小穴', '屁穴'] as const;
 const 名器品质列表 = ['无', '普通', '稀有', '极品', '传说'];
 
-const 标准化名器档案条目 = (raw: any): any | null => {
+const 名器名称占位文本 = new Set([
+    '无',
+    '无名器',
+    '无对应名器',
+    '未命名',
+    '未命名名器',
+    '普通',
+    '正常',
+    '暂无',
+    '未知',
+    '待补充',
+    '名器',
+    '特殊名器',
+    '普通档案'
+]);
+
+const 清理名器名称候选 = (raw: unknown, 部位?: string): string => {
+    const text = 规范化文本(raw).replace(/^[\s"'“”‘’【】《》（）()]+|[\s"'“”‘’【】《》（）()。；;，,、]+$/g, '');
+    if (!text) return '';
+    if (text.length > 18) return '';
+    if (名器名称占位文本.has(text)) return '';
+    if (部位 && [部位, `${部位}名器`, `${部位}档案`, `${部位}描述`].includes(text)) return '';
+    if (/^(无|暂无|未知|未命名|待补充|普通|正常|n\/a|null|undefined)$/i.test(text)) return '';
+    return text;
+};
+
+const 拆分名器标签候选 = (raw: unknown): string[] => {
+    if (Array.isArray(raw)) {
+        return raw.map((item) => 规范化文本(item)).filter(Boolean);
+    }
+    const text = 规范化文本(raw);
+    return text ? text.split(/[、,，;；\s]+/).map((item) => item.trim()).filter(Boolean) : [];
+};
+
+const 从描述推断名器名称 = (raw: unknown, 部位: typeof 名器档案部位列表[number]): string => {
+    const text = 规范化文本(raw);
+    if (!text) return '';
+    const patterns = [
+        /拥有[“"']([^”"']{2,18})[”"']名器标签/,
+        /[“"']([^”"']{2,18})[”"'](?:名器|标签)/,
+        /(?:名为|称为|名称为)[“"']?([^”"',，。；;、\s]{2,18})/,
+        /(?:名器标签|名器名称|名器名字|名器)[:：\s“"']{1,4}([^”"',，。；;、\s]{2,18})/,
+        /^([^：:，。；;、\s]{2,18})[:：]/
+    ];
+    for (const pattern of patterns) {
+        const matched = text.match(pattern);
+        const candidate = 清理名器名称候选(matched?.[1], 部位);
+        if (candidate) return candidate;
+    }
+    return '';
+};
+
+const 读取名器部位描述 = (npc: any, 部位: typeof 名器档案部位列表[number]): string => {
+    if (部位 === '胸部') return 规范化文本(npc?.胸部描述);
+    if (部位 === '小穴') return 规范化文本(npc?.小穴描述);
+    return 规范化文本(npc?.屁穴描述);
+};
+
+const 推断名器档案名称 = (raw: any, 部位: typeof 名器档案部位列表[number], npc?: any): string => {
+    const directCandidates = [raw?.名称, raw?.标签, raw?.名器名, raw?.名器名称];
+    for (const candidate of directCandidates) {
+        const name = 清理名器名称候选(candidate, 部位);
+        if (name) return name;
+    }
+
+    const tagCandidates = [
+        ...拆分名器标签候选(raw?.标签),
+        ...拆分名器标签候选(raw?.效果?.标签)
+    ];
+    for (const candidate of tagCandidates) {
+        const name = 清理名器名称候选(candidate, 部位);
+        if (name) return name;
+    }
+
+    const descriptionCandidates = [
+        raw?.稳定描述,
+        raw?.描述,
+        raw?.效果?.说明,
+        读取名器部位描述(npc, 部位)
+    ];
+    for (const candidate of descriptionCandidates) {
+        const name = 从描述推断名器名称(candidate, 部位);
+        if (name) return name;
+    }
+
+    return '';
+};
+
+const 标准化名器档案条目 = (raw: any, npc?: any): any | null => {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
     const 部位 = 规范化文本(raw?.部位);
     if (!名器档案部位列表.includes(部位 as any)) return null;
-    const 名称 = 规范化文本(raw?.名称 || raw?.标签 || raw?.名器名);
+    const 名称 = 推断名器档案名称(raw, 部位 as typeof 名器档案部位列表[number], npc);
     const 品质 = 名器品质列表.includes(规范化文本(raw?.品质)) ? 规范化文本(raw?.品质) : (名称 && !/^无/.test(名称) ? '普通' : '无');
-    const 标签 = Array.isArray(raw?.效果?.标签)
-        ? raw.效果.标签.map((item: unknown) => 规范化文本(item)).filter(Boolean).slice(0, 6)
-        : [];
+    const 标签 = 拆分名器标签候选(raw?.效果?.标签).slice(0, 6);
     return {
         部位,
         名称: 名称 || (品质 === '无' ? '无名器' : '未命名名器'),
@@ -1943,7 +2029,7 @@ const 标准化名器档案 = (raw: any, npc: any, options?: { forceFemaleMajor?
     const source = Array.isArray(raw) ? raw : [];
     const byPart = new Map<string, any>();
     source.forEach((item) => {
-        const normalized = 标准化名器档案条目(item);
+        const normalized = 标准化名器档案条目(item, npc);
         if (normalized) byPart.set(normalized.部位, normalized);
     });
     const shouldComplete = options?.forceFemaleMajor === true;

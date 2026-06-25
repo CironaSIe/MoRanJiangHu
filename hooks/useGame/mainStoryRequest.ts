@@ -178,37 +178,24 @@ export const 构建主剧情请求参数 = (
     const novelDecompositionPrompt = (params.novelDecompositionPrompt || '').trim();
     const messageEntries: 主剧情消息条目[] = [];
 
-    if (tavernPresetModeEnabled) {
-        const tavernOutputProtocolPrompt = (() => {
-            const source = outputProtocolPrompt.trim();
-            const formatPrompt = params.builtContext.contextPieces.格式提示词.trim();
-            if (!source) return '';
-            if (!formatPrompt) return source;
-            const normalizedSource = source.replace(/\r\n/g, '\n').trim();
-            const normalizedFormat = formatPrompt.replace(/\r\n/g, '\n').trim();
-            return normalizedSource === normalizedFormat
-                ? normalizedSource
-                : normalizedSource;
-        })();
-        const tavernMessages = 构建酒馆预设消息链({
-            config: runtimeGameConfig,
-            context: params.builtContext,
-            chatHistory: params.updatedContextHistory,
-            latestUserInput: latestUserInputForTavern,
-            playerName: params.playerRole?.姓名 || '',
-            playerRole: params.playerRole,
-            worldbookExtraTexts: [
-                styleAssistantPrompt,
-                realWorldModePrompt,
-                deepSeekModePrompt,
-                traditionalChinesePrompt,
-                lengthRequirementPrompt,
-                tavernRuntimeExtraPrompt,
-                disclaimerRequirementPrompt || '',
-                tavernOutputProtocolPrompt
-            ],
-            overrideStoryAppendPrompt: novelDecompositionPrompt
-        });
+	    if (tavernPresetModeEnabled) {
+	        // 酒馆模式：外部预设主导提示词，项目的风格/格式/字数/免责声明不应混入。
+	        // 只保留玩家主动设置的语言偏好和兼容性提示词。
+	        const tavernMessages = 构建酒馆预设消息链({
+	            config: runtimeGameConfig,
+	            context: params.builtContext,
+	            chatHistory: params.updatedContextHistory,
+	            latestUserInput: latestUserInputForTavern,
+	            playerName: params.playerRole?.姓名 || '',
+	            playerRole: params.playerRole,
+	            worldbookExtraTexts: [
+	                // 仅保留玩家显式设置的偏好和兼容性项
+	                deepSeekModePrompt,           // DeepSeek 兼容格式（玩家主动选择）
+	                traditionalChinesePrompt,      // 繁体中文输出（玩家主动选择）
+	                tavernRuntimeExtraPrompt,      // 玩家自定义额外提示词
+	            ],
+	            overrideStoryAppendPrompt: novelDecompositionPrompt
+	        });
         tavernMessages.forEach((message, index) => {
             const trimmed = (message?.content || '').trim();
             if (!trimmed) return;

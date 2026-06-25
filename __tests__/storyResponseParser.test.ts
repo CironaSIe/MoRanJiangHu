@@ -1,8 +1,31 @@
 import { describe, expect, it } from 'vitest';
 import { parseStoryRawText, StoryResponseParseError, 解析命令块 } from '../services/ai/storyResponseParser';
 import { 规范化可渲染对白日志 } from '../utils/dialogueLogNormalizer';
+import { 构建标签缺失补充提示 } from '../utils/parseErrorHints';
 
 describe('storyResponseParser', () => {
+    it('parses Izumi-style options tag into quick action options', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '【旁白】灯火在客栈窗纸上轻轻摇晃。',
+            '</正文>',
+            '<短期记忆>主角在客栈中停留。</短期记忆>',
+            '<options>',
+            '>选项一：查看窗外动静',
+            '>选项二：询问掌柜传闻',
+            '>选项三：回房整理行囊',
+            '>选项四：拔剑戒备',
+            '</options>'
+        ].join('\n'));
+
+        expect(parsed.action_options).toEqual([
+            '查看窗外动静',
+            '询问掌柜传闻',
+            '回房整理行囊',
+            '拔剑戒备'
+        ]);
+    });
+
     it('does not expose malformed closing action tag as a quick action', () => {
         const parsed = parseStoryRawText([
             '<正文>',
@@ -251,6 +274,20 @@ describe('storyResponseParser', () => {
             expect(parseError.parseDetail || '').toMatch(/顶层标签顺序错误|正文/);
             expect(parseError.protocolIssues || []).toContain('顶层标签顺序错误：<短期记忆> 出现在 <正文> 之前');
         }
+    });
+
+    it('includes the Gemini fake-streaming hint when the label failure is tied to missing tags', () => {
+        const detail = 构建标签缺失补充提示({
+            parseErrorDetail: '缺少 <正文>...</正文> 标签；缺少 <短期记忆>...</短期记忆> 标签',
+            apiConfig: {
+                供应商: 'gemini',
+                model: 'gemini-2.5-flash-假流式',
+                baseUrl: 'https://generativelanguage.googleapis.com/v1beta'
+            } as any
+        });
+
+        expect(detail).toContain('公益站使用 Gemini');
+        expect(detail).toContain('假流式模型');
     });
 
     it('keeps sub commands as sub actions for inventory deduction', () => {

@@ -1,17 +1,30 @@
 {
-  "versionCode": 524,
-  "versionName": "1.0.524",
+  "versionCode": 525,
+  "versionName": "1.0.525",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-06-25T01:55:30+08:00",
+  "releasePublishedAt": "2026-06-25T23:50:39+08:00",
   "releaseNotes": [
-    "修复开局、正文优化和变量生成链路对玩家额外提示词的执行优先级：禁名、新文风、人物塑造等长期设置会作为最高优先级规则持续生效，减少更新后被默认思维链覆盖的情况。",
-    "备用 APK 下载渠道从 Cloudflare R2 二进制备用线路切换为 B2/Cloudflare 缓存线路；更新清单继续保留 hi168 首选，并提供 B2 作为备用下载。",
-    "优化 APK 下载地址探测排序：测速差距不明显时保持清单顺序，避免备用线路因短暂 HEAD 响应误抢首选下载。",
+    "修复导入酒馆预设后原有提示词被项目默认风格/格式/字数/免责声明覆盖的问题：酒馆模式下外部预设完全主导提示词，不再混入本项目协议。",
+    "修复正常着装和普通场景被生图 API 误判为色情内容的问题：非 NSFW 模式下自动过滤成人敏感标签，只有明确开启 NSFW 时才保留。",
+    "新增 Izumi 0623 作为内置酒馆预设，支持直接导入使用。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/",
-    "同步更新 Web、APK 与更新清单到 v1.0.524。"
+    "同步更新 Web 与更新清单到 v1.0.525。"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.524",
+      "versionCode": 524,
+      "releasePublishedAt": "2026-06-25T01:55:30+08:00",
+      "releaseNotes": [
+        "修复开局、正文优化和变量生成链路对玩家额外提示词的执行优先级：禁名、新文风、人物塑造等长期设置会作为最高优先级规则持续生效，减少更新后被默认思维链覆盖的情况。",
+        "备用 APK 下载渠道从 Cloudflare R2 二进制备用线路切换为 B2/Cloudflare 缓存线路；更新清单继续保留 hi168 首选，并提供 B2 作为备用下载。",
+        "优化 APK 下载地址探测排序：测速差距不明显时保持清单顺序，避免备用线路因短暂 HEAD 响应误抢首选下载。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "备用站：https://msjh.bacon.de5.net/",
+        "同步更新 Web、APK 与更新清单到 v1.0.524。"
+      ]
+    },
     {
       "versionName": "1.0.523",
       "versionCode": 523,

@@ -36,6 +36,7 @@ import { 构建真实世界模式提示词 } from '../../prompts/runtime/realWor
 import { 构建运行时额外提示词 } from '../../prompts/runtime/nsfw';
 import { 获取DeepSeek主剧情兼容提示词 } from '../../prompts/runtime/deepseekMode';
 import { 包装繁体任务提示, 获取繁体输出指令 } from '../../utils/traditionalChinese';
+import { 构建标签缺失补充提示 } from '../../utils/parseErrorHints';
 import { 构建世界演变COT提示词, 世界演变COT伪装历史消息提示词 } from '../../prompts/runtime/worldEvolutionCot';
 import { 构建开局世界演变初始化上下文, 开局世界演变初始化附加提示词 } from '../../prompts/runtime/openingWorldEvolutionInit';
 import {
@@ -2221,6 +2222,10 @@ export const 执行开场剧情生成工作流 = async (
         if (e instanceof textAIService.StoryResponseParseError || e?.name === 'StoryResponseParseError') {
             const parseErrorRaw = deps.提取解析失败原始信息(e);
             const parseErrorRawText = typeof e?.rawText === 'string' ? e.rawText : '';
+            const parseErrorWithHint = 构建标签缺失补充提示({
+                parseErrorDetail: parseErrorRaw,
+                apiConfig: apiForOpening
+            });
             const parseErrorTime = 环境时间转标准串(openingEnv)
                 || 环境时间转标准串(contextData?.环境)
                 || '未知时间';
@@ -2238,10 +2243,10 @@ export const 执行开场剧情生成工作流 = async (
                 gameTime: parseErrorTime
             });
             if (deps.游戏设置启用自动重试(规范化游戏设置(deps.gameConfig))) {
-                const failureText = `[开局生成失败] ${parseErrorRaw}\n自动重试次数已耗尽，可使用快速重开再次尝试。`;
+                const failureText = `[开局生成失败] ${parseErrorWithHint}\n自动重试次数已耗尽，可使用快速重开再次尝试。`;
                 if (useStreaming) {
                     deps.设置历史记录(prev => ([
-                        ...deps.替换流式草稿为失败提示(prev, parseErrorRaw),
+                        ...deps.替换流式草稿为失败提示(prev, parseErrorWithHint),
                         {
                             role: 'system',
                             content: failureText,
@@ -2262,7 +2267,7 @@ export const 执行开场剧情生成工作流 = async (
             }
             const parseFailureResponse: GameResponse = {
                 logs: [
-                    { sender: '旁白', text: `【开局解析失败】${parseErrorRaw}` },
+                    { sender: '旁白', text: `【开局解析失败】${parseErrorWithHint}` },
                     { sender: '旁白', text: '可点击本回合右上角“查看/编辑原文”，修复后保存重解析。' }
                 ]
             };
@@ -2279,7 +2284,7 @@ export const 执行开场剧情生成工作流 = async (
             };
             const parseFailureSystemMsg: 聊天记录结构 = {
                 role: 'system',
-                content: `[开局生成失败] ${parseErrorRaw}\n可编辑原文重解析，或使用快速重开重试。`,
+                content: `[开局生成失败] ${parseErrorWithHint}\n可编辑原文重解析，或使用快速重开重试。`,
                 timestamp: Date.now() + 1
             };
             if (useStreaming) {

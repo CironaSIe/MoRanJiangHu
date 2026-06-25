@@ -448,6 +448,37 @@ const TavernPresetSettings: React.FC<Props> = ({ settings, onSave }) => {
                 {message && <div className="text-xs text-wuxia-cyan">{message}</div>}
             </div>
 
+            {preset?.兼容性 && (
+                <div className="rounded-md border border-wuxia-cyan/25 bg-wuxia-cyan/5 p-3 space-y-2">
+                    <div className="text-xs font-bold text-wuxia-cyan">酒馆预设兼容状态</div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-gray-300">
+                        <div className="rounded border border-gray-700/70 bg-black/30 p-2">
+                            <div className="text-gray-500">正则脚本</div>
+                            <div className="text-wuxia-gold font-bold">{preset.兼容性.正则脚本总数}</div>
+                        </div>
+                        <div className="rounded border border-gray-700/70 bg-black/30 p-2">
+                            <div className="text-gray-500">安全清理</div>
+                            <div className="text-sky-300 font-bold">{preset.兼容性.安全清理脚本数}</div>
+                        </div>
+                        <div className="rounded border border-gray-700/70 bg-black/30 p-2">
+                            <div className="text-gray-500">安全选项栏</div>
+                            <div className="text-emerald-300 font-bold">{preset.兼容性.选项渲染脚本数}</div>
+                        </div>
+                        <div className="rounded border border-gray-700/70 bg-black/30 p-2">
+                            <div className="text-gray-500">仅保留不执行</div>
+                            <div className="text-amber-300 font-bold">{preset.兼容性.仅保留元数据脚本数}</div>
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        {preset.兼容性.说明.map((item, index) => (
+                            <div key={index} className="text-[11px] text-gray-400 leading-relaxed">
+                                {item}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {preset && selectedOrder && (
                 <div className="rounded-md border border-wuxia-gold/20 bg-black/25 p-4 space-y-4">
                     <div className="flex items-center justify-between gap-3">

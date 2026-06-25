@@ -369,7 +369,8 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
                 附加正向提示词: 特写附加正向提示词,
                 附加负面提示词: 合并负向画师串,
                 跳过基础负面提示词: Boolean((PNG画风预设?.负面提示词 || '').trim()),
-                PNG参数
+                PNG参数,
+                启用NSFW模式: true  // 香闺秘档生图天生属于 NSFW 场景，不剥离成人标签
             }),
             {
                 signal: options?.signal,

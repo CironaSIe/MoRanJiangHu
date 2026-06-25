@@ -253,7 +253,7 @@ describe('主剧情正文字数校验', () => {
         expect(result.orderedMessages.some((message) => message.content.includes(lengthPrompt))).toBe(true);
     });
 
-    it('酒馆预设模式也会注入动态最低字数要求', () => {
+    it('酒馆预设模式下不注入项目字数要求，由预设自身控制输出长度', () => {
         const lengthPrompt = 构建字数要求提示词(2200);
         const builtContext: 主剧情系统上下文 = {
             shortMemoryContext: '',
@@ -329,7 +329,10 @@ describe('主剧情正文字数校验', () => {
         });
 
         expect(result.tavernPresetModeEnabled).toBe(true);
-        expect(result.orderedMessages.some((message) => message.content.includes('2200字以上'))).toBe(true);
+        // 酒馆模式下不应注入项目字数要求，预设自身控制输出
+        expect(result.orderedMessages.some((message) => message.content.includes('2200字以上'))).toBe(false);
+        // 也不应注入项目输出协议和风格助手
+        expect(result.orderedMessages.some((message) => message.content.includes('输出协议'))).toBe(false);
     });
 });
 

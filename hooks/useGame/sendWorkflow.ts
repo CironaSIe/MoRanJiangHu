@@ -23,6 +23,7 @@ import { 获取激活小说拆分注入文本 } from '../../services/novelDecomp
 import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
 import { 提取命中新女性角色姓名黑名单 } from '../../utils/femaleNameSelector';
 import { 检测社交删除风险命令 } from '../../utils/npcRetentionGuard';
+import { 构建标签缺失补充提示 } from '../../utils/parseErrorHints';
 
 type 回忆检索进度 = {
     phase: 'start' | 'stream' | 'done' | 'error';
@@ -1392,6 +1393,7 @@ export const 执行主剧情发送工作流 = async (
 
         const {
             runtimeGameConfig,
+            tavernPresetModeEnabled,
             runtimeCotPseudoEnabled,
             deepSeekPrefixMode,
             lengthRequirementPrompt,
@@ -1505,16 +1507,20 @@ export const 执行主剧情发送工作流 = async (
                             orderedMessages,
                             enableCotInjection: runtimeCotPseudoEnabled,
                             leadingSystemPrompt: builtContext.contextPieces.AI角色声明,
-                            styleAssistantPrompt: [styleAssistantPrompt, realWorldModePrompt].filter(Boolean).join('\n\n'),
-                            outputProtocolPrompt,
+                            styleAssistantPrompt: tavernPresetModeEnabled
+                                ? ''  // 酒馆模式：外部预设主导风格，不注入项目风格助手
+                                : [styleAssistantPrompt, realWorldModePrompt].filter(Boolean).join('\n\n'),
+                            outputProtocolPrompt: tavernPresetModeEnabled
+                                ? ''  // 酒馆模式：不注入项目输出协议
+                                : outputProtocolPrompt,
                             cotPseudoHistoryPrompt: cotPseudoPrompt,
-                            lengthRequirementPrompt: [lengthRequirementPrompt, retryFormatPrompt, protocolRetryPrompt, (() => {
+                            lengthRequirementPrompt: [tavernPresetModeEnabled ? '' : lengthRequirementPrompt, retryFormatPrompt, protocolRetryPrompt, (() => {
                                 const pov = runtimeGameConfig.叙事人称;
                                 if (pov === '第一人称') return '【人称硬约束】本回合正文必须使用第一人称"我"指代主角，严禁使用"你/他/她"指代主角。';
                                 if (pov === '第三人称') return '【人称硬约束】本回合正文必须使用第三人称指代主角（用主角姓名或"他/她"），严禁使用"我/你"指代主角。';
                                 return '【人称硬约束】本回合正文必须使用第二人称"你"指代主角，严禁使用"我/他/她"或主角姓名指代主角。旁白中出现主角姓名作为叙述主语时，必须改为"你"。';
                             })()].filter(Boolean).join('\n\n'),
-                            disclaimerRequirementPrompt,
+                            disclaimerRequirementPrompt: tavernPresetModeEnabled ? '' : disclaimerRequirementPrompt,
                             validateTagCompleteness: runtimeGameConfig.启用标签检测完整性 === true,
                             enableTagRepair: runtimeGameConfig.启用标签修复 !== false,
                             validateDialogueFormat: true,
@@ -2641,6 +2647,10 @@ export const 执行主剧情发送工作流 = async (
             }
             const parseFailureGameConfig = 规范化游戏设置(currentState.gameConfig);
             const parseFailureApi = 获取主剧情接口配置(currentState.apiConfig);
+            const parseErrorWithHint = 构建标签缺失补充提示({
+                parseErrorDetail: parseErrorRaw,
+                apiConfig: parseFailureApi
+            });
             const parseErrorTitle = /叙事人称不符/.test([
                 parseErrorRaw,
                 error?.parseDetail,
@@ -2677,8 +2687,8 @@ export const 执行主剧情发送工作流 = async (
                 return {
                     cancelled: true,
                     needRerollConfirm: true,
-                    parseErrorMessage: parseErrorRaw,
-                    parseErrorDetail: parseErrorRaw,
+                    parseErrorMessage: parseErrorWithHint,
+                    parseErrorDetail: parseErrorWithHint,
                     parseErrorRawText,
                     errorTitle: parseErrorTitle,
                     recoveryHint: '可直接手动补全缺失标签后恢复，或尝试自动修复恢复；如果不想保留这版内容，也可以直接重ROLL。'
@@ -2687,10 +2697,10 @@ export const 执行主剧情发送工作流 = async (
             return {
                 cancelled: true,
                 needRerollConfirm: true,
-                parseErrorMessage: parseErrorRaw,
+                parseErrorMessage: parseErrorWithHint,
                 parseErrorDetail: parseFailureGameConfig.启用标签协议失败自动回炉 === false
-                    ? `${parseErrorRaw}\n\n当前已关闭“标签协议失败自动回炉”。最佳选择是直接重ROLL；若想保留这版内容，可点“查看/编辑原文”后修复缺失标签再重解析。`
-                    : parseErrorRaw,
+                    ? `${parseErrorWithHint}\n\n当前已关闭“标签协议失败自动回炉”。最佳选择是直接重ROLL；若想保留这版内容，可点“查看/编辑原文”后修复缺失标签再重解析。`
+                    : parseErrorWithHint,
                 parseErrorRawText,
                 errorTitle: parseErrorTitle,
                 recoveryHint: '可直接手动补全缺失标签后恢复，或尝试自动修复恢复；如果不想保留这版内容，也可以直接重ROLL。'
