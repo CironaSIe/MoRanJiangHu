@@ -52,7 +52,19 @@ const buildNormalizedHistory = (releaseInfo: RuntimeReleaseInfo): ReleaseEntry[]
     if (list.some((entry) => entry.versionName === item.versionName && entry.versionCode === item.versionCode)) {
         return list;
     }
-    return [...list, item];
+    // 兼容历史条目中 releaseNotes / releasePublishedAt 等字段名
+    const raw = item as any;
+    const normalized: ReleaseEntry = {
+        versionCode: item.versionCode ?? raw.versionCode,
+        versionName: item.versionName ?? raw.versionName,
+        publishedAt: item.publishedAt || raw.releasePublishedAt,
+        changes: Array.isArray(item.changes) && item.changes.length > 0
+            ? item.changes
+            : Array.isArray(raw.releaseNotes)
+                ? raw.releaseNotes
+                : []
+    };
+    return [...list, normalized];
 }, []);
 
 const API共享说明 = '也欢迎愿意支持项目的客户共享可用于开发测试的 API 地址和密钥。我承诺：客户提供的 API key 只会用于本项目开发，不会用于其他用途。目前我已为本项目购买三次接码，共花费 15 元，若长期完全自费可能难以为继。';
