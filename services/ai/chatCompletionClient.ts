@@ -374,6 +374,92 @@ const 是否Claude兼容末尾User模型 = (apiConfig: 当前可用接口结构)
         || model.includes('max');
 };
 
+const 上下文完整性校验标记前缀 = '[CTXCHK:';
+const 上下文完整性校验标记后缀 = ']';
+const 上下文完整性校验标记检测正则 = /\[CTXCHK:\w+\]/;
+const 已触发上下文截断警告 = new Set<string>();
+
+type 上下文完整性校验结果 = {
+    injectedMessages: 通用消息[];
+    checkTag: string;
+    messageCount: number;
+    totalChars: number;
+};
+
+const 生成校验标记 = (): string => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let tag = '';
+    for (let i = 0; i < 6; i += 1) {
+        tag += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return tag;
+};
+
+const 注入上下文完整性校验标记 = (
+    messages: 通用消息[],
+    apiConfig: 当前可用接口结构
+): 上下文完整性校验结果 => {
+    const endpointKey = (apiConfig.baseUrl || '').toLowerCase().replace(/\/+$/, '');
+    if (!endpointKey) return { injectedMessages: messages, checkTag: '', messageCount: messages.length, totalChars: 0 };
+    if (已触发上下文截断警告.has(endpointKey)) return { injectedMessages: messages, checkTag: '', messageCount: messages.length, totalChars: 0 };
+
+    const checkTag = `${上下文完整性校验标记前缀}${生成校验标记()}${上下文完整性校验标记后缀}`;
+    const messageCount = messages.length;
+    const totalChars = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0);
+
+    const lastSystemIndex = messages.findLastIndex(msg => msg.role === 'system');
+    if (lastSystemIndex < 0) {
+        const injectedMessages: 通用消息[] = [
+            { role: 'system', content: `上下文校验：本次请求包含 ${messageCount} 条消息约 ${totalChars} 字符。${checkTag}请忽略此标记。` },
+            ...messages
+        ];
+        return { injectedMessages, checkTag, messageCount, totalChars };
+    }
+
+    const injectedMessages = messages.map((msg, index) => {
+        if (index !== lastSystemIndex) return msg;
+        const suffix = `\n上下文校验：本次请求包含 ${messageCount} 条消息约 ${totalChars} 字符。${checkTag}请忽略此标记。`;
+        return { ...msg, content: `${msg.content || ''}${suffix}` };
+    });
+    return { injectedMessages, checkTag, messageCount, totalChars };
+};
+
+const 检查上下文完整性 = (
+    responseText: string,
+    checkTag: string,
+    apiConfig: 当前可用接口结构,
+    messageCount: number,
+    totalChars: number
+): void => {
+    if (!checkTag) return;
+    const endpointKey = (apiConfig.baseUrl || '').toLowerCase().replace(/\/+$/, '');
+    if (已触发上下文截断警告.has(endpointKey)) return;
+
+    const tagInResponse = 上下文完整性校验标记检测正则.test(responseText);
+    if (tagInResponse) return;
+
+    const lower = responseText.toLowerCase();
+    const msgCountMentioned = lower.includes(`${messageCount} 条消息`) || lower.includes(`${messageCount} 条`)
+        || lower.includes(`${messageCount} messages`) || lower.includes(`message count: ${messageCount}`);
+    const charsMentioned = lower.includes(`${totalChars} 字`) || lower.includes(`${totalChars} char`)
+        || lower.includes(`${totalChars} 字符`);
+
+    if (msgCountMentioned || charsMentioned) return;
+
+    已触发上下文截断警告.add(endpointKey);
+    const supplierName = apiConfig.供应商 || '';
+    const baseUrl = apiConfig.baseUrl || '';
+    console.warn(
+        `[上下文完整性警告] API 供应商="${supplierName}" baseUrl="${baseUrl}" 可能存在上下文截断：`
+        + `发送了 ${messageCount} 条消息约 ${totalChars} 字符，但 AI 响应未校验到完整性标记。`
+        + `这通常意味着该 API 端点或中转服务悄悄丢弃了部分消息。建议使用官方渠道或支持完整上下文的 API。`
+    );
+};
+
+export const __测试__清除已触发上下文截断警告 = (): void => {
+    已触发上下文截断警告.clear();
+};
+
 export const 应用Claude兼容末尾User修正 = (
     messages: 通用消息[],
     apiConfig: 当前可用接口结构
@@ -1613,12 +1699,13 @@ export const 请求模型文本 = async (
         ),
         apiConfig
     );
+    const { injectedMessages, checkTag, messageCount, totalChars } = 注入上下文完整性校验标记(normalizedMessages, apiConfig);
 
-    return 带重试执行(`请求模型文本(${protocol})`, async () => {
+    const result = await 带重试执行(`请求模型文本(${protocol})`, async () => {
         return 请求OpenAI家族文本(
             apiConfig,
             protocol,
-            normalizedMessages,
+            injectedMessages,
             resolvedTemperature,
             options.signal,
             options.streamOptions,
@@ -1636,4 +1723,7 @@ export const 请求模型文本 = async (
         retries: 2,
         baseDelayMs: 800
     });
+
+    检查上下文完整性(result, checkTag, apiConfig, messageCount, totalChars);
+    return result;
 };

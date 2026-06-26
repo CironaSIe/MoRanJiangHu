@@ -4642,14 +4642,71 @@ export const generateImageByPrompt = async (
         }
     }
 
+const 发送NovelAI原生请求 = async (
+    endpoint: string,
+    headers: Record<string, string>,
+    body: string,
+    signal?: AbortSignal
+): Promise<Response> => {
+    if (!isNativeCapacitorEnvironment() || typeof XMLHttpRequest === 'undefined') {
+        return fetch(endpoint, { method: 'POST', headers, body, signal });
+    }
+    const xhr = new XMLHttpRequest();
+    const abortHandler = () => { try { xhr.abort(); } catch { /* ignore */ } };
+    signal?.addEventListener('abort', abortHandler, { once: true });
+    return new Promise<Response>((resolve, reject) => {
+        xhr.open('POST', endpoint, true);
+        xhr.responseType = 'arraybuffer';
+        Object.entries(headers).forEach(([key, value]) => {
+            xhr.setRequestHeader(key, value);
+        });
+        xhr.onload = () => {
+            signal?.removeEventListener('abort', abortHandler);
+            const responseHeaders = new Headers();
+            (xhr.getAllResponseHeaders() || '').trim().split(/\r?\n/).forEach((line: string) => {
+                const sep = line.indexOf(':');
+                if (sep > 0) {
+                    responseHeaders.append(line.slice(0, sep).trim(), line.slice(sep + 1).trim());
+                }
+            });
+            const responseBody = xhr.response instanceof ArrayBuffer
+                ? xhr.response
+                : new Uint8Array(0).buffer;
+            resolve(new Response(responseBody, {
+                status: xhr.status,
+                statusText: xhr.statusText || '',
+                headers: responseHeaders
+            }));
+        };
+        xhr.onerror = () => {
+            signal?.removeEventListener('abort', abortHandler);
+            reject(new TypeError('NovelAI XHR request failed — network error or CORS blocked'));
+        };
+        xhr.onabort = () => {
+            signal?.removeEventListener('abort', abortHandler);
+            reject(new DOMException('Aborted', 'AbortError'));
+        };
+        xhr.send(body);
+    });
+};
+
     let response: Response;
     try {
+        if (backendType === 'novelai') {
+            response = await 发送NovelAI原生请求(
+                endpoint,
+                构建生图请求头(apiConfig),
+                JSON.stringify(requestBody),
+                signal
+            );
+        } else {
         response = await fetch(endpoint, {
             method: 'POST',
             headers: 构建生图请求头(apiConfig),
             body: JSON.stringify(requestBody),
             signal
         });
+        }
     } catch (error: any) {
         if (backendType === 'novelai') {
             throw new Error(`NovelAI 请求失败：${error?.message || '网络异常'}。如果你在本地开发环境，请确认仍在通过 Vite dev server 访问，并使用 https://image.novelai.net 作为基础地址。`);

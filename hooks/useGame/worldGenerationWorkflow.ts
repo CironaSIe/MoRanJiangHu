@@ -343,7 +343,11 @@ export const 执行世界生成工作流 = async (
                 : ''
         ].filter(Boolean).join('\n\n');
         const useWorldRefinement = !useManualWorldPrompt && normalizedWorldExtraRequirement.length > 0;
-        const initialFandomBundle = 构建同人运行时提示词包({ openingConfig: effectiveOpeningConfig });
+        const manualRealmPromptForFandomBundle = manualRealmPromptIsModePackageFragment ? '' : normalizedManualRealmPrompt;
+        const initialFandomBundle = 构建同人运行时提示词包({
+            openingConfig: effectiveOpeningConfig,
+            realmPrompt: manualRealmPromptForFandomBundle || undefined
+        });
         const fandomEnabled = initialFandomBundle.enabled;
         let realmPromptContent = 启用修炼体系
             ? (fandomEnabled ? '' : (initialFandomBundle.境界母板补丁 || 核心_境界体系.内容))
