@@ -107,11 +107,17 @@ const request = async (url, init = {}) => {
 };
 
 const currentVersionName = safeVersionName(releaseInfo.versionName);
+const owner = 'ypq123456789';
+const repo = 'MoRanJiangHu';
 const currentVersionedFileName = `MoRanJiangHu-v${currentVersionName}.apk`;
 const currentApkBuffer = fs.readFileSync(apkPath);
 const apkSha256 = sha256Hex(currentApkBuffer);
 const apkSize = currentApkBuffer.byteLength;
 const websiteBaseUrl = String(releaseInfo.websiteUrl || '').replace(/\/+$/, '');
+const githubReleaseAccelerators = readEnv('GITHUB_RELEASE_ACCELERATORS', 'https://gh.ddlc.top,https://gh-proxy.com,https://gh-proxy.ygxz.in,https://ghfast.top')
+  .split(',')
+  .map((item) => item.trim().replace(/\/+$/, ''))
+  .filter((item) => /^https:\/\/[^/]+$/i.test(item));
 
 const releaseRecords = [
   { versionName: currentVersionName, versionCode: releaseInfo.versionCode },
@@ -139,13 +145,17 @@ const b2ManifestKey = normalizeKey(`${prefix}/latest.json`);
 const hi168VersionedKey = (versionName) => normalizeKey(`${s3Prefix}/${versionedFileName(versionName)}`);
 
 const providerApkUrls = {
-  hi168: websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(currentVersionedFileName)}?provider=hi168` : '',
-  b2: websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(currentVersionedFileName)}?provider=b2` : b2ObjectUrl(b2VersionedKey(currentVersionName))
+  b2: websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(currentVersionedFileName)}?provider=b2` : b2ObjectUrl(b2VersionedKey(currentVersionName)),
+  github: websiteBaseUrl ? `${websiteBaseUrl}/api/apk/version/${encodeURIComponent(currentVersionedFileName)}?provider=github` : '',
+  githubDirect: `https://github.com/ypq123456789/MoRanJiangHu/releases/download/v${currentVersionName}/${currentVersionedFileName}`
 };
-const preferredApkProvider = readEnv('MORAN_RELEASE_PREFERRED_APK_PROVIDER', 'hi168') === 'b2' ? 'b2' : 'hi168';
-const orderedProviderUrls = preferredApkProvider === 'b2'
-  ? [providerApkUrls.b2, providerApkUrls.hi168].filter(Boolean)
-  : [providerApkUrls.hi168, providerApkUrls.b2].filter(Boolean);
+const githubAcceleratedApkUrls = githubReleaseAccelerators.map((baseUrl) => `${baseUrl}/${providerApkUrls.githubDirect}`);
+const requestedPreferredApkProvider = readEnv('MORAN_RELEASE_PREFERRED_APK_PROVIDER', 'b2');
+const preferredApkProvider = requestedPreferredApkProvider === 'github' ? 'github' : 'b2';
+const skipB2ApkUpload = preferredApkProvider === 'github' && process.env.MORAN_B2_SKIP_APK_UPLOAD !== '0';
+const orderedProviderUrls = preferredApkProvider === 'github'
+  ? [providerApkUrls.github, ...githubAcceleratedApkUrls, providerApkUrls.b2, providerApkUrls.githubDirect].filter(Boolean)
+  : [providerApkUrls.b2, providerApkUrls.github, ...githubAcceleratedApkUrls, providerApkUrls.githubDirect].filter(Boolean);
 
 const manifest = {
   latest: {
@@ -162,10 +172,13 @@ const manifest = {
     directApkUrl: `${websiteBaseUrl}/api/apk/latest.apk`,
     preferredApkProvider,
     r2ApkUrl: '',
-    hi168ApkUrl: providerApkUrls.hi168,
+    hi168ApkUrl: '',
     b2ApkUrl: providerApkUrls.b2,
+    githubApkUrl: providerApkUrls.github,
+    githubDirectApkUrl: providerApkUrls.githubDirect,
+    githubAcceleratedApkUrls,
     r2DirectApkUrl: '',
-    hi168DirectApkUrl: providerApkUrls.hi168,
+    hi168DirectApkUrl: '',
     b2DirectApkUrl: b2ObjectUrl(b2VersionedKey(currentVersionName)),
     apkUrls: [
       `${websiteBaseUrl}/api/apk/latest.apk`,
@@ -209,37 +222,80 @@ const uploadBytes = async ({ key, bytes, contentType, cacheControl }) => {
 };
 
 const downloadHistoryApk = async (versionName) => {
-  const key = hi168VersionedKey(versionName);
-  const signedUrl = buildSignedS3Url(key, 'GET', 1800);
-  const target = path.join(os.tmpdir(), `moranjianghu-b2-migrate-${versionName}-${Date.now()}.apk`);
+  const fileName = versionedFileName(versionName);
+
+  // 1) Try B2 first (may already have this version)
+  const b2Key = b2VersionedKey(versionName);
+  const b2Url = b2ObjectUrl(b2Key);
+  console.log(`[B2] checking existing B2 object for history ${versionName}: ${b2Key}`);
+  const b2Check = await fetch(b2Url, { method: 'HEAD', signal: AbortSignal.timeout(15000) }).catch(() => null);
+  if (b2Check?.ok) {
+    console.log(`[B2] downloading history ${versionName} from B2...`);
+    const target = path.join(os.tmpdir(), `moranjianghu-b2-migrate-${versionName}-${Date.now()}.apk`);
+    const curl = process.platform === 'win32' ? 'curl.exe' : 'curl';
+    const result = spawnSync(curl, [
+      '--fail', '--silent', '--show-error', '--location',
+      '--max-time', String(Math.ceil(timeoutMs / 1000)),
+      '--output', target,
+      b2Url
+    ], { cwd: rootDir, encoding: 'utf8', timeout: timeoutMs + 30 * 1000 });
+    if (result.status === 0) {
+      try {
+        const bytes = fs.readFileSync(target);
+        if (bytes.byteLength > 0) return bytes;
+      } finally {
+        fs.rmSync(target, { force: true });
+      }
+    }
+    fs.rmSync(target, { force: true });
+  }
+
+  // 2) Try GitHub Release
+  const ghUrl = `https://github.com/${owner}/${repo}/releases/download/v${versionName}/${fileName}`;
+  console.log(`[B2] trying GitHub Release for history ${versionName}...`);
+  const ghTarget = path.join(os.tmpdir(), `moranjianghu-gh-history-${versionName}-${Date.now()}.apk`);
   const curl = process.platform === 'win32' ? 'curl.exe' : 'curl';
-  const result = spawnSync(curl, [
-    '--fail',
-    '--silent',
-    '--show-error',
-    '--location',
-    '--retry', '4',
-    '--retry-delay', '2',
-    '--continue-at', '-',
+  const ghResult = spawnSync(curl, [
+    '--fail', '--silent', '--show-error', '--location',
     '--max-time', String(Math.ceil(timeoutMs / 1000)),
-    '--output', target,
-    signedUrl
-  ], {
-    cwd: rootDir,
-    encoding: 'utf8',
-    timeout: timeoutMs + 30 * 1000
-  });
-  if (result.status !== 0) {
-    fs.rmSync(target, { force: true });
-    throw new Error(`Download history APK ${versionName} failed: ${(result.stderr || result.stdout || '').slice(0, 500)}`);
+    '--output', ghTarget,
+    ghUrl
+  ], { cwd: rootDir, encoding: 'utf8', timeout: timeoutMs + 30 * 1000 });
+  if (ghResult.status === 0) {
+    try {
+      const bytes = fs.readFileSync(ghTarget);
+      if (bytes.byteLength > 0) return bytes;
+    } finally {
+      fs.rmSync(ghTarget, { force: true });
+    }
   }
-  try {
-    const bytes = fs.readFileSync(target);
-    if (bytes.byteLength <= 0) throw new Error(`Downloaded empty history APK: ${versionName}`);
-    return bytes;
-  } finally {
-    fs.rmSync(target, { force: true });
+  fs.rmSync(ghTarget, { force: true });
+
+  // 3) Try legacy hi168 S3 (may be decommissioned)
+  if (s3Bucket && s3AccessKey && s3SecretKey) {
+    console.log(`[B2] trying legacy hi168 S3 for history ${versionName}...`);
+    const key = hi168VersionedKey(versionName);
+    const signedUrl = buildSignedS3Url(key, 'GET', 1800);
+    const s3Target = path.join(os.tmpdir(), `moranjianghu-b2-migrate-${versionName}-${Date.now()}.apk`);
+    const s3Result = spawnSync(curl, [
+      '--fail', '--silent', '--show-error', '--location',
+      '--retry', '4', '--retry-delay', '2', '--continue-at', '-',
+      '--max-time', String(Math.ceil(timeoutMs / 1000)),
+      '--output', s3Target,
+      signedUrl
+    ], { cwd: rootDir, encoding: 'utf8', timeout: timeoutMs + 30 * 1000 });
+    if (s3Result.status === 0) {
+      try {
+        const bytes = fs.readFileSync(s3Target);
+        if (bytes.byteLength > 0) return bytes;
+      } finally {
+        fs.rmSync(s3Target, { force: true });
+      }
+    }
+    fs.rmSync(s3Target, { force: true });
   }
+
+  throw new Error(`History APK ${versionName} not available from B2, GitHub, or hi168.`);
 };
 
 const listB2Files = async () => {
@@ -260,43 +316,72 @@ const deleteB2Object = async (key) => {
 const uploadedVersions = [];
 for (const item of versionsToPublish) {
   const key = b2VersionedKey(item.versionName);
-  const bytes = item.versionName === currentVersionName
-    ? currentApkBuffer
-    : await downloadHistoryApk(item.versionName);
-  await uploadBytes({
-    key,
-    bytes,
-    contentType: 'application/vnd.android.package-archive',
-    cacheControl: 'public,max-age=31536000,immutable'
-  });
-  uploadedVersions.push({ versionName: item.versionName, key, size: bytes.byteLength });
-  console.log(`[B2] uploaded ${key} (${bytes.byteLength} bytes)`);
+  if (skipB2ApkUpload) {
+    console.log(`[B2] skipped APK upload for ${key} because preferred provider is github`);
+  } else if (item.versionName === currentVersionName) {
+    await uploadBytes({
+      key,
+      bytes: currentApkBuffer,
+      contentType: 'application/vnd.android.package-archive',
+      cacheControl: 'public,max-age=31536000,immutable'
+    });
+    uploadedVersions.push({ versionName: item.versionName, key, size: currentApkBuffer.byteLength });
+    console.log(`[B2] uploaded ${key} (${currentApkBuffer.byteLength} bytes)`);
+  } else {
+    try {
+      const bytes = await downloadHistoryApk(item.versionName);
+      await uploadBytes({
+        key,
+        bytes,
+        contentType: 'application/vnd.android.package-archive',
+        cacheControl: 'public,max-age=31536000,immutable'
+      });
+      uploadedVersions.push({ versionName: item.versionName, key, size: bytes.byteLength });
+      console.log(`[B2] uploaded ${key} (${bytes.byteLength} bytes)`);
+    } catch (err) {
+      console.warn(`[B2] ⚠ skipped history ${item.versionName}: ${err?.message || err}`);
+    }
+  }
 }
 
-await uploadBytes({
-  key: b2LatestApkKey,
-  bytes: currentApkBuffer,
-  contentType: 'application/vnd.android.package-archive',
-  cacheControl: 'no-store,no-cache,max-age=0,must-revalidate'
-});
-await uploadBytes({
-  key: b2ManifestKey,
-  bytes: Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, 'utf8'),
-  contentType: 'application/json; charset=utf-8',
-  cacheControl: 'no-store,no-cache,max-age=0,must-revalidate'
-});
+if (skipB2ApkUpload) {
+  console.log(`[B2] skipped latest APK upload for ${b2LatestApkKey} because preferred provider is github`);
+} else {
+  await uploadBytes({
+    key: b2LatestApkKey,
+    bytes: currentApkBuffer,
+    contentType: 'application/vnd.android.package-archive',
+    cacheControl: 'no-store,no-cache,max-age=0,must-revalidate'
+  });
+}
+if (skipB2ApkUpload) {
+  console.log(`[B2] skipped manifest upload for ${b2ManifestKey} because preferred provider is github`);
+} else {
+  await uploadBytes({
+    key: b2ManifestKey,
+    bytes: Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, 'utf8'),
+    contentType: 'application/json; charset=utf-8',
+    cacheControl: 'no-store,no-cache,max-age=0,must-revalidate'
+  });
+}
 
 // Sync manifest to Cloudflare KV (primary source for Worker reads).
 const kvManifestPath = path.join(os.tmpdir(), `moranjianghu-kv-manifest-${Date.now()}.json`);
 try {
   fs.writeFileSync(kvManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
-  const wranglerBin = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-  const kvResult = spawnSync(wranglerBin, [
+  const wranglerCommand = process.platform === 'win32' ? 'cmd.exe' : 'npx';
+  const wranglerArgs = [
     'wrangler', 'kv', 'key', 'put',
+    'release-manifest/latest.json',
     '--binding=RELEASE_MANIFEST',
     `--path=${kvManifestPath}`,
-    'release-manifest/latest.json'
-  ], { cwd: rootDir, encoding: 'utf8', timeout: 60000 });
+    '--remote'
+  ];
+  const kvResult = spawnSync(
+    wranglerCommand,
+    process.platform === 'win32' ? ['/c', 'npx', ...wranglerArgs] : wranglerArgs,
+    { cwd: rootDir, encoding: 'utf8', timeout: 60000 }
+  );
   if (kvResult.status === 0) {
     console.log('[KV] manifest written to RELEASE_MANIFEST/release-manifest/latest.json');
   } else {
@@ -309,12 +394,16 @@ try {
 const keepKeys = new Set(uploadedVersions.map((item) => item.key));
 const versionedKeyPattern = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/MoRanJiangHu-v[^/]+\\.apk$`);
 let deletedCount = 0;
-for (const file of await listB2Files()) {
-  const key = typeof file?.key === 'string' ? file.key : '';
-  if (!versionedKeyPattern.test(key) || keepKeys.has(key)) continue;
-  await deleteB2Object(key);
-  deletedCount += 1;
-  console.log(`[B2 cleanup] deleted stale APK: ${key}`);
+if (skipB2ApkUpload) {
+  console.log('[B2 cleanup] skipped because preferred provider is github');
+} else {
+  for (const file of await listB2Files()) {
+    const key = typeof file?.key === 'string' ? file.key : '';
+    if (!versionedKeyPattern.test(key) || keepKeys.has(key)) continue;
+    await deleteB2Object(key);
+    deletedCount += 1;
+    console.log(`[B2 cleanup] deleted stale APK: ${key}`);
+  }
 }
 
 console.log(`B2 publish complete:

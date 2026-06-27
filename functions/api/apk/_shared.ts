@@ -13,7 +13,7 @@ export const readEnvString = (env: any, name: string, fallback = ''): string => 
     typeof env?.[name] === 'string' && env[name].trim() ? env[name].trim() : fallback
 );
 
-export type ApkProvider = 'r2' | 'hi168' | 'b2';
+export type ApkProvider = 'r2' | 'hi168' | 'b2' | 'github' | 'onedrive';
 
 export const readReleaseBaseUrl = (request: Request, env: any): string => {
     const configured = readEnvString(env, 'MORAN_RELEASE_BASE_URL');
@@ -119,11 +119,29 @@ export const readReleaseObjectPrefix = (env: any): string => (
     readEnvString(env, 'MORAN_OSS_RELEASE_PREFIX', 'moranjianghu').replace(/^\/+|\/+$/g, '') || 'moranjianghu'
 );
 
+/**
+ * 从 KV manifest payload 中读取当前版本号。
+ * KV manifest 有两种格式：
+ *   旧格式（扁平）：{ versionName, versionCode, ... }
+ *   新格式（嵌套）：{ latest: { versionName, versionCode, ... }, history: [...] }
+ * 优先从 latest 取，fallback 到顶层。
+ */
+export const readManifestVersionName = (payload: any): string => {
+    const fromLatest = payload?.latest?.versionName;
+    const fromTop = payload?.versionName;
+    return (typeof fromLatest === 'string' && fromLatest.trim()) || (typeof fromTop === 'string' && fromTop.trim()) || '';
+};
+
 export const buildVersionedApkFileName = (versionName: unknown): string => {
     const safeVersion = typeof versionName === 'string'
         ? versionName.trim().replace(/[^0-9A-Za-z._-]/g, '')
         : '';
     return safeVersion ? `MoRanJiangHu-v${safeVersion}.apk` : '';
+};
+
+export const readManifestPreferredApkProvider = (payload: any): ApkProvider => {
+    const provider = payload?.latest?.preferredApkProvider || payload?.preferredApkProvider;
+    return provider === 'github' || provider === 'b2' || provider === 'onedrive' ? provider : 'b2';
 };
 
 export const pickApkProvider = (_request: Request, _manifestPayload: any): ApkProvider => {
@@ -244,6 +262,41 @@ export const buildOneDriveApkRedirect = async (
             'X-Moran-Apk-Source': 'onedrive-proxy',
             ...APK_CORS_HEADERS
         }
+    });
+};
+
+// ---------- GitHub Releases APK channel ----------
+
+const GITHUB_REPO_OWNER = 'ypq123456789';
+const GITHUB_REPO_NAME = 'MoRanJiangHu';
+
+/**
+ * 构建 GitHub Release 直接下载 URL（零延迟，无需 API 调用）。
+ * URL 格式固定：https://github.com/{owner}/{repo}/releases/download/v{tag}/{fileName}
+ * 如果版本名无效则返回 null。
+ */
+export const buildGitHubApkRedirect = (
+    versionName: string,
+    fileName: string,
+    cacheControl = APK_VERSIONED_CACHE_CONTROL
+): Response | null => {
+    const safeVersion = typeof versionName === 'string'
+        ? versionName.trim().replace(/[^0-9A-Za-z._-]/g, '')
+        : '';
+    if (!safeVersion) return null;
+
+    const downloadUrl = `https://github.com/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/download/v${safeVersion}/${fileName}`;
+
+    return new Response(null, {
+        status: 302,
+        headers: {
+            Location: downloadUrl,
+            'Content-Type': 'application/vnd.android.package-archive',
+            'Cache-Control': cacheControl,
+            'Content-Disposition': `attachment; filename="${fileName}"`,
+            'X-Moran-Apk-Source': 'github-release',
+            ...APK_CORS_HEADERS
+        },
     });
 };
 

@@ -4,8 +4,26 @@ import {
     buildVersionedApkFileName,
     buildTextResponse,
     readReleaseBaseUrl,
-    readManifestPayload
+    readManifestPayload,
+    readManifestVersionName
 } from './_shared';
+
+const DEFAULT_GITHUB_RELEASE_ACCELERATORS = [
+    'https://gh.ddlc.top',
+    'https://gh-proxy.com',
+    'https://gh-proxy.ygxz.in',
+    'https://ghfast.top'
+];
+
+const buildGitHubReleaseDownloadUrl = (versionName: string, fileName: string): string => (
+    `https://github.com/ypq123456789/MoRanJiangHu/releases/download/v${versionName}/${fileName}`
+);
+
+const buildGitHubAcceleratedUrls = (versionName: string, fileName: string): string[] => {
+    if (!versionName || !fileName) return [];
+    const directUrl = buildGitHubReleaseDownloadUrl(versionName, fileName);
+    return DEFAULT_GITHUB_RELEASE_ACCELERATORS.map((baseUrl) => `${baseUrl}/${directUrl}`);
+};
 
 const pickHeaders = (source: Headers): Headers => {
     const headers = new Headers({
@@ -29,8 +47,10 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
         const manifest = await readManifestPayload(env);
         if (!manifest) return buildTextResponse('APK manifest not found', 404);
         const payload = manifest.payload;
+        // KV manifest 有两种格式，使用兼容的 versionName 读取函数
+        const versionName = readManifestVersionName(payload);
         const baseUrl = readReleaseBaseUrl(request, env);
-        const versionedFileName = buildVersionedApkFileName(payload?.latest?.versionName);
+        const versionedFileName = buildVersionedApkFileName(versionName);
         const stableApkUrl = versionedFileName
             ? `${baseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}`
             : `${baseUrl}/api/apk/latest.apk`;
@@ -40,22 +60,33 @@ export async function onRequestGet({ request, env }: any): Promise<Response> {
             ? `${baseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}?provider=b2`
             : `${baseUrl}/api/apk/latest.apk?provider=b2`;
         const oneDriveApkUrl = `${baseUrl}/api/apk/latest.apk?provider=onedrive`;
-        const latest = payload?.latest || {};
+        const githubApkUrl = versionedFileName
+            ? `${baseUrl}/api/apk/version/${encodeURIComponent(versionedFileName)}?provider=github`
+            : `${baseUrl}/api/apk/latest.apk?provider=github`;
+        const githubDirectApkUrl = versionedFileName ? buildGitHubReleaseDownloadUrl(versionName, versionedFileName) : '';
+        const githubAcceleratedApkUrls = versionedFileName ? buildGitHubAcceleratedUrls(versionName, versionedFileName) : [];
         const nextPayload = {
             ...payload,
             latest: {
-                ...latest,
+                ...payload?.latest,
+                versionName,
+                versionCode: payload?.latest?.versionCode || payload?.versionCode,
                 apkUrl: stableApkUrl,
                 directApkUrl: latestApkUrl,
                 apkUrls: [
                     latestApkUrl,
                     stableApkUrl,
                     b2ApkUrl,
+                    githubApkUrl,
+                    ...githubAcceleratedApkUrls,
                     oneDriveApkUrl
                 ].filter(Boolean),
                 r2ApkUrl: '',
                 hi168ApkUrl: '',
                 b2ApkUrl,
+                githubApkUrl,
+                githubDirectApkUrl,
+                githubAcceleratedApkUrls,
                 oneDriveApkUrl,
                 latestApkUrl,
                 manifestUrl: stableManifestUrl

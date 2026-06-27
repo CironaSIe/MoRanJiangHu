@@ -1,10 +1,14 @@
 import {
     APK_CORS_HEADERS,
     buildB2ApkRedirect,
+    buildGitHubApkRedirect,
+    buildVersionedApkFileName,
     buildOneDriveApkRedirect,
     buildTextResponse,
     normalizeObjectKey,
     readManifestPayload,
+    readManifestPreferredApkProvider,
+    readManifestVersionName,
     readReleaseObjectPrefix
 } from '../_shared';
 
@@ -28,18 +32,23 @@ const handleVersionedApkRequest = async (context: any, _method: 'GET' | 'HEAD'):
     try {
         const fileName = pickVersionedFileName(request, params);
         const manifest = await readManifestPayload(env);
-        const expectedFileName = manifest?.payload?.latest?.versionName
-            ? `MoRanJiangHu-v${String(manifest.payload.latest.versionName).trim().replace(/[^0-9A-Za-z._-]/g, '')}.apk`
-            : '';
+        const versionName = readManifestVersionName(manifest?.payload);
+        const expectedFileName = buildVersionedApkFileName(versionName);
         if (expectedFileName && fileName !== expectedFileName) {
             return buildTextResponse('APK version is no longer current', 404);
         }
 
-        const provider = new URL(request.url).searchParams.get('provider');
+        const requestedProvider = new URL(request.url).searchParams.get('provider');
+        const provider = requestedProvider || readManifestPreferredApkProvider(manifest?.payload);
         if (provider === 'onedrive') {
             const oneDriveResponse = await buildOneDriveApkRedirect(env, fileName);
             if (oneDriveResponse) return oneDriveResponse;
             return buildTextResponse('OneDrive APK not available', 502);
+        }
+        if (provider === 'github') {
+            const githubResponse = buildGitHubApkRedirect(versionName, fileName);
+            if (githubResponse) return githubResponse;
+            return buildTextResponse('GitHub Release APK not available', 502);
         }
 
         const key = normalizeObjectKey(`${readReleaseObjectPrefix(env)}/${fileName}`);
