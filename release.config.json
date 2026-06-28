@@ -1,17 +1,12 @@
 {
-  "versionCode": 534,
-  "versionName": "1.0.534",
+  "versionCode": 535,
+  "versionName": "1.0.535",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-06-28T19:17:24+08:00",
+  "releasePublishedAt": "2026-06-28T20:09:39+08:00",
   "releaseNotes": [
-    "新增 GLM 模式专属适配：主剧情消息模式新增「GLM标准续聊」和「GLM锁格式」，为智谱 GLM 系列模型优化续聊与锁格式稳定性。",
-    "新增 GLM HTML 注释思维链：GLM 模式下使用 HTML 注释 <!-- ... --> 替代 <thinking> 标签，并自动转换回游戏可解析格式，减少标签冲突。",
-    "新增 GLM 稳定救场与策略面板：支持独立救场模型、HTML 注释思维链开关、开局策略、Thinking 选项和输出健康度阈值。",
-    "优化智谱供应商体验：API 设置选择「智谱」后自动套用 GLM 稳定预设和 glm 协议参数。",
-    "修复 GLM 可能输出 <math> 数学公式残留污染正文或干扰标签解析的问题。",
-    "教程中心新增 AI 模型模式指引，补充 GLM/DeepSeek/GPT/Gemini 模式选择建议，并修复教程页部分样式失效。",
-    "修复对象存储云存档清单缺失或损坏时无法恢复的问题：系统会扫描已有存档包重建清单并写回。",
-    "修复 APK 端 GitHub 登录回调在 pending state 丢失时可能失败的问题，并补齐主域名 App Link。",
+    "修复手机端 GitHub OAuth 登录点击后无反应的问题：APK 现在会通过系统浏览器打开 GitHub 授权页，授权完成后自动回到游戏。",
+    "修复对象存储云同步识别不到 Backblaze 存档的问题：新增 S3 端点诊断，能区分 CDN 加速域和真正的 Backblaze S3 API 端点，避免只显示 0 个存档。",
+    "优化对象存储云同步提示：当云端清单或 saves 目录无法读取时，会显示 manifest、ListObjectsV2、目录前缀等诊断信息，方便快速修正配置。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/"
   ],
@@ -161,16 +156,11 @@
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html",
   "changes": [
-    "新增 GLM 模式专属适配：主剧情消息模式新增「GLM标准续聊」和「GLM锁格式」，为智谱 GLM 系列模型优化续聊与锁格式稳定性。",
-    "新增 GLM HTML 注释思维链：GLM 模式下使用 HTML 注释 <!-- ... --> 替代 <thinking> 标签，并自动转换回游戏可解析格式，减少标签冲突。",
-    "新增 GLM 稳定救场与策略面板：支持独立救场模型、HTML 注释思维链开关、开局策略、Thinking 选项和输出健康度阈值。",
-    "优化智谱供应商体验：API 设置选择「智谱」后自动套用 GLM 稳定预设和 glm 协议参数。",
-    "修复 GLM 可能输出 <math> 数学公式残留污染正文或干扰标签解析的问题。",
-    "教程中心新增 AI 模型模式指引，补充 GLM/DeepSeek/GPT/Gemini 模式选择建议，并修复教程页部分样式失效。",
-    "修复对象存储云存档清单缺失或损坏时无法恢复的问题：系统会扫描已有存档包重建清单并写回。",
-    "修复 APK 端 GitHub 登录回调在 pending state 丢失时可能失败的问题，并补齐主域名 App Link。",
+    "修复手机端 GitHub OAuth 登录点击后无反应的问题：APK 现在会通过系统浏览器打开 GitHub 授权页，授权完成后自动回到游戏。",
+    "修复对象存储云同步识别不到 Backblaze 存档的问题：新增 S3 端点诊断，能区分 CDN 加速域和真正的 Backblaze S3 API 端点，避免只显示 0 个存档。",
+    "优化对象存储云同步提示：当云端清单或 saves 目录无法读取时，会显示 manifest、ListObjectsV2、目录前缀等诊断信息，方便快速修正配置。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/"
   ],
-  "notes": "新增 GLM 模式专属适配：主剧情消息模式新增「GLM标准续聊」和「GLM锁格式」，为智谱 GLM 系列模型优化续聊与锁格式稳定性。\n新增 GLM HTML 注释思维链：GLM 模式下使用 HTML 注释 <!-- ... --> 替代 <thinking> 标签，并自动转换回游戏可解析格式，减少标签冲突。\n新增 GLM 稳定救场与策略面板：支持独立救场模型、HTML 注释思维链开关、开局策略、Thinking 选项和输出健康度阈值。\n优化智谱供应商体验：API 设置选择「智谱」后自动套用 GLM 稳定预设和 glm 协议参数。\n修复 GLM 可能输出 <math> 数学公式残留污染正文或干扰标签解析的问题。\n教程中心新增 AI 模型模式指引，补充 GLM/DeepSeek/GPT/Gemini 模式选择建议，并修复教程页部分样式失效。\n修复对象存储云存档清单缺失或损坏时无法恢复的问题：系统会扫描已有存档包重建清单并写回。\n修复 APK 端 GitHub 登录回调在 pending state 丢失时可能失败的问题，并补齐主域名 App Link。\n官网：https://msjh.bacon159.pp.ua/\n备用站：https://msjh.bacon.de5.net/"
+  "notes": "修复手机端 GitHub OAuth 登录点击后无反应的问题：APK 现在会通过系统浏览器打开 GitHub 授权页，授权完成后自动回到游戏。\n修复对象存储云同步识别不到 Backblaze 存档的问题：新增 S3 端点诊断，能区分 CDN 加速域和真正的 Backblaze S3 API 端点，避免只显示 0 个存档。\n优化对象存储云同步提示：当云端清单或 saves 目录无法读取时，会显示 manifest、ListObjectsV2、目录前缀等诊断信息，方便快速修正配置。\n官网：https://msjh.bacon159.pp.ua/\n备用站：https://msjh.bacon.de5.net/"
 }

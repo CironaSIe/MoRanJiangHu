@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { __githubOAuthTestUtils } from '../hooks/useGitHubOAuth';
 
 describe('GitHub OAuth APK 回调兜底', () => {
@@ -21,5 +21,25 @@ describe('GitHub OAuth APK 回调兜底', () => {
         expect(pending?.clientType).toBe('web');
         expect(pending?.redirectUri).toBe('https://msjh.bacon159.pp.ua/oauth/github/callback');
         expect(pending?.expectedCallbackUris).toContain('com.moranjianghu.game://oauth/github/callback');
+    });
+
+    it('APK 环境优先用 Capacitor Browser 打开 GitHub 授权页', async () => {
+        const browserOpen = vi.fn(async () => undefined);
+        const windowOpen = vi.fn();
+
+        await __githubOAuthTestUtils.openGitHubAuthPageForTest(
+            'https://github.com/login/oauth/authorize?client_id=test',
+            true,
+            {
+                loadBrowser: async () => ({ Browser: { open: browserOpen } }),
+                windowOpen
+            }
+        );
+
+        expect(browserOpen).toHaveBeenCalledWith({
+            url: 'https://github.com/login/oauth/authorize?client_id=test',
+            presentationStyle: 'fullscreen'
+        });
+        expect(windowOpen).not.toHaveBeenCalled();
     });
 });

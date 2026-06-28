@@ -1,7 +1,7 @@
 {
   "name": "墨色江湖---无尽武林",
   "private": true,
-  "version": "1.0.534",
+  "version": "1.0.535",
   "type": "module",
   "scripts": {
     "cnb:sync": "node scripts/cnb-image-backend-sync.mjs",
@@ -41,6 +41,7 @@
   "dependencies": {
     "@capacitor/android": "^8.3.1",
     "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1",
     "fflate": "^0.8.2",

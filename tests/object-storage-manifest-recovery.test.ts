@@ -35,4 +35,20 @@ describe('对象存储 manifest 兼容恢复', () => {
         expect(manifest.saves[0].id).toBe('manual_20260628_demo');
         expect(manifest.saves[0].fileName).toBe('manual_20260628_demo.json');
     });
+
+    it('清单缺失且目录无法列出时给出可操作的诊断', () => {
+        const message = __objectStorageSyncTestUtils.buildEmptyCloudSaveDiagnostic({
+            endpoint: 'https://obs1.cc.cd',
+            bucket: 'bacon111',
+            prefix: 'MoRanJiangHu',
+            manifestStatus: 404,
+            listStatus: 403,
+            listedKeyCount: 0
+        });
+
+        expect(message).toContain('MoRanJiangHu/manifest.json');
+        expect(message).toContain('MoRanJiangHu/saves/');
+        expect(message).toContain('obs1.cc.cd');
+        expect(message).toContain('ListObjectsV2');
+    });
 });

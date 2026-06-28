@@ -87,13 +87,32 @@ const parseJsonResponse = async <T>(response: Response): Promise<T> => {
     }
 };
 
-const openGitHubAuthPage = async (targetUrl: string, _isNativeApp: boolean) => {
+type GitHubAuthPageOpenDeps = {
+    loadBrowser?: () => Promise<{ Browser?: { open?: (options: { url: string; presentationStyle?: 'fullscreen' | 'popover' }) => Promise<void> } }>;
+    windowOpen?: typeof window.open;
+};
+
+const openGitHubAuthPage = async (targetUrl: string, isNativeApp: boolean, deps: GitHubAuthPageOpenDeps = {}) => {
     if (!targetUrl) return;
-    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    if (isNativeApp) {
+        const loadBrowser = deps.loadBrowser || (() => import('@capacitor/browser'));
+        const { Browser } = await loadBrowser();
+        if (Browser?.open) {
+            await Browser.open({ url: targetUrl, presentationStyle: 'fullscreen' });
+            return;
+        }
+    }
+    const openWindow = deps.windowOpen || window.open.bind(window);
+    openWindow(targetUrl, '_blank', 'noopener,noreferrer');
 };
 
 const closeGitHubAuthPageIfPossible = async () => {
-    // WebView 壳不再使用 Capacitor Browser 插件，无需关闭内嵌浏览器窗口。
+    try {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.close();
+    } catch {
+        // Browser may not be open or may be unavailable in web builds.
+    }
 };
 
 const createOAuthStateValue = () => {
@@ -643,5 +662,6 @@ export function useGitHubOAuth() {
 
 export const __githubOAuthTestUtils = {
     buildNativeBridgeDeepLink,
-    createFallbackPendingStateFromCallback
+    createFallbackPendingStateFromCallback,
+    openGitHubAuthPageForTest: openGitHubAuthPage
 };

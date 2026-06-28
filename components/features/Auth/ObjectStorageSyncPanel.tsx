@@ -5,6 +5,7 @@ import {
     下载对象存储云存档,
     下载设置自对象存储,
     增量导入对象存储云存档,
+    诊断对象存储空云存档,
     列出对象存储云存档,
     增量同步到对象存储,
     上传设置到对象存储,
@@ -81,6 +82,14 @@ export const ObjectStorageSyncPanel: React.FC = () => {
         setSummary(nextSummary);
         setCloudSaves(list);
         setSelectedCloudSaveId((current) => current && list.some((item) => item.id === current) ? current : (list[0]?.id || ''));
+        if (list.length <= 0) {
+            const diagnostic = await 诊断对象存储空云存档(active).catch(() => '');
+            setStatus([
+                `已读取云端：0 个存档${nextSummary.settings ? `，设置包 ${formatTime(nextSummary.settings.syncedAt)} · v${nextSummary.settings.appVersion}` : '，暂无设置包'}`,
+                diagnostic
+            ].filter(Boolean).join('\n'));
+            return;
+        }
         setStatus(`已读取云端：${list.length} 个存档${nextSummary.settings ? `，设置包 ${formatTime(nextSummary.settings.syncedAt)} · v${nextSummary.settings.appVersion}` : '，暂无设置包'}`);
     };
 
@@ -122,7 +131,6 @@ export const ObjectStorageSyncPanel: React.FC = () => {
         setStatus('正在测试 对象存储 连接');
         await 测试对象存储连接(active);
         await refreshCloud(active);
-        setStatus('对象存储 连接成功');
     }, '对象存储 连接失败');
 
     const handleUploadSaves = () => runTask('upload-saves', async () => {
@@ -230,7 +238,7 @@ export const ObjectStorageSyncPanel: React.FC = () => {
             </div>
 
             <div className="mt-3 rounded-xl border border-sky-900/10 bg-white/70 px-3 py-2 text-xs leading-5 text-sky-950/75">
-                <div>{status}</div>
+                <div className="whitespace-pre-line">{status}</div>
                 {progress?.total ? (
                     <div className="mt-2">
                         <div className="h-2 overflow-hidden rounded-full bg-sky-100">
