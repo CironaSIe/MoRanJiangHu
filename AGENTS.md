@@ -753,6 +753,34 @@ Deletes to OneDrive's recycle bin. Supports batch deletion.
 - The OpenList auth token can expire; if proxy calls return "token is invalidated", the token needs to be regenerated from the OpenList admin panel.
 - OneDrive proxy download speed is ~464 KB/s. This is currently the sole APK distribution channel.
 
+### Upload Rules (CRITICAL — learned from 2026-06-28 incident)
+
+**Never use `/api/fs/form` (POST multipart) for uploading files.** This endpoint is blocked by Cloudflare WAF/Rocket Loader — it returns the OpenList frontend HTML page (HTTP 200) instead of JSON, regardless of file size. The response contains injected `cloudflare-static/rocket-loader` scripts and is not a valid API response.
+
+**Always use `/api/fs/put` (PUT + raw body) for uploading files:**
+
+```bash
+curl -X PUT "https://openlist.bacon.de5.net/api/fs/put" \
+  -H "Authorization: $MORAN_OPENLIST_AUTH_TOKEN" \
+  -H "Content-Type: application/vnd.android.package-archive" \
+  -H "File-Path: /Onedrive/MoRanJiangHu/releases/latest.apk" \
+  --data-binary @"app-release.apk"
+```
+
+Required upload parameters:
+1. **Method must be PUT**, not POST.
+2. **File path goes in `File-Path` header** (URL-encoded format, not base64).
+3. **Body is raw binary stream**, not multipart form data.
+4. **`/Onedrive/` must use capital O** — lowercase `/onedrive/` causes `storage not found` error.
+5. **`Content-Type` should be the actual file MIME type** (e.g., `application/vnd.android.package-archive` for APK).
+
+Upload size verification (2026-06-28):
+- 5MB PUT: ✅ 3.4s (~1.5 MB/s)
+- 20MB PUT: ✅ 17.8s (~1.1 MB/s)
+- 50MB PUT: ✅ 47.1s (~1.1 MB/s)
+- 47.4MB APK PUT: ✅ 37.7s (~1.3 MB/s)
+- `/api/fs/form` any size: ❌ blocked by Cloudflare, returns HTML
+
 ## Item Image Prompt Filtering Rule
 
 - Item image generation prompts must only describe the physical appearance of the object, never game mechanics.

@@ -746,6 +746,34 @@ GET https://openlist.bacon.de5.net/p/Onedrive/MoRanJiangHu/releases/latest.apk?s
 - OpenList 鉴权令牌会过期；如果代理调用返回"token is invalidated"，需要从 OpenList 管理面板重新生成令牌。
 - OneDrive 代理下载速度约 ~464 KB/s。目前是唯一的 APK 分发渠道。
 
+### 上传规则（关键 — 来自 2026-06-28 事故教训）
+
+**绝对不要使用 `/api/fs/form`（POST multipart）上传文件。** 该端点被 Cloudflare WAF/Rocket Loader 拦截——无论文件大小，它都返回 OpenList 前端 HTML 页面（HTTP 200）而非 JSON，响应中注入了 `cloudflare-static/rocket-loader` 脚本，不是有效的 API 响应。
+
+**始终使用 `/api/fs/put`（PUT + 原始 body）上传文件：**
+
+```bash
+curl -X PUT "https://openlist.bacon.de5.net/api/fs/put" \
+  -H "Authorization: $MORAN_OPENLIST_AUTH_TOKEN" \
+  -H "Content-Type: application/vnd.android.package-archive" \
+  -H "File-Path: /Onedrive/MoRanJiangHu/releases/latest.apk" \
+  --data-binary @"app-release.apk"
+```
+
+上传必要参数：
+1. **方法必须是 PUT**，不是 POST。
+2. **文件路径放在 `File-Path` 请求头**（URL 编码格式，不是 base64）。
+3. **Body 是原始二进制流**，不是 multipart form 数据。
+4. **`/Onedrive/` 首字母必须大写 O**——小写 `/onedrive/` 会导致 `storage not found` 错误。
+5. **`Content-Type` 应设为实际文件 MIME 类型**（如 APK 用 `application/vnd.android.package-archive`）。
+
+上传大小实测（2026-06-28）：
+- 5MB PUT：✅ 3.4秒（约 1.5 MB/s）
+- 20MB PUT：✅ 17.8秒（约 1.1 MB/s）
+- 50MB PUT：✅ 47.1秒（约 1.1 MB/s）
+- 47.4MB APK PUT：✅ 37.7秒（约 1.3 MB/s）
+- `/api/fs/form` 任意大小：❌ 被 Cloudflare 拦截，返回 HTML
+
 ## 物品图提示词过滤规则
 
 - 物品图生成提示词只能描述物体的物理外观，不能包含游戏机制文字。

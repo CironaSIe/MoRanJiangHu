@@ -1,6 +1,11 @@
 // D1-backed storage that mimics the R2 bucket API surface.
 // Existing code that calls bucket.get/put/list/delete works unchanged
 // after swapping getBucket(env) → getDbBucket(env, 'table_name').
+//
+// Large values that exceed D1's per-row TEXT limit (~750KB–1MB) are
+// automatically split into multiple chunk rows. The original key stores
+// a lightweight manifest pointing to the chunk rows; `get()` transparently
+// reassembles the complete value. This is invisible to callers.
 
 export type R2LikeBucket = {
     get: (key: string) => Promise<R2LikeObject | null>;
@@ -23,6 +28,90 @@ export type R2LikeListResult = {
     cursor?: string;
 };
 
+// ---------------------------------------------------------------------------
+// Chunking constants & helpers
+// ---------------------------------------------------------------------------
+
+/** Values larger than this (in UTF-8 bytes) get split into chunk rows. */
+const D1_CHUNK_THRESHOLD = 700 * 1024; // 700 KB
+
+/** Each chunk row stores at most this many UTF-8 bytes. */
+const D1_CHUNK_SIZE = 600 * 1024; // 600 KB
+
+/** Suffix pattern for chunk row keys: `<originalKey>::chunk-<0-based-index>` */
+const CHUNK_KEY_SUFFIX_RE = /::chunk-\d+$/;
+
+/** Internal manifest shape stored in the original key row when data is chunked. */
+type ChunkManifest = {
+    /** Sentinel — if present & true, this row is a manifest, not the real data. */
+    _chunked: true;
+    /** Number of chunk rows that follow. */
+    chunks: number;
+    /** Original value size in UTF-8 bytes (for verification). */
+    totalSize: number;
+};
+
+const isChunkManifest = (raw: string): ChunkManifest | null => {
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && parsed._chunked === true && typeof parsed.chunks === 'number') {
+            return parsed as ChunkManifest;
+        }
+    } catch { /* not JSON or not a manifest */ }
+    return null;
+};
+
+const chunkKey = (baseKey: string, index: number): string =>
+    `${baseKey}::chunk-${index}`;
+
+const isChunkKey = (key: string): boolean =>
+    CHUNK_KEY_SUFFIX_RE.test(key);
+
+/** Compute the UTF-8 byte length of a string without allocating a full buffer. */
+const utf8ByteLength = (text: string): number => {
+    // Fast path for pure ASCII
+    if (/^[\x00-\x7F]*$/.test(text)) return text.length;
+    return new TextEncoder().encode(text).length;
+};
+
+/**
+ * Split a string into multiple slices, each不超过 maxBytes UTF-8 bytes.
+ * Tries to avoid splitting in the middle of a multi-byte character.
+ */
+const splitByUtf8Bytes = (text: string, maxBytes: number): string[] => {
+    const chunks: string[] = [];
+    const encoder = new TextEncoder();
+    const totalLen = text.length;
+    let offset = 0;
+
+    while (offset < totalLen) {
+        // Binary search for the longest safe slice ≤ maxBytes.
+        let lo = offset;
+        let hi = totalLen;
+        let bestEnd = offset + 1; // at least 1 char
+
+        while (lo <= hi) {
+            const mid = Math.floor((lo + hi) / 2);
+            const byteLen = encoder.encode(text.slice(offset, mid)).length;
+            if (byteLen <= maxBytes) {
+                bestEnd = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+
+        chunks.push(text.slice(offset, bestEnd));
+        offset = bestEnd;
+    }
+
+    return chunks;
+};
+
+// ---------------------------------------------------------------------------
+// Table bootstrap
+// ---------------------------------------------------------------------------
+
 /**
  * Creates a D1 table for key-value storage if it doesn't exist.
  * Must be called once per table before first use.
@@ -33,36 +122,121 @@ export const ensureTable = async (db: any, tableName: string): Promise<void> => 
     ).run();
 };
 
+// ---------------------------------------------------------------------------
+// R2-like bucket backed by D1 with transparent chunking
+// ---------------------------------------------------------------------------
+
 /**
  * Returns an R2-like bucket backed by D1.
  * Drop-in replacement for getBucket(env) in existing feature code.
+ *
+ * Large values (exceeding ~700 KB UTF-8) are automatically split across
+ * multiple rows using a `{key}::chunk-{i}` naming convention. Callers
+ * never see the chunks — `get()` reassembles, `delete()` cleans them up,
+ * `list()` hides them.
  */
 export const getDbBucket = (db: any, tableName: string): R2LikeBucket => {
     return {
+        // -----------------------------------------------------------------
+        // GET
+        // -----------------------------------------------------------------
         get: async (key: string): Promise<R2LikeObject | null> => {
             await ensureTable(db, tableName);
             const row: any = await db.prepare(
                 `SELECT key, value FROM ${tableName} WHERE key = ?`
             ).bind(key).first();
             if (!row) return null;
-            const raw = row.value || '';
+
+            let raw = row.value || '';
+
+            // Check if the row is a chunk manifest.
+            const manifest = isChunkManifest(raw);
+            if (manifest) {
+                // Reassemble from chunk rows.
+                const parts: string[] = [];
+                for (let i = 0; i < manifest.chunks; i++) {
+                    const chunkRow: any = await db.prepare(
+                        `SELECT value FROM ${tableName} WHERE key = ?`
+                    ).bind(chunkKey(key, i)).first();
+                    if (!chunkRow) {
+                        // Missing chunk — treat as data not found rather than
+                        // returning a partial/corrupt value.
+                        return null;
+                    }
+                    parts.push(chunkRow.value || '');
+                }
+                raw = parts.join('');
+            }
+
             return {
                 key: row.key,
                 json: async <T = any>(): Promise<T> => JSON.parse(raw),
                 text: async (): Promise<string> => raw,
                 body: null,
-                size: new TextEncoder().encode(raw).length
+                size: utf8ByteLength(raw)
             };
         },
 
+        // -----------------------------------------------------------------
+        // PUT
+        // -----------------------------------------------------------------
         put: async (key: string, value: any, _options?: any): Promise<void> => {
             await ensureTable(db, tableName);
             const json = typeof value === 'string' ? value : JSON.stringify(value);
-            await db.prepare(
-                `INSERT OR REPLACE INTO ${tableName} (key, value, updated_at) VALUES (?, ?, ?)`
-            ).bind(key, json, new Date().toISOString()).run();
+            const byteLen = utf8ByteLength(json);
+
+            // Clean up any existing chunk rows for this key (from a previous
+            // chunked write or an overwrite that now fits in one row).
+            const existingRow: any = await db.prepare(
+                `SELECT value FROM ${tableName} WHERE key = ?`
+            ).bind(key).first();
+            if (existingRow) {
+                const oldManifest = isChunkManifest(existingRow.value || '');
+                if (oldManifest) {
+                    for (let i = 0; i < oldManifest.chunks; i++) {
+                        await db.prepare(
+                            `DELETE FROM ${tableName} WHERE key = ?`
+                        ).bind(chunkKey(key, i)).run().catch(() => {});
+                    }
+                }
+            }
+
+            if (byteLen <= D1_CHUNK_THRESHOLD) {
+                // Fits in a single D1 row — write directly.
+                await db.prepare(
+                    `INSERT OR REPLACE INTO ${tableName} (key, value, updated_at) VALUES (?, ?, ?)`
+                ).bind(key, json, new Date().toISOString()).run();
+            } else {
+                // Too large — split into chunk rows + a manifest row.
+                const chunks = splitByUtf8Bytes(json, D1_CHUNK_SIZE);
+                const manifest: ChunkManifest = {
+                    _chunked: true,
+                    chunks: chunks.length,
+                    totalSize: byteLen
+                };
+                const manifestJson = JSON.stringify(manifest);
+                const now = new Date().toISOString();
+
+                // Use D1 batch for atomicity where available.
+                const statements: any[] = [
+                    db.prepare(
+                        `INSERT OR REPLACE INTO ${tableName} (key, value, updated_at) VALUES (?, ?, ?)`
+                    ).bind(key, manifestJson, now)
+                ];
+                for (let i = 0; i < chunks.length; i++) {
+                    statements.push(
+                        db.prepare(
+                            `INSERT OR REPLACE INTO ${tableName} (key, value, updated_at) VALUES (?, ?, ?)`
+                        ).bind(chunkKey(key, i), chunks[i], now)
+                    );
+                }
+                await db.batch(statements);
+            }
         },
 
+        // -----------------------------------------------------------------
+        // LIST
+        // -----------------------------------------------------------------
         list: async (options: { prefix?: string; cursor?: string; limit?: number }): Promise<R2LikeListResult> => {
             await ensureTable(db, tableName);
             const prefix = options.prefix || '';
@@ -78,16 +252,19 @@ export const getDbBucket = (db: any, tableName: string): R2LikeBucket => {
                 binds = [`${prefix}%`, limit + 1];
             }
             const rows: any = await db.prepare(query).bind(...binds).all();
-            const results = (rows?.results || []).map((row: any) => {
-                const raw = row.value || '';
-                return {
-                    key: row.key,
-                    json: async <T = any>(): Promise<T> => JSON.parse(raw),
-                    text: async (): Promise<string> => raw,
-                    body: null as ReadableStream | null,
-                    size: new TextEncoder().encode(raw).length
-                };
-            });
+            const results = (rows?.results || [])
+                .map((row: any) => {
+                    const raw = row.value || '';
+                    return {
+                        key: row.key,
+                        json: async <T = any>(): Promise<T> => JSON.parse(raw),
+                        text: async (): Promise<string> => raw,
+                        body: null as ReadableStream | null,
+                        size: utf8ByteLength(raw)
+                    };
+                })
+                // Hide chunk rows from listing results.
+                .filter((obj: any) => !isChunkKey(obj.key));
             const truncated = results.length > limit;
             const objects = truncated ? results.slice(0, limit) : results;
             return {
@@ -97,12 +274,40 @@ export const getDbBucket = (db: any, tableName: string): R2LikeBucket => {
             };
         },
 
+        // -----------------------------------------------------------------
+        // DELETE
+        // -----------------------------------------------------------------
         delete: async (key: string): Promise<void> => {
             await ensureTable(db, tableName);
-            await db.prepare(`DELETE FROM ${tableName} WHERE key = ?`).bind(key).run();
+
+            // Check if the row is a chunk manifest first.
+            const row: any = await db.prepare(
+                `SELECT value FROM ${tableName} WHERE key = ?`
+            ).bind(key).first();
+            const manifest = row ? isChunkManifest(row.value || '') : null;
+
+            if (manifest) {
+                // Delete all chunk rows + the manifest in one batch.
+                const statements: any[] = [
+                    db.prepare(`DELETE FROM ${tableName} WHERE key = ?`).bind(key)
+                ];
+                for (let i = 0; i < manifest.chunks; i++) {
+                    statements.push(
+                        db.prepare(`DELETE FROM ${tableName} WHERE key = ?`).bind(chunkKey(key, i))
+                    );
+                }
+                await db.batch(statements);
+            } else {
+                // Simple single-row delete.
+                await db.prepare(`DELETE FROM ${tableName} WHERE key = ?`).bind(key).run();
+            }
         }
     };
 };
+
+// ---------------------------------------------------------------------------
+// Convenience helpers
+// ---------------------------------------------------------------------------
 
 /**
  * Convenience: get an R2-like bucket from env, returning null if D1 is not configured.

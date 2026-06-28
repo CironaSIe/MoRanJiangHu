@@ -1,3 +1,5 @@
+import { ComfyUI轮询超时错误 } from '../services/ai/imageTasks';
+
 export const 生图最大自动重试次数 = 3;
 
 const 生图重试等待毫秒 = 1200;
@@ -52,6 +54,10 @@ export const 执行生图模型调用带重试 = async <T>(
             return await runner();
         } catch (error) {
             lastError = error;
+            // ComfyUI 轮询超时 = 任务仍在后端排队中，重试同一图只会提交重复任务，直接抛出不重试
+            if (error instanceof ComfyUI轮询超时错误) {
+                throw error;
+            }
             if (options?.signal?.aborted || attemptIndex >= maxRetries) {
                 throw error;
             }

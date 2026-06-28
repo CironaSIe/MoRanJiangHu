@@ -111,6 +111,13 @@ class ComfyUI后端不可用错误 extends Error {
     }
 }
 
+export class ComfyUI轮询超时错误 extends Error {
+    constructor(message: string, public readonly baseUrl: string, public readonly promptId: string) {
+        super(message);
+        this.name = 'ComfyUI轮询超时错误';
+    }
+}
+
 export const 全局无文字负面提示词 = 'text, typography, letters, words, numbers, caption, label, labels, plaque, sign, inscription, readable inscription, pseudo text, fake text, gibberish text, Chinese characters, English letters, carved words, engraved words, engraved Chinese characters, vertical calligraphy, calligraphy, glyphs, runes, ideograms, seal, stamp, watermark, signature, username, logo, artist name, web address, url, copyright, subtitle, subtitles, title, poster text, comic text, manga text, dialogue text, speech bubble, dialogue box, word balloon, UI overlay, interface text, date stamp, QR code, barcode, poster layout, magazine cover, comic page, comic panel, manga panel, callout, text box, white oval bubble, black outline bubble, overlay, title card, credits, framed text, floating label, name tag, brand mark, emblem';
 export const 全局无文字正向提示词 = 'clean composition, clear subject focus, blank unlabeled surfaces, label-free visual design, logo-free visual design';
 const 自动去水印负面提示词 = 全局无文字负面提示词;
@@ -2517,7 +2524,11 @@ const 执行ComfyUI生图 = async (
         try {
             while (true) {
                 if (Date.now() - startedAt > COMFYUI_POLL_TIMEOUT_MS) {
-                    throw new Error(`ComfyUI 生图超过 ${Math.round(COMFYUI_POLL_TIMEOUT_MS / 1000)} 秒仍未返回图片，已自动判定本次尝试失败。`);
+                    throw new ComfyUI轮询超时错误(
+                        `ComfyUI 生图超过 ${Math.round(COMFYUI_POLL_TIMEOUT_MS / 1000)} 秒仍未返回图片，任务可能仍在后端排队中，不做重试。`,
+                        baseUrl,
+                        promptId
+                    );
                 }
                 let historyResponse: Response;
                 const historyStartedAt = Date.now();
@@ -2645,6 +2656,8 @@ const 执行ComfyUI生图 = async (
 
 const 是ComfyUI后端不可用错误 = (error: any): boolean => {
     if (error?.name === 'AbortError') return false;
+    // 轮询超时意味着任务可能仍在 CNB 后端排队中，不应切换后端或重试同一图
+    if (error instanceof ComfyUI轮询超时错误) return false;
     if (error instanceof ComfyUI后端不可用错误) return true;
     if (error instanceof 协议请求错误) {
         return error.status === 408 || error.status === 429 || error.status >= 500;
