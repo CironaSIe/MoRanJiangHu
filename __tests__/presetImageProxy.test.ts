@@ -36,7 +36,7 @@ describe('preset image proxy', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
         const signedUrl = new URL(fetchMock.mock.calls[0][0] as string);
         expect(signedUrl.origin).toBe('https://s3.hi168.com');
-        expect(signedUrl.pathname).toBe('/preset-bucket/s3_1780319017390_91d7u9.jpg');
+        expect(signedUrl.pathname).toBe('/preset-bucket/MoRanJiangHu/preset-items/s3_1780319017390_91d7u9.jpg');
         expect(signedUrl.searchParams.get('X-Amz-Algorithm')).toBe('AWS4-HMAC-SHA256');
     });
 
@@ -47,8 +47,8 @@ describe('preset image proxy', () => {
             params: { path: '../../secret.txt' }
         });
 
-        expect(response.status).toBe(502);
-        expect(await response.text()).toContain('Preset image key is invalid');
+        expect(response.status).toBe(400);
+        expect(await response.text()).toContain('Invalid preset image path');
     });
 
     it('supports HEAD without a response body', async () => {
