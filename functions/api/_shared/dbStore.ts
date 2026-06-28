@@ -6,6 +6,10 @@
 // automatically split into multiple chunk rows. The original key stores
 // a lightweight manifest pointing to the chunk rows; `get()` transparently
 // reassembles the complete value. This is invisible to callers.
+//
+// D1 db.batch() has a hard limit of 100 statements per call.
+// When a chunked write or delete produces more statements than the limit,
+// they are split into multiple sequential batch() calls automatically.
 
 export type R2LikeBucket = {
     get: (key: string) => Promise<R2LikeObject | null>;
@@ -31,6 +35,9 @@ export type R2LikeListResult = {
 // ---------------------------------------------------------------------------
 // Chunking constants & helpers
 // ---------------------------------------------------------------------------
+
+/** D1 db.batch() has a hard limit of 100 statements per call. */
+const D1_BATCH_LIMIT = 100;
 
 /** Values larger than this (in UTF-8 bytes) get split into chunk rows. */
 const D1_CHUNK_THRESHOLD = 700 * 1024; // 700 KB
@@ -75,7 +82,7 @@ const utf8ByteLength = (text: string): number => {
 };
 
 /**
- * Split a string into multiple slices, each不超过 maxBytes UTF-8 bytes.
+ * Split a string into multiple slices, each ≤ maxBytes UTF-8 bytes.
  * Tries to avoid splitting in the middle of a multi-byte character.
  */
 const splitByUtf8Bytes = (text: string, maxBytes: number): string[] => {
@@ -108,6 +115,22 @@ const splitByUtf8Bytes = (text: string, maxBytes: number): string[] => {
     return chunks;
 };
 
+/**
+ * Execute an array of prepared D1 statements, automatically splitting
+ * into multiple db.batch() calls to stay under the D1_BATCH_LIMIT (100).
+ */
+const batchAll = async (db: any, statements: any[]): Promise<void> => {
+    if (statements.length === 0) return;
+    if (statements.length <= D1_BATCH_LIMIT) {
+        await db.batch(statements);
+        return;
+    }
+    for (let offset = 0; offset < statements.length; offset += D1_BATCH_LIMIT) {
+        const slice = statements.slice(offset, offset + D1_BATCH_LIMIT);
+        await db.batch(slice);
+    }
+};
+
 // ---------------------------------------------------------------------------
 // Table bootstrap
 // ---------------------------------------------------------------------------
@@ -134,6 +157,9 @@ export const ensureTable = async (db: any, tableName: string): Promise<void> => 
  * multiple rows using a `{key}::chunk-{i}` naming convention. Callers
  * never see the chunks — `get()` reassembles, `delete()` cleans them up,
  * `list()` hides them.
+ *
+ * When the number of chunk rows exceeds D1's batch limit of 100,
+ * writes and deletes are split into multiple sequential batch() calls.
  */
 export const getDbBucket = (db: any, tableName: string): R2LikeBucket => {
     return {
@@ -193,11 +219,14 @@ export const getDbBucket = (db: any, tableName: string): R2LikeBucket => {
             if (existingRow) {
                 const oldManifest = isChunkManifest(existingRow.value || '');
                 if (oldManifest) {
+                    const deleteStatements: any[] = [];
                     for (let i = 0; i < oldManifest.chunks; i++) {
-                        await db.prepare(
-                            `DELETE FROM ${tableName} WHERE key = ?`
-                        ).bind(chunkKey(key, i)).run().catch(() => {});
+                        deleteStatements.push(
+                            db.prepare(`DELETE FROM ${tableName} WHERE key = ?`).bind(chunkKey(key, i))
+                        );
                     }
+                    // Batch-delete old chunks (respecting the 100-statement limit).
+                    await batchAll(db, deleteStatements);
                 }
             }
 
@@ -217,7 +246,6 @@ export const getDbBucket = (db: any, tableName: string): R2LikeBucket => {
                 const manifestJson = JSON.stringify(manifest);
                 const now = new Date().toISOString();
 
-                // Use D1 batch for atomicity where available.
                 const statements: any[] = [
                     db.prepare(
                         `INSERT OR REPLACE INTO ${tableName} (key, value, updated_at) VALUES (?, ?, ?)`
@@ -230,7 +258,7 @@ export const getDbBucket = (db: any, tableName: string): R2LikeBucket => {
                         ).bind(chunkKey(key, i), chunks[i], now)
                     );
                 }
-                await db.batch(statements);
+                await batchAll(db, statements);
             }
         },
 
@@ -287,7 +315,7 @@ export const getDbBucket = (db: any, tableName: string): R2LikeBucket => {
             const manifest = row ? isChunkManifest(row.value || '') : null;
 
             if (manifest) {
-                // Delete all chunk rows + the manifest in one batch.
+                // Delete all chunk rows + the manifest, respecting the batch limit.
                 const statements: any[] = [
                     db.prepare(`DELETE FROM ${tableName} WHERE key = ?`).bind(key)
                 ];
@@ -296,7 +324,7 @@ export const getDbBucket = (db: any, tableName: string): R2LikeBucket => {
                         db.prepare(`DELETE FROM ${tableName} WHERE key = ?`).bind(chunkKey(key, i))
                     );
                 }
-                await db.batch(statements);
+                await batchAll(db, statements);
             } else {
                 // Simple single-row delete.
                 await db.prepare(`DELETE FROM ${tableName} WHERE key = ?`).bind(key).run();
