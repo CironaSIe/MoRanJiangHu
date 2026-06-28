@@ -666,6 +666,7 @@ const objectStorageFetch = async (
     const objectKey = 构建对象键(config, segments);
     try {
         const methodUpper = method.toUpperCase();
+        if (methodUpper === 'LIST') throw new Error('LIST uses Worker proxy for S3 ListObjectsV2 compatibility');
         const directUrl = 构建直连对象存储地址(config, segments);
         const body = methodUpper === 'GET' || methodUpper === 'HEAD' ? undefined : init?.body ?? null;
         const bodyBuffer = await body转ArrayBuffer(body);
@@ -764,6 +765,32 @@ const objectStorageFetch = async (
         await 等待(450 * (attempt + 1));
     }
     return lastTransientFailure || new Response('对象存储 proxy request failed', { status: 502 });
+};
+
+const 列出对象存储键 = async (config: 对象存储同步配置, segments: string[] = []): Promise<string[]> => {
+    const response = await objectStorageFetch(config, 'LIST', segments);
+    if (!response.ok) {
+        记录对象存储日志('对象存储 LIST 请求失败，将跳过目录扫描兜底', {
+            prefix: 读取对象存储前缀(config),
+            bucket: config.bucket,
+            segments,
+            status: response.status
+        }, response.status === 404 ? 'debug' : 'warn');
+        return [];
+    }
+
+    const xml = await response.text().catch(() => '');
+    const keys = Array.from(xml.matchAll(/<Key>([\s\S]*?)<\/Key>/g))
+        .map((match) => match[1] || '')
+        .map((value) => value
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .trim())
+        .filter(Boolean);
+    return Array.from(new Set(keys));
 };
 
 const 确保集合 = async (_config: 对象存储同步配置, _segments: string[]): Promise<void> => {
@@ -966,9 +993,74 @@ const 上传对象存储存档包 = async (
     await 写入包(config, [OBJECT_STORAGE_SAVES_DIR, item.metadata.fileName], packageBase, item.archiveBase64, 'saves', onProgress);
 };
 
+const 从存档包恢复清单 = async (
+    keys: string[],
+    readPackage: (fileName: string) => Promise<对象存储存档包 | null>
+): Promise<对象存储清单结构> => {
+    const saves: 对象存储云存档元数据[] = [];
+    const saveFileNames = keys
+        .map((key) => {
+            const normalized = key.replace(/\\/g, '/');
+            const marker = `/${OBJECT_STORAGE_SAVES_DIR}/`;
+            const markerIndex = normalized.indexOf(marker);
+            if (markerIndex >= 0) return normalized.slice(markerIndex + marker.length);
+            const prefix = `${OBJECT_STORAGE_SAVES_DIR}/`;
+            return normalized.startsWith(prefix) ? normalized.slice(prefix.length) : '';
+        })
+        .filter((fileName) => fileName && fileName.toLowerCase().endsWith('.json') && !fileName.includes('/'));
+
+    for (const fileName of Array.from(new Set(saveFileNames))) {
+        const payload = await readPackage(fileName).catch(() => null);
+        if (payload?.format !== OBJECT_STORAGE_PACKAGE_FORMAT || !payload.metadata?.id || !payload.metadata.fileName) {
+            continue;
+        }
+        saves.push({
+            ...payload.metadata,
+            fileName: payload.metadata.fileName || fileName,
+            syncKey: 读取元数据同步键(payload.metadata)
+        });
+    }
+
+    const cleaned = 整理对象存储清单存档列表(saves);
+    const repaired = 修复对象存储清单谱系(cleaned.saves);
+    return {
+        format: OBJECT_STORAGE_MANIFEST_FORMAT,
+        version: OBJECT_STORAGE_MANIFEST_VERSION,
+        updatedAt: new Date().toISOString(),
+        saves: repaired.saves,
+        settings: null
+    };
+};
+
+const 尝试从存档包恢复远端清单 = async (config: 对象存储同步配置): Promise<对象存储清单结构 | null> => {
+    const keys = await 列出对象存储键(config, [OBJECT_STORAGE_SAVES_DIR]);
+    if (keys.length <= 0) return null;
+
+    const recovered = await 从存档包恢复清单(keys, async (fileName) => {
+        const response = await objectStorageFetch(config, 'GET', [OBJECT_STORAGE_SAVES_DIR, fileName]);
+        if (!response.ok) return null;
+        return await response.json().catch(() => null) as 对象存储存档包 | null;
+    });
+    if (recovered.saves.length <= 0) return null;
+
+    const writeBack = await objectStorageFetch(config, 'PUT', [OBJECT_STORAGE_MANIFEST_FILE], {
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(recovered, null, 2)
+    });
+    记录对象存储日志(writeBack.ok ? '已从存档包恢复对象存储清单并写回' : '已从存档包恢复对象存储清单，但写回失败', {
+        prefix: 读取对象存储前缀(config),
+        bucket: config.bucket,
+        recoveredCount: recovered.saves.length,
+        writeBackStatus: writeBack.status
+    }, writeBack.ok ? 'warn' : 'error');
+    return recovered;
+};
+
 const 读取远端清单 = async (config: 对象存储同步配置): Promise<对象存储清单结构> => {
     const response = await objectStorageFetch(config, 'GET', [OBJECT_STORAGE_MANIFEST_FILE]);
     if (response.status === 404) {
+        const recovered = await 尝试从存档包恢复远端清单(config);
+        if (recovered) return recovered;
         记录对象存储日志('云端清单不存在，将使用空清单', {
             prefix: 读取对象存储前缀(config),
             bucket: config.bucket
@@ -986,6 +1078,8 @@ const 读取远端清单 = async (config: 对象存储同步配置): Promise<对
     }
     const parsed = await response.json().catch(() => null) as 对象存储清单结构 | null;
     if (parsed?.format !== OBJECT_STORAGE_MANIFEST_FORMAT || !Array.isArray(parsed?.saves)) {
+        const recovered = await 尝试从存档包恢复远端清单(config);
+        if (recovered) return recovered;
         throw new Error('对象存储 云存档清单格式无效');
     }
     const cleaned = 整理对象存储清单存档列表(parsed.saves);
@@ -1647,4 +1741,8 @@ export const 增量导入对象存储云存档 = async (
         imported: result.imported,
         skipped: result.skipped + skippedByLocalHash
     };
+};
+
+export const __objectStorageSyncTestUtils = {
+    recoverManifestFromSavePackages: 从存档包恢复清单
 };

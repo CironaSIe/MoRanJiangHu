@@ -42,6 +42,11 @@
 
                 <data
                     android:scheme="https"
+                    android:host="msjh.bacon159.pp.ua"
+                    android:path="@string/github_oauth_callback_path" />
+
+                <data
+                    android:scheme="https"
                     android:host="@string/github_oauth_app_link_host"
                     android:path="@string/github_oauth_callback_path" />
             </intent-filter>

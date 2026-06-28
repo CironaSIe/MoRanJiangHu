@@ -39,12 +39,22 @@ const formatReleaseTime = (value?: string) => {
     }).format(date);
 };
 
+const normalizeReleaseChanges = (value: unknown): string[] => {
+    if (Array.isArray(value)) {
+        return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+    }
+    if (typeof value === 'string' && value.trim()) {
+        return [value.trim()];
+    }
+    return [];
+};
+
 const buildNormalizedHistory = (releaseInfo: RuntimeReleaseInfo): ReleaseEntry[] => [
     {
         versionCode: releaseInfo.versionCode,
         versionName: releaseInfo.versionName,
         publishedAt: releaseInfo.releasePublishedAt,
-        changes: Array.isArray(releaseInfo.releaseNotes) ? [...releaseInfo.releaseNotes] : []
+        changes: normalizeReleaseChanges(releaseInfo.releaseNotes)
     },
     ...(Array.isArray(releaseInfo.releaseHistory) ? releaseInfo.releaseHistory : [])
 ].reduce<ReleaseEntry[]>((list, item) => {
@@ -60,9 +70,7 @@ const buildNormalizedHistory = (releaseInfo: RuntimeReleaseInfo): ReleaseEntry[]
         publishedAt: item.publishedAt || raw.releasePublishedAt,
         changes: Array.isArray(item.changes) && item.changes.length > 0
             ? item.changes
-            : Array.isArray(raw.releaseNotes)
-                ? raw.releaseNotes
-                : []
+            : normalizeReleaseChanges(raw.releaseNotes)
     };
     return [...list, normalized];
 }, []);
@@ -230,6 +238,10 @@ const ReleaseNotesModal: React.FC<Props> = ({
             </div>
         </div>
     );
+};
+
+export const __releaseNotesTestUtils = {
+    buildNormalizedHistory
 };
 
 export default ReleaseNotesModal;

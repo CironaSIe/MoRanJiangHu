@@ -4,7 +4,7 @@ const CORS_HEADERS = {
     'Access-Control-Allow-Headers': 'Content-Type, X-Object-Storage-Method, X-Object-Storage-Endpoint, X-Object-Storage-Bucket, X-Object-Storage-Key, X-Object-Storage-Access-Key, X-Object-Storage-Secret-Key, X-Object-Storage-Username'
 };
 
-const ALLOWED_METHODS = new Set(['GET', 'PUT', 'HEAD']);
+const ALLOWED_METHODS = new Set(['GET', 'PUT', 'HEAD', 'LIST']);
 const encoder = new TextEncoder();
 
 const buildJsonResponse = (payload: unknown, status = 200): Response => (
@@ -46,17 +46,33 @@ const encodeS3Path = (value: string): string => value
     .map((part) => encodeURIComponent(part).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`))
     .join('/');
 
+const encodeAwsQueryValue = (value: string): string => encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+
+const buildCanonicalQueryString = (url: URL): string => (
+    Array.from(url.searchParams.entries())
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, value]) => `${encodeAwsQueryValue(key)}=${encodeAwsQueryValue(value)}`)
+        .join('&')
+);
+
 const buildTargetUrl = (request: Request): URL => {
     const endpoint = normalizeEndpoint(readHeader(request, 'X-Object-Storage-Endpoint'));
     const bucket = readHeader(request, 'X-Object-Storage-Bucket');
     const key = readHeader(request, 'X-Object-Storage-Key').replace(/^\/+/, '');
     if (!bucket) throw new Error('Missing X-Object-Storage-Bucket header');
-    if (!key) throw new Error('Missing X-Object-Storage-Key header');
-    endpoint.pathname = [endpoint.pathname.replace(/\/+$/, ''), encodeURIComponent(bucket), encodeS3Path(key)]
+    const method = readMethod(request);
+    if (!key && method !== 'LIST') throw new Error('Missing X-Object-Storage-Key header');
+    endpoint.pathname = [endpoint.pathname.replace(/\/+$/, ''), encodeURIComponent(bucket), method === 'LIST' ? '' : encodeS3Path(key)]
         .filter(Boolean)
         .join('/')
         .replace(/\/+/g, '/');
-    endpoint.search = '';
+    if (method === 'LIST') {
+        endpoint.searchParams.set('list-type', '2');
+        endpoint.searchParams.set('prefix', key);
+        endpoint.searchParams.set('max-keys', '1000');
+    } else {
+        endpoint.search = '';
+    }
     return endpoint;
 };
 
@@ -104,7 +120,7 @@ const buildAuthorization = async (params: {
         `x-amz-date:${params.amzDate}\n`
     ].join('');
     const signedHeaders = `${params.contentType ? 'content-type;' : ''}host;x-amz-content-sha256;x-amz-date`;
-    const canonicalRequest = [params.method, params.url.pathname, '', canonicalHeaders, signedHeaders, params.bodyHash].join('\n');
+    const canonicalRequest = [params.method, params.url.pathname, buildCanonicalQueryString(params.url), canonicalHeaders, signedHeaders, params.bodyHash].join('\n');
     const credentialScope = `${params.dateStamp}/${region}/${service}/aws4_request`;
     const stringToSign = ['AWS4-HMAC-SHA256', params.amzDate, credentialScope, await sha256Hex(canonicalRequest)].join('\n');
     const signingKey = await deriveSigningKey(params.secretKey, params.dateStamp, region, service);
@@ -119,12 +135,13 @@ export function onRequestOptions(): Response {
 export async function onRequestPost({ request }: any): Promise<Response> {
     try {
         const method = readMethod(request);
+        const upstreamMethod = method === 'LIST' ? 'GET' : method;
         const targetUrl = buildTargetUrl(request);
         const accessKey = readHeader(request, 'X-Object-Storage-Access-Key');
         const secretKey = request.headers.get('X-Object-Storage-Secret-Key') || '';
         if (!accessKey || !secretKey) throw new Error('Missing object storage access key or secret key');
 
-        const body = method === 'GET' || method === 'HEAD' ? undefined : await request.arrayBuffer();
+        const body = method === 'GET' || method === 'HEAD' || method === 'LIST' ? undefined : await request.arrayBuffer();
         const contentType = request.headers.get('Content-Type')?.trim() || (body ? 'application/octet-stream' : '');
         const bodyHash = await sha256Hex(body || '');
         const { amzDate, dateStamp } = formatAmzDate(new Date());
@@ -133,9 +150,9 @@ export async function onRequestPost({ request }: any): Promise<Response> {
         headers.set('x-amz-content-sha256', bodyHash);
         headers.set('x-amz-date', amzDate);
         if (contentType) headers.set('Content-Type', contentType);
-        headers.set('Authorization', await buildAuthorization({ method, url: targetUrl, bodyHash, accessKey, secretKey, amzDate, dateStamp, contentType }));
+        headers.set('Authorization', await buildAuthorization({ method: upstreamMethod, url: targetUrl, bodyHash, accessKey, secretKey, amzDate, dateStamp, contentType }));
 
-        const upstreamResponse = await fetch(targetUrl, { method, headers, body });
+        const upstreamResponse = await fetch(targetUrl, { method: upstreamMethod, headers, body });
         const responseHeaders = new Headers();
         ['Content-Type', 'ETag', 'Last-Modified', 'Content-Length'].forEach((name) => {
             const value = upstreamResponse.headers.get(name);

@@ -179,6 +179,35 @@ const isRootOAuthCallbackFallback = (url: URL) => (
     url.pathname === '/' && hasOAuthCallbackParams(url)
 );
 
+const encodePendingOAuthState = (value: PendingOAuthState): string => {
+    try {
+        return btoa(encodeURIComponent(JSON.stringify(value)));
+    } catch {
+        return '';
+    }
+};
+
+const decodePendingOAuthState = (value: string): PendingOAuthState | null => {
+    try {
+        const parsed = JSON.parse(decodeURIComponent(atob(value))) as Partial<PendingOAuthState>;
+        const state = readEnvString(parsed.state);
+        const redirectUri = readEnvString(parsed.redirectUri);
+        const createdAt = Number(parsed.createdAt);
+        const clientType = parsed.clientType === 'native' ? 'native' : 'web';
+        const expectedCallbackUris = normalizeCallbackUris(parsed.expectedCallbackUris);
+        if (!state || !redirectUri || !Number.isFinite(createdAt)) return null;
+        return {
+            state,
+            redirectUri,
+            clientType,
+            expectedCallbackUris: expectedCallbackUris.length > 0 ? expectedCallbackUris : [redirectUri],
+            createdAt
+        };
+    } catch {
+        return null;
+    }
+};
+
 const normalizeOAuthCallbackUrl = (callbackUrl: string, pendingState: PendingOAuthState | null) => {
     let url: URL;
     try {
@@ -200,6 +229,58 @@ const normalizeOAuthCallbackUrl = (callbackUrl: string, pendingState: PendingOAu
     } catch {
         return callbackUrl;
     }
+};
+
+const createFallbackPendingStateFromCallback = (callbackUrl: string): PendingOAuthState | null => {
+    let url: URL;
+    try {
+        url = new URL(callbackUrl);
+    } catch {
+        return null;
+    }
+
+    if (!hasOAuthCallbackParams(url)) return null;
+
+    const encodedPending = readEnvString(url.searchParams.get('oauth_pending'));
+    const decodedPending = encodedPending ? decodePendingOAuthState(encodedPending) : null;
+    if (decodedPending) return decodedPending;
+
+    const state = readEnvString(url.searchParams.get('state'));
+    if (!state.startsWith('native:')) return null;
+
+    const redirectUri = getNativeBridgeRedirectUri();
+    return {
+        state,
+        redirectUri,
+        clientType: 'web',
+        expectedCallbackUris: [redirectUri, getNativeDirectRedirectUri()],
+        createdAt: Date.now()
+    };
+};
+
+const buildNativeBridgeDeepLink = (callbackUrl: string): string | null => {
+    let url: URL;
+    try {
+        url = new URL(callbackUrl);
+    } catch {
+        return null;
+    }
+
+    const state = readEnvString(url.searchParams.get('state'));
+    if (!state.startsWith('native:')) return null;
+
+    const pendingState: PendingOAuthState = {
+        state,
+        redirectUri: getNativeBridgeRedirectUri(),
+        clientType: 'web',
+        expectedCallbackUris: [getNativeBridgeRedirectUri(), getNativeDirectRedirectUri()],
+        createdAt: Date.now()
+    };
+    const deepLinkUrl = new URL(getNativeDirectRedirectUri());
+    deepLinkUrl.search = url.search;
+    const encodedPending = encodePendingOAuthState(pendingState);
+    if (encodedPending) deepLinkUrl.searchParams.set('oauth_pending', encodedPending);
+    return deepLinkUrl.toString();
 };
 
 const getNativeDirectRedirectUri = () => {
@@ -333,8 +414,12 @@ export function useGitHubOAuth() {
             return false;
         }
 
-        const deepLinkUrl = `${getNativeDirectRedirectUri()}${url.search}`;
-        window.location.assign(deepLinkUrl);
+        const deepLinkUrl = buildNativeBridgeDeepLink(callbackUrl);
+        if (!deepLinkUrl) return false;
+        window.location.replace(deepLinkUrl);
+        window.setTimeout(() => {
+            window.location.replace('/');
+        }, 1500);
         return true;
     }, [isNativeApp]);
 
@@ -343,7 +428,7 @@ export function useGitHubOAuth() {
             return;
         }
 
-        const pendingState = readPendingOAuthState();
+        const pendingState = readPendingOAuthState() || (isNativeApp ? createFallbackPendingStateFromCallback(callbackUrl) : null);
         if (!pendingState) {
             if (bridgeBrowserCallbackToNativeApp(callbackUrl)) {
                 return;
@@ -418,7 +503,7 @@ export function useGitHubOAuth() {
             cleanupCallbackUrl(callbackUrl);
             setIsLoggingIn(false);
         }
-    }, [bridgeBrowserCallbackToNativeApp, cleanupCallbackUrl, exchangeCodeForToken, finishWithToken]);
+    }, [bridgeBrowserCallbackToNativeApp, cleanupCallbackUrl, exchangeCodeForToken, finishWithToken, isNativeApp]);
 
     useEffect(() => {
         void handleOAuthCallback(window.location.href);
@@ -555,3 +640,8 @@ export function useGitHubOAuth() {
         nativeDeepLinkUri
     };
 }
+
+export const __githubOAuthTestUtils = {
+    buildNativeBridgeDeepLink,
+    createFallbackPendingStateFromCallback
+};

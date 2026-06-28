@@ -1,6 +1,6 @@
 import { GameResponse, TavernCommand, 内置提示词条目结构 } from '../../types';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
-import type { 小说拆分数据集结构 } from '../../models/novelDecomposition';
+import type { 小说拆分数据集结构, 小说拆分角色档案结构, 小说拆分势力档案结构, 小说拆分地图地点档案结构, 小说拆分物品档案结构 } from '../../models/novelDecomposition';
 import { 翻译连接测试错误 } from './imageGenerationDiagnostics';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
 import { 获取世界观生成系统提示词, 构建世界观生成用户提示词 } from '../../prompts/runtime/worldGeneration';
@@ -25,6 +25,7 @@ import {
 } from '../../prompts/runtime/novelDecomposition';
 import { 小说拆分COT提示词 } from '../../prompts/runtime/novelDecompositionCot';
 import { 小说模式包补全系统提示词, 构建小说模式包补全用户提示词 } from '../../prompts/runtime/novelModePackCompletion';
+import { 分段字段补全系统提示词, 构建分段字段补全用户提示词, type 分段字段AI补全结果 } from '../../prompts/runtime/novelSegmentFieldCompletion';
 import { 同人规划分析附加系统提示词, 同人规划分析附加COT提示词 } from '../../prompts/runtime/fandomPlanningAnalysis';
 import { 同人世界演变附加系统提示词, 同人世界演变附加COT提示词 } from '../../prompts/runtime/fandomWorldEvolution';
 import { 归一化或补全境界体系提示词, 校验境界体系提示词完整性 } from '../../prompts/runtime/fandom';
@@ -2381,4 +2382,125 @@ const 解析小说模式包补全JSON = (rawText: string): Record<string, any> =
     }
 
     return parsed;
+};
+
+/**
+ * AI-powered segment field completion.
+ * Reads the segment's original text and existing structured fields,
+ * returns a JSON patch with corrected/supplemented fields.
+ */
+export const generateNovelSegmentFieldCompletion = async (
+    params: {
+        segmentOriginalText: string;
+        segmentTitle: string;
+        existing角色档案?: 小说拆分角色档案结构[];
+        existing势力档案?: 小说拆分势力档案结构[];
+        existing地图地点档案?: 小说拆分地图地点档案结构[];
+        existing物品档案?: 小说拆分物品档案结构[];
+        existing世界观规则?: string[];
+        existing世界边界规则?: string[];
+        existing人物关系?: string[];
+        existing势力关系?: string[];
+        existing伏笔线索?: string[];
+        existing回收点?: string[];
+        existing章节节奏?: string[];
+    },
+    apiConfig: 当前可用接口结构,
+    streamOptions?: WorldStreamOptions,
+    signal?: AbortSignal
+): Promise<{ completion: 分段字段AI补全结果; rawText: string }> => {
+    if (!apiConfig.apiKey) throw new Error('Missing API Key');
+
+    const systemPrompt = 分段字段补全系统提示词;
+    const userPrompt = 构建分段字段补全用户提示词(params);
+
+    const messages: 通用消息[] = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+    ];
+
+    const rawText = await 请求模型文本(
+        apiConfig,
+        规范化文本补全消息链(messages, { 保留System: true, 合并同角色: false }),
+        {
+            temperature: 0.3,
+            streamOptions,
+            signal
+        }
+    );
+
+    const completion = 解析分段字段补全JSON(rawText);
+    return { completion, rawText };
+};
+
+const 解析分段字段补全JSON = (rawText: string): 分段字段AI补全结果 => {
+    const cleaned = (rawText || '')
+        .replace(/<\s*thinking\s*>[\s\S]*?<\s*\/\s*thinking\s*>/gi, '')
+        .replace(/<\s*think\s*>[\s\S]*?<\s*\/\s*think\s*>/gi, '')
+        .trim();
+
+    const withoutCodeBlock = cleaned
+        .replace(/^```(?:json|JSON)?\s*\n?/gm, '')
+        .replace(/\n?\s*```$/gm, '')
+        .trim();
+
+    let parsed: any;
+    try {
+        parsed = parseJsonWithRepair(withoutCodeBlock);
+    } catch {
+        const jsonMatch = withoutCodeBlock.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            parsed = parseJsonWithRepair(jsonMatch[0]);
+        } else {
+            throw new Error('AI 输出无法解析为 JSON 对象');
+        }
+    }
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('AI 输出不是有效的 JSON 对象');
+    }
+
+    // Validate and normalize the result
+    const result: 分段字段AI补全结果 = {};
+
+    if (Array.isArray(parsed.角色档案)) {
+        result.角色档案 = parsed.角色档案.filter((c: any) => c && typeof c === 'object' && c.名称);
+    }
+    if (Array.isArray(parsed.势力档案)) {
+        result.势力档案 = parsed.势力档案.filter((f: any) => f && typeof f === 'object' && f.名称);
+    }
+    if (Array.isArray(parsed.地图地点档案)) {
+        result.地图地点档案 = parsed.地图地点档案.filter((l: any) => l && typeof l === 'object' && l.名称);
+    }
+    if (Array.isArray(parsed.物品档案)) {
+        result.物品档案 = parsed.物品档案.filter((i: any) => i && typeof i === 'object' && i.名称);
+    }
+    if (Array.isArray(parsed.世界观规则)) {
+        result.世界观规则 = parsed.世界观规则.filter((s: any) => typeof s === 'string' && s.trim());
+    }
+    if (Array.isArray(parsed.世界边界规则)) {
+        result.世界边界规则 = parsed.世界边界规则.filter((s: any) => typeof s === 'string' && s.trim());
+    }
+    if (Array.isArray(parsed.人物关系)) {
+        result.人物关系 = parsed.人物关系.filter((s: any) => typeof s === 'string' && s.trim());
+    }
+    if (Array.isArray(parsed.势力关系)) {
+        result.势力关系 = parsed.势力关系.filter((s: any) => typeof s === 'string' && s.trim());
+    }
+    if (Array.isArray(parsed.伏笔线索)) {
+        result.伏笔线索 = parsed.伏笔线索.filter((s: any) => typeof s === 'string' && s.trim());
+    }
+    if (Array.isArray(parsed.回收点)) {
+        result.回收点 = parsed.回收点.filter((s: any) => typeof s === 'string' && s.trim());
+    }
+    if (Array.isArray(parsed.章节节奏)) {
+        result.章节节奏 = parsed.章节节奏.filter((s: any) => typeof s === 'string' && s.trim());
+    }
+
+    const hasAnyField = Object.keys(result).length > 0;
+    if (!hasAnyField) {
+        throw new Error('AI 补全未返回任何有效字段，请重试或手动填写。');
+    }
+
+    return result;
 };

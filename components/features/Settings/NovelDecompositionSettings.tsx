@@ -7,6 +7,10 @@ import {
     小说拆分信息可见性结构,
     小说拆分可见信息条目结构,
     小说拆分角色推进结构,
+    小说拆分角色档案结构,
+    小说拆分势力档案结构,
+    小说拆分地图地点档案结构,
+    小说拆分物品档案结构,
     小说拆分来源类型,
     小说拆分树节点结构,
     小说拆分注入目标类型
@@ -49,6 +53,8 @@ import {
 } from '../../../services/workshopNovelDecomposition';
 import { 发布创意工坊模块, 导入本地创意工坊模块 } from '../../../services/creativeWorkshop';
 import { 构建小说拆分模式包创意工坊模块, AI补全小说模式包配置 } from '../../../services/novelDecompositionWorkshopBridge';
+import { generateNovelSegmentFieldCompletion } from '../../../services/ai/storyTasks';
+import type { 分段字段AI补全结果 } from '../../../prompts/runtime/novelSegmentFieldCompletion';
 import { 读取云端游玩会话 } from '../../../services/cloudPlayService';
 
 interface Props {
@@ -73,6 +79,18 @@ interface 分段编辑草稿 {
     时间线终点: string;
     关键事件: 小说拆分事件结构[];
     角色推进: 小说拆分角色推进结构[];
+    /** 档案类字段（由 AI 补全或手动编辑） */
+    角色档案: 小说拆分角色档案结构[];
+    势力档案: 小说拆分势力档案结构[];
+    地图地点档案: 小说拆分地图地点档案结构[];
+    物品档案: 小说拆分物品档案结构[];
+    世界观规则: string[];
+    世界边界规则: string[];
+    人物关系: string[];
+    势力关系: string[];
+    伏笔线索: string[];
+    回收点: string[];
+    章节节奏: string[];
 }
 
 const 来源类型文本映射: Record<小说拆分来源类型, string> = {
@@ -460,6 +478,7 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
     const [aiCompletionRunning, setAiCompletionRunning] = useState(false);
     const [aiCompletionDraft, setAiCompletionDraft] = useState<Partial<import('../../../models/system').ModeRuntimeProfile> | null>(null);
     const [aiCompletionLog, setAiCompletionLog] = useState('');
+    const [aiCompletionExpanded, setAiCompletionExpanded] = useState<Record<string, boolean>>({});
     const [workshopAnonymous, setWorkshopAnonymous] = useState(false);
     const [workshopUsername, setWorkshopUsername] = useState('');
     const [workshopEditingId, setWorkshopEditingId] = useState('');
@@ -469,6 +488,7 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
     useEffect(() => {
         setAiCompletionDraft(null);
         setAiCompletionLog('');
+        setAiCompletionExpanded({});
     }, [selectedDatasetId]);
     const [selectedSegmentId, setSelectedSegmentId] = useState('');
     const [showStrategySection, setShowStrategySection] = useState(false);
@@ -492,8 +512,21 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
         时间线起点: '',
         时间线终点: '',
         关键事件: [],
-        角色推进: []
+        角色推进: [],
+        角色档案: [],
+        势力档案: [],
+        地图地点档案: [],
+        物品档案: [],
+        世界观规则: [],
+        世界边界规则: [],
+        人物关系: [],
+        势力关系: [],
+        伏笔线索: [],
+        回收点: [],
+        章节节奏: []
     });
+    const [segmentFieldCompletionRunning, setSegmentFieldCompletionRunning] = useState(false);
+    const [segmentFieldCompletionLog, setSegmentFieldCompletionLog] = useState('');
     const [schedulerState, setSchedulerState] = useState<小说拆分调度状态结构>(() => 小说拆分后台调度服务.getState());
     const importJsonInputRef = useRef<HTMLInputElement | null>(null);
     const importTxtInputRef = useRef<HTMLInputElement | null>(null);
@@ -859,7 +892,18 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                 时间线起点: '',
                 时间线终点: '',
                 关键事件: [],
-                角色推进: []
+                角色推进: [],
+                角色档案: [],
+                势力档案: [],
+                地图地点档案: [],
+                物品档案: [],
+                世界观规则: [],
+                世界边界规则: [],
+                人物关系: [],
+                势力关系: [],
+                伏笔线索: [],
+                回收点: [],
+                章节节奏: []
             });
             return;
         }
@@ -876,7 +920,18 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
             时间线起点: segment.时间线起点 || '',
             时间线终点: segment.时间线终点 || '',
             关键事件: 清理关键事件列表(segment.关键事件 || []),
-            角色推进: 清理角色推进列表(segment.角色推进 || [])
+            角色推进: 清理角色推进列表(segment.角色推进 || []),
+            角色档案: segment.角色档案 || [],
+            势力档案: segment.势力档案 || [],
+            地图地点档案: segment.地图地点档案 || [],
+            物品档案: segment.物品档案 || [],
+            世界观规则: segment.世界观规则 || [],
+            世界边界规则: segment.世界边界规则 || [],
+            人物关系: segment.人物关系 || [],
+            势力关系: segment.势力关系 || [],
+            伏笔线索: segment.伏笔线索 || [],
+            回收点: segment.回收点 || [],
+            章节节奏: segment.章节节奏 || []
         });
     }, [selectedSegment?.id]);
 
@@ -1389,6 +1444,50 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
         } as 分段编辑草稿));
     };
 
+    // ── 档案类字段编辑辅助函数 ──
+
+    const 更新档案字段 = <K extends '角色档案' | '势力档案' | '地图地点档案' | '物品档案'>(
+        key: K,
+        index: number,
+        field: string,
+        value: any
+    ) => {
+        setSegmentDraft((prev) => ({
+            ...prev,
+            [key]: (prev[key] as any[]).map((item, i) => i === index ? { ...item, [field]: value } : item)
+        } as 分段编辑草稿));
+    };
+
+    const 删除档案项 = <K extends '角色档案' | '势力档案' | '地图地点档案' | '物品档案'>(
+        key: K,
+        index: number
+    ) => {
+        setSegmentDraft((prev) => ({
+            ...prev,
+            [key]: (prev[key] as any[]).filter((_, i) => i !== index)
+        } as 分段编辑草稿));
+    };
+
+    const 新增档案项 = <K extends '角色档案' | '势力档案' | '地图地点档案' | '物品档案'>(
+        key: K,
+        emptyItem: any
+    ) => {
+        setSegmentDraft((prev) => ({
+            ...prev,
+            [key]: [...(prev[key] as any[]), emptyItem]
+        } as 分段编辑草稿));
+    };
+
+    const 更新字符串数组字段 = (
+        key: '世界观规则' | '世界边界规则' | '人物关系' | '势力关系' | '伏笔线索' | '回收点' | '章节节奏',
+        text: string
+    ) => {
+        const items = text.split('\n').map(s => s.trim()).filter(Boolean);
+        setSegmentDraft((prev) => ({ ...prev, [key]: items } as 分段编辑草稿));
+    };
+
+    const 格式化字符串数组 = (items: string[]): string => items.join('\n');
+
     const handleSaveSegmentEdit = async () => {
         if (!selectedDataset || !selectedSegment) {
             setMessage('请先选择一个分段。');
@@ -1413,6 +1512,17 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                     时间线终点: segmentDraft.时间线终点.trim() || item.时间线终点,
                     关键事件: 清理关键事件列表(segmentDraft.关键事件),
                     角色推进: 清理角色推进列表(segmentDraft.角色推进),
+                    角色档案: segmentDraft.角色档案,
+                    势力档案: segmentDraft.势力档案,
+                    地图地点档案: segmentDraft.地图地点档案,
+                    物品档案: segmentDraft.物品档案,
+                    世界观规则: segmentDraft.世界观规则,
+                    世界边界规则: segmentDraft.世界边界规则,
+                    人物关系: segmentDraft.人物关系,
+                    势力关系: segmentDraft.势力关系,
+                    伏笔线索: segmentDraft.伏笔线索,
+                    回收点: segmentDraft.回收点,
+                    章节节奏: segmentDraft.章节节奏,
                     updatedAt: Date.now()
                 } : item)
             };
@@ -1664,6 +1774,225 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
             推送错误提示(`AI 补全失败：${error?.message || '未知错误'}`);
         } finally {
             setAiCompletionRunning(false);
+        }
+    };
+
+    /** 模式包补全：分区中文名映射 */
+    const 模式包分区名称: Record<string, string> = {
+        economy: '货币经济',
+        time: '时间体系',
+        organization: '组织帮派',
+        ability: '能力体系',
+        items: '物品系统',
+        map: '地图配置',
+        task: '任务体系',
+        npc: 'NPC 配置',
+        image: '图像风格',
+        opening: '开局配置',
+        validation: '校验规则'
+    };
+
+    /** 模式包补全：更新 draft 中某分区的某个字段路径 */
+    const 更新模式包补全字段 = (section: string, path: string[], value: any) => {
+        setAiCompletionDraft((prev) => {
+            if (!prev) return prev;
+            const next = { ...prev };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let obj: any = next[section];
+            if (!obj || typeof obj !== 'object') return prev;
+            // 对 section 做浅拷贝避免引用共享
+            obj = Array.isArray(obj) ? [...obj] : { ...obj };
+            (next as any)[section] = obj;
+            for (let i = 0; i < path.length - 1; i++) {
+                const key = path[i];
+                if (!obj[key] || typeof obj[key] !== 'object') obj[key] = {};
+                obj[key] = Array.isArray(obj[key]) ? [...obj[key]] : { ...obj[key] };
+                obj = obj[key];
+            }
+            obj[path[path.length - 1]] = value;
+            return next;
+        });
+    };
+
+    /** 模式包补全：删除 draft 中某分区 */
+    const 删除模式包补全分区 = (section: string) => {
+        setAiCompletionDraft((prev) => {
+            if (!prev) return prev;
+            const next = { ...prev };
+            delete (next as any)[section];
+            return Object.keys(next).length > 0 ? next : null;
+        });
+    };
+
+    /** 递归渲染模式包补全字段的通用编辑器 */
+    const 渲染模式包字段编辑器 = (
+        obj: Record<string, unknown>,
+        pathPrefix: string[],
+        depth: number = 0
+    ): React.ReactNode[] => {
+        const result: React.ReactNode[] = [];
+        for (const [key, value] of Object.entries(obj)) {
+            const fullPath = [...pathPrefix, key];
+            const fieldLabel = key;
+            if (value === null || value === undefined) continue;
+            if (typeof value === 'string') {
+                result.push(
+                    <div key={fullPath.join('.')} className={`flex flex-col gap-1 ${depth > 0 ? 'pl-3' : ''}`}>
+                        <label className="text-[10px] text-gray-400 font-mono">{fieldLabel}</label>
+                        {value.length > 60 ? (
+                            <textarea
+                                value={value}
+                                onChange={(e) => 更新模式包补全字段(pathPrefix[0], fullPath.slice(1), e.target.value)}
+                                rows={3}
+                                className="w-full border border-white/10 bg-black/40 px-3 py-1.5 text-cyan-100 rounded text-[11px] outline-none focus:border-cyan-500/40 transition-colors resize-y font-mono"
+                            />
+                        ) : (
+                            <input
+                                type="text"
+                                value={value}
+                                onChange={(e) => 更新模式包补全字段(pathPrefix[0], fullPath.slice(1), e.target.value)}
+                                className="w-full border border-white/10 bg-black/40 px-3 py-1.5 text-cyan-100 rounded text-[11px] outline-none focus:border-cyan-500/40 transition-colors font-mono"
+                            />
+                        )}
+                    </div>
+                );
+            } else if (typeof value === 'number') {
+                result.push(
+                    <div key={fullPath.join('.')} className={`flex flex-col gap-1 ${depth > 0 ? 'pl-3' : ''}`}>
+                        <label className="text-[10px] text-gray-400 font-mono">{fieldLabel}</label>
+                        <input
+                            type="number"
+                            value={value}
+                            onChange={(e) => 更新模式包补全字段(pathPrefix[0], fullPath.slice(1), Number(e.target.value))}
+                            className="w-32 border border-white/10 bg-black/40 px-3 py-1.5 text-cyan-100 rounded text-[11px] outline-none focus:border-cyan-500/40 transition-colors font-mono"
+                        />
+                    </div>
+                );
+            } else if (typeof value === 'boolean') {
+                result.push(
+                    <div key={fullPath.join('.')} className={`flex items-center gap-2 ${depth > 0 ? 'pl-3' : ''}`}>
+                        <input
+                            type="checkbox"
+                            checked={value}
+                            onChange={(e) => 更新模式包补全字段(pathPrefix[0], fullPath.slice(1), e.target.checked)}
+                            className="h-3.5 w-3.5 accent-cyan-500"
+                        />
+                        <label className="text-[10px] text-gray-400 font-mono">{fieldLabel}</label>
+                    </div>
+                );
+            } else if (Array.isArray(value)) {
+                const isStringArray = value.every((v) => typeof v === 'string');
+                if (isStringArray) {
+                    result.push(
+                        <div key={fullPath.join('.')} className={`flex flex-col gap-1 ${depth > 0 ? 'pl-3' : ''}`}>
+                            <label className="text-[10px] text-gray-400 font-mono">{fieldLabel} ({value.length} 项)</label>
+                            <textarea
+                                value={value.join('\n')}
+                                onChange={(e) => 更新模式包补全字段(pathPrefix[0], fullPath.slice(1), e.target.value.split('\n'))}
+                                rows={Math.min(value.length + 1, 8)}
+                                className="w-full border border-white/10 bg-black/40 px-3 py-1.5 text-cyan-100 rounded text-[11px] outline-none focus:border-cyan-500/40 transition-colors resize-y font-mono leading-relaxed"
+                                placeholder="每行一项"
+                            />
+                        </div>
+                    );
+                } else {
+                    // 对象数组或混合数组 — 展示 JSON 文本编辑
+                    result.push(
+                        <div key={fullPath.join('.')} className={`flex flex-col gap-1 ${depth > 0 ? 'pl-3' : ''}`}>
+                            <label className="text-[10px] text-gray-400 font-mono">{fieldLabel} ({value.length} 项)</label>
+                            <textarea
+                                value={JSON.stringify(value, null, 2)}
+                                onChange={(e) => {
+                                    try {
+                                        const parsed = JSON.parse(e.target.value);
+                                        更新模式包补全字段(pathPrefix[0], fullPath.slice(1), parsed);
+                                    } catch { /* 编辑中暂不解析 */ }
+                                }}
+                                rows={Math.min(value.length * 3 + 2, 12)}
+                                className="w-full border border-white/10 bg-black/40 px-3 py-1.5 text-cyan-100 rounded text-[10px] outline-none focus:border-cyan-500/40 transition-colors resize-y font-mono leading-relaxed"
+                            />
+                        </div>
+                    );
+                }
+            } else if (typeof value === 'object') {
+                const nested = 渲染模式包字段编辑器(value as Record<string, unknown>, fullPath, depth + 1);
+                if (nested.length > 0) {
+                    result.push(
+                        <div key={fullPath.join('.')} className={`flex flex-col gap-2 ${depth > 0 ? 'pl-3 border-l border-white/5' : ''}`}>
+                            <label className="text-[10px] text-wuxia-gold/70 font-medium font-mono">{fieldLabel}</label>
+                            {nested}
+                        </div>
+                    );
+                }
+            }
+        }
+        return result;
+    };
+
+    /** AI 补全当前分段的档案类字段 */
+    const handleAiCompletionForSegmentFields = async () => {
+        if (!selectedDataset || !selectedSegment) {
+            推送错误提示('请先选择一个分段。');
+            return;
+        }
+        const apiConfig = 获取小说拆分接口配置(form);
+        if (!apiConfig?.apiKey) {
+            推送错误提示('请先在接口设置中配置小说分解 API，AI 补全需要可用接口。');
+            return;
+        }
+
+        setSegmentFieldCompletionRunning(true);
+        setSegmentFieldCompletionLog('AI 补全分段字段中...\n');
+        try {
+            const result = await generateNovelSegmentFieldCompletion({
+                segmentOriginalText: selectedSegment.原文内容 || '',
+                segmentTitle: selectedSegment.标题 || '',
+                existing角色档案: selectedSegment.角色档案,
+                existing势力档案: selectedSegment.势力档案,
+                existing地图地点档案: selectedSegment.地图地点档案,
+                existing物品档案: selectedSegment.物品档案,
+                existing世界观规则: selectedSegment.世界观规则,
+                existing世界边界规则: selectedSegment.世界边界规则,
+                existing人物关系: selectedSegment.人物关系,
+                existing势力关系: selectedSegment.势力关系,
+                existing伏笔线索: selectedSegment.伏笔线索,
+                existing回收点: selectedSegment.回收点,
+                existing章节节奏: selectedSegment.章节节奏,
+            }, apiConfig, {
+                stream: true,
+                onDelta: (delta: string, accumulated: string) => {
+                    setSegmentFieldCompletionLog(accumulated);
+                }
+            });
+
+            // Merge AI completion into segment draft
+            const patch = result.completion;
+            setSegmentDraft((prev) => ({
+                ...prev,
+                角色档案: patch.角色档案?.length ? patch.角色档案 : prev.角色档案,
+                势力档案: patch.势力档案?.length ? patch.势力档案 : prev.势力档案,
+                地图地点档案: patch.地图地点档案?.length ? patch.地图地点档案 : prev.地图地点档案,
+                物品档案: patch.物品档案?.length ? patch.物品档案 : prev.物品档案,
+                世界观规则: patch.世界观规则?.length ? patch.世界观规则 : prev.世界观规则,
+                世界边界规则: patch.世界边界规则?.length ? patch.世界边界规则 : prev.世界边界规则,
+                人物关系: patch.人物关系?.length ? patch.人物关系 : prev.人物关系,
+                势力关系: patch.势力关系?.length ? patch.势力关系 : prev.势力关系,
+                伏笔线索: patch.伏笔线索?.length ? patch.伏笔线索 : prev.伏笔线索,
+                回收点: patch.回收点?.length ? patch.回收点 : prev.回收点,
+                章节节奏: patch.章节节奏?.length ? patch.章节节奏 : prev.章节节奏,
+            }));
+
+            const filledKeys = Object.keys(patch).filter(k => Array.isArray((patch as any)[k]) && (patch as any)[k].length > 0);
+            设置状态消息(`AI 分段字段补全完成，已填充 ${filledKeys.length} 类字段（${filledKeys.join('、')}）。点击保存写入分段数据。`);
+            onNotify?.({
+                title: '分段 AI 补全完成',
+                message: `已补全 ${filledKeys.length} 类字段，可检查后保存。`,
+                tone: 'success'
+            });
+        } catch (error: any) {
+            推送错误提示(`AI 分段字段补全失败：${error?.message || '未知错误'}`);
+        } finally {
+            setSegmentFieldCompletionRunning(false);
         }
     };
 
@@ -2295,7 +2624,7 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                         </span>
                                         {aiCompletionDraft && (
                                             <button
-                                                onClick={() => { setAiCompletionDraft(null); setAiCompletionLog(''); }}
+                                                onClick={() => { setAiCompletionDraft(null); setAiCompletionLog(''); setAiCompletionExpanded({}); }}
                                                 className="text-[10px] text-cyan-400/60 hover:text-cyan-300 transition-colors"
                                             >
                                                 清除补全
@@ -2306,8 +2635,48 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                         <pre className="whitespace-pre-wrap break-all max-h-32 overflow-y-auto text-cyan-100/60 font-mono text-[10px] leading-relaxed">{aiCompletionLog}</pre>
                                     )}
                                     {aiCompletionDraft && (
-                                        <div className="text-[10px] text-cyan-100/50">
-                                            已覆盖字段：{Object.keys(aiCompletionDraft).join('、')}
+                                        <div className="space-y-2 mt-2">
+                                            <div className="text-[10px] text-cyan-100/50">
+                                                已覆盖分区：{Object.keys(aiCompletionDraft).map((k) => 模式包分区名称[k] || k).join('、')}
+                                            </div>
+                                            {Object.entries(aiCompletionDraft).map(([section, value]) => {
+                                                if (!value || typeof value !== 'object') return null;
+                                                const isExpanded = aiCompletionExpanded[section] !== false;
+                                                return (
+                                                    <div key={section} className="rounded border border-cyan-500/10 bg-black/30 overflow-hidden">
+                                                        <div
+                                                            className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-cyan-500/5 transition-colors"
+                                                            onClick={() => setAiCompletionExpanded((prev) => ({ ...prev, [section]: !isExpanded }))}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <svg className={`w-3 h-3 text-cyan-400/60 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                                                <span className="text-[11px] font-medium text-cyan-200">{模式包分区名称[section] || section}</span>
+                                                                <span className="text-[9px] text-cyan-100/30 font-mono">{Object.keys(value as object).length} 字段</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); 删除模式包补全分区(section); }}
+                                                                className="p-1 rounded text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                                                title="删除此分区"
+                                                            >
+                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                            </button>
+                                                        </div>
+                                                        {isExpanded && (
+                                                            <div className="px-3 pb-3 pt-1 space-y-3 border-t border-cyan-500/5">
+                                                                {渲染模式包字段编辑器(value as Record<string, unknown>, [section])}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            <div className="flex justify-end pt-1">
+                                                <button
+                                                    onClick={() => { setAiCompletionDraft(null); setAiCompletionLog(''); setAiCompletionExpanded({}); }}
+                                                    className="text-[10px] text-red-400/60 hover:text-red-400 transition-colors"
+                                                >
+                                                    清除全部补全
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -2399,8 +2768,48 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                 <pre className="whitespace-pre-wrap break-all max-h-32 overflow-y-auto text-cyan-100/60 font-mono text-[10px] leading-relaxed">{aiCompletionLog}</pre>
                             )}
                             {aiCompletionDraft && (
-                                <div className="text-[10px] text-cyan-100/50">
-                                    已覆盖字段：{Object.keys(aiCompletionDraft).join('、')}
+                                <div className="space-y-2 mt-2">
+                                    <div className="text-[10px] text-cyan-100/50">
+                                        已覆盖分区：{Object.keys(aiCompletionDraft).map((k) => 模式包分区名称[k] || k).join('、')}
+                                    </div>
+                                    {Object.entries(aiCompletionDraft).map(([section, value]) => {
+                                        if (!value || typeof value !== 'object') return null;
+                                        const isExpanded = aiCompletionExpanded[section] !== false;
+                                        return (
+                                            <div key={section} className="rounded border border-cyan-500/10 bg-black/30 overflow-hidden">
+                                                <div
+                                                    className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-cyan-500/5 transition-colors"
+                                                    onClick={() => setAiCompletionExpanded((prev) => ({ ...prev, [section]: !isExpanded }))}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <svg className={`w-3 h-3 text-cyan-400/60 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                                        <span className="text-[11px] font-medium text-cyan-200">{模式包分区名称[section] || section}</span>
+                                                        <span className="text-[9px] text-cyan-100/30 font-mono">{Object.keys(value as object).length} 字段</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); 删除模式包补全分区(section); }}
+                                                        className="p-1 rounded text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                                        title="删除此分区"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                    </button>
+                                                </div>
+                                                {isExpanded && (
+                                                    <div className="px-3 pb-3 pt-1 space-y-3 border-t border-cyan-500/5">
+                                                        {渲染模式包字段编辑器(value as Record<string, unknown>, [section])}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex justify-end pt-1">
+                                        <button
+                                            onClick={() => { setAiCompletionDraft(null); setAiCompletionLog(''); setAiCompletionExpanded({}); }}
+                                            className="text-[10px] text-red-400/60 hover:text-red-400 transition-colors"
+                                        >
+                                            清除全部补全
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -2819,6 +3228,14 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                                 className="px-3 py-1.5 rounded text-xs font-medium border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-colors"
                                             >
                                                 重置该段重做
+                                            </button>
+                                            <button
+                                                onClick={() => void handleAiCompletionForSegmentFields()}
+                                                disabled={segmentFieldCompletionRunning}
+                                                className="px-3 py-1.5 rounded text-xs font-medium border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                title="用 AI 重新识别当前分段原文，补全档案类字段"
+                                            >
+                                                {segmentFieldCompletionRunning ? 'AI 补全中...' : 'AI 补全本分段'}
                                             </button>
                                         </div>
                                     </div>
@@ -3313,6 +3730,343 @@ const NovelDecompositionSettings: React.FC<Props> = ({ settings, onSave, request
                                                 </div>
                                             ))}
                                         </div>
+                                    </div>
+
+                                    {/* ── AI 分段字段补全按钮 + 日志 ── */}
+                                    <div className="rounded-xl border border-cyan-500/15 bg-cyan-950/5 p-5 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h5 className="text-base font-serif font-semibold text-cyan-300">档案类字段（AI 补全 / 手动编辑）</h5>
+                                                <div className="mt-1 text-xs text-gray-500">角色档案、势力档案、地点档案、物品档案、世界观规则等字段。AI 识别好的自动填入，识别不好的留空供手动补全。</div>
+                                            </div>
+                                            <button
+                                                onClick={() => void handleAiCompletionForSegmentFields()}
+                                                disabled={segmentFieldCompletionRunning || !selectedSegment}
+                                                className="px-4 py-2 rounded-lg text-xs font-medium border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                                                title="用 AI 重新识别当前分段原文，补全档案类字段"
+                                            >
+                                                {segmentFieldCompletionRunning ? 'AI 补全中...' : 'AI 补全本分段'}
+                                            </button>
+                                        </div>
+                                        {segmentFieldCompletionLog && (
+                                            <pre className="whitespace-pre-wrap break-all max-h-24 overflow-y-auto text-cyan-100/50 font-mono text-[10px] leading-relaxed">{segmentFieldCompletionLog}</pre>
+                                        )}
+                                    </div>
+
+                                    {/* ── 角色档案卡片 ── */}
+                                    <div className="rounded-xl border border-white/5 bg-black/20 p-6 space-y-4">
+                                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                            <div>
+                                                <h5 className="text-sm font-medium text-wuxia-gold">角色档案 ({segmentDraft.角色档案.length})</h5>
+                                            </div>
+                                            <button
+                                                onClick={() => 新增档案项('角色档案', { 名称: '', 身份: '', 所属势力: '', 初始立场: '', 关系摘要: [], 状态摘要: [], 首次出现: '', 重要性: '一般' })}
+                                                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 transition-colors"
+                                                title="新增角色档案"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                            </button>
+                                        </div>
+                                        {segmentDraft.角色档案.length === 0 && (
+                                            <div className="text-xs text-gray-600 py-2">暂无角色档案。点击 AI 补全按钮自动识别，或手动添加。</div>
+                                        )}
+                                        <div className="space-y-3">
+                                            {segmentDraft.角色档案.map((char, index) => (
+                                                <div key={`角色档案_${index}`} className="group relative rounded-lg border border-white/5 bg-black/40 p-4 hover:border-white/10 transition-colors">
+                                                    <button
+                                                        onClick={() => 删除档案项('角色档案', index)}
+                                                        className="absolute top-2 right-2 p-1 rounded-md bg-red-500/10 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                    </button>
+                                                    <div className="pr-6 grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">名称</label>
+                                                            <input type="text" value={char.名称} onChange={(e) => 更新档案字段('角色档案', index, '名称', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">身份</label>
+                                                            <input type="text" value={char.身份} onChange={(e) => 更新档案字段('角色档案', index, '身份', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">所属势力</label>
+                                                            <input type="text" value={char.所属势力} onChange={(e) => 更新档案字段('角色档案', index, '所属势力', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">初始立场</label>
+                                                            <input type="text" value={char.初始立场} onChange={(e) => 更新档案字段('角色档案', index, '初始立场', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">关系摘要</label>
+                                                            <input type="text" value={(char.关系摘要 || []).join('、')} onChange={(e) => 更新档案字段('角色档案', index, '关系摘要', e.target.value.split(/[、,，]/).map((s:string)=>s.trim()).filter(Boolean))}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">状态摘要</label>
+                                                            <input type="text" value={(char.状态摘要 || []).join('、')} onChange={(e) => 更新档案字段('角色档案', index, '状态摘要', e.target.value.split(/[、,，]/).map((s:string)=>s.trim()).filter(Boolean))}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">首次出现</label>
+                                                            <input type="text" value={char.首次出现} onChange={(e) => 更新档案字段('角色档案', index, '首次出现', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">重要性</label>
+                                                            <select value={char.重要性 || '一般'} onChange={(e) => 更新档案字段('角色档案', index, '重要性', e.target.value)}
+                                                                className="w-full bg-black/30 border border-white/10 rounded px-1 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none">
+                                                                <option value="核心">核心</option>
+                                                                <option value="重要">重要</option>
+                                                                <option value="一般">一般</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* ── 势力档案卡片 ── */}
+                                    <div className="rounded-xl border border-white/5 bg-black/20 p-6 space-y-4">
+                                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                            <h5 className="text-sm font-medium text-wuxia-gold">势力档案 ({segmentDraft.势力档案.length})</h5>
+                                            <button
+                                                onClick={() => 新增档案项('势力档案', { 名称: '', 类型: '', 地盘: '', 代表人物: [], 立场目标: '', 当前状态: '', 关系摘要: [], 首次出现: '' })}
+                                                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 transition-colors"
+                                                title="新增势力档案"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                            </button>
+                                        </div>
+                                        {segmentDraft.势力档案.length === 0 && (
+                                            <div className="text-xs text-gray-600 py-2">暂无势力档案。点击 AI 补全按钮自动识别，或手动添加。</div>
+                                        )}
+                                        <div className="space-y-3">
+                                            {segmentDraft.势力档案.map((faction, index) => (
+                                                <div key={`势力档案_${index}`} className="group relative rounded-lg border border-white/5 bg-black/40 p-4 hover:border-white/10 transition-colors">
+                                                    <button
+                                                        onClick={() => 删除档案项('势力档案', index)}
+                                                        className="absolute top-2 right-2 p-1 rounded-md bg-red-500/10 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                    </button>
+                                                    <div className="pr-6 grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">名称</label>
+                                                            <input type="text" value={faction.名称} onChange={(e) => 更新档案字段('势力档案', index, '名称', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">类型</label>
+                                                            <input type="text" value={faction.类型} onChange={(e) => 更新档案字段('势力档案', index, '类型', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">地盘</label>
+                                                            <input type="text" value={faction.地盘} onChange={(e) => 更新档案字段('势力档案', index, '地盘', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">代表人物</label>
+                                                            <input type="text" value={(faction.代表人物 || []).join('、')} onChange={(e) => 更新档案字段('势力档案', index, '代表人物', e.target.value.split(/[、,，]/).map((s:string)=>s.trim()).filter(Boolean))}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">立场目标</label>
+                                                            <input type="text" value={faction.立场目标} onChange={(e) => 更新档案字段('势力档案', index, '立场目标', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">当前状态</label>
+                                                            <input type="text" value={faction.当前状态} onChange={(e) => 更新档案字段('势力档案', index, '当前状态', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">关系摘要</label>
+                                                            <input type="text" value={(faction.关系摘要 || []).join('、')} onChange={(e) => 更新档案字段('势力档案', index, '关系摘要', e.target.value.split(/[、,，]/).map((s:string)=>s.trim()).filter(Boolean))}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">首次出现</label>
+                                                            <input type="text" value={faction.首次出现} onChange={(e) => 更新档案字段('势力档案', index, '首次出现', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* ── 地点档案卡片 ── */}
+                                    <div className="rounded-xl border border-white/5 bg-black/20 p-6 space-y-4">
+                                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                            <h5 className="text-sm font-medium text-wuxia-gold">地点档案 ({segmentDraft.地图地点档案.length})</h5>
+                                            <button
+                                                onClick={() => 新增档案项('地图地点档案', { 名称: '', 层级: '未知', 上级地点: '', 所属势力: '', 地貌功能: '', 关键设施: [], 首次出现: '' })}
+                                                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 transition-colors"
+                                                title="新增地点档案"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                            </button>
+                                        </div>
+                                        {segmentDraft.地图地点档案.length === 0 && (
+                                            <div className="text-xs text-gray-600 py-2">暂无地点档案。</div>
+                                        )}
+                                        <div className="space-y-3">
+                                            {segmentDraft.地图地点档案.map((loc, index) => (
+                                                <div key={`地点档案_${index}`} className="group relative rounded-lg border border-white/5 bg-black/40 p-4 hover:border-white/10 transition-colors">
+                                                    <button
+                                                        onClick={() => 删除档案项('地图地点档案', index)}
+                                                        className="absolute top-2 right-2 p-1 rounded-md bg-red-500/10 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                    </button>
+                                                    <div className="pr-6 grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">名称</label>
+                                                            <input type="text" value={loc.名称} onChange={(e) => 更新档案字段('地图地点档案', index, '名称', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">层级</label>
+                                                            <select value={loc.层级 || '未知'} onChange={(e) => 更新档案字段('地图地点档案', index, '层级', e.target.value)}
+                                                                className="w-full bg-black/30 border border-white/10 rounded px-1 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none">
+                                                                <option value="寰宇">寰宇</option>
+                                                                <option value="大地点">大地点</option>
+                                                                <option value="中地点">中地点</option>
+                                                                <option value="小地点">小地点</option>
+                                                                <option value="区地点">区地点</option>
+                                                                <option value="子地点">子地点</option>
+                                                                <option value="未知">未知</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">上级地点</label>
+                                                            <input type="text" value={loc.上级地点} onChange={(e) => 更新档案字段('地图地点档案', index, '上级地点', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">所属势力</label>
+                                                            <input type="text" value={loc.所属势力} onChange={(e) => 更新档案字段('地图地点档案', index, '所属势力', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">地貌功能</label>
+                                                            <input type="text" value={loc.地貌功能} onChange={(e) => 更新档案字段('地图地点档案', index, '地貌功能', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">关键设施</label>
+                                                            <input type="text" value={(loc.关键设施 || []).join('、')} onChange={(e) => 更新档案字段('地图地点档案', index, '关键设施', e.target.value.split(/[、,，]/).map((s:string)=>s.trim()).filter(Boolean))}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">首次出现</label>
+                                                            <input type="text" value={loc.首次出现} onChange={(e) => 更新档案字段('地图地点档案', index, '首次出现', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* ── 物品档案卡片 ── */}
+                                    <div className="rounded-xl border border-white/5 bg-black/20 p-6 space-y-4">
+                                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                            <h5 className="text-sm font-medium text-wuxia-gold">物品档案 ({segmentDraft.物品档案.length})</h5>
+                                            <button
+                                                onClick={() => 新增档案项('物品档案', { 名称: '', 类型: '', 用途: '', 所属人物: '', 所属势力: '', 首次出现: '' })}
+                                                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 transition-colors"
+                                                title="新增物品档案"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                            </button>
+                                        </div>
+                                        {segmentDraft.物品档案.length === 0 && (
+                                            <div className="text-xs text-gray-600 py-2">暂无物品档案。</div>
+                                        )}
+                                        <div className="space-y-3">
+                                            {segmentDraft.物品档案.map((item, index) => (
+                                                <div key={`物品档案_${index}`} className="group relative rounded-lg border border-white/5 bg-black/40 p-4 hover:border-white/10 transition-colors">
+                                                    <button
+                                                        onClick={() => 删除档案项('物品档案', index)}
+                                                        className="absolute top-2 right-2 p-1 rounded-md bg-red-500/10 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                    </button>
+                                                    <div className="pr-6 grid grid-cols-2 md:grid-cols-3 gap-2">
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">名称</label>
+                                                            <input type="text" value={item.名称} onChange={(e) => 更新档案字段('物品档案', index, '名称', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">类型</label>
+                                                            <input type="text" value={item.类型} onChange={(e) => 更新档案字段('物品档案', index, '类型', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">用途</label>
+                                                            <input type="text" value={item.用途} onChange={(e) => 更新档案字段('物品档案', index, '用途', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">所属人物</label>
+                                                            <input type="text" value={item.所属人物} onChange={(e) => 更新档案字段('物品档案', index, '所属人物', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">所属势力</label>
+                                                            <input type="text" value={item.所属势力} onChange={(e) => 更新档案字段('物品档案', index, '所属势力', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] text-gray-500 mb-0.5 block">首次出现</label>
+                                                            <input type="text" value={item.首次出现} onChange={(e) => 更新档案字段('物品档案', index, '首次出现', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-white/10 px-0 py-0.5 text-xs text-gray-200 focus:border-wuxia-gold outline-none" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* ── 字符串数组类字段（世界观规则、人物关系等）── */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {([
+                                            { key: '世界观规则' as const, label: '世界观规则', desc: '世界运行规则' },
+                                            { key: '世界边界规则' as const, label: '世界边界规则', desc: '不可越线限制' },
+                                            { key: '人物关系' as const, label: '人物关系', desc: '已成立的关系' },
+                                            { key: '势力关系' as const, label: '势力关系', desc: '势力间关系' },
+                                            { key: '伏笔线索' as const, label: '伏笔线索', desc: '未兑现的线索' },
+                                            { key: '回收点' as const, label: '回收点', desc: '已兑现的伏笔' },
+                                        ] as const).map(({ key, label, desc }) => (
+                                            <div key={key} className="space-y-1">
+                                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">{label} <span className="text-gray-600">({segmentDraft[key].length})</span></label>
+                                                <div className="text-[10px] text-gray-600">{desc}，每行一条</div>
+                                                <textarea
+                                                    value={格式化字符串数组(segmentDraft[key])}
+                                                    onChange={(e) => 更新字符串数组字段(key, e.target.value)}
+                                                    rows={3}
+                                                    className="w-full border border-white/10 bg-black/40 px-3 py-2 text-gray-200 rounded-lg outline-none focus:border-wuxia-gold/50 focus:ring-1 focus:ring-wuxia-gold/20 transition-all leading-relaxed resize-y font-mono text-xs"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">章节节奏 <span className="text-gray-600">({segmentDraft.章节节奏.length})</span></label>
+                                        <div className="text-[10px] text-gray-600">本组节奏标签，每行一条，如 铺垫/爆发/转折/缓冲/收束/悬念</div>
+                                        <textarea
+                                            value={格式化字符串数组(segmentDraft.章节节奏)}
+                                            onChange={(e) => 更新字符串数组字段('章节节奏', e.target.value)}
+                                            rows={2}
+                                            className="w-full border border-white/10 bg-black/40 px-3 py-2 text-gray-200 rounded-lg outline-none focus:border-wuxia-gold/50 focus:ring-1 focus:ring-wuxia-gold/20 transition-all leading-relaxed resize-y font-mono text-xs"
+                                        />
                                     </div>
 
                                     <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent border-t border-white/5 pointer-events-none">
