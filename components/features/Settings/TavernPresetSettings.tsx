@@ -226,6 +226,26 @@ const TavernPresetSettings: React.FC<Props> = ({ settings, onSave }) => {
         }
     };
 
+    const 导出JSON文件 = (filename: string, payload: unknown) => {
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const 导出当前预设 = () => {
+        if (!preset) {
+            setMessage('没有可导出的预设。');
+            return;
+        }
+        const safeName = (selectedEntry?.名称 || 'tavern_preset').replace(/[\\/:*?"<>|]+/g, '_');
+        导出JSON文件(`${safeName}.json`, preset);
+        setMessage('当前酒馆预设已导出。');
+    };
+
     const 删除当前预设 = () => {
         if (!selectedEntry) return;
         const currentIndex = presetList.findIndex((item) => item.id === selectedEntry.id);
@@ -328,6 +348,14 @@ const TavernPresetSettings: React.FC<Props> = ({ settings, onSave }) => {
                             导入内置 {item.名称}
                         </GameButton>
                     ))}
+                    <GameButton
+                        onClick={导出当前预设}
+                        variant="secondary"
+                        className="px-4 py-2 text-xs"
+                        disabled={!preset}
+                    >
+                        导出当前预设
+                    </GameButton>
                     <GameButton
                         onClick={删除当前预设}
                         variant="secondary"

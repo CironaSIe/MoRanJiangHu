@@ -1,44 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 接口设置结构, 单接口配置结构, 功能模型占位配置结构 } from '../../../types';
 import GameButton from '../../ui/GameButton';
 import InlineSelect from '../../ui/InlineSelect';
 import ToggleSwitch from '../../ui/ToggleSwitch';
 import { 规范化接口设置 } from '../../../utils/apiConfig';
 import StageApiModelSelector from './StageApiModelSelector';
-
-/** 地图模型配置导出文件格式 */
-interface 地图模型配置导出格式 {
-    version: number;
-    type: 'map_model_settings';
-    exportedAt: string;
-    功能模型占位: Partial<功能模型占位配置结构>;
-}
-
-const 地图模型配置关键字段: (keyof 功能模型占位配置结构)[] = [
-    '地图生成功能启用',
-    '地图生成使用模型',
-    '地图生成渠道ID',
-    '地图生成API地址',
-    '地图生成API密钥',
-    '地图自动更新独立模型开关',
-    '地图自动更新使用模型',
-    '地图自动更新渠道ID',
-    '地图自动更新API地址',
-    '地图自动更新API密钥',
-    '地图自动更新非流式输出',
-];
-
-/** 从完整的功能模型占位中提取地图相关字段 */
-const 提取地图配置 = (占位: 功能模型占位配置结构): Partial<功能模型占位配置结构> => {
-    const result: Partial<功能模型占位配置结构> = {};
-    for (const key of 地图模型配置关键字段) {
-        const value = (占位 as any)[key];
-        if (value !== undefined && value !== '') {
-            (result as any)[key] = value;
-        }
-    }
-    return result;
-};
 
 interface Props {
     settings: 接口设置结构;
@@ -55,7 +21,6 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
     const [memoryParsing, setMemoryParsing] = useState(false);
     const [streamText, setStreamText] = useState('');
     const streamRef = React.useRef<HTMLDivElement>(null);
-    const importFileRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const normalized = 规范化接口设置(settings);
@@ -151,60 +116,6 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
         setTimeout(() => setShowSuccess(false), 2000);
     };
 
-    // ---- 导出地图模型配置 ----
-    const 导出JSON文件 = (filename: string, payload: unknown) => {
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = filename;
-        anchor.click();
-        URL.revokeObjectURL(url);
-    };
-
-    const handleExportConfig = () => {
-        const payload: 地图模型配置导出格式 = {
-            version: 1,
-            type: 'map_model_settings',
-            exportedAt: new Date().toISOString(),
-            功能模型占位: 提取地图配置(form.功能模型占位),
-        };
-        导出JSON文件('map-model-settings.json', payload);
-        setMessage('地图模型配置已导出。');
-    };
-
-    // ---- 导入地图模型配置 ----
-    const handleImportConfig = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        event.target.value = '';
-        if (!file) return;
-        try {
-            const text = await file.text();
-            const parsed = JSON.parse(text) as 地图模型配置导出格式;
-            if (parsed?.type !== 'map_model_settings' || !parsed?.功能模型占位) {
-                setMessage('导入失败：文件不是地图模型配置（缺少 type 或 功能模型占位 字段）。');
-                return;
-            }
-            // 合并导入的配置到当前功能模型占位中
-            const imported占位 = parsed.功能模型占位;
-            setForm((prev) => {
-                const merged占位 = { ...prev.功能模型占位 };
-                for (const key of 地图模型配置关键字段) {
-                    if ((imported占位 as any)[key] !== undefined && (imported占位 as any)[key] !== '') {
-                        (merged占位 as any)[key] = (imported占位 as any)[key];
-                    }
-                }
-                const result = { ...prev, 功能模型占位: merged占位 };
-                return 规范化接口设置(result);
-            });
-            setMessage('地图模型配置已导入，请保存设置使其生效。');
-            setShowSuccess(true);
-            setTimeout(() => setShowSuccess(false), 2000);
-        } catch (error: any) {
-            setMessage(`导入失败：${error?.message || '文件格式错误'}`);
-        }
-    };
-
     React.useEffect(() => {
         if (streamRef.current) {
             streamRef.current.scrollTop = streamRef.current.scrollHeight;
@@ -257,36 +168,6 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
 
                 <div className="text-[11px] text-gray-400">
                     当前启用接口配置：{activeConfig?.名称 || '未配置'}。手动「回忆解析」会使用下方解析配置；正文后的自动地图更新由地图生成功能总开关控制，开启后默认跟随主剧情接口，也可单独指定模型。
-                </div>
-
-                <div className="rounded-md border border-wuxia-gold/20 bg-wuxia-gold/5 p-3 space-y-2">
-                    <div className="text-wuxia-gold font-bold text-xs">配置导入 / 导出</div>
-                    <div className="text-[11px] text-gray-400">
-                        导出当前地图模型配置（含开关、模型名、API 地址和密钥）为 JSON 文件；导入后可快速恢复，无需重新逐项填写。
-                    </div>
-                    <div className="flex gap-2 items-center">
-                        <GameButton
-                            onClick={handleExportConfig}
-                            variant="secondary"
-                            className="flex-1 py-1.5 text-xs"
-                        >
-                            导出配置
-                        </GameButton>
-                        <GameButton
-                            onClick={() => importFileRef.current?.click()}
-                            variant="secondary"
-                            className="flex-1 py-1.5 text-xs"
-                        >
-                            导入配置
-                        </GameButton>
-                        <input
-                            ref={importFileRef}
-                            type="file"
-                            accept=".json"
-                            onChange={handleImportConfig}
-                            className="hidden"
-                        />
-                    </div>
                 </div>
 
                 <div className="rounded-md border border-wuxia-gold/20 bg-wuxia-gold/5 p-3 space-y-2">

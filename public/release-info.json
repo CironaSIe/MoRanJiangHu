@@ -1,15 +1,26 @@
 {
-  "versionCode": 537,
-  "versionName": "1.0.537",
+  "versionCode": 538,
+  "versionName": "1.0.538",
   "releaseChannel": "stable",
-  "releasePublishedAt": "2026-06-28T22:22:36+08:00",
+  "releasePublishedAt": "2026-06-28T22:55:03+08:00",
   "releaseNotes": [
     "APK 下载源从 EdgeOne CDN 切换到 Backblaze B2 原始地址：国内直连下载速度从约 0.6 MB/s 提升到约 11 MB/s，快 17 倍以上。",
-    "地图生成模型设置支持导出/导入配置文件：配置好的开关、模型名、API 地址和密钥可保存为 JSON，下次有问题可直接导入恢复，免去重新逐项填写的麻烦。",
+    "酒馆预设面板新增「导出当前预设」按钮：调好的预设可直接保存为 JSON 文件，下次换设备或重装后导入即可恢复，不用重新开关配置。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.537",
+      "versionCode": 537,
+      "releasePublishedAt": "2026-06-28T22:22:36+08:00",
+      "releaseNotes": [
+        "APK 下载源从 EdgeOne CDN 切换到 Backblaze B2 原始地址：国内直连下载速度从约 0.6 MB/s 提升到约 11 MB/s，快 17 倍以上。",
+        "地图生成模型设置支持导出/导入配置文件：配置好的开关、模型名、API 地址和密钥可保存为 JSON，下次有问题可直接导入恢复，免去重新逐项填写的麻烦。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "备用站：https://msjh.bacon.de5.net/"
+      ]
+    },
     {
       "versionName": "1.0.536",
       "versionCode": 536,
