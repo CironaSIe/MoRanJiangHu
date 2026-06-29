@@ -29,9 +29,12 @@ describe('酒馆预设兼容导入', () => {
         expect(normalized?.兼容性?.正则脚本总数).toBe(26);
         expect(normalized?.兼容性?.安全清理脚本数).toBe(10);
         expect(normalized?.兼容性?.选项渲染脚本数).toBeGreaterThanOrEqual(1);
-        expect(normalized?.兼容性?.仅保留元数据脚本数).toBe(15);
-        expect(normalized?.兼容性?.说明.some(item => item.includes('纯正则清理脚本'))).toBe(true);
-        expect(normalized?.兼容性?.说明.some(item => item.includes('不会执行外部 JavaScript'))).toBe(true);
+        expect(normalized?.兼容性?.HTML美化脚本数).toBe(11);
+        expect(normalized?.兼容性?.JS交互脚本数).toBe(4);
+        expect(normalized?.兼容性?.仍跳过脚本数).toBe(1);
+        expect(normalized?.兼容性?.仅保留元数据脚本数).toBe(0);
+        expect(normalized?.兼容性?.说明.some(item => item.includes('安全清理脚本'))).toBe(true);
+        expect(normalized?.兼容性?.说明.some(item => item.includes('沙箱 iframe'))).toBe(true);
     });
 
     it('将 Izumi 0623 注册为允许导入的内置酒馆预设', () => {
@@ -53,7 +56,10 @@ describe('酒馆预设兼容导入', () => {
         expect(normalized?.兼容性?.正则脚本总数).toBe(26);
         expect(normalized?.兼容性?.安全清理脚本数).toBe(10);
         expect(normalized?.兼容性?.选项渲染脚本数).toBe(1);
-        expect(normalized?.兼容性?.仅保留元数据脚本数).toBe(15);
+        expect(normalized?.兼容性?.HTML美化脚本数).toBe(11);
+        expect(normalized?.兼容性?.JS交互脚本数).toBe(4);
+        expect(normalized?.兼容性?.仍跳过脚本数).toBe(1);
+        expect(normalized?.兼容性?.仅保留元数据脚本数).toBe(0);
     });
 
     userDoubleIt('用户提供的双人成行预设可导入并保留扩展兼容信息', () => {
@@ -64,8 +70,8 @@ describe('酒馆预设兼容导入', () => {
         expect(normalized?.extensions?.regex_scripts).toHaveLength(41);
         expect(normalized?.兼容性?.正则脚本总数).toBe(41);
         expect(normalized?.兼容性?.选项渲染脚本数).toBeGreaterThanOrEqual(1);
-        expect(normalized?.兼容性?.仅保留元数据脚本数).toBeGreaterThan(0);
-        expect(normalized?.兼容性?.说明.some(item => item.includes('仅保留元数据'))).toBe(true);
+        expect((normalized?.兼容性?.已分类脚本列表 || []).length).toBe(normalized?.兼容性?.正则脚本总数);
+        expect(normalized?.兼容性?.说明.some(item => item.includes('HTML 美化') || item.includes('沙箱 iframe'))).toBe(true);
     });
 
     userIzumiIt('用户提供的 Izumi 0503 预设可识别为安全选项栏适配来源', () => {
