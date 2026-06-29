@@ -137,6 +137,117 @@ const handlePucodingImageProxyRequest = async (
   }
 };
 
+const isPrivateHostname = (hostname: string): boolean => {
+  const lower = hostname.toLowerCase();
+  if (lower === 'localhost' || lower === '0.0.0.0') return true;
+  if (/^127\./.test(lower) || /^10\./.test(lower) || /^192\.168\./.test(lower)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(lower)) return true;
+  if (/^\[?::1\]?$/.test(lower)) return true;
+  return false;
+};
+
+const isAllowedOpenAiImageProxyTarget = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return /^https:$/i.test(url.protocol) && !isPrivateHostname(url.hostname);
+  } catch {
+    return false;
+  }
+};
+
+const handleOpenAiImageProxyRequest = async (
+  req: any,
+  res: any,
+  next: () => void,
+  logger: { error: (message: string) => void }
+) => {
+  if (!req.url) {
+    next();
+    return;
+  }
+
+  if (String(req.method || '').toUpperCase() === 'OPTIONS') {
+    res.statusCode = 204;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+    res.end();
+    return;
+  }
+
+  try {
+    const requestUrl = new URL(req.url, 'http://local-openai-image-proxy');
+    const targetBase = String(requestUrl.searchParams.get('url') || '').trim().replace(/\/+$/, '');
+    if (!targetBase || !isAllowedOpenAiImageProxyTarget(targetBase)) {
+      res.statusCode = 400;
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({ error: 'OpenAI image proxy target URL is invalid or not allowed.' }));
+      return;
+    }
+
+    const proxyPrefix = '/api/image-backend/openai-image-proxy';
+    const pathPart = requestUrl.pathname.startsWith(proxyPrefix)
+      ? requestUrl.pathname.slice(proxyPrefix.length) || '/'
+      : requestUrl.pathname || '/';
+    if (!/^\/(?:v1\/)?(?:images\/(?:generations|edits)|tasks\/[^/?#]+)$/i.test(pathPart)) {
+      res.statusCode = 404;
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({ error: 'Unsupported OpenAI image proxy path' }));
+      return;
+    }
+
+    const target = new URL(targetBase);
+    const basePath = target.pathname.replace(/\/+$/, '');
+    const normalizedPath = basePath.endsWith('/v1') && pathPart.startsWith('/v1/')
+      ? pathPart.replace(/^\/v1/i, '')
+      : (pathPart.startsWith('/v1/') ? pathPart : `${basePath.endsWith('/v1') ? '' : '/v1'}${pathPart}`);
+    target.pathname = `${basePath}${normalizedPath}`;
+    target.search = '';
+    requestUrl.searchParams.forEach((value, key) => {
+      if (key !== 'url') target.searchParams.append(key, value);
+    });
+
+    const method = String(req.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'POST') {
+      res.statusCode = 405;
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({ error: 'Method not allowed.' }));
+      return;
+    }
+    const body = method === 'GET' ? Buffer.alloc(0) : await 读取请求体(req);
+    const headers: Record<string, string> = {};
+    const contentType = req.headers['content-type'];
+    const authorization = req.headers.authorization;
+    const accept = req.headers.accept;
+    if (typeof authorization === 'string' && authorization.trim()) headers.authorization = authorization;
+    if (typeof contentType === 'string' && contentType.trim()) headers['content-type'] = contentType;
+    if (typeof accept === 'string' && accept.trim()) headers.accept = accept;
+
+    const result = await 执行NovelAI代理请求(target.toString(), method, headers, body);
+    res.statusCode = result.status;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+    Object.entries(result.headers).forEach(([key, value]) => {
+      if (key.toLowerCase() === 'content-length') return;
+      res.setHeader(key, value);
+    });
+    res.end(result.body);
+  } catch (error: any) {
+    logger.error(`[openai-image-dev-proxy] ${error?.message || error}`);
+    res.statusCode = 502;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({
+      error: 'OpenAI image dev proxy failed',
+      detail: error?.message || String(error)
+    }));
+  }
+};
+
 const isAllowedComfyProxyTarget = (value: string): boolean => {
   try {
     const url = new URL(value);
@@ -234,6 +345,9 @@ const imageDevProxyPlugin = (): Plugin => ({
     server.middlewares.use('/api/pucoding-image', async (req, res, next) => {
       await handlePucodingImageProxyRequest(req, res, next, server.config.logger);
     });
+    server.middlewares.use('/api/image-backend/openai-image-proxy', async (req, res, next) => {
+      await handleOpenAiImageProxyRequest(req, res, next, server.config.logger);
+    });
     server.middlewares.use('/api/image-backend/comfyui-proxy', async (req, res, next) => {
       await handleComfyUiProxyRequest(req, res, next, server.config.logger);
     });
@@ -244,6 +358,9 @@ const imageDevProxyPlugin = (): Plugin => ({
     });
     server.middlewares.use('/api/pucoding-image', async (req, res, next) => {
       await handlePucodingImageProxyRequest(req, res, next, server.config.logger);
+    });
+    server.middlewares.use('/api/image-backend/openai-image-proxy', async (req, res, next) => {
+      await handleOpenAiImageProxyRequest(req, res, next, server.config.logger);
     });
     server.middlewares.use('/api/image-backend/comfyui-proxy', async (req, res, next) => {
       await handleComfyUiProxyRequest(req, res, next, server.config.logger);

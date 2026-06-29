@@ -26,6 +26,38 @@ describe('OpenAI image runtime proxy', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock.mock.calls[0][0]).toBe('https://cdn.moe-atelier.site/v1/images/generations');
     });
+
+    it('proxies APIMart async image task polling requests', async () => {
+        const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+            code: 200,
+            data: {
+                status: 'completed',
+                result: {
+                    images: ['https://getapib.org/image/generated-ok.png']
+                }
+            }
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const response = await onRequest({
+            request: new Request('https://msjh.example/api/image-backend/openai-image-proxy/v1/tasks/task_apimart_123?url=https%3A%2F%2Fapi.apimart.ai%2Fv1', {
+                method: 'GET',
+                headers: {
+                    Authorization: 'Bearer sk-test',
+                    Accept: 'application/json'
+                }
+            }),
+            params: { path: ['v1', 'tasks', 'task_apimart_123'] }
+        });
+
+        expect(response.status).toBe(200);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock.mock.calls[0][0]).toBe('https://api.apimart.ai/v1/tasks/task_apimart_123');
+        expect(fetchMock.mock.calls[0][1]?.method).toBe('GET');
+    });
 });
 
 describe('image backend temporary image fetch proxy', () => {

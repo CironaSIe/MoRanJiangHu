@@ -3934,6 +3934,13 @@ const 提取图片生成结果 = (payload: any): 图片生成结果 | null => {
 
     const 读取图片字段 = (value: any): 图片生成结果 | null => {
         if (!value) return null;
+        if (Array.isArray(value)) {
+            for (const item of value) {
+                const hit = 读取图片字段(item);
+                if (hit) return hit;
+            }
+            return null;
+        }
         if (typeof value === 'string') {
             const trimmed = value.trim();
             if (!trimmed) return null;
@@ -3946,14 +3953,22 @@ const 提取图片生成结果 = (payload: any): 图片生成结果 | null => {
             return { 本地路径: trimmed };
         }
         if (typeof value === 'object') {
-            const url = typeof value.url === 'string' ? value.url.trim() : '';
-            const path = typeof value.path === 'string' ? value.path.trim() : (typeof value.local_path === 'string' ? value.local_path.trim() : '');
+            const url = typeof value.url === 'string'
+                ? value.url.trim()
+                : (Array.isArray(value.url) ? (读取图片字段(value.url)?.图片URL || '') : '');
+            const path = typeof value.path === 'string'
+                ? value.path.trim()
+                : (typeof value.local_path === 'string'
+                    ? value.local_path.trim()
+                    : (Array.isArray(value.path) ? (读取图片字段(value.path)?.本地路径 || 读取图片字段(value.path)?.图片URL || '') : ''));
             const b64 = typeof value.b64_json === 'string'
                 ? value.b64_json.trim()
                 : (typeof value.base64 === 'string' ? value.base64.trim() : (typeof value.image_base64 === 'string' ? value.image_base64.trim() : (typeof value.image === 'string' ? value.image.trim() : '')));
             if (b64) return { 图片URL: `data:image/png;base64,${b64.replace(/\s+/g, '')}` };
             if (url) return { 图片URL: url };
             if (path) return { 本地路径: path };
+            const nested = 读取图片字段(value.images ?? value.image_urls ?? value.output ?? value.result ?? value.data);
+            if (nested) return nested;
         }
         return null;
     };
@@ -3975,6 +3990,79 @@ const 提取图片生成结果 = (payload: any): 图片生成结果 | null => {
     }
 
     return null;
+};
+
+const 提取异步图片任务ID = (payload: any): string => {
+    if (!payload || typeof payload !== 'object') return '';
+    const candidates = [
+        payload?.task_id,
+        payload?.taskId,
+        payload?.data?.task_id,
+        payload?.data?.taskId,
+        payload?.data?.[0]?.task_id,
+        payload?.data?.[0]?.taskId
+    ];
+    const statusText = String(payload?.status || payload?.data?.status || payload?.data?.[0]?.status || '').toLowerCase();
+    for (const candidate of candidates) {
+        const text = typeof candidate === 'string' ? candidate.trim() : '';
+        if (text && (/task/i.test(text) || /pending|queued|processing|running|created/.test(statusText))) return text;
+    }
+    return '';
+};
+
+const 构建异步图片任务轮询端点 = (submitEndpoint: string, taskId: string): string => {
+    const safeTaskId = encodeURIComponent(taskId);
+    try {
+        const url = new URL(submitEndpoint);
+        url.pathname = url.pathname.replace(/\/images\/(?:generations|edits)$/i, `/tasks/${safeTaskId}`);
+        if (!/\/tasks\/[^/]+$/i.test(url.pathname)) {
+            url.pathname = `${url.pathname.replace(/\/+$/, '')}/tasks/${safeTaskId}`;
+        }
+        return url.toString();
+    } catch {
+        return `${submitEndpoint.replace(/\/images\/(?:generations|edits)(?:[?#].*)?$/i, '')}/tasks/${safeTaskId}`;
+    }
+};
+
+const 等待异步图片任务结果 = async (
+    submitEndpoint: string,
+    taskId: string,
+    apiConfig: 当前可用接口结构,
+    signal?: AbortSignal
+): Promise<{ result: 图片生成结果; rawText: string }> => {
+    const taskEndpoint = 构建异步图片任务轮询端点(submitEndpoint, taskId);
+    const startedAt = Date.now();
+    const timeoutMs = 4 * 60 * 1000;
+    let lastText = '';
+    let lastStatus = '';
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+        const response = await fetch(taskEndpoint, {
+            method: 'GET',
+            headers: 构建生图请求头(apiConfig),
+            signal
+        });
+        lastText = await response.text();
+        if (!response.ok) {
+            throw new 协议请求错误(`图片异步任务轮询失败: ${response.status}${lastText ? ` - ${lastText.slice(0, 300)}` : ''}`, response.status, lastText);
+        }
+        const parsed = 解析可能是JSON字符串(lastText);
+        const result = 提取图片生成结果(parsed);
+        if (result) return { result, rawText: lastText };
+        lastStatus = String(parsed?.status || parsed?.data?.status || '').toLowerCase();
+        if (/fail|error|cancel|reject|expired/.test(lastStatus)) {
+            throw new Error(`图片异步任务失败: ${lastStatus || 'unknown'}${lastText ? ` - ${lastText.slice(0, 300)}` : ''}`);
+        }
+        if (Date.now() - startedAt >= timeoutMs) break;
+        await new Promise<void>((resolve, reject) => {
+            const timer = setTimeout(resolve, attempt === 0 ? 0 : 5000);
+            signal?.addEventListener('abort', () => {
+                clearTimeout(timer);
+                reject(new DOMException('Aborted', 'AbortError'));
+            }, { once: true });
+        });
+    }
+    throw new Error(`图片异步任务超时未完成: ${taskId}${lastStatus ? `，最后状态：${lastStatus}` : ''}${lastText ? `，最后响应：${lastText.slice(0, 300)}` : ''}`);
 };
 
 export const buildNpcSecretPartDirectImagePrompt = (
@@ -4571,6 +4659,7 @@ export const generateImageByPrompt = async (
     })();
     const isPucodingImageEndpoint = /(^|\.)pucoding\.com$/i.test(originalBaseHost)
         || /\/api\/pucoding-image\/v1\/images\//i.test(endpointInfo?.pathname || '');
+    const isOfficialOpenAIImageEndpoint = /(^|\.)api\.openai\.com$/i.test(originalBaseHost);
     const promptWithInlineNegative = isGptImageModel
         ? normalizedPrompt
         : nsfwModeEnabled
@@ -4644,9 +4733,10 @@ export const generateImageByPrompt = async (
                 size
             };
         if (isGptImageModel && !isChatCompletionsEndpoint) {
-            if (isPucodingImageEndpoint) {
+            if (!isOfficialOpenAIImageEndpoint) {
                 requestBody.response_format = 'b64_json';
-            } else {
+            }
+            if (!isPucodingImageEndpoint) {
                 requestBody.moderation = 'auto';
             }
         }
@@ -4855,6 +4945,16 @@ const 发送NovelAI原生请求 = async (
     const parsed = 解析可能是JSON字符串(rawText);
     const result = 提取图片生成结果(parsed);
     if (!result) {
+        const asyncTaskId = 提取异步图片任务ID(parsed);
+        if (asyncTaskId) {
+            const asyncResult = await 等待异步图片任务结果(endpoint, asyncTaskId, apiConfig, signal);
+            return {
+                ...asyncResult.result,
+                原始响应: asyncResult.rawText,
+                最终正向提示词: normalizedPrompt,
+                最终负向提示词: negativePromptText
+            };
+        }
         const completionText = parsed ? 提取OpenAI完整文本(parsed) : '';
         const textToParse = completionText || rawText;
 
@@ -4882,6 +4982,41 @@ const 发送NovelAI原生请求 = async (
     } finally {
         rateLimitToken.release();
     }
+};
+
+const 校验下载结果是图片 = async (blob: Blob, sourceUrl: string): Promise<void> => {
+    const contentType = (blob.type || '').trim();
+    const headBytes = new Uint8Array(await blob.slice(0, 16).arrayBuffer());
+    const isPng = headBytes.length >= 8
+        && headBytes[0] === 0x89
+        && headBytes[1] === 0x50
+        && headBytes[2] === 0x4e
+        && headBytes[3] === 0x47
+        && headBytes[4] === 0x0d
+        && headBytes[5] === 0x0a
+        && headBytes[6] === 0x1a
+        && headBytes[7] === 0x0a;
+    const isJpeg = headBytes.length >= 3
+        && headBytes[0] === 0xff
+        && headBytes[1] === 0xd8
+        && headBytes[2] === 0xff;
+    const isWebp = headBytes.length >= 12
+        && String.fromCharCode(...headBytes.slice(0, 4)) === 'RIFF'
+        && String.fromCharCode(...headBytes.slice(8, 12)) === 'WEBP';
+    const isGif = headBytes.length >= 6
+        && (String.fromCharCode(...headBytes.slice(0, 6)) === 'GIF87a'
+            || String.fromCharCode(...headBytes.slice(0, 6)) === 'GIF89a');
+    const hasImageSignature = isPng || isJpeg || isWebp || isGif;
+    const looksLikeImage = /^image\//i.test(contentType) || hasImageSignature;
+    if (looksLikeImage && blob.size > 0) return;
+
+    const detail = await blob.text().catch(() => '');
+    const snippet = detail.replace(/\s+/g, ' ').trim().slice(0, 160);
+    const sourceHint = sourceUrl ? `，地址：${sourceUrl.slice(0, 120)}` : '';
+    if (/file not found|resource is valid for/i.test(snippet)) {
+        throw new Error(`临时图片地址已失效或不可下载，未保存为空白图片${sourceHint}${snippet ? `。返回内容：${snippet}` : ''}`);
+    }
+    throw new Error(`下载结果不是有效图片，未保存为空白图片：Content-Type=${contentType || '未知'}，大小=${blob.size}${sourceHint}${snippet ? `，返回内容：${snippet}` : ''}`);
 };
 
 export const persistImageAssetLocally = async (
@@ -4952,6 +5087,7 @@ export const persistImageAssetLocally = async (
             throw new Error(`保存本地副本失败: ${response.status}`);
         }
         const blob = await response.blob();
+        await 校验下载结果是图片(blob, imageUrl);
         const dataUrl = await blob转DataUrl(blob);
         if (!dataUrl) {
             throw new Error('保存本地副本失败：图片内容为空');
@@ -4993,6 +5129,7 @@ export const persistImageAssetLocally = async (
         throw new Error(`保存本地副本失败: ${response.status}${detail ? ` - ${detail.slice(0, 200)}` : ''}`);
     }
     const blob = await response.blob();
+    await 校验下载结果是图片(blob, imageUrl);
     const dataUrl = await blob转DataUrl(blob);
     if (!dataUrl) {
         throw new Error('保存本地副本失败：图片内容为空');

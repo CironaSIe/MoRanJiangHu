@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { generateImageByPrompt, persistImageAssetLocally } from '../services/ai/image';
+import { generateImageByPrompt, persistImageAssetLocally, __测试__重置远程图片限流器 } from '../services/ai/image';
 import { 默认画师串预设列表 } from '../utils/apiConfig';
 
 vi.mock('../services/dbService', () => ({
@@ -7,6 +7,7 @@ vi.mock('../services/dbService', () => ({
 }));
 
 afterEach(() => {
+    __测试__重置远程图片限流器();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
@@ -21,7 +22,7 @@ describe('Grok2Api image generation compatibility', () => {
         }
     });
 
-    it('does not force base64 response_format for regular GPT image compatible providers', async () => {
+    it('requests base64 response_format for GPT image providers to avoid temporary image links', async () => {
         let requestBody: any = null;
         vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
             requestBody = JSON.parse(String(init?.body || '{}'));
@@ -48,9 +49,41 @@ describe('Grok2Api image generation compatibility', () => {
             图片响应格式: 'url'
         } as any);
 
-        expect(requestBody).not.toHaveProperty('response_format');
+        expect(requestBody.response_format).toBe('b64_json');
         expect(requestBody.moderation).toBe('auto');
         expect(result.图片URL).toBe('https://image.example/gpt-result.png');
+    });
+
+    it('does not send unsupported response_format to the official GPT image endpoint', async () => {
+        let requestBody: any = null;
+        vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+            requestBody = JSON.parse(String(init?.body || '{}'));
+            return new Response(JSON.stringify({
+                data: [
+                    { b64_json: 'aGVsbG8=' }
+                ]
+            }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' }
+            });
+        }));
+
+        const result = await generateImageByPrompt('测试官方 GPT 图片模型', {
+            id: 'official-gpt-image',
+            名称: 'Official GPT Image',
+            供应商: 'openai',
+            协议覆盖: 'auto',
+            baseUrl: 'https://api.openai.com',
+            apiKey: 'test-key',
+            model: 'gpt-image-2',
+            图片后端类型: 'openai',
+            图片接口路径: '/v1/images/generations',
+            图片响应格式: 'url'
+        } as any);
+
+        expect(requestBody).not.toHaveProperty('response_format');
+        expect(requestBody.moderation).toBe('auto');
+        expect(result.图片URL).toBe('data:image/png;base64,aGVsbG8=');
     });
 
     it('does not send NSFW words in non-NSFW GPT image prompts even when user presets contain them', async () => {
@@ -118,6 +151,66 @@ describe('Grok2Api image generation compatibility', () => {
         expect(result.图片URL).toBe('data:image/png;base64,aGVsbG8=');
     });
 
+    it('polls APIMart asynchronous image tasks and returns the completed image URL', async () => {
+        const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+            const url = String(input);
+            const parsedUrl = new URL(url);
+            if (parsedUrl.pathname.endsWith('/v1/images/generations')) {
+                return new Response(JSON.stringify({
+                    code: 200,
+                    data: [
+                        {
+                            status: 'pending',
+                            task_id: 'task_apimart_123'
+                        }
+                    ]
+                }), {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' }
+                });
+            }
+            if (parsedUrl.pathname.endsWith('/v1/tasks/task_apimart_123')) {
+                return new Response(JSON.stringify({
+                    code: 200,
+                    data: {
+                        id: 'task_apimart_123',
+                        status: 'completed',
+                        result: {
+                            images: [
+                                {
+                                    url: [
+                                        'https://getapib.org/image/generated-ok.png'
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }), {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' }
+                });
+            }
+            throw new Error(`unexpected fetch ${url}`);
+        });
+        vi.stubGlobal('fetch', fetchMock);
+
+        const result = await generateImageByPrompt('测试 APIMart 异步图片任务', {
+            id: 'apimart-gpt-image',
+            名称: 'APIMart GPT Image',
+            供应商: 'openai_compatible',
+            协议覆盖: 'auto',
+            baseUrl: 'https://api.apimart.ai/v1',
+            apiKey: 'test-key',
+            model: 'gpt-image-2',
+            图片后端类型: 'openai',
+            图片接口路径: '/v1/images/generations',
+            图片响应格式: 'url'
+        } as any);
+
+        expect(result.图片URL).toBe('https://getapib.org/image/generated-ok.png');
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it('downloads HTTP temporary image links through the same-origin image backend proxy before saving', async () => {
         const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
         const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
@@ -160,6 +253,18 @@ describe('Grok2Api image generation compatibility', () => {
         expect(result.本地路径).toBe('wuxia-asset://saved-image');
         expect(result.图片URL).toBeUndefined();
         expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects text error payloads from temporary image links instead of saving blank images', async () => {
+        const fetchMock = vi.fn(async () => new Response('file not found, The resource is valid for 2 hours', {
+            status: 200,
+            headers: { 'content-type': 'text/plain' }
+        }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        await expect(persistImageAssetLocally({
+            图片URL: 'https://img.fjk.qzz.io/v1/images/retrieve/expired.png'
+        })).rejects.toThrow(/不是有效图片|临时图片地址已失效|text\/plain/i);
     });
 
     it('sends OpenAI-compatible image payload fields accepted by Grok2Api', async () => {

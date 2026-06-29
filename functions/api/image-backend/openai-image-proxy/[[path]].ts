@@ -1,6 +1,6 @@
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept'
 };
 
@@ -37,6 +37,7 @@ const normalizePath = (pathRaw: unknown): string => {
     const pathParam = Array.isArray(pathRaw) ? pathRaw.join('/') : readString(pathRaw || '');
     const path = pathParam.startsWith('/') ? pathParam : `/${pathParam}`;
     if (/^\/(?:v1\/)?images\/(?:generations|edits)$/i.test(path)) return path;
+    if (/^\/(?:v1\/)?tasks\/[^/?#]+$/i.test(path)) return path;
     return '';
 };
 
@@ -74,7 +75,7 @@ export async function onRequestOptions(): Promise<Response> {
 export async function onRequest({ request, params }: any): Promise<Response> {
     const method = request.method.toUpperCase();
     if (method === 'OPTIONS') return onRequestOptions();
-    if (method !== 'POST') {
+    if (method !== 'POST' && method !== 'GET') {
         return jsonResponse({ error: 'Method not allowed.' }, 405);
     }
 
@@ -99,9 +100,9 @@ export async function onRequest({ request, params }: any): Promise<Response> {
 
     const targetUrl = buildTargetUrl(targetBase, path, requestUrl);
     const response = await fetch(targetUrl, {
-        method: 'POST',
+        method,
         headers,
-        body: request.body
+        body: method === 'GET' ? undefined : request.body
     });
 
     const responseHeaders = new Headers(CORS_HEADERS);
