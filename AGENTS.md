@@ -115,6 +115,12 @@
 - **Incorrect pattern**: `powershell.exe -Command "..." 2>&1 | tail -10` — this causes silent empty output, making it appear the command hung or failed when it actually succeeded.
 - For Gradle builds specifically, the build may succeed (APK file exists with correct timestamp) but the pipe returns nothing, leading to false "timeout" or "empty output" diagnoses.
 
+## PowerShell 7 Editing Rule
+
+- When editing files or running file-editing shell commands on Windows, prefer PowerShell 7 (`pwsh`) over legacy Windows PowerShell (`powershell.exe`).
+- This rule applies especially to UTF-8 text edits, JSON/text file rewrites, and any command sequence that needs predictable encoding behavior.
+- Only fall back to `powershell.exe` when PowerShell 7 is unavailable or a specific tool explicitly requires the legacy host.
+
 ## Background Process Rule
 
 - **Finite commands** (build, test, compile, install): run directly — they will exit on their own.
