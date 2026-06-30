@@ -16,7 +16,8 @@ import type {
     同人女主剧情规划结构,
     剧情系统结构,
     世界数据结构,
-    提示词结构
+    提示词结构,
+    叙事状态结构
 } from '../../../types';
 import { 执行手动存档, 执行自动存档, 执行读取存档 } from '../saveCoordinator';
 import type { 自动存档快照结构 } from '../saveCoordinator';
@@ -41,6 +42,7 @@ type 存档编排工作流依赖 = {
     同人剧情规划?: 同人剧情规划结构;
     同人女主剧情规划?: 同人女主剧情规划结构;
     记忆系统: 记忆系统结构;
+    叙事平静值?: 叙事状态结构;
     openingConfig?: OpeningConfig;
     提示词池: 提示词结构[];
     游戏初始时间: string;
@@ -102,6 +104,7 @@ type 存档编排工作流依赖 = {
     设置开局配置: (value: OpeningConfig | undefined) => void;
     设置提示词池: (value: 提示词结构[]) => void;
     设置历史记录: (value: 聊天记录结构[]) => void;
+    设置叙事平静值: (value: 叙事状态结构) => void;
     清空重Roll快照: () => void;
     重置自动存档状态: () => void;
     切换生图存档作用域?: () => void;
@@ -129,6 +132,7 @@ export const 创建存读档工作流 = (deps: 存档编排工作流依赖) => {
         同人剧情规划: deps.同人剧情规划,
         同人女主剧情规划: deps.同人女主剧情规划,
         记忆系统: deps.记忆系统,
+        叙事平静值: deps.叙事平静值,
         openingConfig: deps.openingConfig,
         提示词池: deps.提示词池,
         游戏初始时间: deps.游戏初始时间,
@@ -197,6 +201,7 @@ export const 创建存读档工作流 = (deps: 存档编排工作流依赖) => {
         设置开局配置: deps.设置开局配置,
         设置提示词池: deps.设置提示词池,
         设置历史记录: deps.设置历史记录,
+        设置叙事平静值: deps.设置叙事平静值,
         清空重Roll快照: deps.清空重Roll快照,
         重置自动存档状态: deps.重置自动存档状态,
         切换生图存档作用域: deps.切换生图存档作用域,

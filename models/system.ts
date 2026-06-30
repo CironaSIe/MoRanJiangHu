@@ -1120,6 +1120,20 @@ export interface 酒馆预设条目结构 {
     导入时间?: number;
 }
 
+export interface 叙事状态结构 {
+    平静计数: number;         // 0~32，连续无剧情波折的回合数
+    情节事件记录: string[];    // 最近 30 次介入/退出/结束记录（供 AI 上下文参考）
+}
+
+export interface 叙事平静值配置结构 {
+    启用: boolean;              // 总开关
+    无标签增量: number;          // 默认 2
+    延续增量: number;            // 默认 1
+    上限: number;                // 默认 32
+    最低触发阈值: number;        // 默认 12，低于此值不注入任何文本
+    阈值文本: string[];          // 从最低触发阈值到上限等分若干段，每段一个文本（默认 6 段）
+}
+
 export interface 游戏设置结构 {
     字数要求: number; // Minimum logs body length
     字数不足处理方式?: '重新生成' | '仅提示'; // Whether short body should trigger regeneration or only a warning
@@ -1169,6 +1183,7 @@ export interface 游戏设置结构 {
     };
     额外提示词: string; // Custom prompt injected at the end
     activeModuleExtraRules?: string; // Creative workshop module safety/usage rules, injected as system_rule
+    叙事平静值配置?: 叙事平静值配置结构; // Narrative blandness value config
 }
 
 export interface 记忆配置结构 {
@@ -1276,6 +1291,7 @@ export interface 存档结构 {
     角色锚点列表?: 角色锚点结构[];
     当前角色锚点ID?: string;
     拍卖行?: any;
+    叙事平静值?: 叙事状态结构;
 }
 
 export type PromptCategory = '核心设定' | '数值设定' | '难度设定' | '写作设定' | '自定义';

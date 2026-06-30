@@ -1,4 +1,4 @@
-import { 游戏设置结构 } from '../types';
+import { 游戏设置结构, 叙事平静值配置结构 } from '../types';
 import { 默认额外系统提示词, 旧版默认额外系统提示词 } from '../prompts/runtime/defaults';
 import { 获取酒馆预设顺序, 规范化酒馆预设 } from './tavernPreset';
 
@@ -245,7 +245,22 @@ export const 默认游戏设置: 游戏设置结构 = {
     酒馆预设角色ID: null,
     酒馆预设名称: '',
     独立APIGPT模式: 默认独立APIGPT模式设置,
-    额外提示词: 默认额外系统提示词
+    额外提示词: 默认额外系统提示词,
+    叙事平静值配置: {
+        启用: false,
+        无标签增量: 2,
+        延续增量: 1,
+        上限: 32,
+        最低触发阈值: 12,
+        阈值文本: [
+            '一切如常。',
+            '一切如常，有些细节可以留意。（1 个方向）',
+            '一切如常，远处似乎有些变化。（2 个方向）',
+            '太长时间没有变化了，或许该有些新的事。（3 个方向）',
+            '风平浪静得太久了，可以有些新的动向了。（4 个方向）',
+            '一切如常，只是似乎有什么事要发生了。'
+        ]
+    }
 };
 
 export const 解析酒馆预设角色ID = (
@@ -286,6 +301,27 @@ export const 规范化酒馆预设列表 = (
         });
         return acc;
     }, []);
+};
+
+const 规范化叙事平静值配置 = (
+    raw: any,
+    fallback: 叙事平静值配置结构
+): 叙事平静值配置结构 => {
+    const source = raw && typeof raw === 'object' ? raw : {};
+    const fallbackTexts = Array.isArray(fallback?.阈值文本) ? fallback.阈值文本 : [];
+    const sourceTexts = Array.isArray(source.阈值文本) ? source.阈值文本 : fallbackTexts;
+    return {
+        启用: typeof source.启用 === 'boolean' ? source.启用 : false,
+        无标签增量: typeof source.无标签增量 === 'number' && Number.isFinite(source.无标签增量) && source.无标签增量 > 0
+            ? Math.round(source.无标签增量) : (fallback?.无标签增量 ?? 2),
+        延续增量: typeof source.延续增量 === 'number' && Number.isFinite(source.延续增量) && source.延续增量 > 0
+            ? Math.round(source.延续增量) : (fallback?.延续增量 ?? 1),
+        上限: typeof source.上限 === 'number' && Number.isFinite(source.上限) && source.上限 > 0
+            ? Math.round(source.上限) : (fallback?.上限 ?? 32),
+        最低触发阈值: typeof source.最低触发阈值 === 'number' && Number.isFinite(source.最低触发阈值) && source.最低触发阈值 >= 0
+            ? Math.round(source.最低触发阈值) : (fallback?.最低触发阈值 ?? 12),
+        阈值文本: sourceTexts.length > 0 ? sourceTexts : fallbackTexts
+    };
 };
 
 export const 规范化游戏设置 = (
@@ -356,6 +392,7 @@ export const 规范化游戏设置 = (
             source.独立APIGPT模式,
             fallback.独立APIGPT模式 || 默认独立APIGPT模式设置
         ),
-        额外提示词: 规范化额外提示词(source.额外提示词, fallback.额外提示词)
+        额外提示词: 规范化额外提示词(source.额外提示词, fallback.额外提示词),
+        叙事平静值配置: 规范化叙事平静值配置(source.叙事平静值配置, fallback.叙事平静值配置)
     };
 };

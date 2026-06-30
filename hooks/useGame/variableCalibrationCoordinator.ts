@@ -8,7 +8,8 @@ import type {
     战斗状态结构,
     环境信息结构,
     聊天记录结构,
-    角色数据结构
+    角色数据结构,
+    叙事状态结构
 } from '../../types';
 import { recordDiagnosticLog, type DiagnosticLogLevel } from '../../services/diagnosticLog';
 
@@ -27,6 +28,7 @@ type 回合快照结构 = {
         剧情: 剧情系统结构;
         女主剧情规划?: 女主剧情规划结构;
         记忆系统?: any;
+        叙事平静值?: 叙事状态结构;
     };
     回档前持久态?: {
         视觉设置?: any;
