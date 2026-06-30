@@ -104,11 +104,38 @@ const 读取记录原始描述姓名 = (record: any): string => {
     if (!rawText) return '';
     try {
         const parsed = JSON.parse(rawText);
-        return typeof parsed?.姓名 === 'string' ? parsed.姓名.trim() : '';
+        const directName = typeof parsed?.姓名 === 'string' ? parsed.姓名.trim() : '';
+        if (directName) return directName;
+        return typeof parsed?.视觉相关字段?.姓名 === 'string' ? parsed.视觉相关字段.姓名.trim() : '';
     } catch {
         return '';
     }
 };
+
+const 读取记录原始描述性别 = (record: any): string => {
+    const rawText = typeof record?.原始描述 === 'string' ? record.原始描述.trim() : '';
+    if (!rawText) return '';
+    try {
+        const parsed = JSON.parse(rawText);
+        const directGender = typeof parsed?.性别 === 'string' ? parsed.性别.trim() : '';
+        if (directGender) return directGender;
+        return typeof parsed?.视觉相关字段?.性别 === 'string' ? parsed.视觉相关字段.性别.trim() : '';
+    } catch {
+        return '';
+    }
+};
+
+const 读取记录目标姓名 = (record: any): string => (
+    typeof record?.NPC姓名 === 'string' && record.NPC姓名.trim()
+        ? record.NPC姓名.trim()
+        : 读取记录原始描述姓名(record)
+);
+
+const 读取记录目标性别 = (record: any): string => (
+    typeof record?.NPC性别 === 'string' && record.NPC性别.trim()
+        ? record.NPC性别.trim()
+        : 读取记录原始描述性别(record)
+);
 
 const 读取目标性别 = (source: any): '男' | '女' | '男娘' | '扶她' | '' => {
     const gender = typeof source?.性别 === 'string' ? source.性别.trim() : '';
@@ -190,10 +217,10 @@ export const 从历史回填香闺秘档部位档案 = (currentArchive: any, his
 const 生图记录属于当前角色 = (currentNpc: any, record: any): boolean => {
     if (!record || typeof record !== 'object') return false;
     const currentName = typeof currentNpc?.姓名 === 'string' ? currentNpc.姓名.trim() : '';
-    const recordName = typeof record?.NPC姓名 === 'string' ? record.NPC姓名.trim() : 读取记录原始描述姓名(record);
+    const recordName = 读取记录目标姓名(record);
     if (currentName && recordName && currentName !== recordName) return false;
     const currentGender = 读取目标性别(currentNpc);
-    const recordGender = 读取目标性别({ 性别: record?.NPC性别 });
+    const recordGender = 读取目标性别({ 性别: 读取记录目标性别(record) });
     if (currentGender && recordGender && currentGender !== recordGender) return false;
     return true;
 };
@@ -336,13 +363,27 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
         return (parts.length >= 2 ? parts.slice(1).join(':') : withoutSuffix).trim();
     };
 
-    const 查找NPC生图目标索引 = (baseList: any[], npcKey: string): number => {
+    const 查找NPC生图目标索引 = (baseList: any[], npcKey: string, record?: any): number => {
         const exactIndex = baseList.findIndex((npc, index) => deps.获取NPC唯一标识(npc, index) === npcKey);
         if (exactIndex >= 0) return exactIndex;
 
         const name = 解析Name标识姓名(npcKey);
-        if (!name) return -1;
-        return baseList.findIndex((npc) => 读取NPC姓名(npc) === name);
+        if (name) {
+            const nameIndex = baseList.findIndex((npc) => 读取NPC姓名(npc) === name);
+            if (nameIndex >= 0) return nameIndex;
+        }
+
+        const recordName = 读取记录目标姓名(record);
+        if (!recordName) return -1;
+        const recordGender = 读取目标性别({ 性别: 读取记录目标性别(record) });
+        const matches = baseList
+            .map((npc, index) => ({ npc, index }))
+            .filter(({ npc }) => {
+                if (读取NPC姓名(npc) !== recordName) return false;
+                const npcGender = 读取目标性别(npc);
+                return !recordGender || !npcGender || npcGender === recordGender;
+            });
+        return matches.length === 1 ? matches[0].index : -1;
     };
 
     const 更新社交并自动存档 = (updater: (prev: any[]) => { nextList: any[]; changed: boolean }): boolean => {
@@ -549,7 +590,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
         const shouldUpdateRecent = options?.同步最近结果 !== false;
         // [发送端调试] 记录入参关键字段，便于追踪图片在哪一步丢失
         const baseListForLog = Array.isArray(deps.获取社交列表()) ? deps.获取社交列表() : [];
-        const matchedNpcIndexForLog = 查找NPC生图目标索引(baseListForLog, npcKey);
+        const matchedNpcIndexForLog = 查找NPC生图目标索引(baseListForLog, npcKey, record);
         const matchedNpcForLog = matchedNpcIndexForLog >= 0 ? baseListForLog[matchedNpcIndexForLog] : undefined;
         recordDiagnosticLog('info', '[香闺秘档写入·发送端] 进入写入流程', {
             npcKey,
@@ -575,7 +616,7 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
         let writeInfo: any = null;
         const updated = 更新社交并自动存档((baseList) => {
             let changed = false;
-            const targetIndex = 查找NPC生图目标索引(baseList, npcKey);
+            const targetIndex = 查找NPC生图目标索引(baseList, npcKey, record);
             const nextList = baseList.map((npc, index) => {
                 if (index !== targetIndex) return npc;
                 changed = true;

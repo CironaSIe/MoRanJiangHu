@@ -360,5 +360,45 @@ describe('香闺秘档部位档案 pending 占位防御', () => {
             expect(socialList[0].图片档案?.最近生图结果?.id).toBe('avatar_early');
             expect(socialList[0].图片档案?.已选头像图片ID).toBe('avatar_early');
         });
+
+        it('开局伙伴稳定 ID 替换后，旧 id 私密部位结果应按姓名写回当前 NPC', () => {
+            let socialList: any[] = [{
+                id: 'npc_opening_partner_11pck2i',
+                姓名: '俞月荷',
+                性别: '女',
+                是否主要角色: true,
+                来源: '开局伙伴'
+            }];
+            const autoSave = vi.fn();
+            const workflow = 创建NPC图片状态工作流({
+                设置社交: (updater: any) => { socialList = updater(socialList); },
+                规范化社交列表: (list: any[]) => list,
+                执行社交自动存档: autoSave,
+                获取社交列表: () => socialList,
+                获取NPC唯一标识: 获取生产式NPC唯一标识,
+                设置NPC生图任务队列: vi.fn(),
+                加载图片AI服务: vi.fn()
+            } as any);
+
+            const updated = workflow.写入NPC香闺秘档部位记录('id:NPC001', '胸部', {
+                id: 'old-id-secret-chest',
+                部位: '胸部',
+                构图: '部位特写',
+                状态: 'success',
+                本地路径: 'wuxia-asset://secret-chest',
+                原始描述: JSON.stringify({
+                    视觉相关字段: {
+                        姓名: '俞月荷',
+                        性别: '女'
+                    }
+                }),
+                生成时间: 1000
+            });
+
+            expect(updated).toBe(true);
+            expect(autoSave).toHaveBeenCalledTimes(1);
+            expect(socialList[0].图片档案?.香闺秘档部位档案?.胸部?.id).toBe('old-id-secret-chest');
+            expect(socialList[0].图片档案?.生图历史?.[0]?.id).toBe('old-id-secret-chest');
+        });
     });
 });

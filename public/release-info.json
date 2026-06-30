@@ -1,14 +1,24 @@
 {
-  "versionCode": 544,
-  "versionName": "1.0.544",
+  "versionCode": 545,
+  "versionName": "1.0.545",
   "releaseChannel": "stable",
   "releaseNotes": [
-    "修复 APIMart / GPT Image 2 生图渠道的异步任务解析：支持 task_id 轮询和嵌套图片链接，避免生成完成后仍显示空白。",
-    "增强图片保存校验：临时链接返回错误文本时不再误标为成功图片，减少苹果手机浏览器空白图问题。",
+    "修复开局伙伴私密部位图片可能重复生成的问题：已生成成功的图片会正确归档到对应角色，减少重复等待和资源浪费。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/"
   ],
   "releaseHistory": [
+    {
+      "versionName": "1.0.544",
+      "versionCode": 544,
+      "releasePublishedAt": "2026-06-30T01:31:38+08:00",
+      "releaseNotes": [
+        "修复 APIMart / GPT Image 2 生图渠道的异步任务解析：支持 task_id 轮询和嵌套图片链接，避免生成完成后仍显示空白。",
+        "增强图片保存校验：临时链接返回错误文本时不再误标为成功图片，减少苹果手机浏览器空白图问题。",
+        "官网：https://msjh.bacon159.pp.ua/",
+        "备用站：https://msjh.bacon.de5.net/"
+      ]
+    },
     {
       "versionName": "1.0.538",
       "versionCode": 538,
@@ -198,11 +208,10 @@
   "multiDeviceSyncGuideUrl": "https://msjh.bacon159.pp.ua/tutorials.html#sync",
   "tutorialsUrl": "https://msjh.bacon159.pp.ua/tutorials.html",
   "changes": [
-    "修复 APIMart / GPT Image 2 生图渠道的异步任务解析：支持 task_id 轮询和嵌套图片链接，避免生成完成后仍显示空白。",
-    "增强图片保存校验：临时链接返回错误文本时不再误标为成功图片，减少苹果手机浏览器空白图问题。",
+    "修复开局伙伴私密部位图片可能重复生成的问题：已生成成功的图片会正确归档到对应角色，减少重复等待和资源浪费。",
     "官网：https://msjh.bacon159.pp.ua/",
     "备用站：https://msjh.bacon.de5.net/"
   ],
-  "notes": "修复 APIMart / GPT Image 2 生图渠道的异步任务解析：支持 task_id 轮询和嵌套图片链接，避免生成完成后仍显示空白。\\n增强图片保存校验：临时链接返回错误文本时不再误标为成功图片，减少苹果手机浏览器空白图问题。\\n官网：https://msjh.bacon159.pp.ua/\\n备用站：https://msjh.bacon.de5.net/",
-  "releasePublishedAt": "2026-06-30T01:31:38+08:00"
+  "notes": "修复开局伙伴私密部位图片可能重复生成的问题：已生成成功的图片会正确归档到对应角色，减少重复等待和资源浪费。\\n官网：https://msjh.bacon159.pp.ua/\\n备用站：https://msjh.bacon.de5.net/",
+  "releasePublishedAt": "2026-06-30T14:29:42.608+08:00"
 }
