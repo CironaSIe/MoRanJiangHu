@@ -191,7 +191,7 @@ export const 执行世界演变更新工作流 = async (
         for (const e of 远处候选) {
             const 名 = 取文本(e?.事件名);
             const 展 = 取文本(e?.当前进展) || 取文本(e?.事件说明);
-            if (名) dynamicHints.push(`叙事平淡值较高，优先推进远处事件（不强拉主角）：${名}${展 ? `——${展}` : ''}`);
+            if (名) dynamicHints.push(`叙事平静值较高，优先推进远处事件（不强拉主角）：${名}${展 ? `——${展}` : ''}`);
         }
     }
     const dueHints = (Array.isArray(params?.到期摘要) ? params?.到期摘要 : [])
