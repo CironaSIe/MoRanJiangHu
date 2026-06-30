@@ -62,6 +62,27 @@ const 取数字 = (value: any, fallback = 0): number => {
     return Number.isFinite(next) ? next : fallback;
 };
 
+const 规范化主角参与度 = (value: any): number => {
+    const next = Number(value);
+    if (Number.isFinite(next)) {
+        if (next < 0) return 0;
+        if (next > 1) return 1;
+        return next;
+    }
+    return 0;
+};
+
+const 推导触发距离 = (参与度: number): '远处' | '附近' | '当场' => {
+    if (参与度 <= 0.2) return '远处';
+    if (参与度 <= 0.5) return '附近';
+    return '当场';
+};
+
+const 规范化触发距离 = (value: any, 参与度: number): '远处' | '附近' | '当场' | undefined => {
+    if (value === '远处' || value === '附近' || value === '当场') return value;
+    return 推导触发距离(参与度);
+};
+
 const 生成稳定哈希 = (text: string): number => {
     let hash = 2166136261;
     for (let i = 0; i < text.length; i += 1) {
@@ -1886,7 +1907,10 @@ export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
                     关联地点: 取字符串数组(item?.关联地点),
                     关联分解组: 取数字数组(item?.关联分解组),
                     关联分歧线: 取字符串数组(item?.关联分歧线),
-                    当前状态: 取文本(item?.当前状态)
+                    当前状态: 取文本(item?.当前状态),
+                    主角参与度: 规范化主角参与度(item?.主角参与度),
+                    触发距离: 规范化触发距离(item?.触发距离, 规范化主角参与度(item?.主角参与度)),
+                    关系强度: typeof item?.关系强度 === 'number' && Number.isFinite(item.关系强度) ? Math.max(0, Math.min(1, item.关系强度)) : undefined
                 }))
                 .filter((item) => item.事件名 || item.事件说明)
             : [],
@@ -1904,7 +1928,10 @@ export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
                     关联势力: 取字符串数组(item?.关联势力),
                     关联地点: 取字符串数组(item?.关联地点),
                     关联分解组: 取数字数组(item?.关联分解组),
-                    关联分歧线: 取字符串数组(item?.关联分歧线)
+                    关联分歧线: 取字符串数组(item?.关联分歧线),
+                    主角参与度: 规范化主角参与度(item?.主角参与度),
+                    触发距离: 规范化触发距离(item?.触发距离, 规范化主角参与度(item?.主角参与度)),
+                    关系强度: typeof item?.关系强度 === 'number' && Number.isFinite(item.关系强度) ? Math.max(0, Math.min(1, item.关系强度)) : undefined
                 }))
                 .filter((item) => item.事件名 || item.事件说明)
             : [],
@@ -1922,7 +1949,8 @@ export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
                     关联势力: 取字符串数组(item?.关联势力),
                     关联地点: 取字符串数组(item?.关联地点),
                     关联分解组: 取数字数组(item?.关联分解组),
-                    关联分歧线: 取字符串数组(item?.关联分歧线)
+                    关联分歧线: 取字符串数组(item?.关联分歧线),
+                    主角参与度: typeof item?.主角参与度 === 'number' && Number.isFinite(item.主角参与度) ? Math.max(0, Math.min(1, item.主角参与度)) : undefined
                 }))
                 .filter((item) => item.事件名 || item.事件说明)
             : [],
@@ -1938,7 +1966,9 @@ export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
                     关联分解组: 取数字数组(item?.关联分解组),
                     关联分歧线: 取字符串数组(item?.关联分歧线),
                     沉淀内容: 取字符串数组(item?.沉淀内容),
-                    当前状态: 取文本(item?.当前状态)
+                    当前状态: 取文本(item?.当前状态),
+                    主角参与度: typeof item?.主角参与度 === 'number' && Number.isFinite(item.主角参与度) ? Math.max(0, Math.min(1, item.主角参与度)) : undefined,
+                    触发距离: 规范化触发距离(item?.触发距离, typeof item?.主角参与度 === 'number' && Number.isFinite(item.主角参与度) ? Math.max(0, Math.min(1, item.主角参与度)) : 0)
                 }))
                 .filter((item) => item.镜头标题 || item.镜头内容)
             : [],
