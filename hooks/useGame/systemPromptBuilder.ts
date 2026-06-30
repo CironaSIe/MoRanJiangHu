@@ -799,6 +799,18 @@ export const 构建系统提示词 = ({
         const parts: string[] = [];
         if (活跃事件) parts.push(`当前：${活跃事件}（仍在进行）`);
         if (text) parts.push(text);
+        if (计数 >= 19) {
+            const world = 规范化世界状态(payload?.世界);
+            const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
+            const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
+            const 远处线索 = [
+                ...取数组(world?.待执行事件).filter((e: any) => (Number(e?.主角参与度) || 0) <= 0.2),
+                ...取数组(world?.进行中事件).filter((e: any) => (Number(e?.主角参与度) || 0) <= 0.2)
+            ].slice(0, 2);
+            if (远处线索.length > 0) {
+                parts.push('远处动向：' + 远处线索.map((e: any) => `${取文本(e?.事件名)}（${取文本(e?.当前进展) || 取文本(e?.事件说明)}）`).join('；'));
+            }
+        }
         return parts.join('\n');
     };
     const 构建战斗状态文本 = (payload: any) => {

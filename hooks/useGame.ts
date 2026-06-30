@@ -3094,6 +3094,8 @@ export const useGame = () => {
             prompts,
             开局配置,
             worldbooks: 世界书列表,
+            叙事平静值,
+            叙事平静值配置,
             世界演变进行中Ref,
             世界演变去重签名Ref,
             已进入主剧情回合,
