@@ -2,7 +2,7 @@ import * as textAIService from '../../services/ai/text';
 import type { GameResponse, OpeningConfig, 接口设置结构, 提示词结构, 剧情系统结构, 女主剧情规划结构, 记忆系统结构, 聊天记录结构, 环境信息结构, 世界数据结构, 世界书结构, 叙事状态结构, 叙事平静值配置结构 } from '../../types';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取世界演变接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
-import { 规范化游戏设置 } from '../../utils/gameSettings';
+import { 规范化游戏设置, 计算远处联动阈值 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
 import { 数值_世界演化 } from '../../prompts/stats/world';
@@ -180,7 +180,7 @@ export const 执行世界演变更新工作流 = async (
         .map(item => (item || '').trim())
         .filter(Boolean);
     const 叙事平静值配置 = deps.叙事平静值配置;
-    if (叙事平静值配置?.启用 && (deps.叙事平静值?.平静计数 ?? 0) >= 19) {
+    if (叙事平静值配置?.启用 && (deps.叙事平静值?.平静计数 ?? 0) >= 计算远处联动阈值(叙事平静值配置)) {
         const worldForHints = deps.规范化世界状态(deps.世界);
         const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
         const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
