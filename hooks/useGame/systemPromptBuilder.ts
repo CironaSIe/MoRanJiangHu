@@ -29,7 +29,7 @@ const 解析标准时间为天数片段 = (raw?: string): { year: number; month:
         minute: Number(match[5])
     };
 };
-import { 规范化游戏设置 } from '../../utils/gameSettings';
+import { 规范化游戏设置, 计算远处联动阈值 } from '../../utils/gameSettings';
 import {
     构建世界书注入文本,
     世界书本体槽位
@@ -799,7 +799,7 @@ export const 构建系统提示词 = ({
         const parts: string[] = [];
         if (活跃事件) parts.push(`当前：${活跃事件}（仍在进行）`);
         if (text) parts.push(text);
-        if (计数 >= 19) {
+        if (计数 >= 计算远处联动阈值(config)) {
             const world = 规范化世界状态(payload?.世界);
             const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
             const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
