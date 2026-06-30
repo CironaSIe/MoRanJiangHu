@@ -324,6 +324,17 @@ const 规范化叙事平静值配置 = (
     };
 };
 
+export const 计算远处联动阈值 = (config: 叙事平静值配置结构 | undefined | null): number => {
+    if (!config) return Infinity;
+    const 下限 = typeof config.最低触发阈值 === 'number' && Number.isFinite(config.最低触发阈值)
+        ? config.最低触发阈值 : 12;
+    const 上限 = typeof config.上限 === 'number' && Number.isFinite(config.上限)
+        ? config.上限 : 32;
+    const 段数 = Math.max(1, Array.isArray(config.阈值文本) ? config.阈值文本.length : 0);
+    const 段宽 = (上限 - 下限) / 段数;
+    return 下限 + 段宽 * 2;
+};
+
 export const 规范化游戏设置 = (
     raw?: Partial<游戏设置结构> | null,
     options?: { fallback?: Partial<游戏设置结构> | null }
