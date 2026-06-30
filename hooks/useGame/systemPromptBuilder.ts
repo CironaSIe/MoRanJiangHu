@@ -653,7 +653,9 @@ export const 构建系统提示词 = ({
                 关联地点: 取数组(event?.关联地点),
                 关联分解组: 取数组(event?.关联分解组),
                 关联分歧线: 取数组(event?.关联分歧线),
-                当前状态: 取文本(event?.当前状态)
+                当前状态: 取文本(event?.当前状态),
+                主角参与度: typeof event?.主角参与度 === 'number' && Number.isFinite(event.主角参与度) ? Math.max(0, Math.min(1, event.主角参与度)) : 0,
+                触发距离: 取文本(event?.触发距离) || (typeof event?.主角参与度 === 'number' && Number.isFinite(event.主角参与度) ? (event.主角参与度 <= 0.2 ? '远处' : event.主角参与度 <= 0.5 ? '附近' : '当场') : '远处')
             })),
             进行中事件: 取数组(world?.进行中事件).map((event: any, idx: number) => ({
                 索引: idx,
@@ -668,7 +670,9 @@ export const 构建系统提示词 = ({
                 关联势力: 取数组(event?.关联势力),
                 关联地点: 取数组(event?.关联地点),
                 关联分解组: 取数组(event?.关联分解组),
-                关联分歧线: 取数组(event?.关联分歧线)
+                关联分歧线: 取数组(event?.关联分歧线),
+                主角参与度: typeof event?.主角参与度 === 'number' && Number.isFinite(event.主角参与度) ? Math.max(0, Math.min(1, event.主角参与度)) : 0,
+                触发距离: 取文本(event?.触发距离) || (typeof event?.主角参与度 === 'number' && Number.isFinite(event.主角参与度) ? (event.主角参与度 <= 0.2 ? '远处' : event.主角参与度 <= 0.5 ? '附近' : '当场') : '远处')
             })),
             已结算事件: 取数组(world?.已结算事件).map((event: any, idx: number) => ({
                 索引: idx,
@@ -683,7 +687,8 @@ export const 构建系统提示词 = ({
                 关联势力: 取数组(event?.关联势力),
                 关联地点: 取数组(event?.关联地点),
                 关联分解组: 取数组(event?.关联分解组),
-                关联分歧线: 取数组(event?.关联分歧线)
+                关联分歧线: 取数组(event?.关联分歧线),
+                主角参与度: typeof event?.主角参与度 === 'number' && Number.isFinite(event.主角参与度) ? Math.max(0, Math.min(1, event.主角参与度)) : undefined
             })),
             世界镜头规划: 取数组(world?.世界镜头规划).map((item: any, idx: number) => ({
                 索引: idx,
@@ -696,7 +701,9 @@ export const 构建系统提示词 = ({
                 关联分解组: 取数组(item?.关联分解组),
                 关联分歧线: 取数组(item?.关联分歧线),
                 沉淀内容: 取数组(item?.沉淀内容),
-                当前状态: 取文本(item?.当前状态)
+                当前状态: 取文本(item?.当前状态),
+                主角参与度: typeof item?.主角参与度 === 'number' && Number.isFinite(item.主角参与度) ? Math.max(0, Math.min(1, item.主角参与度)) : undefined,
+                触发距离: 取文本(item?.触发距离) || undefined
             })),
             江湖史册: 取数组(world?.江湖史册).map((event: any, idx: number) => ({
                 索引: idx,
@@ -712,6 +719,47 @@ export const 构建系统提示词 = ({
         };
 
         return 包装树状上下文('世界', 裁剪修炼体系上下文数据(orderedWorld, normalizedGameConfig));
+    };
+    const 构建世界事件分档上下文 = (payload: any): string => {
+        const world = 规范化世界状态(payload?.世界);
+        const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
+        const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
+        const 取参与度 = (value: any): number => {
+            const n = Number(value);
+            return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0;
+        };
+        const 事件列表 = [
+            ...取数组(world?.待执行事件).map((e: any) => ({
+                名: 取文本(e?.事件名),
+                说明: 取文本(e?.事件说明),
+                参与度: 取参与度(e?.主角参与度),
+                状态: '待执行'
+            })),
+            ...取数组(world?.进行中事件).map((e: any) => ({
+                名: 取文本(e?.事件名),
+                说明: 取文本(e?.当前进展) || 取文本(e?.事件说明),
+                参与度: 取参与度(e?.主角参与度),
+                状态: '进行中'
+            }))
+        ];
+        if (事件列表.length === 0) return '';
+        const 远处 = 事件列表.filter(e => e.参与度 <= 0.2);
+        const 附近 = 事件列表.filter(e => e.参与度 > 0.2 && e.参与度 <= 0.5);
+        const 当场 = 事件列表.filter(e => e.参与度 > 0.5);
+        const 片段: string[] = [];
+        if (远处.length > 0) {
+            片段.push('【远处传闻】（主角只能通过听说/公告/他人转述获知，不得写成亲眼看见或恰好路过现场）\n'
+                + 远处.map(e => `- ${e.名}（${e.状态}）：${e.说明}`).join('\n'));
+        }
+        if (附近.length > 0) {
+            片段.push('【附近动静】（主角可能路过遇见，不强制）\n'
+                + 附近.map(e => `- ${e.名}（${e.状态}）：${e.说明}`).join('\n'));
+        }
+        if (当场.length > 0) {
+            片段.push('【当前事件】（主角在场或直接相关）\n'
+                + 当场.map(e => `- ${e.名}（${e.状态}）：${e.说明}`).join('\n'));
+        }
+        return 片段.length > 0 ? `【世界事件分档】\n${片段.join('\n\n')}` : '';
     };
     const 构建战斗状态文本 = (payload: any) => {
         const battle = 规范化战斗状态(payload?.战斗);
@@ -1570,6 +1618,7 @@ export const 构建系统提示词 = ({
         ? 构建女主剧情规划文本(statePayload)
         : '';
     const contextWorldState = 构建世界状态文本(statePayload);
+    const contextWorldEventTiers = 构建世界事件分档上下文(statePayload);
     const contextEnvironmentState = 构建环境状态文本(statePayload);
     const contextRoleState = 构建角色状态文本(statePayload);
     const contextBattleState = 构建战斗状态文本(statePayload);
@@ -1601,6 +1650,7 @@ export const 构建系统提示词 = ({
             contextNPCData,
             contextHeroinePlan,
             contextWorldState,
+            contextWorldEventTiers,
             contextEnvironmentState,
             contextRoleState,
             contextBattleState,

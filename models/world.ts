@@ -113,6 +113,9 @@ export interface 世界待执行事件结构 {
     关联分解组: number[];
     关联分歧线: string[];
     当前状态: string;
+    主角参与度: number;
+    触发距离?: '远处' | '附近' | '当场';
+    关系强度?: number;
 }
 
 export interface 世界进行中事件结构 {
@@ -128,6 +131,9 @@ export interface 世界进行中事件结构 {
     关联地点: string[];
     关联分解组: number[];
     关联分歧线: string[];
+    主角参与度: number;
+    触发距离?: '远处' | '附近' | '当场';
+    关系强度?: number;
 }
 
 export interface 世界已结算事件结构 {
@@ -143,6 +149,7 @@ export interface 世界已结算事件结构 {
     关联地点: string[];
     关联分解组: number[];
     关联分歧线: string[];
+    主角参与度?: number;
 }
 
 export interface 世界镜头结构 {
@@ -156,6 +163,8 @@ export interface 世界镜头结构 {
     关联分歧线: string[];
     沉淀内容: string[];
     当前状态: string;
+    主角参与度?: number;
+    触发距离?: '远处' | '附近' | '当场';
 }
 
 export interface 世界史册条目结构 {
