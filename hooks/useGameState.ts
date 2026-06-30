@@ -24,6 +24,8 @@ import {
     同人女主剧情规划结构,
     图片管理设置结构,
     OpeningConfig,
+    叙事状态结构,
+    叙事平静值配置结构,
 } from '../types';
 import { 默认中期转长期提示词, 默认短期转中期提示词, 默认NPC记忆总结提示词 } from '../prompts/runtime/defaults';
 import { 节日列表 } from '../data/world'; 
@@ -158,6 +160,18 @@ export const useGameState = () => {
     const [同人女主剧情规划, 设置同人女主剧情规划] = useState<同人女主剧情规划结构 | undefined>(() => 创建空同人女主剧情规划状态());
     const [开局配置, 设置开局配置] = useState<OpeningConfig | undefined>(undefined);
     const [游戏初始时间, 设置游戏初始时间] = useState('');
+
+    const 创建初始叙事平静值 = (): 叙事状态结构 => ({ 平静计数: 0, 情节事件记录: [] });
+    const 创建默认叙事平静值配置 = (): 叙事平静值配置结构 => (默认游戏设置.叙事平静值配置 ?? {
+        启用: false,
+        无标签增量: 2,
+        延续增量: 1,
+        上限: 32,
+        最低触发阈值: 12,
+        阈值文本: []
+    });
+    const [叙事平静值, 设置叙事平静值] = useState<叙事状态结构>(() => 创建初始叙事平静值());
+    const [叙事平静值配置, 设置叙事平静值配置] = useState<叙事平静值配置结构>(() => 创建默认叙事平静值配置());
 
     // New Game State for Memory
     const [记忆系统, 设置记忆系统] = useState<记忆系统结构>({
@@ -425,9 +439,11 @@ export const useGameState = () => {
         apiConfig, setApiConfig,
         visualConfig, setVisualConfig,
         imageManagerConfig, setImageManagerConfig,
-        gameConfig, setGameConfig, 
-        memoryConfig, setMemoryConfig, 
-        
+        gameConfig, setGameConfig,
+        memoryConfig, setMemoryConfig,
+        叙事平静值, 设置叙事平静值,
+        叙事平静值配置, 设置叙事平静值配置,
+
         prompts, setPrompts,
         promptsReady,
         ensurePromptsLoaded,

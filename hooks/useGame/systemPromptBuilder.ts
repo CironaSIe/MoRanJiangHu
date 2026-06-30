@@ -6,7 +6,9 @@ import type {
     游戏设置结构,
     OpeningConfig,
     世界书作用域,
-    世界书结构
+    世界书结构,
+    叙事状态结构,
+    叙事平静值配置结构
 } from '../../types';
 import { 规范化记忆配置 } from './memoryUtils';
 import { 格式化短期记忆展示文本 } from './memoryUtils';
@@ -102,6 +104,7 @@ export type 系统提示词上下文片段 = {
     门派状态: string;
     任务状态: string;
     约定状态: string;
+    叙事状态: string;
 };
 
 export type 系统提示词构建结果 = {
@@ -760,6 +763,43 @@ export const 构建系统提示词 = ({
                 + 当场.map(e => `- ${e.名}（${e.状态}）：${e.说明}`).join('\n'));
         }
         return 片段.length > 0 ? `【世界事件分档】\n${片段.join('\n\n')}` : '';
+    };
+    const 获取当前活跃事件名 = (情节事件记录: string[]): string | null => {
+        if (!Array.isArray(情节事件记录)) return null;
+        for (let i = 情节事件记录.length - 1; i >= 0; i--) {
+            const entry = 情节事件记录[i];
+            if (typeof entry !== 'string') continue;
+            const im = entry.match(/介入[：:]\s*(.+)/);
+            if (!im) continue;
+            const 事件名 = im[1].trim();
+            const later = 情节事件记录.slice(i + 1);
+            const hasExit = later.some(e => typeof e === 'string' && (e.includes(`退出：${事件名}`) || e.includes(`结束：${事件名}`)));
+            if (!hasExit) return 事件名;
+        }
+        return null;
+    };
+    const 构建叙事状态文本 = (payload: any): string => {
+        const config = payload?.叙事平静值配置 as 叙事平静值配置结构 | undefined;
+        if (!config?.启用) return '';
+        const ns = payload?.叙事平静值 as 叙事状态结构 | undefined;
+        const 计数 = ns?.平静计数 ?? 0;
+        const 下限 = config.最低触发阈值 ?? 12;
+        const 上限 = config.上限 ?? 32;
+        const 文本列表 = Array.isArray(config.阈值文本) ? config.阈值文本 : [];
+        if (计数 < 下限) return '';
+        const 活跃事件 = 获取当前活跃事件名(ns?.情节事件记录 || []);
+        let text = '';
+        if (文本列表.length === 0 || 计数 >= 上限) {
+            text = 文本列表[文本列表.length - 1] || '一切如常，只是似乎有什么事要发生了。';
+        } else {
+            const 段宽 = (上限 - 下限) / 文本列表.length;
+            const 段索引 = Math.min(文本列表.length - 1, Math.floor((计数 - 下限) / 段宽));
+            text = 文本列表[段索引] || '';
+        }
+        const parts: string[] = [];
+        if (活跃事件) parts.push(`当前：${活跃事件}（仍在进行）`);
+        if (text) parts.push(text);
+        return parts.join('\n');
     };
     const 构建战斗状态文本 = (payload: any) => {
         const battle = 规范化战斗状态(payload?.战斗);
@@ -1619,6 +1659,7 @@ export const 构建系统提示词 = ({
         : '';
     const contextWorldState = 构建世界状态文本(statePayload);
     const contextWorldEventTiers = 构建世界事件分档上下文(statePayload);
+    const contextNarrativeState = 构建叙事状态文本(statePayload);
     const contextEnvironmentState = 构建环境状态文本(statePayload);
     const contextRoleState = 构建角色状态文本(statePayload);
     const contextBattleState = 构建战斗状态文本(statePayload);
@@ -1651,6 +1692,7 @@ export const 构建系统提示词 = ({
             contextHeroinePlan,
             contextWorldState,
             contextWorldEventTiers,
+            contextNarrativeState,
             contextEnvironmentState,
             contextRoleState,
             contextBattleState,
@@ -1688,7 +1730,8 @@ export const 构建系统提示词 = ({
             战斗状态: contextBattleState,
             门派状态: contextSectState,
             任务状态: contextTaskState,
-            约定状态: contextAgreementState
+            约定状态: contextAgreementState,
+            叙事状态: contextNarrativeState
         }
     };
 };

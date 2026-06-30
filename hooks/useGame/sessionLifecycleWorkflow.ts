@@ -7,7 +7,8 @@ import type {
     女主剧情规划结构,
     同人剧情规划结构,
     同人女主剧情规划结构,
-    提示词结构
+    提示词结构,
+    叙事状态结构
 } from '../../types';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取主剧情接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
@@ -47,6 +48,7 @@ type 回合快照结构 = {
         同人剧情规划?: any;
         同人女主剧情规划?: any;
         记忆系统: any;
+        叙事平静值?: 叙事状态结构;
     };
     回档前持久态: {
         视觉设置: any;
@@ -108,6 +110,7 @@ type 会话生命周期依赖 = {
     设置同人剧情规划: (value: any) => void;
     设置同人女主剧情规划: (value: any) => void;
     设置开局配置: (value: OpeningConfig | undefined) => void;
+    设置叙事平静值: (value: 叙事状态结构) => void;
     设置开局文章优化进度: (value: any) => void;
     设置开局主剧情进度: (value: any) => void;
     设置开局变量生成进度: (value: any) => void;
@@ -200,6 +203,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         deps.设置同人剧情规划(undefined);
         deps.设置同人女主剧情规划(undefined);
         deps.设置开局配置(undefined);
+        deps.设置叙事平静值({ 平静计数: 0, 情节事件记录: [] });
         deps.设置开局文章优化进度(null);
         deps.设置开局变量生成进度(null);
         deps.设置开局世界演变进度(null);

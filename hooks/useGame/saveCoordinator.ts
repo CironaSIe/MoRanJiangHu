@@ -21,7 +21,8 @@ import type {
     游戏设置结构,
     场景图片档案,
     角色锚点结构,
-    OpeningConfig
+    OpeningConfig,
+    叙事状态结构
 } from '../../types';
 import { 核心_世界观 } from '../../prompts/core/world';
 import { 核心_境界体系 } from '../../prompts/core/realm';
@@ -132,6 +133,7 @@ export type 自动存档快照结构 = {
     visualConfig?: 视觉设置结构;
     sceneImageArchive?: 场景图片档案;
     auctionHouse?: 拍卖行状态;
+    叙事平静值?: 叙事状态结构;
     force?: boolean;
 };
 
@@ -151,6 +153,7 @@ type 存档协调当前状态 = {
     同人剧情规划?: 同人剧情规划结构;
     同人女主剧情规划?: 同人女主剧情规划结构;
     记忆系统: 记忆系统结构;
+    叙事平静值?: 叙事状态结构;
     openingConfig?: OpeningConfig;
     提示词池: 提示词结构[];
     游戏初始时间: string;
@@ -219,6 +222,7 @@ type 存档协调依赖 = {
     设置开局配置: (value: OpeningConfig | undefined) => void;
     设置提示词池: (value: 提示词结构[]) => void;
     设置历史记录: (value: 聊天记录结构[]) => void;
+    设置叙事平静值: (value: 叙事状态结构) => void;
     清空重Roll快照: () => void;
     推入重Roll快照?: (snapshot: {
         玩家输入: string;
@@ -586,7 +590,8 @@ const 构建读档后重Roll快照 = (
             女主剧情规划: deps.深拷贝(loaded.heroinePlan),
             同人剧情规划: deps.深拷贝(loaded.fandomStoryPlan),
             同人女主剧情规划: deps.深拷贝(loaded.fandomHeroinePlan),
-            记忆系统: deps.深拷贝(deps.规范化记忆系统(loaded.memory))
+            记忆系统: deps.深拷贝(deps.规范化记忆系统(loaded.memory)),
+            叙事平静值: deps.深拷贝(loaded.叙事平静值 || { 平静计数: 0, 情节事件记录: [] })
         },
         回档前持久态: {
             视觉设置: deps.深拷贝(loaded.visual),
@@ -709,7 +714,8 @@ export const 创建存档数据 = (
         核心提示词快照,
         角色锚点列表: deps.深拷贝(filteredCharacterAnchors.anchors),
         当前角色锚点ID: filteredCharacterAnchors.currentAnchorId,
-        拍卖行: deps.深拷贝(auctionHouseSource)
+        拍卖行: deps.深拷贝(auctionHouseSource),
+        叙事平静值: deps.深拷贝(snapshot?.叙事平静值 || currentState.叙事平静值 || { 平静计数: 0, 情节事件记录: [] })
     };
 };
 
@@ -981,6 +987,7 @@ export const 执行读取存档 = async (
     deps.设置历史记录(loadedHistoryForState);
     trace('history.set.done');
     deps.应用并同步记忆系统(loadedMemory, { 静默总结提示: true });
+    deps.设置叙事平静值(save.叙事平静值 || { 平静计数: 0, 情节事件记录: [] });
     trace('memory.set.done', {
         memory: {
             archive: Array.isArray(save.记忆系统?.回忆档案) ? save.记忆系统?.回忆档案.length : 0,

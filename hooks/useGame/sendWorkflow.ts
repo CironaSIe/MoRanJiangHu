@@ -1,7 +1,7 @@
 import * as textAIService from '../../services/ai/text';
 import { recordAiParseFailureDiagnostic } from '../../services/diagnosticContext';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
-import type { GameResponse, OpeningConfig, 聊天记录结构, 记忆系统结构, 角色数据结构, 剧情系统结构, 剧情规划结构, 女主剧情规划结构, 同人剧情规划结构, 同人女主剧情规划结构, 世界书结构, 内置提示词条目结构 } from '../../types';
+import type { GameResponse, OpeningConfig, 聊天记录结构, 记忆系统结构, 角色数据结构, 剧情系统结构, 剧情规划结构, 女主剧情规划结构, 同人剧情规划结构, 同人女主剧情规划结构, 世界书结构, 内置提示词条目结构, 叙事状态结构, 叙事平静值配置结构 } from '../../types';
 import { 获取主剧情接口配置, 获取剧情回忆接口配置, 获取文章优化接口配置, 获取变量计算接口配置, 获取世界演变接口配置, 获取规划分析接口配置, 获取地图自动更新接口配置, 接口配置是否可用, 变量校准功能已启用 as 变量生成功能已启用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 计算正文字数容错字数, 正文字数差距在容错内 } from '../../utils/bodyLengthTolerance';
@@ -821,6 +821,7 @@ type 回合快照结构 = {
         同人剧情规划?: 同人剧情规划结构;
         同人女主剧情规划?: 同人女主剧情规划结构;
         记忆系统: 记忆系统结构;
+        叙事平静值?: 叙事状态结构;
     };
     回档前持久态: {
         视觉设置: any;
@@ -856,6 +857,8 @@ type 主剧情发送当前状态 = {
     prompts: any[];
     内置提示词列表: 内置提示词条目结构[];
     世界书列表: 世界书结构[];
+    叙事平静值?: 叙事状态结构;
+    叙事平静值配置?: 叙事平静值配置结构;
 };
 
 type 主剧情发送依赖 = {
@@ -867,6 +870,7 @@ type 主剧情发送依赖 = {
     setShowSettings: (value: boolean) => void;
     设置剧情: (value: 剧情系统结构) => void;
     设置历史记录: (value: 聊天记录结构[] | ((prev: 聊天记录结构[]) => 聊天记录结构[])) => void;
+    设置叙事平静值: (value: 叙事状态结构) => void;
     应用并同步记忆系统: (memory: 记忆系统结构, options?: { 静默总结提示?: boolean }) => void;
     构建系统提示词: (promptPool: any[], memoryData: 记忆系统结构, socialData: any[], statePayload: any, options?: any) => Promise<主剧情系统上下文 & {
         runtimePromptStates: Record<string, any>;
@@ -980,6 +984,38 @@ type 主剧情发送依赖 = {
             model: string;
         } | null;
     } | null>;
+};
+
+const 提取全部情节事件 = (rawText: string): Array<{ prefix: string; event: string }> => {
+    const results: Array<{ prefix: string; event: string }> = [];
+    const regex = /<情节事件>([\s\S]*?)<\/情节事件>/gi;
+    let match;
+    while ((match = regex.exec(rawText)) !== null) {
+        const full = match[1].trim();
+        const pm = full.match(/^(介入|退出|结束|延续)[：:]?\s*/);
+        if (pm) {
+            results.push({ prefix: pm[1], event: full.slice(pm[0].length).trim() });
+        }
+    }
+    return results;
+};
+
+const 计算本回合目标计数 = (
+    tags: Array<{ prefix: string }>,
+    当前计数: number,
+    config: 叙事平静值配置结构
+): number => {
+    const 上限 = config.上限 ?? 32;
+    const 无标签增量 = config.无标签增量 ?? 2;
+    const 延续增量 = config.延续增量 ?? 1;
+    if (tags.length === 0) {
+        return Math.min(当前计数 + 无标签增量, 上限);
+    }
+    const candidates = tags.map(t => {
+        if (t.prefix === '介入' || t.prefix === '退出' || t.prefix === '结束') return 0;
+        return Math.min(当前计数 + 延续增量, 上限);
+    });
+    return Math.min(...candidates);
 };
 
 export const 执行主剧情发送工作流 = async (
@@ -1232,7 +1268,8 @@ export const 执行主剧情发送工作流 = async (
             女主剧情规划: deps.深拷贝(currentState.女主剧情规划),
             同人剧情规划: deps.深拷贝(currentState.同人剧情规划),
             同人女主剧情规划: deps.深拷贝(currentState.同人女主剧情规划),
-            记忆系统: deps.深拷贝(memBeforeSend)
+            记忆系统: deps.深拷贝(memBeforeSend),
+            叙事平静值: deps.深拷贝(currentState.叙事平静值 || { 平静计数: 0, 情节事件记录: [] })
         },
         回档前持久态: {
             视觉设置: deps.深拷贝(currentState.visualConfig),
@@ -1372,7 +1409,9 @@ export const 执行主剧情发送工作流 = async (
                 剧情: deps.规范化剧情状态(currentState.剧情, currentState.环境),
                 女主剧情规划: deps.规范化女主剧情规划状态(currentState.女主剧情规划),
                 开局配置: currentState.开局配置,
-                游戏初始时间: currentState.游戏初始时间 || ''
+                游戏初始时间: currentState.游戏初始时间 || '',
+                叙事平静值: currentState.叙事平静值,
+                叙事平静值配置: currentState.叙事平静值配置
             },
             {
                 ...(recallContextActiveForMain
@@ -1736,7 +1775,8 @@ export const 执行主剧情发送工作流 = async (
                 女主剧情规划: deps.深拷贝(currentState.女主剧情规划),
                 同人剧情规划: deps.深拷贝(currentState.同人剧情规划),
                 同人女主剧情规划: deps.深拷贝(currentState.同人女主剧情规划),
-                记忆系统: deps.深拷贝(memBeforeSend)
+                记忆系统: deps.深拷贝(memBeforeSend),
+                叙事平静值: deps.深拷贝(currentState.叙事平静值 || { 平静计数: 0, 情节事件记录: [] })
             },
             回档前持久态: {
                 视觉设置: deps.深拷贝(currentState.visualConfig),
@@ -1919,6 +1959,28 @@ export const 执行主剧情发送工作流 = async (
             });
         } else {
             deps.设置历史记录([...updatedDisplayHistory, newAiMsg]);
+        }
+
+        let 本回合更新后的叙事平静值: 叙事状态结构 | null = null;
+        const 叙事平静值配置 = 规范化游戏设置(currentState.gameConfig)?.叙事平静值配置;
+        if (叙事平静值配置?.启用) {
+            const 当前叙事状态 = currentState.叙事平静值 || { 平静计数: 0, 情节事件记录: [] };
+            const 本回合事件列表 = 提取全部情节事件(rawAiText);
+            const 可记录事件 = 本回合事件列表.filter(t => t.prefix !== '延续');
+            const 新状态 = {
+                平静计数: 计算本回合目标计数(本回合事件列表, 当前叙事状态.平静计数 ?? 0, 叙事平静值配置),
+                情节事件记录: [...(当前叙事状态.情节事件记录 || [])]
+            };
+            if (可记录事件.length > 0) {
+                for (const ev of 可记录事件) {
+                    新状态.情节事件记录 = [
+                        ...新状态.情节事件记录.slice(-29),
+                        `[回合${nextRound}] ${ev.prefix}：${ev.event}`
+                    ];
+                }
+            }
+            本回合更新后的叙事平静值 = 新状态;
+            deps.设置叙事平静值(新状态);
         }
 
         const pushedNpcList = deps.提取新增NPC列表(socialBeforeMainCommands, finalState.社交);
@@ -2681,6 +2743,7 @@ export const 执行主剧情发送工作流 = async (
                         fandomStoryPlan: finalState.同人剧情规划,
                         fandomHeroinePlan: finalState.同人女主剧情规划,
                         memory: nextMemory,
+                        叙事平静值: 本回合更新后的叙事平静值 || undefined,
                         force: true
                     });
                 }

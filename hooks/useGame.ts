@@ -32,7 +32,8 @@ import {
     世界书结构,
     世界书预设组结构,
     世界书作用域,
-    TavernCommand
+    TavernCommand,
+    叙事状态结构
 } from '../types';
 import { useEffect, useRef, useState } from 'react';
 import * as dbService from '../services/dbService';
@@ -178,6 +179,7 @@ type 回合快照结构 = {
         同人剧情规划?: 同人剧情规划结构;
         同人女主剧情规划?: 同人女主剧情规划结构;
         记忆系统: 记忆系统结构;
+        叙事平静值?: 叙事状态结构;
     };
     回档前持久态: {
         视觉设置: 视觉设置结构;
@@ -487,6 +489,8 @@ export const useGame = () => {
         ensurePromptsLoaded,
         festivals, setFestivals,
         currentTheme, setCurrentTheme,
+        叙事平静值, 设置叙事平静值,
+        叙事平静值配置, 设置叙事平静值配置,
         scrollRef, abortControllerRef, recallAbortControllerRef, variableGenerationAbortControllerRef
     } = gameState;
     const 回合快照栈Ref = useRef<回合快照结构[]>([]);
@@ -886,6 +890,7 @@ export const useGame = () => {
         设置同人剧情规划(规范化同人剧情规划状态(深拷贝(snapshot.回档前状态.同人剧情规划)));
         设置同人女主剧情规划(规范化同人女主剧情规划状态(深拷贝(snapshot.回档前状态.同人女主剧情规划)));
         应用并同步记忆系统(深拷贝(snapshot.回档前状态.记忆系统));
+        设置叙事平静值(深拷贝(snapshot.回档前状态.叙事平静值 || { 平静计数: 0, 情节事件记录: [] }));
         设置历史记录(深拷贝(snapshot.回档前历史));
         if (options?.保留图片状态 !== true) {
             应用视觉设置到状态(深拷贝(snapshot.回档前持久态?.视觉设置 || {}));
@@ -3416,6 +3421,8 @@ export const useGame = () => {
                 同人女主剧情规划,
                 开局配置,
                 游戏初始时间,
+                叙事平静值,
+                叙事平静值配置,
                 loading,
                 gameConfig,
                 apiConfig,
@@ -3435,6 +3442,7 @@ export const useGame = () => {
                 setShowSettings,
                 设置剧情,
                 设置历史记录,
+                设置叙事平静值,
                 应用并同步记忆系统,
                 构建系统提示词,
                 processResponseCommands,
@@ -3579,6 +3587,7 @@ export const useGame = () => {
         同人剧情规划,
         同人女主剧情规划,
         记忆系统,
+        叙事平静值,
         openingConfig: 开局配置,
         提示词池: prompts,
         游戏初始时间,
@@ -3656,6 +3665,7 @@ export const useGame = () => {
         设置开局配置,
         设置提示词池: setPrompts,
         设置历史记录,
+        设置叙事平静值,
         清空重Roll快照,
         推入重Roll快照,
         重置自动存档状态,
@@ -3726,6 +3736,7 @@ export const useGame = () => {
         设置同人剧情规划,
         设置同人女主剧情规划,
         设置开局配置,
+        设置叙事平静值,
         设置开局主剧情进度: set开局主剧情进度,
         设置开局文章优化进度: set开局文章优化进度,
         设置开局变量生成进度: set开局变量生成进度,
