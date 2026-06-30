@@ -330,7 +330,8 @@ export const 执行世界演变更新工作流 = async (
             currentTurnCommandsText,
             currentGameTime: 环境时间转标准串(worldEnv) || '',
             dynamicHints,
-            dueHints
+            dueHints,
+            genderEvolutionEnabled: (deps.开局配置?.modeRuntimeProfile?.性别比例演变预设 ?? worldRuntimeGameConfig.性别比例自动演变 ?? false) === true
         };
         const worldContext = await probe.timeAsync('构建世界演变上下文文本(worker)', () => 执行游戏后台重计算<string>(
             'buildWorldEvolutionContext',

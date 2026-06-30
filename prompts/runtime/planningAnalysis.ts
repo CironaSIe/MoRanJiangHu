@@ -2,24 +2,27 @@ import { 核心_剧情推动 } from '../core/story';
 import { 构建女主剧情规划协议 } from '../core/heroinePlan';
 import { 构建女主规划专项提示词 } from '../core/heroinePlanCot';
 
-export const 构建规划性别比例约束摘要 = (genderRatio?: unknown): string => {
-    if (typeof genderRatio === 'string' && genderRatio.trim()) {
+export const 构建规划性别比例约束摘要 = (genderRatio?: unknown, 世界性别比例?: unknown, 地点级性别比例?: unknown): string => {
+    const 实际比例 = 地点级性别比例 ?? 世界性别比例 ?? genderRatio;
+    const 比例来源 = 地点级性别比例 ? '当前地点' : 世界性别比例 ? '世界' : '开局配置';
+
+    if (typeof 实际比例 === 'string' && 实际比例.trim()) {
         return [
             '【规划性别比例约束】',
-            `- 当前世界/NPC系统男女比例：${genderRatio.trim()}。`,
+            `- 当前${比例来源}性别比例：${实际比例.trim()}。`,
             '- 规划新增 NPC、公共场景路人、组织成员、敌友角色池或女主候选补位时，若正文事实、明确称谓、社交档案或原著硬约束未锁定性别，应按该比例保持新增人物池分布。',
             '- 已有事实、角色身份边界、后宫/后院/妻妾等特殊场景和玩家明确要求优先于该比例。'
         ].join('\n');
     }
 
-    if (genderRatio && typeof genderRatio === 'object') {
-        const entries = Object.entries(genderRatio as Record<string, unknown>)
+    if (实际比例 && typeof 实际比例 === 'object') {
+        const entries = Object.entries(实际比例 as Record<string, unknown>)
             .filter(([, value]) => typeof value === 'number' || (typeof value === 'string' && value.trim()))
             .map(([key, value]) => `${key}:${String(value).trim()}`);
         if (entries.length > 0) {
             return [
                 '【规划性别比例约束】',
-                `- 当前世界/NPC系统性别比例：${entries.join('，')}。`,
+                `- 当前${比例来源}性别比例：${entries.join('，')}。`,
                 '- 规划新增 NPC、公共场景路人、组织成员、敌友角色池或女主候选补位时，若正文事实、明确称谓、社交档案或原著硬约束未锁定性别，应按该比例保持新增人物池分布。',
                 '- 已有事实、角色身份边界、后宫/后院/妻妾等特殊场景和玩家明确要求优先于该比例。'
             ].join('\n');

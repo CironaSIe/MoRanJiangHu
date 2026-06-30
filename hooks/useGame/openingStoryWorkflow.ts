@@ -46,6 +46,7 @@ import {
     开局规划初始化附加提示词
 } from '../../prompts/runtime/openingPlanningInit';
 import { 构建规划性别比例约束摘要 } from '../../prompts/runtime/planningAnalysis';
+import { 解析当前有效性别比例 } from '../../utils/genderRatioUtils';
 import {
     开局变量生成附加提示词,
     构建开局变量生成审计重点
@@ -1909,7 +1910,11 @@ export const 执行开场剧情生成工作流 = async (
                         simulatedOpeningState.剧情,
                         simulatedOpeningState.角色?.姓名 || deps.角色?.姓名 || ''
                     );
-                    const genderRatioConstraintText = 构建规划性别比例约束摘要(options?.开局配置?.modeRuntimeProfile?.npc?.genderRatio);
+                    const genderRatioConstraintText = 构建规划性别比例约束摘要(
+                        options?.开局配置?.modeRuntimeProfile?.npc?.genderRatio,
+                        simulatedOpeningState.世界?.性别比例,
+                        解析当前有效性别比例(simulatedOpeningState.环境, simulatedOpeningState.世界?.地图层级, simulatedOpeningState.世界?.性别比例, options?.开局配置?.modeRuntimeProfile?.npc?.genderRatio)
+                    );
                     const planningExtraPrompt = [
                         开局规划初始化附加提示词,
                         planningWorldbookExtra,

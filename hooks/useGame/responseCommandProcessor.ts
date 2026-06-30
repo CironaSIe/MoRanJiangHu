@@ -1384,6 +1384,57 @@ const 规范化人物键 = (value: unknown): string => (
         : ''
 );
 
+const 明确性别集合 = new Set(['男', '女', '男娘', '扶她']);
+
+const 性别专属字段映射: Record<string, { 清除: string[]; 补齐占位: string[] }> = {
+    '女': {
+        清除: ['肉棒描述', '男娘设定', '扶她设定'],
+        补齐占位: ['胸部描述', '小穴描述', '屁穴描述']
+    },
+    '男': {
+        清除: ['胸部描述', '小穴描述', '屁穴描述', '子宫', '失贞档案', '名器档案', '扶她设定', '男娘设定'],
+        补齐占位: []
+    },
+    '男娘': {
+        清除: ['胸部描述', '小穴描述', '子宫', '失贞档案', '名器档案', '扶她设定'],
+        补齐占位: ['肉棒描述', '屁穴描述', '男娘设定']
+    },
+    '扶她': {
+        清除: [],
+        补齐占位: ['胸部描述', '小穴描述', '屁穴描述', '肉棒描述', '扶她设定']
+    },
+};
+
+const 处理性转档案重建 = (
+    target: any,
+    oldValue: string | undefined,
+    newValue: string
+): void => {
+    if (!target || typeof target !== 'object') return;
+    if (!明确性别集合.has(oldValue) || !明确性别集合.has(newValue)) return;
+    if (oldValue === newValue) return;
+
+    const mapping = 性别专属字段映射[newValue];
+    if (!mapping) return;
+
+    mapping.清除.forEach((field) => {
+        if (field in target) {
+            delete target[field];
+        }
+    });
+
+    mapping.补齐占位.forEach((field) => {
+        if (target[field] == null || target[field] === '') {
+            target[field] = '待性转后重建';
+        }
+    });
+
+    // 标记角色锚点失效，触发生图系统重制
+    if (target.角色锚点失效 == null) {
+        target.角色锚点失效 = true;
+    }
+};
+
 const 过滤玩家本人门派成员 = (sect: any, playerName?: string): any => {
     if (!sect || typeof sect !== 'object' || !Array.isArray(sect.重要成员)) return sect;
     const playerKey = 规范化人物键(playerName);
@@ -1427,6 +1478,7 @@ export const 执行响应命令处理 = (
     let fandomHeroinePlanBuffer = deps.规范化同人女主剧情规划状态(baseState?.同人女主剧情规划 ?? currentState.同人女主剧情规划);
     const socialBeforeCommands = Array.isArray(socialBuffer) ? socialBuffer : [];
     const worldFactionsBeforeCommands = Array.isArray(worldBuffer?.势力列表) ? worldBuffer.势力列表 : [];
+    const charGenderBeforeCommands = charBuffer?.性别;
     const charKungfuBeforeCommands = Array.isArray(charBuffer?.功法列表) ? charBuffer.功法列表 : [];
 
     const responseFactText = 提取响应事实文本(response);
@@ -1501,6 +1553,24 @@ export const 执行响应命令处理 = (
 
         envBuffer = deps.规范化环境信息(envBuffer);
         socialBuffer = deps.规范化社交列表(socialBuffer, { 合并同名: false });
+        // NPC性转检测与档案重建：对比命令前后社交列表中的性别变化
+        const 旧社交性别映射 = new Map<string, string>();
+        socialBeforeCommands.forEach((npc: any) => {
+            const name = typeof npc?.姓名 === 'string' ? npc.姓名 : '';
+            const gender = typeof npc?.性别 === 'string' ? npc.性别 : '';
+            if (name && gender) 旧社交性别映射.set(name, gender);
+        });
+        socialBuffer = socialBuffer.map((npc: any) => {
+            const name = typeof npc?.姓名 === 'string' ? npc.姓名 : '';
+            const newGender = typeof npc?.性别 === 'string' ? npc.性别 : '';
+            if (name && newGender && 旧社交性别映射.has(name)) {
+                const oldGender = 旧社交性别映射.get(name);
+                if (明确性别集合.has(oldGender) && 明确性别集合.has(newGender) && oldGender !== newGender) {
+                    处理性转档案重建(npc, oldGender, newGender);
+                }
+            }
+            return npc;
+        });
         worldBuffer = deps.规范化世界状态(worldBuffer);
         // 势力名称保留：当 AI 命令部分更新势力导致名称丢失时，恢复旧的真实名称
         worldBuffer.势力列表 = 合并保留势力列表名称(worldFactionsBeforeCommands, worldBuffer?.势力列表 || []);
@@ -1519,6 +1589,14 @@ export const 执行响应命令处理 = (
         // 功法名称保留：当 AI 命令部分更新功法导致名称丢失时，恢复旧的真实名称
         if (Array.isArray(charBuffer?.功法列表) && charKungfuBeforeCommands.length > 0) {
             charBuffer.功法列表 = 合并保留功法列表名称(charKungfuBeforeCommands, charBuffer.功法列表);
+        }
+        // 主角性转检测与档案重建：检查是否有 set 角色.性别 = * 命令
+        const 主角性别命令 = response?.tavern_commands?.find((cmd: any) => {
+            const key = typeof cmd?.key === 'string' ? cmd.key : '';
+            return /^角色\.性别$/.test(key) && cmd?.op === 'set';
+        });
+        if (主角性别命令 && typeof 主角性别命令.value === 'string') {
+            处理性转档案重建(charBuffer, charGenderBeforeCommands, 主角性别命令.value);
         }
         socialBuffer = deps.规范化社交列表(
             补入对白发送者到社交(response, socialBuffer, charBuffer?.姓名),
@@ -1572,6 +1650,28 @@ export const 执行响应命令处理 = (
             socialBuffer = socialBuffer.filter((npc: any) => {
                 const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
                 return !npcName || npcName !== playerNormKeyTavern;
+            });
+        }
+
+        // 地点级性别比例恢复回合递减
+        if (Array.isArray(worldBuffer?.地图层级)) {
+            worldBuffer.地图层级 = worldBuffer.地图层级.map((layer: any) => {
+                if (layer.性别比例恢复回合 === -1) {
+                    return layer;
+                }
+                if (layer.性别比例恢复回合 === 0) {
+                    const { 性别比例, 性别比例恢复回合, 性别比例变更原因, ...rest } = layer;
+                    return rest;
+                }
+                if (layer.性别比例恢复回合 != null && layer.性别比例恢复回合 > 0) {
+                    const 新剩余 = layer.性别比例恢复回合 - 1;
+                    if (新剩余 <= 0) {
+                        const { 性别比例, 性别比例恢复回合, 性别比例变更原因, ...rest } = layer;
+                        return rest;
+                    }
+                    return { ...layer, 性别比例恢复回合: 新剩余 };
+                }
+                return layer;
             });
         }
 

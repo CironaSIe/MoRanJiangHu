@@ -926,6 +926,20 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                 </div>
             </div>
 
+            <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <div className="text-sm text-wuxia-cyan font-bold">性别比例自动演变</div>
+                        <div className="text-xs text-gray-400 mt-1">开启后，世界演变环节会根据剧情自动调整性别比例（世界级+地点级），并生成对应的个体性转命令；关闭后性别比例不受AI自动调整。</div>
+                    </div>
+                    <ToggleSwitch
+                        checked={form.性别比例自动演变 === true}
+                        onChange={(next) => 实时应用更新({ 性别比例自动演变: next })}
+                        ariaLabel="切换性别比例自动演变"
+                    />
+                </div>
+            </div>
+
             <div className="space-y-2">
                 <label className="text-sm text-wuxia-cyan font-bold">额外要求提示词 (Custom Prompt)</label>
                 <textarea 

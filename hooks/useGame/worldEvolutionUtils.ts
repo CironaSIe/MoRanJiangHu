@@ -483,6 +483,7 @@ export const 构建世界演变上下文文本 = (params: {
     currentGameTime?: string;
     dynamicHints?: string[];
     dueHints?: string[];
+    genderEvolutionEnabled?: boolean;
 }): string => {
     const memoryBlock = (Array.isArray(params.shortMemoryTexts) ? params.shortMemoryTexts : [])
         .map((item) => 格式化短期记忆展示文本(item || ''))
@@ -553,6 +554,10 @@ export const 构建世界演变上下文文本 = (params: {
         factionBackfillHints.length > 0 ? factionBackfillHints.map(item => `- ${item}`).join('\n') : '- 无',
         '',
         '【本回合可触发演变候选】',
-        evolutionCandidates.length > 0 ? evolutionCandidates.map(item => `- ${item}`).join('\n') : '- 无'
+        evolutionCandidates.length > 0 ? evolutionCandidates.map(item => `- ${item}`).join('\n') : '- 无',
+        '',
+        '【性别比例演变状态】',
+        params.genderEvolutionEnabled ? '开启' : '关闭',
+        ...(params.genderEvolutionEnabled ? [] : ['（关闭时Step8.5跳过性别比例更新评估）'])
     ].join('\n');
 };

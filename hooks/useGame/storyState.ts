@@ -1868,8 +1868,9 @@ export const 创建开场空白世界 = (): 世界数据结构 => ({
     地图人物: [],
     势力列表: [],
     势力互动历史: [],
-    拍卖行待投放物品: []
-});
+     拍卖行待投放物品: [],
+     性别比例: undefined
+ });
 
 export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
     const world = raw && typeof raw === 'object' ? raw : {};
@@ -2013,7 +2014,8 @@ export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
         // 势力系统：标准化处理，确保每个势力项结构完整
         势力列表: 标准化势力列表(world?.势力列表),
         势力互动历史: Array.isArray(world?.势力互动历史) ? world.势力互动历史 : [],
-        拍卖行待投放物品: Array.isArray(world?.拍卖行待投放物品) ? world.拍卖行待投放物品 : []
+         拍卖行待投放物品: Array.isArray(world?.拍卖行待投放物品) ? world.拍卖行待投放物品 : [],
+         性别比例: world?.性别比例 ?? undefined
     };
 
     // 不再调用补齐——旧坐标系统已废弃，新地图系统不需要空间坐标补全
@@ -2560,6 +2562,10 @@ export const 创建开场基础状态 = (charData: 角色数据结构, worldConf
     };
     const 社交 = 修复开局伙伴社交列表([], openingConfig, 角色);
     const 世界 = 创建开场空白世界();
+    // 注入开局性别比例到世界层，作为世界性别比例的初始值
+    if (openingConfig?.modeRuntimeProfile?.npc?.genderRatio) {
+        世界.性别比例 = openingConfig.modeRuntimeProfile.npc.genderRatio as any;
+    }
     const 地图草稿层级 = Array.isArray(worldConfig?.mapDiyDraft?.nodes) && worldConfig.mapDiyDraft.nodes.length > 0
         ? buildWorldMapLayersFromDraft(worldConfig.mapDiyDraft)
         : [];

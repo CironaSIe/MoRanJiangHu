@@ -1,3 +1,11 @@
+// 性别比例配置类型（与 models/system.ts 中的 性别比例配置 保持一致，避免循环引用）
+export interface 地点性别比例配置 {
+    男: number;
+    女: number;
+    男娘: number;
+    扶她: number;
+}
+
 export type 游戏时间格式 = string;
 
 export interface 地点归属结构 {
@@ -52,6 +60,9 @@ export interface 地图层级结构 {
     建筑物ID列表: string[];
     道路ID列表: string[];
     人物ID列表: string[];
+    性别比例?: 地点性别比例配置 | string;  // 地点级性别比例，覆盖世界级
+    性别比例恢复回合?: number;              // -1=永久性；>0=每回合-1，归0清除；0或未设置=不存在
+    性别比例变更原因?: string;              // 变更原因，方便追溯
 }
 
 export interface 地图建筑结构 {
@@ -229,5 +240,6 @@ export interface 世界数据结构 {
     // 势力系统
     势力列表: 势力结构[];
     势力互动历史: 势力互动事件[];
-    拍卖行待投放物品: 势力库藏物品[];
+     拍卖行待投放物品: 势力库藏物品[];
+     性别比例?: 地点性别比例配置 | string; // 世界当前性别比例状态，世界演变可更新；未设置时fallback到开局配置
 }
