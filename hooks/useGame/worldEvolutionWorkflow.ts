@@ -1,5 +1,5 @@
 import * as textAIService from '../../services/ai/text';
-import type { GameResponse, OpeningConfig, 接口设置结构, 提示词结构, 剧情系统结构, 女主剧情规划结构, 记忆系统结构, 聊天记录结构, 环境信息结构, 世界数据结构, 世界书结构 } from '../../types';
+import type { GameResponse, OpeningConfig, 接口设置结构, 提示词结构, 剧情系统结构, 女主剧情规划结构, 记忆系统结构, 聊天记录结构, 环境信息结构, 世界数据结构, 世界书结构, 叙事状态结构, 叙事平静值配置结构 } from '../../types';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取世界演变接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
@@ -53,6 +53,8 @@ type 世界演变依赖 = {
     prompts: 提示词结构[];
     开局配置?: OpeningConfig;
     worldbooks: 世界书结构[];
+    叙事平静值?: 叙事状态结构;
+    叙事平静值配置?: 叙事平静值配置结构;
     世界演变进行中Ref: { current: boolean };
     世界演变去重签名Ref: { current: string };
     已进入主剧情回合: () => boolean;
@@ -177,6 +179,21 @@ export const 执行世界演变更新工作流 = async (
     const dynamicHints = (Array.isArray(params?.动态世界线索) ? params?.动态世界线索 : [])
         .map(item => (item || '').trim())
         .filter(Boolean);
+    const 叙事平静值配置 = deps.叙事平静值配置;
+    if (叙事平静值配置?.启用 && (deps.叙事平静值?.平静计数 ?? 0) >= 19) {
+        const worldForHints = deps.规范化世界状态(deps.世界);
+        const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
+        const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
+        const 远处候选 = [
+            ...取数组(worldForHints?.待执行事件).filter((e: any) => (Number(e?.主角参与度) || 0) <= 0.5),
+            ...取数组(worldForHints?.进行中事件).filter((e: any) => (Number(e?.主角参与度) || 0) <= 0.5)
+        ].slice(0, 2);
+        for (const e of 远处候选) {
+            const 名 = 取文本(e?.事件名);
+            const 展 = 取文本(e?.当前进展) || 取文本(e?.事件说明);
+            if (名) dynamicHints.push(`叙事平淡值较高，优先推进远处事件（不强拉主角）：${名}${展 ? `——${展}` : ''}`);
+        }
+    }
     const dueHints = (Array.isArray(params?.到期摘要) ? params?.到期摘要 : [])
         .map(item => (item || '').trim())
         .filter(Boolean);
