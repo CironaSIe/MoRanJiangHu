@@ -253,6 +253,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const [partnerRelation, setPartnerRelation] = useState('自幼相识的同行伙伴');
     const [partnerNote, setPartnerNote] = useState('');
     const [partnerStats, setPartnerStats] = useState<属性结构>(创建默认属性分配);
+    const [statsValidationFail, setStatsValidationFail] = useState(false);
     const [partnerBackground, setPartnerBackground] = useState<背景结构>(预设背景[0]);
     const [partnerTalents, setPartnerTalents] = useState<天赋结构[]>([]);
     const [partnerList, setPartnerList] = useState<初始伙伴配置结构[]>(() => [默认初始伙伴配置()]);
@@ -815,7 +816,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const remainingPoints = totalStatBudget - usedPoints;
     const partnerUsedPoints = Object.values(partnerStats).reduce((a, b) => a + b, 0);
     const partnerRemainingPoints = totalStatBudget - partnerUsedPoints;
-    const stepProgress = ((step + 1) / STEPS.length) * 100;
+    const stepProgress = Math.min(100, ((step + 1) / STEPS.length) * 100);
     const currentStepLabel = STEPS[step] || '创建';
     const 当前题材配置 = useMemo(() => 获取题材模式配置(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前难度设定 = useMemo(() => 获取题材化难度设定(worldConfig.difficulty, openingConfig.题材模式), [worldConfig.difficulty, openingConfig.题材模式]);
@@ -1455,6 +1456,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         if (delta < 0 && current <= 属性最小值) return;
         if (delta > 0 && current >= 属性最大值) return;
         setStats({ ...stats, [key]: current + delta });
+        if (statsValidationFail) setStatsValidationFail(false);
     };
 
     const 平均分配主角属性 = () => setStats(创建平均属性分配(totalStatBudget));
@@ -1533,11 +1535,13 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
 
     const 校验属性点是否合法 = (): boolean => {
         if (remainingPoints < 0) {
+            setStatsValidationFail(true);
             alert(`当前属性总点数超过 ${worldConfig.difficulty.toUpperCase()} 难度上限，请先回收 ${Math.abs(remainingPoints)} 点。`);
             setStep(2);
             return false;
         }
         if (partnerEnabled && partnerRemainingPoints < 0) {
+            setStatsValidationFail(true);
             alert(`开局伙伴属性总点数超过 ${worldConfig.difficulty.toUpperCase()} 难度上限，请先回收 ${Math.abs(partnerRemainingPoints)} 点。`);
             setStep(3);
             return false;
@@ -1565,6 +1569,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
 
     const 更新伙伴属性 = (key: keyof 属性结构, value: number) => {
         setPartnerStats(prev => ({ ...prev, [key]: Math.max(属性最小值, Math.min(属性最大值, value)) }));
+        if (statsValidationFail) setStatsValidationFail(false);
     };
     const 平均分配伙伴属性 = () => setPartnerStats(创建平均属性分配(totalStatBudget));
     const 随机分配伙伴属性 = () => setPartnerStats(创建随机属性分配(totalStatBudget));
@@ -2779,7 +2784,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
 
                                 {/* Right: Stats */}
                                 <div className="md:col-span-3">
-                                    <OrnateBorder className="h-full">
+                                    <OrnateBorder className={`h-full ${statsValidationFail ? 'border-red-500/60 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse' : ''}`}>
                                         <div className="flex justify-between items-center mb-4">
                                             <span className="text-wuxia-gold font-bold text-lg">天资根骨</span>
                                             <span className={`text-sm font-mono transition-colors ${remainingPoints >= 0 ? 'text-green-400' : 'text-red-400'}`}>剩余点数: {remainingPoints}</span>
@@ -3279,7 +3284,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                         </div>
                                     </OrnateBorder>
 
-                                    <OrnateBorder className="p-6 space-y-5">
+                                    <OrnateBorder className={`p-6 space-y-5 ${statsValidationFail ? 'border-red-500/60 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse' : ''}`}>
                                         <h3 className="text-xl font-serif font-bold text-wuxia-gold border-b border-wuxia-gold/30 pb-3">同伴属性与经历</h3>
                                         <div className="rounded-2xl border border-gray-800 bg-black/30 p-4">
                                             <div className="flex items-center justify-between text-xs mb-3">

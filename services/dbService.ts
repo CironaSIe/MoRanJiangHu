@@ -1937,11 +1937,23 @@ export const 导入存档数据 = async (
 
     const persistedCandidates: Array<Omit<存档结构, 'id'>> = [];
     const lineageCandidates: Array<Partial<存档结构>> = [...existingSaves];
+    const withLineageItems: Array<Omit<存档结构, 'id'>> = [];
+    // 阶段1：串行补全谱系（依赖上一条结果）
     for (const item of normalizedCandidates) {
-        const withLineage = 补全存档谱系元数据(item, lineageCandidates);
-        const persisted = await 外置化图片字段(withLineage) as Omit<存档结构, 'id'>;
-        persistedCandidates.push(persisted);
-        lineageCandidates.push(persisted);
+        const withLineage = 补全存档谱系元数据(item, lineageCandidates) as Omit<存档结构, 'id'>;
+        withLineageItems.push(withLineage);
+        lineageCandidates.push(withLineage);
+    }
+    // 阶段2：并行外置化图片字段，单条失败不阻塞整体
+    const results = await Promise.allSettled(
+        withLineageItems.map(item => 外置化图片字段(item) as Promise<Omit<存档结构, 'id'>>)
+    );
+    for (const result of results) {
+        if (result.status === 'fulfilled') {
+            persistedCandidates.push(result.value);
+        } else {
+            skipped += 1;
+        }
     }
 
     await new Promise<void>((resolve, reject) => {
