@@ -81,13 +81,14 @@ const SocialModal: React.FC<Props> = ({
     playerSect,
     openingConfig
 }) => {
-    const sortedSocialList = React.useMemo(() => (
-        [...socialList].sort((a, b) => {
+    const sortedSocialList = React.useMemo(() => {
+        const indexMap = new Map(socialList.map((npc, i) => [npc, i]));
+        return [...socialList].sort((a, b) => {
             const weightDiff = 计算社交排序权重(a) - 计算社交排序权重(b);
             if (weightDiff !== 0) return weightDiff;
-            return socialList.indexOf(a) - socialList.indexOf(b);
-        })
-    ), [socialList]);
+            return (indexMap.get(a) ?? 0) - (indexMap.get(b) ?? 0);
+        });
+    }, [socialList]);
     const 显示境界 = cultivationSystemEnabled !== false;
     const 获取NPC稳定ID = React.useCallback((npc: any, index = 0): string => (
         String(npc?.id || npc?.ID || npc?.姓名 || `npc-${index}`).trim()
@@ -183,49 +184,6 @@ const SocialModal: React.FC<Props> = ({
         const npcName = currentNPC?.姓名 || 'unknown';
         const archive = (currentNPC as any)?.图片档案;
         const secretArchive = archive?.香闺秘档部位档案;
-        const history = archive?.生图历史;
-        console.group(`[私密图调试] NPC: ${npcName}`);
-        console.log('条件状态:', {
-            nsfwEnabled,
-            femboyNsfwEnabled,
-            当前角色是女性,
-            当前角色是男性,
-            当前角色是扶她,
-            是否主要角色: currentNPC?.是否主要角色,
-            展示女性扩展,
-            展示女性私密档案,
-            展示男性私密档案,
-            性别: currentNPC?.性别,
-        });
-        console.log('图片档案:', archive ? '存在' : '不存在');
-        console.log('香闺秘档部位档案:', secretArchive || '不存在');
-        if (secretArchive) {
-            const parts: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴', '肉棒'];
-            for (const part of parts) {
-                const entry = secretArchive[part];
-                if (entry) {
-                    console.log(`  [${part}]:`, {
-                        状态: entry?.状态,
-                        图片URL: entry?.图片URL ? entry.图片URL.slice(0, 80) + '...' : '空',
-                        本地路径: entry?.本地路径 || '空',
-                        构图: entry?.构图,
-                        获取图片展示地址: 获取图片展示地址(entry) || '空',
-                    });
-                } else {
-                    console.log(`  [${part}]: 无记录`);
-                }
-            }
-        }
-        if (Array.isArray(history) && history.length > 0) {
-            const secretHistory = history.filter((h: any) => ['部位特写', '胸部', '小穴', '屁穴', '肉棒'].includes(h?.构图) || ['胸部', '小穴', '屁穴', '肉棒'].includes(h?.部位));
-            console.log(`生图历史(私密相关): ${secretHistory.length} 条`);
-            for (const h of secretHistory) {
-                console.log(`  [${h?.部位 || h?.构图}]:`, { 状态: h?.状态, 图片URL: h?.图片URL ? h.图片URL.slice(0, 60) + '...' : '空', 获取图片展示地址: 获取图片展示地址(h) || '空' });
-            }
-        } else {
-            console.log('生图历史: 空或不存在');
-        }
-        console.groupEnd();
     }, [currentNPC?.id, nsfwEnabled, femboyNsfwEnabled]);
     const 取首个非空文本 = (...values: unknown[]): string => {
         for (const value of values) {
@@ -314,33 +272,6 @@ const SocialModal: React.FC<Props> = ({
         const archive = (npc as any)?.图片档案?.香闺秘档部位档案;
         const source = archive?.[part];
         const sourceDisplayUrl = source && typeof source === 'object' ? 获取图片展示地址(source) : '';
-        // [显示端调试] 记录读取时的完整状态
-        if (!archive) {
-            console.log(`[香闺秘档调试] 显示端: ${npc?.姓名 || '?'} 无部位档案`, {
-                hasImageArchive: Boolean((npc as any)?.图片档案),
-                archiveKeys: (npc as any)?.图片档案 ? Object.keys((npc as any).图片档案) : [],
-                historyCount: Array.isArray((npc as any)?.图片档案?.生图历史) ? (npc as any).图片档案.生图历史.length : 0
-            });
-        } else if (!source) {
-            console.log(`[香闺秘档调试] 显示端: ${npc?.姓名 || '?'} 的 ${part} 无记录`, {
-                availableParts: Object.keys(archive),
-                allParts: ['胸部', '小穴', '屁穴', '肉棒'].map(p => ({
-                    part: p,
-                    exists: Boolean(archive[p]),
-                    status: archive[p]?.状态,
-                    hasUrl: Boolean(archive[p]?.图片URL || archive[p]?.本地路径)
-                }))
-            });
-        } else if (source && !sourceDisplayUrl) {
-            console.warn(`[香闺秘档调试] 显示端: ${npc?.姓名 || '?'} 的 ${part} 有档案但无法展示`, {
-                hasLocalPath: Boolean(source?.本地路径),
-                localPathPrefix: typeof source?.本地路径 === 'string' ? source.本地路径.slice(0, 60) : '',
-                hasImageUrl: Boolean(source?.图片URL),
-                imageUrlPrefix: typeof source?.图片URL === 'string' ? source.图片URL.slice(0, 60) : '',
-                状态: source?.状态,
-                id: source?.id
-            });
-        }
         if (source && sourceDisplayUrl) return source;
         const history = Array.isArray((npc as any)?.图片档案?.生图历史) ? (npc as any).图片档案.生图历史 : [];
         // 优先从历史中查找可展示的成功记录
