@@ -691,16 +691,16 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
     const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        e.currentTarget.value = '';
         if (!file) return;
 
         const ok = requestConfirm
             ? await requestConfirm({
                 title: '导入存档',
-                message: `将导入文件“${file.name}”，并以“合并+去重”方式写入本地存档，是否继续？`,
+                message: `将导入文件"${file.name}"，并以"合并+去重"方式写入本地存档，是否继续？`,
                 confirmText: '继续导入'
             })
             : true;
+        e.currentTarget.value = '';
         if (!ok) {
             setTransferMessage('已取消导入。');
             return;
