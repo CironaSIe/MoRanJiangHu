@@ -380,13 +380,16 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave, requestConfirm }) => {
         setTimeout(() => setShowSuccess(false), 2000);
     };
 
+    const testingRef = useRef(false);
     const handleTestConnection = async () => {
         if (!activeConfig) return;
+        if (testingRef.current) return;
         if (!activeConfig.apiKey || !activeConfig.baseUrl) {
             setMessage('请先填写当前配置的 API Key 和 Base URL');
             return;
         }
         setMessage('');
+        testingRef.current = true;
         setTestingConnection(true);
         let modelForTest = (activeConfig.model || '').trim() || (form.功能模型占位.主剧情使用模型 || '').trim();
         let configForTest = activeConfig;
@@ -457,6 +460,7 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave, requestConfirm }) => {
                 ok: false
             });
         } finally {
+            testingRef.current = false;
             setMessage('');
             setTestingConnection(false);
         }

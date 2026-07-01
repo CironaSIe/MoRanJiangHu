@@ -1708,12 +1708,14 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
     const hasActiveId = sourceId !== undefined && !是否无门派标识(id);
     const hasActiveName = sourceName !== undefined && !是否无门派标识(name) && name !== base.名称;
     const hasActiveRank = sourcePlayerRank !== undefined && !是否无门派标识(playerRankSource);
+    // 明确无效判定：ID无效，或（名称无效且无有效ID/Rank），或（Rank无效且无有效ID/名称）
     const hasExplicitInactiveMarker = (
         idInactive
         || (nameInactive && !hasActiveId && !hasActiveRank)
         || (playerRankInactive && !hasActiveId && !hasActiveName)
     );
-    const hasActiveMarker = hasActiveId || hasActiveName || hasActiveRank;
+    // 活跃判定：有有效ID/Rank，或有有效名称（排除"无门无派"占位）
+    const hasActiveMarker = hasActiveId || hasActiveRank || (hasActiveName && !nameInactive);
     const isActiveSect = hasActiveMarker && !hasExplicitInactiveMarker;
     if (!isActiveSect) return base;
     const displayName = isActiveSect && name === base.名称 ? (id === 'none' ? '青云山庄' : id) : name;
@@ -1860,12 +1862,7 @@ export const 创建开场空白世界 = (): 世界数据结构 => ({
     已结算事件: [],
     世界镜头规划: [],
     江湖史册: [],
-    地图: [],
-    建筑: [],
     地图层级: [],
-    地图建筑: [],
-    地图道路: [],
-    地图人物: [],
     势力列表: [],
     势力互动历史: [],
      拍卖行待投放物品: [],
@@ -2008,9 +2005,6 @@ export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
                 .filter((item) => item.名称 || item.描述)
             : [],
         地图层级: Array.isArray(world?.地图层级) ? world.地图层级 : [],
-        地图建筑: Array.isArray(world?.地图建筑) ? world.地图建筑 : [],
-        地图道路: Array.isArray(world?.地图道路) ? world.地图道路 : [],
-        地图人物: Array.isArray(world?.地图人物) ? world.地图人物 : [],
         // 势力系统：标准化处理，确保每个势力项结构完整
         势力列表: 标准化势力列表(world?.势力列表),
         势力互动历史: Array.isArray(world?.势力互动历史) ? world.势力互动历史 : [],
