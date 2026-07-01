@@ -48,6 +48,7 @@ type NPC生图工作流依赖 = {
     读取文生图功能配置: () => 图片功能配置;
     NPC符合自动生图条件: (npc: any) => boolean;
     NPC生图进行中集合: Set<string>;
+    NPC生图运行中计数: { current: number };
     提取NPC生图基础数据: (npc: any) => any;
     创建NPC生图任务: (params: {
         npc: any;
@@ -418,6 +419,7 @@ export const 执行NPC生图工作流 = async (
         console.warn('NPC 生图词组转化器配置不可用，已改用角色资料直出提示词继续生成。');
     }
     if (Array.from(deps.NPC生图进行中集合).some((activeKey) => NPC生图进行中标识匹配(activeKey, npcKey, npc))) return;
+    if (deps.NPC生图运行中计数.current >= 1) return;
 
     const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '未命名NPC';
     const npcImageBaseData = deps.提取NPC生图基础数据(npc);
@@ -564,6 +566,7 @@ export const 执行NPC生图工作流 = async (
             source: taskSource
         });
 
+    deps.NPC生图运行中计数.current += 1;
     try {
         const { 原始描述, 生图词组: 原始生图词组 } = shouldUsePromptTransformer && promptApi
             ? await imageAIService.generateNpcImagePrompt(
@@ -861,5 +864,6 @@ export const 执行NPC生图工作流 = async (
         throw error;
     } finally {
         deps.NPC生图进行中集合.delete(npcKey);
+        deps.NPC生图运行中计数.current -= 1;
     }
 };

@@ -27,6 +27,7 @@ import { 获取境界层级 } from '../../utils/realmConfig';
 import { 候选名命中模板黑名单 } from '../../utils/templateNameBlacklist';
 import { 获取当前境界配置 } from './stateTransforms';
 import { 确保角色金钱BaseAmount } from '../../utils/currencyDisplay';
+import { deepClone as 深拷贝 } from '../../utils/deepClone';
 import type { WorldFoundationResult } from '../../services/ai/storyTasks';
 
 export type 开场命令基态 = {
@@ -425,7 +426,6 @@ const 取数字数组 = (value: any): number[] => (
         : []
 );
 
-const 深拷贝 = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 export const 创建开场空白角色 = (): 角色数据结构 => ({
     姓名: '',
