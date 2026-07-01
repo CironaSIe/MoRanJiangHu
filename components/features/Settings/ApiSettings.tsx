@@ -527,7 +527,6 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave, requestConfirm }) => {
                                 onClick={() => {
                                     setSelectedConfigId(cfg.id);
                                     setForm((prev) => ({ ...prev, activeConfigId: cfg.id }));
-                                    setMainModelOptions([]);
                                 }}
                                 className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${
                                     activeConfig?.id === cfg.id
