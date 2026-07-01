@@ -338,7 +338,7 @@ export const 构建即时记忆条目 = (
     const timeLabel = 格式化记忆时间(gameTime || '未知时间');
     const logsText = Array.isArray(aiData.logs) && aiData.logs.length > 0
         ? aiData.logs
-            .map((log) => `${格式化记忆日志标签(log.sender)}${(log.text || '').trim()}`)
+            .map((log) => `${格式化记忆日志标签(log.sender)}${(log.text || '').trim().replace(/<<SHORT_TERM_SYNC>>/g, '\u3008SHORT_TERM_SYNC\u3009')}`)
             .join('\n')
         : '（本轮无有效剧情日志）';
     const lines = [timeLabel];

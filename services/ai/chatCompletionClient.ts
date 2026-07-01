@@ -298,6 +298,9 @@ const 读取模型最大输出上限 = (apiConfig: 当前可用接口结构): nu
     if (model.startsWith('gpt-4.1')) return 32_768;
     if (model.startsWith('gpt-4o')) return 16_384;
     if (model.includes('claude') || model.startsWith('gemini-2.5')) return 65_536;
+    if (model.startsWith('glm-') || baseUrl.includes('glm')) {
+        return model.includes('glm-4') ? 16_384 : 8_192;
+    }
     return 128_000;
 };
 
@@ -391,7 +394,17 @@ const 是否Claude兼容末尾User模型 = (apiConfig: 当前可用接口结构)
 const 上下文完整性校验标记前缀 = '[CTXCHK:';
 const 上下文完整性校验标记后缀 = ']';
 const 上下文完整性校验标记检测正则 = /\[CTXCHK:\w+\]/;
-const 已触发上下文截断警告 = new Set<string>();
+const 上下文截断警告超时 = 3600_000;
+const 已触发上下文截断警告 = new Map<string, number>();
+const 是否上下文截断警告未过期 = (endpointKey: string): boolean => {
+    const timestamp = 已触发上下文截断警告.get(endpointKey);
+    if (timestamp === undefined) return false;
+    if (Date.now() - timestamp >= 上下文截断警告超时) {
+        已触发上下文截断警告.delete(endpointKey);
+        return false;
+    }
+    return true;
+};
 
 type 上下文完整性校验结果 = {
     injectedMessages: 通用消息[];
@@ -415,7 +428,7 @@ const 注入上下文完整性校验标记 = (
 ): 上下文完整性校验结果 => {
     const endpointKey = (apiConfig.baseUrl || '').toLowerCase().replace(/\/+$/, '');
     if (!endpointKey) return { injectedMessages: messages, checkTag: '', messageCount: messages.length, totalChars: 0 };
-    if (已触发上下文截断警告.has(endpointKey)) return { injectedMessages: messages, checkTag: '', messageCount: messages.length, totalChars: 0 };
+    if (是否上下文截断警告未过期(endpointKey)) return { injectedMessages: messages, checkTag: '', messageCount: messages.length, totalChars: 0 };
 
     const checkTag = `${上下文完整性校验标记前缀}${生成校验标记()}${上下文完整性校验标记后缀}`;
     const messageCount = messages.length;
@@ -447,7 +460,7 @@ const 检查上下文完整性 = (
 ): void => {
     if (!checkTag) return;
     const endpointKey = (apiConfig.baseUrl || '').toLowerCase().replace(/\/+$/, '');
-    if (已触发上下文截断警告.has(endpointKey)) return;
+    if (是否上下文截断警告未过期(endpointKey)) return;
 
     const tagInResponse = 上下文完整性校验标记检测正则.test(responseText);
     if (tagInResponse) return;
@@ -460,7 +473,7 @@ const 检查上下文完整性 = (
 
     if (msgCountMentioned || charsMentioned) return;
 
-    已触发上下文截断警告.add(endpointKey);
+    已触发上下文截断警告.set(endpointKey, Date.now());
     const supplierName = apiConfig.供应商 || '';
     const baseUrl = apiConfig.baseUrl || '';
     console.warn(

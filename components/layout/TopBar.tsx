@@ -326,8 +326,17 @@ const MobileInfoButton: React.FC<{
 const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festivals = [], visualConfig }) => {
     const [expandedType, setExpandedType] = useState<ExpandedType>(null);
     const [fullscreenDetailType, setFullscreenDetailType] = useState<Exclude<ExpandedType, null> | null>(null);
+    const closeTimerRef = useRef<ReturnType<typeof setTimeout>>();
+    const delayedClose = (delay = 300) => {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = setTimeout(() => setExpandedType(null), delay);
+    };
+    const cancelClose = () => {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
     const [mobileCollapsed, setMobileCollapsed] = useState(false);
     const lastMobileDismissAtRef = useRef(0);
+    React.useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
 
     const parsedTime = parseEnvTime(环境);
     const derivedDayCount = useMemo(() => {
@@ -560,7 +569,7 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
     const mobileItems = [
         { type: 'weather' as const, label: '天气', shortLabel: '气', value: weatherDisplay, highlight: false },
         { type: 'environment' as const, label: '环境', shortLabel: '境', value: environmentDisplay, highlight: false },
-        { type: 'time' as const, label: '时程', shortLabel: '时', value: `${dateBadge} ${mobileClockStr} / 第${derivedDayCount}天`, highlight: false },
+        { type: 'time' as const, label: '时程', shortLabel: '时', value: `${dateBadge}\n${mobileClockStr}\n第${derivedDayCount}天`, highlight: false },
         { type: 'location' as const, label: '地点', shortLabel: '地', value: mobileLocationBadge, highlight: false },
         { type: 'festival' as const, label: '节日', shortLabel: '节', value: festivalDisplay, highlight: !!currentFestival },
     ];
@@ -610,7 +619,7 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
                             content={detailConfigs[expandedType].content}
                             onClose={closeExpandedPanel}
                             visualConfig={visualConfig}
-                            className="left-full top-0 ml-1 mt-0"
+                            className="md:left-full md:top-0 md:ml-1 right-0 top-0 mt-0"
                             panelClassName="w-[min(62vw,300px)] max-w-[300px]"
                         />
                     )}
@@ -626,16 +635,16 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
                                 value={weatherDisplay} 
                                 visualConfig={visualConfig} 
                                 isExpanded={expandedType === 'weather'}
-                                onMouseEnter={() => setExpandedType('weather')}
-                                onMouseLeave={() => setExpandedType(null)}
+                                onMouseEnter={() => { cancelClose(); setExpandedType('weather'); }}
+                                onMouseLeave={delayedClose}
                             />
                             {expandedType === 'weather' && (
                                 <DetailCard 
                                     title={detailConfigs.weather.title}
                                     className="left-0"
                                     onExpand={() => openFullscreenDetail('weather')}
-                                    onMouseEnter={() => setExpandedType('weather')}
-                                    onMouseLeave={() => setExpandedType(null)}
+                                    onMouseEnter={() => { cancelClose(); setExpandedType('weather'); }}
+                                    onMouseLeave={delayedClose}
                                     visualConfig={visualConfig}
                                     content={
                                         <div className="flex items-center gap-4">
@@ -661,16 +670,16 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
                                 value={environmentDisplay} 
                                 visualConfig={visualConfig} 
                                 isExpanded={expandedType === 'environment'}
-                                onMouseEnter={() => setExpandedType('environment')}
-                                onMouseLeave={() => setExpandedType(null)}
+                                onMouseEnter={() => { cancelClose(); setExpandedType('environment'); }}
+                                onMouseLeave={delayedClose}
                             />
                             {expandedType === 'environment' && (
                                 <DetailCard 
                                     title={detailConfigs.environment.title}
                                     className="left-0"
                                     onExpand={() => openFullscreenDetail('environment')}
-                                    onMouseEnter={() => setExpandedType('environment')}
-                                    onMouseLeave={() => setExpandedType(null)}
+                                    onMouseEnter={() => { cancelClose(); setExpandedType('environment'); }}
+                                    onMouseLeave={delayedClose}
                                     visualConfig={visualConfig}
                                     content={detailConfigs.environment.content}
                                 />
@@ -714,16 +723,16 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
                                 highlight={!!currentFestival} 
                                 visualConfig={visualConfig} 
                                 isExpanded={expandedType === 'festival'}
-                                onMouseEnter={() => setExpandedType('festival')}
-                                onMouseLeave={() => setExpandedType(null)}
+                                onMouseEnter={() => { cancelClose(); setExpandedType('festival'); }}
+                                onMouseLeave={delayedClose}
                             />
                             {expandedType === 'festival' && (
                                 <DetailCard 
                                     title={detailConfigs.festival.title}
                                     className="right-0 origin-top-right"
                                     onExpand={() => openFullscreenDetail('festival')}
-                                    onMouseEnter={() => setExpandedType('festival')}
-                                    onMouseLeave={() => setExpandedType(null)}
+                                    onMouseEnter={() => { cancelClose(); setExpandedType('festival'); }}
+                                    onMouseLeave={delayedClose}
                                     visualConfig={visualConfig}
                                     content={detailConfigs.festival.content}
                                 />
@@ -736,16 +745,16 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
                                 value={`第 ${derivedDayCount} 天`}
                                 visualConfig={visualConfig}
                                 isExpanded={expandedType === 'journey'}
-                                onMouseEnter={() => setExpandedType('journey')}
-                                onMouseLeave={() => setExpandedType(null)}
+                                onMouseEnter={() => { cancelClose(); setExpandedType('journey'); }}
+                                onMouseLeave={delayedClose}
                             />
                             {expandedType === 'journey' && (
                                 <DetailCard
                                     title={detailConfigs.journey.title}
                                     className="right-0 origin-top-right"
                                     onExpand={() => openFullscreenDetail('journey')}
-                                    onMouseEnter={() => setExpandedType('journey')}
-                                    onMouseLeave={() => setExpandedType(null)}
+                                    onMouseEnter={() => { cancelClose(); setExpandedType('journey'); }}
+                                    onMouseLeave={delayedClose}
                                     visualConfig={visualConfig}
                                     content={detailConfigs.journey.content}
                                 />
