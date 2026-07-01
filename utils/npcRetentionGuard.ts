@@ -129,8 +129,32 @@ export const 合并保留既有NPC列表 = (
             mergedCount += 1;
             return;
         }
-        const insertIndex = Math.max(0, Math.min(index, result.length));
-        result.splice(insertIndex, 0, 深拷贝(npc));
+        // 基于相邻NPC相对位置确定插入点：查找旧列表中前一个/后一个NPC在新列表中的位置
+        let insertIndex = -1;
+        for (let prevIdx = index - 1; prevIdx >= 0 && insertIndex < 0; prevIdx -= 1) {
+            const prevNpc = previous[prevIdx];
+            if (!prevNpc) continue;
+            const prevId = 规范化NPC键(prevNpc?.id || prevNpc?.ID);
+            if (prevId) insertIndex = result.findIndex((c: any) => 规范化NPC键(c?.id || c?.ID) === prevId);
+        }
+        if (insertIndex >= 0) {
+            // 插入到前一个NPC之后
+            result.splice(insertIndex + 1, 0, 深拷贝(npc));
+        } else {
+            // 找不到前一个NPC，尝试找后一个NPC并插入到其前面
+            for (let nextIdx = index + 1; nextIdx < previous.length && insertIndex < 0; nextIdx += 1) {
+                const nextNpc = previous[nextIdx];
+                if (!nextNpc) continue;
+                const nextId = 规范化NPC键(nextNpc?.id || nextNpc?.ID);
+                if (nextId) insertIndex = result.findIndex((c: any) => 规范化NPC键(c?.id || c?.ID) === nextId);
+            }
+            if (insertIndex >= 0) {
+                result.splice(insertIndex, 0, 深拷贝(npc));
+            } else {
+                // 兜底：追加到末尾
+                result.push(深拷贝(npc));
+            }
+        }
         const label = typeof npc?.姓名 === 'string' && npc.姓名.trim()
             ? npc.姓名.trim()
             : (typeof npc?.id === 'string' ? npc.id.trim() : `社交[${index}]`);
