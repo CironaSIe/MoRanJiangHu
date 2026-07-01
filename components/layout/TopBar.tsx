@@ -331,7 +331,11 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
 
     const parsedTime = parseEnvTime(环境);
     const derivedDayCount = useMemo(() => {
-        return 计算游戏历程天数(parsedTime, parseCanonicalGameTime(游戏初始时间));
+        if (!parsedTime) return 1;
+        const initialTime = parseCanonicalGameTime(游戏初始时间);
+        if (!initialTime) return 1;
+        const days = 计算游戏历程天数(parsedTime, initialTime);
+        return Math.max(1, days);
     }, [parsedTime, 游戏初始时间]);
     const month = parsedTime?.month ?? null;
     const day = parsedTime?.day ?? null;
