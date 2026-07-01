@@ -543,6 +543,7 @@ export const useGame = () => {
     const 最近变量生成上下文Ref = useRef<变量生成上下文缓存项[]>([]);
     const NPC生图进行中Ref = useRef<Set<string>>(new Set());
     const NPC生图运行中计数Ref = useRef({ current: 0 });
+    const requestConfirmRef = useRef<((options: { title?: string; message: string; confirmText?: string; cancelText?: string; danger?: boolean }) => Promise<boolean>) | undefined>();
     const 主角生图进行中Ref = useRef<Set<string>>(new Set());
     const 主角自动生图处理器Ref = useRef<(player: 角色数据结构) => void>(() => undefined);
     const 主角每回合生图检查器Ref = useRef<(player: 角色数据结构) => void>(() => undefined);
@@ -656,6 +657,9 @@ export const useGame = () => {
             重置自动存档状态();
         }
     };
+    const 设置确认弹窗 = useCallback((fn: typeof requestConfirmRef.current) => {
+        requestConfirmRef.current = fn;
+    }, []);
     const 推送右下角提示 = (toast: Omit<右下角提示结构, 'id'>) => {
         const nextId = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
         set右下角提示列表(prev => [...prev, { id: nextId, ...toast }].slice(-4));
@@ -3693,6 +3697,7 @@ export const useGame = () => {
         handleQuickRestart
     } = 创建会话生命周期工作流({
         apiConfig,
+        requestConfirmRef,
         gameConfig,
         memoryConfig,
         view,
@@ -4185,7 +4190,10 @@ export const useGame = () => {
             importPngStylePresets: 导入PNG画风预设,
             setPersistentWallpaper: 设置常驻壁纸,
             clearPersistentWallpaper: 清除常驻壁纸,
-            pushNotification: 推送右下角提示
+            pushNotification: 推送右下角提示,
+            setRequestConfirm: 设置确认弹窗
         }
     };
 };
+
+

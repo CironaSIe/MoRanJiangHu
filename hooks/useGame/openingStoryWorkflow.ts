@@ -186,8 +186,17 @@ type 自动存档快照结构 = {
     force?: boolean;
 };
 
+type 确认弹窗选项 = {
+    title?: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    danger?: boolean;
+};
+
 type 开场剧情生成依赖 = {
     apiConfig: any;
+    requestConfirmRef?: { current: ((options: 确认弹窗选项) => Promise<boolean>) | undefined };
     环境: 环境信息结构;
     角色: 角色数据结构;
     世界: 世界数据结构;
@@ -673,14 +682,23 @@ export const 执行开场剧情生成工作流 = async (
         const openingGameConfig = 规范化游戏设置(deps.gameConfig);
         const 开局独立阶段自动重试已启用 = deps.游戏设置启用自动重试(openingGameConfig);
         const 请求开局阶段失败决策 = async (stageLabel: string, errorText: string): Promise<'retry' | 'skip'> => {
-            const message = [
-                `${stageLabel}请求失败：`,
-                errorText || '未知错误',
-                '',
-                '选择“重试”会重新执行当前阶段；选择“跳过”会继续后续阶段。'
-            ].join('\n');
+            const requestConfirm = deps.requestConfirmRef?.current;
+            if (requestConfirm) {
+                const accepted = await requestConfirm({
+                    title: `${stageLabel}失败`,
+                    message: [
+                        `${stageLabel}请求失败：`,
+                        errorText || '未知错误',
+                        '',
+                        '选择"重试"会重新执行当前阶段；选择"跳过"会继续后续阶段。'
+                    ].join('\n'),
+                    confirmText: '重试',
+                    cancelText: '跳过'
+                });
+                return accepted ? 'retry' : 'skip';
+            }
             if (typeof window !== 'undefined') {
-                return window.confirm(`${message}\n\n按“确定”重试，按“取消”跳过。`) ? 'retry' : 'skip';
+                return window.confirm(`${stageLabel}请求失败：\n${errorText || '未知错误'}\n\n按"确定"重试，按"取消"跳过。`) ? 'retry' : 'skip';
             }
             return 'skip';
         };
