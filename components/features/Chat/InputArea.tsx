@@ -228,19 +228,21 @@ const InputArea: React.FC<Props> = ({
     const [mainStoryElapsed, setMainStoryElapsed] = useState(0);
     const mainStoryStartRef = useRef<number>(0);
 
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     useEffect(() => {
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
         if (loading || postStoryQueueRunning) {
             if (!mainStoryStartRef.current) {
                 mainStoryStartRef.current = Date.now();
             }
-            const timer = setInterval(() => {
-                setMainStoryElapsed(Date.now() - mainStoryStartRef.current);
+            timerRef.current = setInterval(() => {
+                setMainStoryElapsed(Date.now() - mainStoryStartRef.current!);
             }, 200);
-            return () => clearInterval(timer);
         } else {
             setMainStoryElapsed(0);
             mainStoryStartRef.current = 0;
         }
+        return () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
     }, [loading, postStoryQueueRunning]);
 
     useEffect(() => {
@@ -282,12 +284,12 @@ const InputArea: React.FC<Props> = ({
     useEffect(() => {
         if (!externalDraft?.text) return;
         setContent((current) => {
-            const draft = externalDraft.text.trim();
+            const draft = externalDraft.text!.trim();
             if (!draft) return current;
             const prefix = current.trim();
             return prefix ? `${prefix}\n${draft}` : draft;
         });
-    }, [externalDraft?.token]);
+    }, [externalDraft?.token, externalDraft?.text]);
 
     const 记录并设置队列进度 = <T extends QueueProgressPayload>(
         stage: string,

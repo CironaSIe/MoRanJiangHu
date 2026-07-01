@@ -16,6 +16,7 @@ import {
 interface Props {
     settings: 接口设置结构;
     onSave: (settings: 接口设置结构) => void;
+    requestConfirm?: (options: { title?: string; message: string; confirmText?: string; cancelText?: string }) => Promise<boolean>;
 }
 
 type 最大输出档位 = '8k' | '32k' | '64k' | 'custom';
@@ -177,7 +178,7 @@ export const 选择最佳可用模型 = (models: string[]): string => {
     return candidates.sort((a, b) => scoreModel(b) - scoreModel(a) || b.localeCompare(a))[0] || '';
 };
 
-const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
+const ApiSettings: React.FC<Props> = ({ settings, onSave, requestConfirm }) => {
     const [form, setForm] = useState<接口设置结构>(() => 规范化接口设置(settings));
     const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
     const [mainModelOptions, setMainModelOptions] = useState<string[]>([]);
@@ -338,8 +339,12 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave }) => {
         setMessage(`已新增 ${供应商标签[newProvider]} 配置，请填写后保存。`);
     };
 
-    const handleDeleteActive = () => {
+    const handleDeleteActive = async () => {
         if (!activeConfig) return;
+        const confirmed = requestConfirm
+            ? await requestConfirm({ title: '删除配置', message: `确定删除配置「${activeConfig.供应商}」？此操作不可恢复。`, confirmText: '删除', cancelText: '取消' })
+            : window.confirm(`确定删除配置「${activeConfig.供应商}」？此操作不可恢复。`);
+        if (!confirmed) return;
         setForm((prev) => {
             const nextConfigs = prev.configs.filter((cfg) => cfg.id !== activeConfig.id);
             const fallbackId = nextConfigs[0]?.id || null;

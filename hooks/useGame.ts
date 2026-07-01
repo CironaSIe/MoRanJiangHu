@@ -673,19 +673,25 @@ export const useGame = () => {
         const normalized = 规范化视觉设置(value || {});
         visualConfigRef.current = normalized;
         setVisualConfig(normalized);
-        void dbService.保存设置(设置键.视觉设置, normalized);
+         void dbService.保存设置(设置键.视觉设置, normalized).catch((err) => {
+            console.error('[设置] 视觉设置保存失败', err);
+        });
     };
     const 应用图片管理设置到状态 = (value: Partial<图片管理设置结构> | null | undefined) => {
         const normalized = 规范化图片管理设置(value || 默认图片管理设置);
         imageManagerConfigRef.current = normalized;
         setImageManagerConfig(normalized);
-        void dbService.保存设置(设置键.图片管理设置, normalized);
+        void dbService.保存设置(设置键.图片管理设置, normalized).catch((err) => {
+            console.error('[设置] 图片管理设置保存失败', err);
+        });
     };
     const 应用场景图片档案到状态 = (value: 场景图片档案 | null | undefined) => {
         const normalized = 按场景图上限裁剪档案(value || {}, 获取场景图历史上限()).档案;
         场景图片档案Ref.current = normalized;
         set场景图片档案(normalized);
-        void dbService.保存设置(设置键.场景图片档案, normalized);
+        void dbService.保存设置(设置键.场景图片档案, normalized).catch((err) => {
+            console.error('[设置] 场景图片档案保存失败', err);
+        });
     };
     const 关闭右下角提示 = (toastId: string) => {
         if (!toastId) return;
@@ -788,7 +794,9 @@ export const useGame = () => {
         const normalized = 应用同名NPC过滤(规范化社交列表安全(nextSocial, { 合并同名: false }), 角色?.姓名);
         同步设置社交(normalized);
         刷新NPC记忆总结队列(normalized, { 静默: options?.静默NPC总结提示 === true });
-        void performAutoSave({ social: normalized, history: 历史记录, force: true });
+        void performAutoSave({ social: normalized, history: 历史记录, force: true }).catch((err) => {
+            console.error('[自动存档] 社交更新后存档失败', err);
+        });
         return normalized;
     };
 
@@ -1279,7 +1287,9 @@ export const useGame = () => {
         set记忆总结草稿('');
         set记忆总结错误('');
         const appliedMemory = 应用并同步记忆系统(nextMemory);
-        void performAutoSave({ memory: appliedMemory });
+        void performAutoSave({ memory: appliedMemory }).catch((err) => {
+            console.error('[自动存档] 记忆总结后存档失败', err);
+        });
     };
 
     const handleStartNpcMemorySummary = async (): Promise<void> => {
@@ -1689,7 +1699,9 @@ export const useGame = () => {
         设置社交: 同步设置社交,
         规范化社交列表: 规范化社交列表安全,
         执行社交自动存档: (socialSnapshot) => {
-            void performAutoSave({ social: socialSnapshot, history: 历史记录 });
+            void performAutoSave({ social: socialSnapshot, history: 历史记录 }).catch((err) => {
+                console.error('[自动存档] NPC生图后存档失败', err);
+            });
         },
         获取社交列表: () => 社交Ref.current,
         获取NPC唯一标识,
@@ -2868,7 +2880,9 @@ export const useGame = () => {
             });
         }
         同步设置社交(normalized);
-        void performAutoSave({ social: normalized, history: 历史记录, force: true });
+        void performAutoSave({ social: normalized, history: 历史记录, force: true }).catch((err) => {
+            console.error('[自动存档] 社交补全后存档失败', err);
+        });
         触发新增NPC自动生图(missing);
     }, [玩家门派, 历史记录]);
 
@@ -2971,6 +2985,7 @@ export const useGame = () => {
                 玩家门派,
                 任务列表,
                 约定列表,
+                记忆系统,
                 剧情,
                 剧情规划,
                 女主剧情规划,
@@ -2988,6 +3003,7 @@ export const useGame = () => {
                 规范化女主剧情规划状态,
                 规范化同人剧情规划状态,
                 规范化同人女主剧情规划状态,
+                规范化记忆系统,
                 规范化角色物品容器映射,
                 角色规范化选项: {
                     启用饱腹口渴系统: gameConfig?.启用饱腹口渴系统,
@@ -3826,7 +3842,9 @@ export const useGame = () => {
         获取玩家门派: () => 玩家门派,
         设置玩家门派,
         执行社交自动存档: (socialSnapshot, sectSnapshot) => {
-            void performAutoSave({ social: socialSnapshot, sect: sectSnapshot, history: 历史记录, force: true });
+            void performAutoSave({ social: socialSnapshot, sect: sectSnapshot, history: 历史记录, force: true }).catch((err) => {
+                console.error('[自动存档] 手动NPC操作后存档失败', err);
+            });
         },
         执行NPC变量本地备份: (socialSnapshot, options) => {
             void 保存NPC变量本地备份(socialSnapshot, {
