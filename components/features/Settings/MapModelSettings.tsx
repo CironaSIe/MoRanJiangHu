@@ -73,12 +73,12 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
                 `${normalized}/models`,
                 `${base}/models`
             ]));
+            const isMiMo = /mimo|mimomimo/i.test(resolvedBaseUrl) || /mimo/i.test(activeConfig?.供应商 || '');
+            const authHeaders = isMiMo
+                ? { 'api-key': resolvedApiKey }
+                : { Authorization: `Bearer ${resolvedApiKey}` };
             for (const url of candidateUrls) {
-                const res = await fetch(url, {
-                    headers: {
-                        Authorization: `Bearer ${resolvedApiKey}`
-                    }
-                });
+                const res = await fetch(url, { headers: authHeaders });
                 if (!res.ok) continue;
                 const data = await res.json();
                 if (data && Array.isArray(data.data)) {

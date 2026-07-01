@@ -1,5 +1,6 @@
 import React, { useMemo, useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
+import DOMPurify from 'dompurify';
 import { JudgmentThoughtBlock, NPC结构, 视觉设置结构 } from '../../../types';
 import type { 酒馆沙箱动作 } from '../../../models/system';
 import { use图片资源回源预取 } from '../../../hooks/useImageAssetPrefetch';
@@ -1235,12 +1236,17 @@ export const TavernHtmlRenderer: React.FC<{
         );
     }
 
-    // DOMPurify 清洗后的安全 HTML 渲染
+    // DOMPurify 清洗后的安全 HTML 渲染（运行时二次清洗防御）
     if (htmlRenderMode === 'purify') {
+        const sanitizedHtml = useMemo(() => DOMPurify.sanitize(htmlContent || '', {
+            ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'span', 'div', 'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'blockquote', 'pre', 'code'],
+            ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'style', 'target', 'width', 'height'],
+            ALLOW_DATA_ATTR: false,
+        }), [htmlContent]);
         return (
             <div
                 className={`tavern-html-content w-full my-1 px-4 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg prose prose-invert prose-sm max-w-none ${className}`}
-                dangerouslySetInnerHTML={{ __html: htmlContent }}
+                dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
             />
         );
     }

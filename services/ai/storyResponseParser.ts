@@ -346,7 +346,7 @@ const 清理正文残留协议内容 = (body: string): string => {
         const isNonBodyProtocolHeader = (Object.keys(协议标题匹配规则) as 可标题恢复标签[])
             .filter((tag) => tag !== '正文')
             .some((tag) => 协议标题匹配规则[tag].test(line));
-        if (isNonBodyProtocolHeader) break;
+        if (isNonBodyProtocolHeader) continue;
         lines.push(rawLine);
     }
     return 清理正文初始化泄露内容(清理正文HTML注释残片(lines.join('\n'))).trim();
@@ -358,10 +358,12 @@ const 清理正文HTML注释残片 = (body: string): string => {
     const result: string[] = [];
     let inComment = false;
 
+    const MAX_COMMENT_REMOVALS_PER_LINE = 100;
+
     for (const rawLine of source.split('\n')) {
         let line = rawLine;
         let guard = 0;
-        while (line.length > 0 && guard < 20) {
+        while (line.length > 0 && guard < MAX_COMMENT_REMOVALS_PER_LINE) {
             guard += 1;
             if (inComment) {
                 const endIndex = line.indexOf('-->');
@@ -421,7 +423,11 @@ const 清理正文初始化泄露内容 = (body: string): string => {
         }
 
         if (inInitLeakBlock) {
-            if (!line || /^(?:#{1,6}\s*)?\d+[.、]\s*/.test(line) || 初始化泄露行规则.test(line) || 初始化泄露列表行规则.test(line)) {
+            if (!line) {
+                // 空行不丢弃，保留为正文，但不重置泄露块状态
+                continue;
+            }
+            if (/^(?:#{1,6}\s*)?\d+[.、]\s*/.test(line) || 初始化泄露行规则.test(line) || 初始化泄露列表行规则.test(line)) {
                 removedCount += 1;
                 continue;
             }
@@ -624,14 +630,13 @@ const 检测标签完整性问题 = (text: string, _options: Required<StoryParse
         }
         const lastIndex = openStack.lastIndexOf(tag);
         if (lastIndex >= 0) {
-            openStack.splice(lastIndex);
+            openStack.splice(lastIndex, 1);
         }
     }
     const tail = textForValidation.trimEnd();
     if (openStack.length > 0 && tail.length > 0) {
         const lastOpenTag = openStack[openStack.length - 1];
-        const tailSnippet = tail.slice(Math.max(0, tail.length - 80)).replace(/\s+/g, ' ').trim();
-        issues.push(`疑似输出在 <${lastOpenTag}> 内被截断或未完成闭合；请提高最大输出Token，或让模型优先闭合标签。末尾片段：${tailSnippet}`);
+        issues.push(`疑似输出在 <${lastOpenTag}> 内被截断或未完成闭合；请提高最大输出Token，或让模型优先闭合标签。`);
     }
     return issues;
 };
@@ -1414,6 +1419,37 @@ const 标准化命令对象列表 = (raw: any): 标准命令结构[] => {
 };
 
 /**
+ * 安全求值算术表达式（替代 new Function）
+ * 仅支持 +, -, *, /, ., () 和数字，不支持函数调用或变量
+ */
+const 安全求值算术表达式 = (expr: string): number | null => {
+    const tokens = expr.trim().split(/\s+/);
+    if (tokens.length === 0) return null;
+
+    const 数字正则 = /^\d+(\.\d+)?$/;
+    const 运算符正则 = /^[+\-*/]$/;
+
+    let result = 0;
+    let currentOp = '+';
+    for (const token of tokens) {
+        if (数字正则.test(token)) {
+            const num = Number(token);
+            switch (currentOp) {
+                case '+': result += num; break;
+                case '-': result -= num; break;
+                case '*': result *= num; break;
+                case '/': result = num !== 0 ? result / num : 0; break;
+            }
+        } else if (运算符正则.test(token)) {
+            currentOp = token;
+        } else {
+            return null;
+        }
+    }
+    return result;
+};
+
+/**
  * 预处理命令文本：清理 JS 风格注释和简单算术表达式，使其成为合法 JSON。
  */
 const 预处理命令文本 = (input: string): string => {
@@ -1449,8 +1485,8 @@ const 预处理命令文本 = (input: string): string => {
             // 校验安全性：只允许数字、运算符和空格
             if (!/^[0-9+\-*/ .()]+$/.test(trimmed)) return `${prefix}${trimmed}`;
             try {
-                const result = new Function(`return (${trimmed})`)() as number;
-                if (Number.isFinite(result)) return `${prefix}${result}`;
+                const result = 安全求值算术表达式(trimmed);
+                if (result !== null && Number.isFinite(result)) return `${prefix}${result}`;
             } catch { /* 表达式无效则保留原文 */ }
             return `${prefix}${trimmed}`;
         }

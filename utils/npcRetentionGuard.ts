@@ -171,6 +171,19 @@ export const 检测社交删除风险命令 = (
             return;
         }
 
+        if (action === 'delete') {
+            const slotMatch = normalizedKey.match(/^gameState\.社交\[(\d+)\]$/);
+            if (slotMatch) {
+                const index = Number(slotMatch[1]);
+                const currentNpc = social[index];
+                if (currentNpc) {
+                    const label = currentNpc?.姓名 || currentNpc?.id || `社交[${index}]`;
+                    issues.push(`${命令描述(cmd)} 会删除既有 NPC：${label}`);
+                }
+            }
+            return;
+        }
+
         if (action === 'set' && 命令路径指向社交数组(normalizedKey)) {
             if (!Array.isArray(cmd?.value)) {
                 issues.push(`${命令描述(cmd)} 会把社交列表替换为非数组`);

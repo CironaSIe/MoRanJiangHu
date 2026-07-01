@@ -264,7 +264,11 @@ const 解析JSON块 = (rawText: string): any => {
     if (firstBrace >= 0 && lastBrace > firstBrace) {
         text = text.slice(firstBrace, lastBrace + 1);
     }
-    return JSON.parse(text);
+    try {
+        return JSON.parse(text);
+    } catch {
+        return null;
+    }
 };
 
 export const 解析地图重生成节点 = (rawText: string): any[] => {
