@@ -414,7 +414,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
     const 删除按钮类名 = `absolute top-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full border transition-all ${
         saveProtectionEnabled
-            ? 'border-gray-700 bg-black/20 text-gray-700 opacity-50 cursor-not-allowed'
+            ? 'hidden'
             : 'border-red-400/35 bg-red-950/40 text-red-200 shadow-[0_0_14px_rgba(248,113,113,0.18)] hover:border-red-300 hover:bg-red-800/55 hover:text-white sm:opacity-75 sm:group-hover:opacity-100'
     }`;
 
