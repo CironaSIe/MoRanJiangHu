@@ -737,6 +737,7 @@ export interface ModeRuntimeProfile {
         conflictChecks: string[];
         migrationCleanupRules: string[];
     };
+    性别比例演变预设?: boolean; // 题材模式建议值，游戏设置中未显式设置时使用
 }
 
 export interface OpeningConfig {
@@ -1169,7 +1170,8 @@ export interface 游戏设置结构 {
         小说拆分: boolean;
     };
     额外提示词: string; // Custom prompt injected at the end
-    activeModuleExtraRules?: string; // Creative workshop module safety/usage rules, injected as system_rule
+     activeModuleExtraRules?: string; // Creative workshop module safety/usage rules, injected as system_rule
+     性别比例自动演变?: boolean; // 是否允许世界演变自动更新世界性别比例，默认false；未设置时使用题材预设
 }
 
 export interface 记忆配置结构 {

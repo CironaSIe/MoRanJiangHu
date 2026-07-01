@@ -13,6 +13,7 @@ import type {
 import * as textAIService from '../../services/ai/text';
 import { 获取规划分析接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
+import { 解析当前有效性别比例 } from '../../utils/genderRatioUtils';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { applyStateCommand } from '../../utils/stateHelpers';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
@@ -481,7 +482,11 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         ]
             .filter(Boolean)
             .join('\n\n');
-        const genderRatioConstraintText = 构建规划性别比例约束摘要(deps.开局配置?.modeRuntimeProfile?.npc?.genderRatio);
+        const genderRatioConstraintText = 构建规划性别比例约束摘要(
+            deps.开局配置?.modeRuntimeProfile?.npc?.genderRatio,
+            worldBuffer?.性别比例,
+            解析当前有效性别比例(envBuffer, worldBuffer?.地图层级, worldBuffer?.性别比例, deps.开局配置?.modeRuntimeProfile?.npc?.genderRatio)
+        );
 
         const planningStoryPayload = 裁剪修炼体系上下文数据({
             剧情: alignedStoryForPlanning,

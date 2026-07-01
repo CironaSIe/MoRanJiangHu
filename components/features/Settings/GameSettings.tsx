@@ -12,6 +12,7 @@ interface Props {
     journeyDayCount?: number;
     onRepairGameInitialTime?: (nextTime: string) => 游戏初始时间修复结果 | Promise<游戏初始时间修复结果>;
     requestConfirm?: (options: { title?: string; message: string; confirmText?: string; cancelText?: string; danger?: boolean }) => Promise<boolean>;
+    性别比例演变预设?: boolean;
 }
 
 type 游戏初始时间修复结果 = { ok: boolean; message: string; value?: string };
@@ -41,7 +42,7 @@ export const 提交游戏初始时间修复 = async (params: {
     return params.onRepair(canonical);
 };
 
-const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, currentGameTime, journeyDayCount, onRepairGameInitialTime, requestConfirm }) => {
+const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, currentGameTime, journeyDayCount, onRepairGameInitialTime, requestConfirm, 性别比例演变预设 }) => {
     const [form, setForm] = useState<游戏设置结构>(settings);
     const [wordCountDraft, setWordCountDraft] = useState(() => String(settings.字数要求 ?? ''));
     const [initialTimeDraft, setInitialTimeDraft] = useState('');
@@ -922,6 +923,26 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                         checked={form.启用修炼体系 !== false}
                         onChange={(next) => 实时应用更新({ 启用修炼体系: next })}
                         ariaLabel="切换修炼体系相关内容"
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <div className="text-sm text-wuxia-cyan font-bold">性别比例自动演变</div>
+                        <div className="text-xs text-gray-400 mt-1">开启后，世界演变环节会根据剧情自动调整性别比例（世界级+地点级），并生成对应的个体性转命令；关闭后性别比例不受AI自动调整。</div>
+                        {性别比例演变预设 != null && (
+                            <div className="text-xs text-amber-400/80 mt-1">
+                                ⚙ 创意工坊叙事要求已锁定为{性别比例演变预设 ? '开启' : '关闭'}，此开关暂不可调整
+                            </div>
+                        )}
+                    </div>
+                    <ToggleSwitch
+                        checked={性别比例演变预设 != null ? 性别比例演变预设 : form.性别比例自动演变 === true}
+                        onChange={性别比例演变预设 != null ? undefined : (next) => 实时应用更新({ 性别比例自动演变: next })}
+                        disabled={性别比例演变预设 != null}
+                        ariaLabel="切换性别比例自动演变"
                     />
                 </div>
             </div>

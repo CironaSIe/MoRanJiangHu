@@ -244,9 +244,9 @@ export const 默认游戏设置: 游戏设置结构 = {
     酒馆预设: null,
     酒馆预设角色ID: null,
     酒馆预设名称: '',
-    独立APIGPT模式: 默认独立APIGPT模式设置,
-    额外提示词: 默认额外系统提示词
-};
+     独立APIGPT模式: 默认独立APIGPT模式设置,
+     额外提示词: 默认额外系统提示词
+ };
 
 export const 解析酒馆预设角色ID = (
     value: unknown,

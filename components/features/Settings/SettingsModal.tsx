@@ -241,7 +241,7 @@ const SettingsModal: React.FC<Props> = ({
                 </div>
             );
         }
-        if (activeTab === 'game' && gameConfig && onSaveGame) return <GameSettings settings={gameConfig} onSave={onSaveGame} gameInitialTime={gameInitialTime} currentGameTime={currentGameTime} journeyDayCount={journeyDayCount} onRepairGameInitialTime={onRepairGameInitialTime} requestConfirm={requestConfirm} />;
+        if (activeTab === 'game' && gameConfig && onSaveGame) return <GameSettings settings={gameConfig} onSave={onSaveGame} gameInitialTime={gameInitialTime} currentGameTime={currentGameTime} journeyDayCount={journeyDayCount} onRepairGameInitialTime={onRepairGameInitialTime} requestConfirm={requestConfirm} 性别比例演变预设={openingConfig?.modeRuntimeProfile?.性别比例演变预设} />;
         if (activeTab === 'reality' && gameConfig && onSaveGame) return <RealitySettings settings={gameConfig} onSave={onSaveGame} />;
         if (activeTab === 'tavern_preset' && gameConfig && onSaveGame) return <TavernPresetSettings settings={gameConfig} onSave={onSaveGame} apiConfig={apiConfig} onSaveApi={onSaveApi} />;
         if (activeTab === 'memory' && memoryConfig && onSaveMemory) return <MemorySettings settings={memoryConfig} onSave={onSaveMemory} />;

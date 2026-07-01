@@ -300,6 +300,7 @@ export const 执行世界演变更新工作流 = async (
 
         await 后台让出主线程();
         检查世界演变中断(params?.signal);
+        const genderEvolutionEnabled = (deps.开局配置?.modeRuntimeProfile?.性别比例演变预设 ?? worldRuntimeGameConfig.性别比例自动演变 ?? false) === true;
         const worldContextPayload = {
             worldPrompt,
             worldEvolutionPrompt,
@@ -313,7 +314,8 @@ export const 执行世界演变更新工作流 = async (
             currentTurnCommandsText,
             currentGameTime: 环境时间转标准串(worldEnv) || '',
             dynamicHints,
-            dueHints
+            dueHints,
+            genderEvolutionEnabled
         };
         const worldContext = await probe.timeAsync('构建世界演变上下文文本(worker)', () => 执行游戏后台重计算<string>(
             'buildWorldEvolutionContext',
@@ -368,7 +370,8 @@ export const 执行世界演变更新工作流 = async (
             ? 世界演变COT伪装历史消息提示词
             : '';
         const worldCotPrompt = 构建世界演变COT提示词({
-            fandom: fandomPromptBundle.enabled
+            fandom: fandomPromptBundle.enabled,
+            genderEvolution: genderEvolutionEnabled
         });
         const 独立世界演变GPT模式 = worldRuntimeGameConfig.独立APIGPT模式?.世界演变 === true;
         probe.mark('世界演变请求载荷准备完成', {
