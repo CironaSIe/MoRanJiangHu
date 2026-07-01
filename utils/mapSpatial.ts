@@ -152,20 +152,24 @@ export const 取地图层级显示名 = (type?: 地图层级类型 | null): stri
     type ? 地图层级显示名映射[type] || type : ''
 );
 
+// FNV-1a 32位散列，碰撞率显著低于简单多项式
 const 稳定散列 = (text: string): number => {
-    let hash = 0;
+    let hash = 0x811c9dc5;
     for (let index = 0; index < text.length; index += 1) {
-        hash = (hash * 31 + text.charCodeAt(index)) >>> 0;
+        hash ^= text.charCodeAt(index);
+        hash = Math.imul(hash, 0x01000193);
     }
-    return hash;
+    return hash >>> 0;
 };
 
+let 地图对象ID计数器 = 0;
 export const 生成地图对象ID = (prefix: string, ...parts: Array<unknown>): string => {
     const normalizedParts = parts
         .map((part) => 归一化地图文本(part))
         .filter(Boolean);
     if (normalizedParts.length === 0) {
-        return `${prefix}-0`;
+        地图对象ID计数器 += 1;
+        return `${prefix}-anon-${地图对象ID计数器}`;
     }
     return `${prefix}-${稳定散列(normalizedParts.join('|')).toString(16)}`;
 };
