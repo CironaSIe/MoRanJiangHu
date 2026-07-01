@@ -556,8 +556,9 @@ export const 构建世界演变上下文文本 = (params: {
         '【本回合可触发演变候选】',
         evolutionCandidates.length > 0 ? evolutionCandidates.map(item => `- ${item}`).join('\n') : '- 无',
         '',
-        '【性别比例演变状态】',
-        params.genderEvolutionEnabled ? '开启' : '关闭',
-        ...(params.genderEvolutionEnabled ? [] : ['（关闭时Step8.5跳过性别比例更新评估）'])
+        ...(params.genderEvolutionEnabled ? [
+            '【性别比例演变状态】',
+            '开启'
+        ] : [])
     ].join('\n');
 };

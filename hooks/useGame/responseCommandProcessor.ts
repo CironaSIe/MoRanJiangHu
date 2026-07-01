@@ -1430,9 +1430,7 @@ const 处理性转档案重建 = (
     });
 
     // 标记角色锚点失效，触发生图系统重制
-    if (target.角色锚点失效 == null) {
-        target.角色锚点失效 = true;
-    }
+    target.角色锚点失效 = true;
 };
 
 const 过滤玩家本人门派成员 = (sect: any, playerName?: string): any => {
@@ -1593,7 +1591,7 @@ export const 执行响应命令处理 = (
         // 主角性转检测与档案重建：检查是否有 set 角色.性别 = * 命令
         const 主角性别命令 = response?.tavern_commands?.find((cmd: any) => {
             const key = typeof cmd?.key === 'string' ? cmd.key : '';
-            return /^角色\.性别$/.test(key) && cmd?.op === 'set';
+            return /^角色\.性别$/.test(key) && cmd?.action === 'set';
         });
         if (主角性别命令 && typeof 主角性别命令.value === 'string') {
             处理性转档案重建(charBuffer, charGenderBeforeCommands, 主角性别命令.value);
