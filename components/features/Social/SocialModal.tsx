@@ -160,15 +160,15 @@ const SocialModal: React.FC<Props> = ({
 
     const currentNPC = sortedSocialList.find((n, index) => 获取NPC稳定ID(n, index) === selectedId) || sortedSocialList[0];
     const adjacentNPCs = React.useMemo(() => {
-        if (!currentNPC) return [] as typeof sortedSocialList;
+        if (!currentNPC || sortedSocialList.length === 0) return [] as typeof sortedSocialList;
         const currentIndex = sortedSocialList.findIndex((npc, index) => 获取NPC稳定ID(npc, index) === selectedId);
         if (currentIndex < 0) return [currentNPC];
-        return sortedSocialList.filter((_, index) => Math.abs(index - currentIndex) <= 1);
+        return sortedSocialList.slice(Math.max(0, currentIndex - 1), currentIndex + 2);
     }, [currentNPC, sortedSocialList, selectedId, 获取NPC稳定ID]);
     use图片资源回源预取(currentNPC, adjacentNPCs);
     const 当前记忆展示 = React.useMemo(
         () => currentNPC ? 构建NPC记忆展示结果(currentNPC.总结记忆, currentNPC.记忆) : { 总结记忆: [], 记忆: [], 原始总数: 0 },
-        [currentNPC]
+        [currentNPC?.总结记忆, currentNPC?.记忆]
     );
     const 当前角色是女性 = 是女性角色(currentNPC);
     const 当前角色是扶她 = NPC是否扶她(currentNPC);
