@@ -649,9 +649,11 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                 const nextHistory = [nextRecord, ...currentHistory.filter((item: any) => item?.id !== nextRecord.id)]
                     .sort((a: any, b: any) => (b?.生成时间 || 0) - (a?.生成时间 || 0));
                 const nextRecent = shouldUpdateRecent ? nextRecord : currentRecent;
+                // pending且无图片时不覆盖已有的success记录
+                const resolvedPartResult = nextPartResult ?? currentSecretArchive?.[part];
                 const nextSecretArchive = 标准化香闺秘档部位档案({
                     ...currentSecretArchive,
-                    [part]: nextPartResult
+                    [part]: resolvedPartResult
                 });
                 const currentSelectedAvatarImageId = typeof archive?.已选头像图片ID === 'string'
                     ? archive.已选头像图片ID.trim()
