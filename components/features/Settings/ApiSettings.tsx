@@ -184,6 +184,7 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave, requestConfirm }) => {
     const [mainModelOptions, setMainModelOptions] = useState<string[]>([]);
     const [loadingMainModels, setLoadingMainModels] = useState(false);
     const [message, setMessage] = useState('');
+    const [testMessage, setTestMessage] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
     const [newProvider, setNewProvider] = useState<接口供应商类型>('openai_compatible');
     const [testingConnection, setTestingConnection] = useState(false);
@@ -385,16 +386,16 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave, requestConfirm }) => {
         if (!activeConfig) return;
         if (testingRef.current) return;
         if (!activeConfig.apiKey || !activeConfig.baseUrl) {
-            setMessage('请先填写当前配置的 API Key 和 Base URL');
+            setTestMessage('请先填写当前配置的 API Key 和 Base URL');
             return;
         }
-        setMessage('');
+        setTestMessage('');
         testingRef.current = true;
         setTestingConnection(true);
         let modelForTest = (activeConfig.model || '').trim() || (form.功能模型占位.主剧情使用模型 || '').trim();
         let configForTest = activeConfig;
         try {
-            setMessage('正在获取模型列表并选择最佳模型...');
+            setTestMessage('正在获取模型列表并选择最佳模型...');
             const models = await fetchModelsFromCurrentConfig();
             if (models && models.length > 0) {
                 setMainModelOptions(models);
@@ -421,11 +422,11 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave, requestConfirm }) => {
                 && typeof configForTest.maxTokens === 'number'
                 && configForTest.maxTokens > matched.officialMaxOutput
             ) {
-                setMessage(`${modelForTest} 官方最大输出约为 ${matched.officialMaxOutput}，当前设置 ${configForTest.maxTokens} 过高，请调整。`);
+                setTestMessage(`${modelForTest} 官方最大输出约为 ${matched.officialMaxOutput}，当前设置 ${configForTest.maxTokens} 过高，请调整。`);
                 return;
             }
             if (!modelForTest) {
-                setMessage('请先填写主剧情模型或配置默认模型');
+                setTestMessage('请先填写主剧情模型或配置默认模型');
                 return;
             }
             const result = await textAIService.testConnection({
@@ -461,7 +462,7 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave, requestConfirm }) => {
             });
         } finally {
             testingRef.current = false;
-            setMessage('');
+            setTestMessage('');
             setTestingConnection(false);
         }
     };
@@ -963,6 +964,8 @@ const ApiSettings: React.FC<Props> = ({ settings, onSave, requestConfirm }) => {
             )}
 
             {message && <p className="animate-pulse text-xs text-wuxia-cyan">{message}</p>}
+
+            {testMessage && <p className="text-xs text-amber-400">{testMessage}</p>}
 
             {testResultModal.open && (
                 <div
