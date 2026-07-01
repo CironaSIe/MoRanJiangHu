@@ -11,7 +11,8 @@ import {
     同人女主剧情规划结构,
     详细门派结构,
     任务结构,
-    约定结构
+    约定结构,
+    记忆系统结构
 } from '../types';
 
 type 状态命令动作 = 'set' | 'add' | 'push' | 'delete' | 'sub';
@@ -49,6 +50,7 @@ type 命令结果结构 = {
     sect: 详细门派结构;
     tasks: 任务结构[];
     agreements: 约定结构[];
+    memory: 记忆系统结构 | undefined;
 };
 
 const 深拷贝 = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -202,7 +204,8 @@ const 应用路径命令 = (
         const nextToken = tokens[index + 1];
         if (typeof token === 'number') {
             if (!Array.isArray(cursor)) return draft;
-            if (cursor[token] === undefined) {
+            while (cursor.length <= token) cursor.push(undefined);
+            if (cursor[token] === undefined || cursor[token] === null || typeof cursor[token] !== 'object') {
                 cursor[token] = typeof nextToken === 'number' ? [] : {};
             }
             cursor = cursor[token];
@@ -301,7 +304,8 @@ export const applyStateCommand = (
     rootAgreements: 约定结构[],
     key: string,
     value: any,
-    action: 状态命令动作
+    action: 状态命令动作,
+    rootMemory?: 记忆系统结构
 ): 命令结果结构 => {
     const normalizedKey = normalizeStateCommandKey(key);
     const parsed = 提取根路径(normalizedKey);
@@ -319,7 +323,8 @@ export const applyStateCommand = (
         fandomHeroinePlan: rootFandomHeroinePlan,
         sect: rootSect,
         tasks: rootTasks,
-        agreements: rootAgreements
+        agreements: rootAgreements,
+        memory: rootMemory
     };
 
     if (!parsed) {
@@ -371,6 +376,9 @@ export const applyStateCommand = (
             case '约定列表':
                 result.agreements = Array.isArray(next) ? next as 约定结构[] : [];
                 break;
+            case '记忆系统':
+                result.memory = next as 记忆系统结构 | undefined;
+                break;
             default:
                 break;
         }
@@ -404,6 +412,8 @@ export const applyStateCommand = (
                 return result.tasks;
             case '约定列表':
                 return result.agreements;
+            case '记忆系统':
+                return result.memory;
             default:
                 return undefined;
         }

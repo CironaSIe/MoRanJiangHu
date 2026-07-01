@@ -291,9 +291,12 @@ export const 校验响应未泄露名器档案名称 = (
     rawText: string,
     stageLabel = '主剧情'
 ) => {
-    const bodyText = 规范化名器档案名称(构建玩家可见正文文本(response));
-    if (!bodyText) return;
-    const leaked = 收集有效名器档案名称(currentSocial).filter((name) => bodyText.includes(name));
+    const rawBodyText = 构建玩家可见正文文本(response);
+    if (!rawBodyText) return;
+    const leaked = 收集有效名器档案名称(currentSocial).filter((name) => {
+        const normalizedName = 规范化名器档案名称(name);
+        return rawBodyText.includes(name) || rawBodyText.replace(/[\s\u3000]+/g, '').includes(normalizedName);
+    });
     if (leaked.length <= 0) return;
     const detail = `${stageLabel}正文泄露了内部名器档案名称：${leaked.slice(0, 5).join('、')}。名器档案名称只能用于结构化档案、判定和生图内部提示，不得出现在玩家可见正文；请完整重写本回合正文，改用代称、体质特征或自然描写。`;
     const error = new textAIService.StoryResponseParseError(detail, rawText, detail);
