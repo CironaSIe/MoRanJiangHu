@@ -15,6 +15,7 @@ import { 格式化短期记忆展示文本 } from './memoryUtils';
 import { 构建NPC上下文 } from './npcContext';
 import { normalizeCanonicalGameTime, 环境时间转标准串, 结构化时间转标准串 } from './timeUtils';
 import { 计算游戏历程天数 } from '../../utils/gameTimeJourney';
+import { 规范化游戏设置 } from '../../utils/gameSettings';
 
 const 解析标准时间为天数片段 = (raw?: string): { year: number; month: number; day: number; hour: number; minute: number } | null => {
     const canonical = normalizeCanonicalGameTime(raw || '');
@@ -164,8 +165,8 @@ const 序列化展示上下文 = (value: unknown): string => JSON.stringify(
     null,
     2
 ).replace(
-    /^(\s*)"(\[\d+\])":\s*\d+,?$/gm,
-    '$1"$2"'
+    /^(\s*)"(\[\d+\])":\s*\d+,?\s*$/gm,
+    (match, indent, key) => `${indent}"`
 );
 
 const 树状上下文缩进 = (depth: number): string => '  '.repeat(depth);
