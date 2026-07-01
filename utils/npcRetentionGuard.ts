@@ -49,8 +49,10 @@ export const 是否占位名 = (value: unknown): boolean => {
 /** 需要在深合并中做空值保护的关键字段（名称类字段） */
 const 名称保护字段 = new Set(['姓名', '名称', 'name', 'Name', 'ID', 'id']);
 
+// 需要合并而非替换的数组字段（AI可能只返回增量更新）
+const 需要合并的数组字段 = new Set(['记忆', '总结记忆', 'BUFF', 'DEBUFF', '关系网变量', '技艺', '天赋列表', '首次亲密记录', '回忆档案', '物品列表', '功法列表']);
+
 const 深合并保留NPC字段 = (previous: any, next: any): any => {
-    if (Array.isArray(next)) return 深拷贝(next);
     if (!是普通对象(next)) return 深拷贝(next);
     const result = 是普通对象(previous) ? 深拷贝(previous) : {};
     Object.entries(next).forEach(([key, value]) => {
@@ -62,6 +64,11 @@ const 深合并保留NPC字段 = (previous: any, next: any): any => {
         // 名称字段占位名保护：当新值是占位名但旧值有真实名称时，保留旧值
         if (名称保护字段.has(key) && 是否占位名(value) && !是否占位名(result[key]) && !实质为空文本(result[key])) {
             return; // 保留旧的真实名称，不用占位名覆盖
+        }
+        // 数组字段合并策略：特定字段追加合并，其他字段直接替换
+        if (Array.isArray(value) && Array.isArray(result[key]) && 需要合并的数组字段.has(key)) {
+            result[key] = [...result[key], ...深拷贝(value)];
+            return;
         }
         if (是普通对象(result[key]) && 是普通对象(value)) {
             result[key] = 深合并保留NPC字段(result[key], value);
