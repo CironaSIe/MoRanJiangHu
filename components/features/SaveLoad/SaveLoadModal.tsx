@@ -324,7 +324,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const handleDelete = async (id: number, e: React.MouseEvent) => {
         e.stopPropagation();
         if (saveProtectionEnabled) {
-            alert('存档保护已开启，请先在”设置-数据存储”中关闭后再删除存档。');
+            setTransferMessage('\u5B58\u6863\u4FDD\u62A4\u5DF2\u5F00\u542F\uFF0C\u8BF7\u5148\u5728\u201C\u8BBE\u7F6E-\u6570\u636E\u5B58\u50A8\u201D\u4E2D\u5173\u95ED\u540E\u518D\u5220\u9664\u5B58\u6863\u3002');
             return;
         }
         // [修复] 加强删除中间节点的警告——删除谱系树中间节点会导致后续节点不可用
@@ -342,14 +342,14 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             await loadSaves();
         } catch (error: any) {
             console.error('删除存档失败:', error);
-            alert(`删除失败：${error?.message || '未知错误'}`);
+            setTransferMessage(`删除失败：${error?.message || '未知错误'}`);
         }
     };
 
     const handleDeleteSeries = async (series: 本地时间树系列, e: React.MouseEvent) => {
         e.stopPropagation();
         if (saveProtectionEnabled) {
-            alert('存档保护已开启，请先在“设置-数据存储”中关闭后再删除存档。');
+            setTransferMessage('存档保护已开启，请先在“设置-数据存储”中关闭后再删除存档。');
             return;
         }
         const ids = 展平本地时间树(series.roots)
@@ -375,7 +375,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         } catch (error: any) {
             console.error(error);
             setTransferMessage(`删除失败：${error?.message || '未知错误'}`);
-            alert(`删除失败：${error?.message || '未知错误'}`);
+            setTransferMessage(`删除失败：${error?.message || '未知错误'}`);
         } finally {
             setSyncing(false);
         }
@@ -385,7 +385,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         e.stopPropagation();
         setSaveMenuOpen(null);
         if (saveProtectionEnabled) {
-            alert('存档保护已开启，请先在"设置-数据存储"中关闭后再操作。');
+            setTransferMessage('存档保护已开启，请先在"设置-数据存储"中关闭后再操作。');
             return;
         }
         const ok = requestConfirm
@@ -406,7 +406,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         } catch (error: any) {
             console.error(error);
             setTransferMessage(`操作失败：${error?.message || '未知错误'}`);
-            alert(`操作失败：${error?.message || '未知错误'}`);
+            setTransferMessage(`操作失败：${error?.message || '未知错误'}`);
         } finally {
             setSyncing(false);
         }
@@ -478,7 +478,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 elapsedMs: Date.now() - startAt
             });
             console.error(error);
-            alert(`读取失败：${error?.message || '未知错误'}`);
+            setTransferMessage(`读取失败：${error?.message || '未知错误'}`);
         } finally {
             recordSaveLoadTrace('modal.loadClick.finally', {
                 id,
@@ -498,7 +498,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             await loadSaves();
         } catch (error: any) {
             console.error(error);
-            alert(`保存失败：${error?.message || '未知错误'}`);
+            setTransferMessage(`保存失败：${error?.message || '未知错误'}`);
         } finally {
             setSyncing(false);
         }
@@ -572,7 +572,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const downloadArchiveBlob = async (blob: Blob, fileName: string): Promise<void> => {
         if (await saveArchiveToDevice(blob, fileName)) {
             setTransferMessage(`已导出到设备文档目录：${fileName}`);
-            alert(`导出完成：${fileName}\n已保存到设备文档目录。`);
+            setTransferMessage(`导出完成：${fileName}\n已保存到设备文档目录。`);
             return;
         }
 
@@ -608,7 +608,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         } catch (error: any) {
             console.error(error);
             setTransferMessage(`导出失败：${error?.message || '未知错误'}`);
-            alert(`导出失败：${error?.message || '未知错误'}`);
+            setTransferMessage(`导出失败：${error?.message || '未知错误'}`);
         } finally {
             setSyncing(false);
         }
@@ -632,7 +632,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         } catch (error: any) {
             console.error(error);
             setTransferMessage(`导出失败：${error?.message || '未知错误'}`);
-            alert(`导出失败：${error?.message || '未知错误'}`);
+            setTransferMessage(`导出失败：${error?.message || '未知错误'}`);
         } finally {
             setSyncing(false);
         }
@@ -727,11 +727,11 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             await loadSaves();
 
             setTransferMessage(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条。`);
-            alert(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条。${repairedTip}`);
+            setTransferMessage(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条。${repairedTip}`);
         } catch (error: any) {
             console.error(error);
             setTransferMessage(`导入失败：${error?.message || '未知错误'}`);
-            alert(`导入失败：${error?.message || '未知错误'}`);
+            setTransferMessage(`导入失败：${error?.message || '未知错误'}`);
         } finally {
             setSyncing(false);
         }
