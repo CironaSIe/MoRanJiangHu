@@ -986,6 +986,10 @@ const App: React.FC = () => {
         });
     }, []);
 
+    React.useEffect(() => {
+        actions.setRequestConfirm(requestConfirm);
+    }, [actions.setRequestConfirm, requestConfirm]);
+
     const resolveConfirm = React.useCallback((accepted: boolean) => {
         if (confirmResolverRef.current) {
             confirmResolverRef.current(accepted);
