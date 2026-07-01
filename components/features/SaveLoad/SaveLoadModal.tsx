@@ -147,7 +147,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             cancelled = true;
             window.clearTimeout(timer);
         };
-    }, [saves, pageSize, syncing, transferMessage]);
+    }, [saves, pageSize, syncing]);
 
     useEffect(() => {
         setVisibleSaveCount(pageSize);
