@@ -791,6 +791,8 @@ export const useGame = () => {
         });
     };
 
+    const 最近社交存档时间戳Ref = useRef<number>(0);
+    const MIN_AUTOSAVE_INTERVAL_MS = 5000;
     const 应用并同步社交列表 = (
         nextSocial: NPC结构[],
         options?: { 静默NPC总结提示?: boolean }
@@ -798,9 +800,13 @@ export const useGame = () => {
         const normalized = 应用同名NPC过滤(规范化社交列表安全(nextSocial, { 合并同名: false }), 角色?.姓名);
         同步设置社交(normalized);
         刷新NPC记忆总结队列(normalized, { 静默: options?.静默NPC总结提示 === true });
-        void performAutoSave({ social: normalized, history: 历史记录, force: true }).catch((err) => {
-            console.error('[自动存档] 社交更新后存档失败', err);
-        });
+        const now = Date.now();
+        if (now - 最近社交存档时间戳Ref.current >= MIN_AUTOSAVE_INTERVAL_MS) {
+            最近社交存档时间戳Ref.current = now;
+            void performAutoSave({ social: normalized, history: 历史记录, force: true }).catch((err) => {
+                console.error('[自动存档] 社交更新后存档失败', err);
+            });
+        }
         return normalized;
     };
 

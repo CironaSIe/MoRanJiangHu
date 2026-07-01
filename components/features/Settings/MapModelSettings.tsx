@@ -152,7 +152,16 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
     ));
 
     return (
-        <div className="space-y-6 text-sm animate-fadeIn">
+        <>
+        <div className="space-y-6 text-sm animate-fadeIn relative">
+            {memoryParsing && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg">
+                    <div className="text-center space-y-2">
+                        <div className="inline-block h-8 w-8 border-2 border-wuxia-gold border-t-transparent rounded-full animate-spin" />
+                        <p className="text-wuxia-cyan text-sm">正在重建地图，请勿操作...</p>
+                    </div>
+                </div>
+            )}
             <div className="flex justify-between items-center border-b border-wuxia-gold/30 pb-3 mb-6">
                 <h3 className="text-wuxia-gold font-serif font-bold text-xl">地图生成模型</h3>
             </div>
@@ -345,13 +354,14 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
             </div>
 
             {message && <p className="text-xs text-wuxia-cyan animate-pulse">{message}</p>}
-
-            <div className="pt-6 border-t border-wuxia-gold/20 mt-8">
-                <GameButton onClick={handleSave} variant="primary" className="w-full">
-                    {showSuccess ? '✔ 配置已保存' : '保存设置'}
-                </GameButton>
-            </div>
         </div>
+
+        <div className="sticky bottom-0 -mx-4 mt-8 px-4 py-3 bg-black/90 backdrop-blur-sm border-t border-wuxia-gold/20">
+            <GameButton onClick={handleSave} variant="primary" className="w-full">
+                {showSuccess ? '✔ 配置已保存' : '保存设置'}
+            </GameButton>
+        </div>
+        </>
     );
 };
 
