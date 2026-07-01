@@ -46,6 +46,7 @@ type NPC秘档部位生图工作流依赖 = {
     接口配置是否可用: (config: 当前可用接口结构 | null) => boolean;
     读取文生图功能配置: () => 图片功能配置;
     NPC私密部位生图进行中集合: Set<string>;
+    NPC生图运行中计数: { current: number };
     提取NPC香闺秘档部位生图数据: (npc: any, part: 香闺秘档部位类型) => any;
     创建NPC生图任务: (params: {
         npc: any;
@@ -119,6 +120,7 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
 
     const uniqueTaskKey = `${npcKey}::${part}`;
     if (deps.NPC私密部位生图进行中集合.has(uniqueTaskKey)) return;
+    if (deps.NPC生图运行中计数.current >= 1) return;
 
     const imageApi = deps.获取文生图接口配置(deps.apiConfig);
     const imageFeature = deps.读取文生图功能配置();
@@ -164,6 +166,7 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
     let 合并负向画师串 = '';
     let PNG参数: PNG解析参数结构 | undefined = undefined;
 
+    deps.NPC生图运行中计数.current += 1;
     try {
         if (!imageFeature.总开关) {
             throw new Error('文生图总开关未启用，无法生成香闺秘档特写。');
@@ -543,5 +546,6 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
         throw error;
     } finally {
         deps.NPC私密部位生图进行中集合.delete(uniqueTaskKey);
+        deps.NPC生图运行中计数.current -= 1;
     }
 };
