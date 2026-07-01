@@ -172,6 +172,14 @@ const 是否可作立绘图片 = (record: any): boolean => (
     && Boolean(获取图片展示地址(record))
 );
 
+const 是否可作背景图片 = (record: any): boolean => (
+    record?.构图 === '背景'
+    && record?.状态 === 'success'
+    && !是否私密图片记录(record)
+    && Boolean(record?.id)
+    && Boolean(获取图片展示地址(record))
+);
+
 const 香闺秘档部位列表: 香闺秘档部位类型[] = ['胸部', '小穴', '屁穴', '肉棒'];
 
 const 是否可作香闺秘档部位图片 = (record: any): boolean => {
@@ -806,14 +814,21 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
                 const nextSelectedAvatarImageId = currentSelectedAvatarImageId && nextHistory.some((item: any) => item?.id === currentSelectedAvatarImageId && 是否可作头像图片(item))
                     ? currentSelectedAvatarImageId
                     : (nextHistory.find(是否可作头像图片)?.id || undefined);
+                // 立绘/背景删除后回退到历史中最后一个可用的图片
+                const nextSelectedPortraitImageId = currentSelectedPortraitImageId === imageId
+                    ? (nextHistory.find(是否可作立绘图片)?.id || undefined)
+                    : currentSelectedPortraitImageId;
+                const nextSelectedBackgroundImageId = currentSelectedBackgroundImageId === imageId
+                    ? (nextHistory.find(是否可作背景图片)?.id || undefined)
+                    : currentSelectedBackgroundImageId;
                 return {
                     ...npc,
                     图片档案: nextHistory.length > 0 ? {
                         最近生图结果: nextRecent,
                         生图历史: nextHistory,
                         已选头像图片ID: nextSelectedAvatarImageId,
-                        已选立绘图片ID: currentSelectedPortraitImageId === imageId ? undefined : currentSelectedPortraitImageId,
-                        已选背景图片ID: currentSelectedBackgroundImageId === imageId ? undefined : currentSelectedBackgroundImageId,
+                        已选立绘图片ID: nextSelectedPortraitImageId,
+                        已选背景图片ID: nextSelectedBackgroundImageId,
                         ...(nextSecretArchive ? { 香闺秘档部位档案: nextSecretArchive } : {})
                     } : undefined,
                     最近生图结果: nextRecent
