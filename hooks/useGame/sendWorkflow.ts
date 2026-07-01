@@ -2,7 +2,7 @@ import * as textAIService from '../../services/ai/text';
 import { recordAiParseFailureDiagnostic } from '../../services/diagnosticContext';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
 import type { GameResponse, OpeningConfig, 聊天记录结构, 记忆系统结构, 角色数据结构, 剧情系统结构, 剧情规划结构, 女主剧情规划结构, 同人剧情规划结构, 同人女主剧情规划结构, 世界书结构, 内置提示词条目结构 } from '../../types';
-import { 获取主剧情接口配置, 获取剧情回忆接口配置, 获取文章优化接口配置, 获取变量计算接口配置, 获取世界演变接口配置, 获取规划分析接口配置, 获取地图自动更新接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
+import { 获取主剧情接口配置, 获取剧情回忆接口配置, 获取文章优化接口配置, 获取变量计算接口配置, 获取世界演变接口配置, 获取规划分析接口配置, 获取地图自动更新接口配置, 接口配置是否可用, 变量校准功能已启用 as 变量生成功能已启用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 计算正文字数容错字数, 正文字数差距在容错内 } from '../../utils/bodyLengthTolerance';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
@@ -82,7 +82,7 @@ type 独立阶段失败决策参数 = {
 };
 
 type 规划分析进度 = {
-    phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
+    phase: 'start' | 'stream' | 'done' | 'error' | 'skipped' | 'cancelled';
     text?: string;
     rawText?: string;
     commandTexts?: string[];
@@ -943,6 +943,7 @@ type 主剧情发送依赖 = {
         response: GameResponse;
         shouldApply?: () => boolean;
         onRetry?: (attempt: number, maxAttempts: number, reason: string) => void;
+        onStreamDelta?: (delta: string, accumulated: string) => void;
         signal?: AbortSignal;
     }) => Promise<{ updated: boolean; message: string; rawText?: string; commands: any[]; storyPlanCommands?: any[]; heroinePlanCommands?: any[] }>;
     后台执行变量生成: (params: {
@@ -1958,7 +1959,8 @@ export const 执行主剧情发送工作流 = async (
             try {
                 const 文章优化开启 = deps.文章优化功能已开启();
                 const 变量生成配置 = 获取变量计算接口配置(currentState.apiConfig);
-                const 变量生成开启 = 接口配置是否可用(变量生成配置);
+                const 变量生成总开关开启 = 变量生成功能已启用(currentState.apiConfig);
+                const 变量生成开启 = 变量生成总开关开启 && 接口配置是否可用(变量生成配置);
                 const 文章优化配置 = 获取文章优化接口配置(currentState.apiConfig);
                 const 文章优化变量可并行 = 文章优化开启
                     && 变量生成开启
@@ -2109,19 +2111,30 @@ export const 执行主剧情发送工作流 = async (
                         || "变量生成失败"
                     )
                 });
-                let variableStage: Awaited<ReturnType<typeof 执行变量生成阶段>>;
-                if (文章优化变量可并行) {
-                    const baseDisplayResponse = finalDisplayResponse;
-                    const [polishStage, parallelVariableStage] = await Promise.all([
-                        执行文章优化阶段(),
-                        执行变量生成阶段(baseDisplayResponse)
-                    ]);
-                    应用文章优化结果(polishStage);
-                    variableStage = parallelVariableStage;
-                } else {
+                let variableStage: Awaited<ReturnType<typeof 执行变量生成阶段>> | null = null;
+                if (!变量生成开启) {
+                    options?.onVariableGenerationProgress?.({
+                        phase: "skipped",
+                        text: 变量生成总开关开启
+                            ? "变量生成接口未配置，已跳过。"
+                            : "变量生成功能已关闭，已跳过。"
+                    });
                     const polishStage = await 执行文章优化阶段();
                     应用文章优化结果(polishStage);
-                    variableStage = await 执行变量生成阶段(finalDisplayResponse);
+                } else {
+                    if (文章优化变量可并行) {
+                        const baseDisplayResponse = finalDisplayResponse;
+                        const [polishStage, parallelVariableStage] = await Promise.all([
+                            执行文章优化阶段(),
+                            执行变量生成阶段(baseDisplayResponse)
+                        ]);
+                        应用文章优化结果(polishStage);
+                        variableStage = parallelVariableStage;
+                    } else {
+                        const polishStage = await 执行文章优化阶段();
+                        应用文章优化结果(polishStage);
+                        variableStage = await 执行变量生成阶段(finalDisplayResponse);
+                    }
                 }
                 variableGenerationResult = variableStage?.result ?? null;
                 if (variableStage?.completed && variableGenerationResult?.mergedParsed) {
@@ -2305,6 +2318,14 @@ export const 执行主剧情发送工作流 = async (
                                     text: `规划分析请求失败，正在自动重试（${attempt}/${maxAttempts}）${reason ? `：${reason}` : ""}`
                                 });
                             },
+                            onStreamDelta: options?.onPlanningProgress
+                                ? (_delta, accumulated) => {
+                                    options?.onPlanningProgress?.({
+                                        phase: "stream",
+                                        text: accumulated
+                                    });
+                                }
+                                : undefined,
                             signal: controller.signal
                         }),
                         onError: (errorText) => {

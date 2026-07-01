@@ -315,6 +315,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         response: GameResponse;
         shouldApply?: () => boolean;
         onRetry?: (attempt: number, maxAttempts: number, reason: string) => void;
+        onStreamDelta?: (delta: string, accumulated: string) => void;
         signal?: AbortSignal;
     }): Promise<统一规划分析结果> => {
         检查规划分析中断(params.signal);
@@ -564,7 +565,14 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             gptMode: 独立规划分析GPT模式
         }, planningApi, signal, 规划分析非流式输出 ? undefined : {
             stream: true,
-            onDelta: markStreamActivity
+            onDelta: (delta, accumulated) => {
+                markStreamActivity();
+                try {
+                    params.onStreamDelta?.(delta, accumulated);
+                } catch (err) {
+                    console.error('[规划分析] onStreamDelta 回调异常', err);
+                }
+            }
         }), params.onRetry, params.signal), {
             firstResponseTimeoutMs: 规划分析首次响应超时毫秒,
             streamIdleTimeoutMs: 规划分析流式空闲超时毫秒,

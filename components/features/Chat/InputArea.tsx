@@ -42,7 +42,7 @@ type PolishProgress = {
 };
 
 type WorldEvolutionProgress = {
-    phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
+    phase: 'start' | 'stream' | 'done' | 'error' | 'skipped' | 'cancelled';
     text?: string;
     rawText?: string;
     commandTexts?: string[];
@@ -54,7 +54,7 @@ type WorldEvolutionProgress = {
 };
 
 type PlanningProgress = {
-    phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
+    phase: 'start' | 'stream' | 'done' | 'error' | 'skipped' | 'cancelled';
     text?: string;
     rawText?: string;
     commandTexts?: string[];
@@ -130,6 +130,8 @@ const 格式化队列耗时 = (elapsedMs?: number): string => {
 const 队列阶段不调用AI = (progress?: QueueProgressPayload | null): boolean => (
     String(progress?.modelName || '').trim().toLowerCase() === '不调用 ai'
 );
+
+const 队列阶段运行中 = (phase?: string): boolean => phase === 'start' || phase === 'stream';
 
 type IndependentStageId = 'polish' | 'world' | 'planning' | 'variable' | 'map';
 type IndependentStageFailureDecision = 'retry' | 'skip';
@@ -708,7 +710,7 @@ const InputArea: React.FC<Props> = ({
     const openingQueueHasError = openingProgressItems
         .some((item) => item?.phase === 'error');
     const openingQueueRunning = openingProgressItems
-        .some((item) => item?.phase === 'start');
+        .some((item) => 队列阶段运行中(item?.phase));
     const openingFinalProgress = openingQueueHasError
         ? null
         : (openingQueueRunning
@@ -738,8 +740,8 @@ const InputArea: React.FC<Props> = ({
         { id: 'map', label: '地图更新', progress: effectiveMapUpdateProgress }
     ]);
     const queueVisible = pipelineStages.some((stage) => Boolean(stage.progress));
-    const currentRunningStage = pipelineStages.find((stage) => stage.progress?.phase === 'start');
-    const latestFinishedStage = [...pipelineStages].reverse().find((stage) => stage.progress && stage.progress.phase !== 'start');
+    const currentRunningStage = pipelineStages.find((stage) => 队列阶段运行中(stage.progress?.phase));
+    const latestFinishedStage = [...pipelineStages].reverse().find((stage) => stage.progress && !队列阶段运行中(stage.progress.phase));
     const queueRunning = Boolean(currentRunningStage);
     const queueBadgeClass = queueRunning
         ? 'border-wuxia-cyan/60 bg-gradient-to-r from-wuxia-cyan/20 via-wuxia-gold/15 to-wuxia-cyan/20 text-wuxia-cyan animate-pulse shadow-[0_0_18px_rgba(34,211,238,0.2)]'
@@ -753,7 +755,7 @@ const InputArea: React.FC<Props> = ({
     );
     const 取阶段状态文案 = (phase?: string): string => {
         if (!phase) return '待命';
-        if (phase === 'start') return '处理中';
+        if (phase === 'start' || phase === 'stream') return '处理中';
         if (phase === 'done') return '完成';
         if (phase === 'error') return '失败';
         if (phase === 'skipped') return '已跳过';
@@ -764,39 +766,9 @@ const InputArea: React.FC<Props> = ({
         if (phase === 'done') return 'text-green-400';
         if (phase === 'error') return 'text-red-400';
         if (phase === 'skipped' || phase === 'cancelled') return 'text-gray-400';
-        if (phase === 'start') return 'text-wuxia-cyan';
+        if (phase === 'start' || phase === 'stream') return 'text-wuxia-cyan';
         return 'text-gray-500';
     };
-
-    useEffect(() => {
-        const hasQueueProgress = [
-            polishProgress,
-            openingPolishProgress,
-            effectiveVariableGenerationProgress,
-            effectiveWorldEvolutionProgress,
-            effectivePlanningProgress,
-            effectiveMapUpdateProgress
-        ].some((item) => item?.phase === 'start' || item?.phase === 'done' || item?.phase === 'error' || item?.phase === 'skipped' || item?.phase === 'cancelled');
-        const hasRunningQueueStage = [
-            polishProgress,
-            openingPolishProgress,
-            effectiveVariableGenerationProgress,
-            effectiveWorldEvolutionProgress,
-            effectivePlanningProgress,
-            effectiveMapUpdateProgress
-        ].some((item) => item?.phase === 'start');
-        if (hasQueueProgress && (hasRunningQueueStage || postStoryQueueRunning)) {
-            // 不再自动展开面板，保持收缩状态让用户手动点开
-        }
-    }, [
-        postStoryQueueRunning,
-        polishProgress?.phase,
-        openingPolishProgress?.phase,
-        effectiveVariableGenerationProgress?.phase,
-        effectiveWorldEvolutionProgress?.phase,
-        effectivePlanningProgress?.phase,
-        effectiveMapUpdateProgress?.phase
-    ]);
 
     useEffect(() => {
         const hasMainQueueError = [
@@ -902,12 +874,13 @@ const InputArea: React.FC<Props> = ({
                                 </div>
                                 <div className="grid grid-cols-1 gap-2">
                                     {pipelineStages.map((stage, index) => {
-                                        const phase = stage.progress?.phase;
-                                        const fullRawText = stage.progress?.rawText || '';
-                                        const rawText = fullRawText;
-                                        const progressText = stage.progress?.text;
-                                        const originalCommandTexts = Array.isArray((stage.progress as { commandTexts?: string[] } | null)?.commandTexts)
-                                            ? ((stage.progress as { commandTexts?: string[] }).commandTexts || [])
+                                        const progress = stage.progress;
+                                        const phase = progress?.phase;
+                                        const isRunningStage = Boolean(phase && 队列阶段运行中(phase));
+                                        const rawText = progress?.rawText || '';
+                                        const progressText = progress?.text;
+                                        const originalCommandTexts = Array.isArray((progress as { commandTexts?: string[] } | null)?.commandTexts)
+                                            ? ((progress as { commandTexts?: string[] }).commandTexts || [])
                                             : [];
                                         const commandTexts = originalCommandTexts;
                                         const commandDisplayText = 合并队列命令展示(commandTexts);
@@ -916,7 +889,12 @@ const InputArea: React.FC<Props> = ({
                                         const isVariableStage = stage.id === 'variable';
                                         const hidesModel = 队列阶段不调用AI(stage.progress);
                                         const elapsedText = 格式化队列耗时(stage.progress?.elapsedMs);
-                                        const rerunAction = phase !== 'start' && !variableGenerationRunning
+                                        const hasVisibleProgressText = Boolean(
+                                            typeof progressText === 'string'
+                                            && progressText.trim().length > 0
+                                            && isRunningStage
+                                        );
+                                        const rerunAction = !isRunningStage && !variableGenerationRunning
                                             ? 获取队列阶段重新生成动作({
                                                 stageId: stage.id,
                                                 isOpeningQueue,
@@ -930,7 +908,7 @@ const InputArea: React.FC<Props> = ({
                                                 <div className="flex items-center justify-between gap-3">
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         <span className="text-gray-500 text-xs">{index + 1}.</span>
-                                                        {phase === 'start' ? (
+                                                        {isRunningStage ? (
                                                             <RunningSpinner small />
                                                         ) : (
                                                             <span className={取阶段状态色(phase)}>●</span>
@@ -954,7 +932,7 @@ const InputArea: React.FC<Props> = ({
                                                         })()}
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        {isVariableStage && phase === 'start' && variableGenerationRunning && onCancelVariableGeneration && (
+                                                        {isVariableStage && isRunningStage && variableGenerationRunning && onCancelVariableGeneration && (
                                                             <button
                                                                 type="button"
                                                                 onClick={onCancelVariableGeneration}
@@ -995,7 +973,7 @@ const InputArea: React.FC<Props> = ({
                                                         {rawText && (
                                                             <button
                                                                 type="button"
-                                                                onClick={() => { void 复制队列文本(fullRawText, `${stage.label}原始回复`); }}
+                                                                onClick={() => { void 复制队列文本(rawText, `${stage.label}原始回复`); }}
                                                                 className="text-xs px-2 py-1 border border-emerald-700/70 text-emerald-200 rounded hover:border-emerald-400/70 hover:text-white"
                                                             >
                                                                 复制原始回复
@@ -1015,7 +993,7 @@ const InputArea: React.FC<Props> = ({
                                                         )}
                                                     </div>
                                                 </div>
-                                                {progressText && phase === 'start' && (
+                                                {hasVisibleProgressText && (
                                                     <pre className="mt-2 text-sm whitespace-pre-wrap text-gray-300 leading-relaxed max-h-24 sm:max-h-32 overflow-y-auto no-scrollbar">
                                                         {progressText}
                                                     </pre>
