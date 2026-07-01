@@ -417,8 +417,9 @@ export const 写入四段记忆 = (
     while (next.即时记忆.length > immediateLimit) {
         const shifted = next.即时记忆.shift();
         if (!shifted) continue;
-        const { 短期摘要 } = 拆分即时与短期(shifted);
-        if (短期摘要) next.短期记忆.push(短期摘要);
+        const { 即时内容, 短期摘要 } = 拆分即时与短期(shifted);
+        // 有摘要用摘要，无摘要时降级保留即时内容（避免数据丢失）
+        next.短期记忆.push(短期摘要 || 即时内容);
     }
 
     return next;

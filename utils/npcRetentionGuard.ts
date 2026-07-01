@@ -39,11 +39,19 @@ export const 实质为空文本 = (value: unknown): boolean => (
 
 /** 判断一个姓名/名称值是否是自动生成的占位名（如 "角色0"、"角色1"、"未命名功法1"、"势力 1"、"npc_0" 等） */
 export const 是否占位名 = (value: unknown): boolean => {
-    if (typeof value !== 'string' || !value.trim()) return true;
+    if (typeof value !== 'string') return false;
     const trimmed = value.trim();
+    if (!trimmed) return false; // 空字符串不是占位名，由调用方决定是否保护
     return /^(角色|未命名功法|未命名武功|势力\s*)\d+$/u.test(trimmed)
         || /^npc_\d+$/i.test(trimmed)
         || /^FCT-\d+$/i.test(trimmed);
+};
+
+/** 判断值是否为空或占位（用于深合并中的空值保护） */
+export const 是否无效值 = (value: unknown): boolean => {
+    if (value === undefined || value === null) return true;
+    if (typeof value === 'string' && !value.trim()) return true;
+    return 是否占位名(value);
 };
 
 /** 需要在深合并中做空值保护的关键字段（名称类字段） */
