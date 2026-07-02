@@ -1176,7 +1176,8 @@ const 检测正文引号内换行问题 = (body: string): string | null => {
             if (char === '"' && rawLine[charIndex - 1] === '\\') continue;
             const close = 正文引号闭合表[char];
             if (!close) continue;
-            if (char === '"' && expectedClose === '"') {
+            // 同一行内配对的双引号才pop，跨行时不pop（避免因行首误匹配导致后续行误报）
+            if (char === '"' && expectedClose === '"' && stack[stack.length - 1]?.lineNumber === lineNumber) {
                 stack.pop();
             } else {
                 stack.push({ close, lineNumber, lineText: rawLine.trim() });

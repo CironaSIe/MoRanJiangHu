@@ -582,10 +582,12 @@ const 避让层级建筑重叠 = (
         const width = Math.max(2.4, bounds.maxX - bounds.minX);
         const height = Math.max(2.2, bounds.maxY - bounds.minY);
         let attempts = 0;
-        while (placedBounds.some((placed) => 建筑边界重叠(bounds, placed)) && attempts < 36) {
+        while (placedBounds.some((placed) => 建筑边界重叠(bounds, placed)) && attempts < 200) {
             const columnCount = Math.max(1, Math.floor((layer.网格宽度 - 1.2) / (width + 0.8)));
             const column = (index + attempts) % columnCount;
-            const row = Math.floor((index + attempts) / columnCount);
+            const row = columnCount > 1
+                ? Math.floor((index + attempts) / columnCount)
+                : Math.floor((index + attempts) / 2); // columnCount=1时交错排列
             const x = 0.8 + column * (width + 0.8);
             const y = 0.8 + row * (height + 0.8);
             bounds = {
@@ -702,14 +704,20 @@ const 规划避让建筑正交路径 = (
     const nearestFreeCell = (point: 地图坐标点结构) => {
         const start = clampCell(point);
         if (!blocked(start.x, start.y)) return start;
-        for (let radius = 1; radius <= Math.max(maxX, maxY); radius += 1) {
-            for (let dx = -radius; dx <= radius; dx += 1) {
-                for (let dy = -radius; dy <= radius; dy += 1) {
-                    if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
-                    const x = Math.max(0, Math.min(maxX, start.x + dx));
-                    const y = Math.max(0, Math.min(maxY, start.y + dy));
-                    if (!blocked(x, y)) return { x, y };
-                }
+        const searchVisited = new Set<string>();
+        const queue: 地图坐标点结构[] = [start];
+        searchVisited.add(`${start.x},${start.y}`);
+        while (queue.length > 0) {
+            const cur = queue.shift()!;
+            const dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+            for (const dir of dirs) {
+                const nx = Math.max(0, Math.min(maxX, cur.x + dir.x));
+                const ny = Math.max(0, Math.min(maxY, cur.y + dir.y));
+                const key = `${nx},${ny}`;
+                if (searchVisited.has(key)) continue;
+                searchVisited.add(key);
+                if (!blocked(nx, ny)) return { x: nx, y: ny };
+                queue.push({ x: nx, y: ny });
             }
         }
         return start;
@@ -806,9 +814,10 @@ const 计算矩形布局 = (
     const columns = Math.max(1, Math.ceil(Math.sqrt(Math.max(total, 1))));
     const rows = Math.max(1, Math.ceil(total / columns));
     const padding = 2;
-    const cellWidth = Math.max(4, (layer.网格宽度 - padding * 2) / columns);
+    const maxCellWidth = (layer.网格宽度 - padding * 2) / columns;
+    const cellWidth = Math.max(4, maxCellWidth);
     const cellHeight = Math.max(4, (layer.网格高度 - padding * 2) / rows);
-    const rectWidth = Math.max(4.2, Math.min(8.2, cellWidth * 0.82));
+    const rectWidth = Math.min(8.2, Math.max(4.2, cellWidth * 0.82), maxCellWidth * 0.88);
     const rectHeight = Math.max(3.4, Math.min(6.8, cellHeight * 0.76));
     const column = index % columns;
     const row = Math.floor(index / columns);

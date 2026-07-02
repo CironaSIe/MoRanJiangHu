@@ -352,6 +352,21 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
             raf2 = window.requestAnimationFrame(() => {
                 const nextTop = Math.max(0, targetEl.offsetTop - 12);
                 container.scrollTop = nextTop;
+                const imgs = targetEl.querySelectorAll('img');
+                let loaded = 0;
+                const onImgLoad = () => {
+                    loaded += 1;
+                    if (loaded === imgs.length) {
+                        container.scrollTop = Math.max(0, targetEl.offsetTop - 12);
+                    }
+                };
+                imgs.forEach((img) => {
+                    if (img.complete) onImgLoad();
+                    else {
+                        img.addEventListener('load', onImgLoad, { once: true });
+                        img.addEventListener('error', onImgLoad, { once: true });
+                    }
+                });
                 set接近底部(false);
                 清理隐藏按钮计时器();
                 set显示快速置底(false);
