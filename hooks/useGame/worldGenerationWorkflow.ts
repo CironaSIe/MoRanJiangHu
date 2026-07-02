@@ -20,6 +20,14 @@ type 世界生成选项 = {
     清空前端变量?: boolean;
 };
 
+type 确认弹窗选项 = {
+    title?: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    danger?: boolean;
+};
+
 type 世界生成工作流依赖 = {
     apiConfig: any;
     gameConfig: any;
@@ -47,6 +55,7 @@ type 世界生成工作流依赖 = {
     ) => Promise<void>;
     追加系统消息: (message: string) => void;
     替换流式草稿为失败提示: (history: 聊天记录结构[], errorMessage: string) => 聊天记录结构[];
+    requestConfirmRef?: { current: ((options: 确认弹窗选项) => Promise<boolean>) | undefined };
 };
 
 const 世界观阶段超时毫秒 = 300000;
@@ -206,6 +215,32 @@ const 执行带超时 = async <T,>(
             clearTimeout(timer);
         }
     }
+};
+
+const 请求同人境界失败决策 = async (
+    deps: 世界生成工作流依赖,
+    stageLabel: string,
+    errorText: string
+): Promise<'retry' | 'skip'> => {
+    const requestConfirm = deps.requestConfirmRef?.current;
+    if (requestConfirm) {
+        const accepted = await requestConfirm({
+            title: `${stageLabel}失败`,
+            message: [
+                `${stageLabel}请求失败：`,
+                errorText || '未知错误',
+                '',
+                '选择"重试"会重新执行当前阶段；选择"跳过"会使用默认境界体系继续。'
+            ].join('\n'),
+            confirmText: '重试',
+            cancelText: '跳过'
+        });
+        return accepted ? 'retry' : 'skip';
+    }
+    if (typeof window !== 'undefined') {
+        return window.confirm(`${stageLabel}请求失败：\n${errorText || '未知错误'}\n\n按"确定"重试，按"取消"跳过（使用默认境界体系）。`) ? 'retry' : 'skip';
+    }
+    return 'skip';
 };
 
 export const 执行世界生成工作流 = async (
@@ -397,44 +432,76 @@ export const 执行世界生成工作流 = async (
             }
             realmPromptContent = 构建题材默认境界体系提示词(effectiveOpeningConfig?.题材模式) || 核心_境界体系.内容;
         } else if (realmPromptSource === 'fandom') {
-            if (openingStreaming) {
-                开局流式历史更新器?.更新('【生成中】同人境界体系生成...', { immediate: true });
-                let pulse = 0;
-                realmStreamHeartbeat = setInterval(() => {
-                    if (realmDeltaReceived) return;
-                    pulse = (pulse + 1) % 4;
-                    const dots = '.'.repeat(pulse) || '.';
-                    开局流式历史更新器?.更新(`【生成中】同人境界体系生成${dots}`);
-                }, 420);
-            }
-
-            realmPromptContent = await 执行带超时('同人境界体系生成', 境界阶段超时毫秒, (signal, 标记活动) => textAIService.generateFandomRealmData(
-                {
-                    openingConfig: effectiveOpeningConfig
-                },
-                currentApi,
-                openingRequestStreaming
-                    ? {
-                        stream: true,
-                        onDelta: (_delta, accumulated) => {
-                            标记活动();
-                            realmDeltaReceived = true;
-                            const normalized = (accumulated || '').replace(/\r/g, '');
-                            const tail = normalized.length > 420
-                                ? `...${normalized.slice(-420)}`
-                                : normalized;
-                            const preview = tail.split('\n').slice(-10).join('\n').trim();
-                            开局流式历史更新器?.更新(`【生成中】同人境界体系生成（流式预览）\n${preview || '...'}\n\n已接收 ${normalized.length} 字符`);
-                        }
+            let fandomRealmAttempt = 0;
+            const maxFandomAttempts = 3;
+            let fandomRealmSucceeded = false;
+            while (fandomRealmAttempt < maxFandomAttempts && !fandomRealmSucceeded) {
+                fandomRealmAttempt += 1;
+                if (openingStreaming) {
+                    开局流式历史更新器?.更新(
+                        fandomRealmAttempt > 1
+                            ? `【生成中】同人境界体系生成（第 ${fandomRealmAttempt} 次尝试）...`
+                            : '【生成中】同人境界体系生成...',
+                        { immediate: true }
+                    );
+                    let pulse = 0;
+                    realmStreamHeartbeat = setInterval(() => {
+                        if (realmDeltaReceived) return;
+                        pulse = (pulse + 1) % 4;
+                        const dots = '.'.repeat(pulse) || '.';
+                        开局流式历史更新器?.更新(`【生成中】同人境界体系生成${dots}`);
+                    }, 420);
+                }
+                try {
+                    realmPromptContent = await 执行带超时('同人境界体系生成', 境界阶段超时毫秒, (signal, 标记活动) => textAIService.generateFandomRealmData(
+                        {
+                            openingConfig: effectiveOpeningConfig
+                        },
+                        currentApi,
+                        openingRequestStreaming
+                            ? {
+                                stream: true,
+                                onDelta: (_delta, accumulated) => {
+                                    标记活动();
+                                    realmDeltaReceived = true;
+                                    const normalized = (accumulated || '').replace(/\r/g, '');
+                                    const tail = normalized.length > 420
+                                        ? `...${normalized.slice(-420)}`
+                                        : normalized;
+                                    const preview = tail.split('\n').slice(-10).join('\n').trim();
+                                    开局流式历史更新器?.更新(`【生成中】同人境界体系生成（流式预览）\n${preview || '...'}\n\n已接收 ${normalized.length} 字符`);
+                                }
+                            }
+                            : undefined,
+                        normalizedWorldExtraRequirement
+                            ? `【玩家世界观草稿与细化要求】\n${normalizedWorldExtraRequirement}\n- 必须优先保留玩家已写明的世界事实，并在此基础上细化，不得自顾自另起炉灶。`
+                            : '',
+                        signal
+                    ), { idleTimeout: openingRequestStreaming });
+                    fandomRealmSucceeded = true;
+                } catch (error: any) {
+                    if (realmStreamHeartbeat) clearInterval(realmStreamHeartbeat);
+                    realmStreamHeartbeat = null;
+                    realmDeltaReceived = false;
+                    const errorText = error?.message || '同人境界体系生成失败';
+                    if (fandomRealmAttempt >= maxFandomAttempts) {
+                        开局流式历史更新器?.更新(`【失败】同人境界体系生成已重试 ${maxFandomAttempts} 次仍失败，将使用默认境界体系。`, { immediate: true });
+                        break;
                     }
-                    : undefined,
-                normalizedWorldExtraRequirement
-                    ? `【玩家世界观草稿与细化要求】\n${normalizedWorldExtraRequirement}\n- 必须优先保留玩家已写明的世界事实，并在此基础上细化，不得自顾自另起炉灶。`
-                    : '',
-                signal
-            ), { idleTimeout: openingRequestStreaming });
+                    const decision = await 请求同人境界失败决策(deps, `同人境界体系生成（第 ${fandomRealmAttempt}/${maxFandomAttempts} 次）`, errorText);
+                    if (decision === 'retry') {
+                        continue;
+                    }
+                    开局流式历史更新器?.更新('【跳过】同人境界体系生成已跳过，将使用默认境界体系。', { immediate: true });
+                    break;
+                }
+            }
             if (realmStreamHeartbeat) clearInterval(realmStreamHeartbeat);
+            realmStreamHeartbeat = null;
             开局流式历史更新器?.停止();
+            if (!fandomRealmSucceeded) {
+                realmPromptContent = 核心_境界体系.内容;
+            }
         }
 
         updatedPrompts = 启用修炼体系

@@ -58,12 +58,21 @@ type 回合快照结构 = {
     回档前历史: any[];
 };
 
+type 确认弹窗选项 = {
+    title?: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    danger?: boolean;
+};
+
 type 会话生命周期依赖 = {
     apiConfig: any;
     gameConfig: any;
     设置游戏设置: (value: any) => void;
     memoryConfig: any;
     view: 'home' | 'game' | 'new_game';
+    requestConfirmRef?: { current: ((options: 确认弹窗选项) => Promise<boolean>) | undefined };
     prompts: 提示词结构[];
     历史记录: any[];
     记忆系统: any;
@@ -269,6 +278,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
             options,
             {
                 apiConfig: deps.apiConfig,
+                requestConfirmRef: deps.requestConfirmRef,
                 环境: deps.环境,
                 角色: deps.角色,
                 世界: deps.世界,
@@ -408,7 +418,8 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 创建开场命令基态: deps.创建开场命令基态,
                 执行开场剧情生成: generateOpeningStory,
                 追加系统消息: deps.追加系统消息,
-                替换流式草稿为失败提示: deps.替换流式草稿为失败提示
+                替换流式草稿为失败提示: deps.替换流式草稿为失败提示,
+                requestConfirmRef: deps.requestConfirmRef
             }
         );
     };
