@@ -465,7 +465,7 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
                     if (msg.role === 'assistant' && msg.structuredResponse) {
                         const turnNum = turnNumberByIndex.get(absoluteIdx) ?? 0;
                         return (
-                            <div key={absoluteIdx} ref={(node) => { 回合容器Refs.current[absoluteIdx] = node; 消息容器Refs.current[absoluteIdx] = node; }}>
+                            <div key={absoluteIdx} ref={(node) => { if (node) { 回合容器Refs.current[absoluteIdx] = node; 消息容器Refs.current[absoluteIdx] = node; } else { delete 回合容器Refs.current[absoluteIdx]; delete 消息容器Refs.current[absoluteIdx]; } }}>
                                 <TurnItem
                                     response={msg.structuredResponse}
                                     turnNumber={turnNum}

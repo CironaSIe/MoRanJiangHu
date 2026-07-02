@@ -9,7 +9,8 @@ import {
     剧情规划结构,
     女主剧情规划结构,
     同人剧情规划结构,
-    同人女主剧情规划结构
+    同人女主剧情规划结构,
+    记忆系统结构
 } from '../../types';
 import { applyStateCommand, normalizeStateCommandKey } from '../../utils/stateHelpers';
 import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
@@ -193,6 +194,7 @@ export type 响应命令处理状态 = {
     玩家门派: 详细门派结构;
     任务列表: any[];
     约定列表: any[];
+    记忆系统?: 记忆系统结构;
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
@@ -211,6 +213,7 @@ type 响应命令处理依赖 = {
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
     规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
     规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
+    规范化记忆系统: (raw?: any) => 记忆系统结构;
     规范化角色物品容器映射: (raw?: any, options?: { 当前时间?: unknown; 事件文本?: string; 启用饱腹口渴系统?: boolean; 题材模式?: unknown }) => 角色数据结构;
     角色规范化选项?: { 启用饱腹口渴系统?: boolean; 题材模式?: unknown };
     战斗结束自动清空: (battle: 战斗状态结构, story?: 剧情系统结构) => 战斗状态结构;
@@ -1478,6 +1481,7 @@ export const 执行响应命令处理 = (
     let heroinePlanBuffer = deps.规范化女主剧情规划状态(baseState?.女主剧情规划 ?? currentState.女主剧情规划);
     let fandomStoryPlanBuffer = deps.规范化同人剧情规划状态(baseState?.同人剧情规划 ?? currentState.同人剧情规划);
     let fandomHeroinePlanBuffer = deps.规范化同人女主剧情规划状态(baseState?.同人女主剧情规划 ?? currentState.同人女主剧情规划);
+    let memoryBuffer = deps.规范化记忆系统(baseState?.记忆系统 || currentState.记忆系统);
     const socialBeforeCommands = Array.isArray(socialBuffer) ? socialBuffer : [];
     const worldFactionsBeforeCommands = Array.isArray(worldBuffer?.势力列表) ? worldBuffer.势力列表 : [];
     const charGenderBeforeCommands = charBuffer?.性别;
@@ -1536,7 +1540,8 @@ export const 执行响应命令处理 = (
                 agreementsBuffer,
                 safeCmd.key,
                 safeCmd.value,
-                safeCmd.action
+                safeCmd.action,
+                memoryBuffer
             );
             charBuffer = result.char;
             envBuffer = result.env;
@@ -1551,6 +1556,7 @@ export const 执行响应命令处理 = (
             heroinePlanBuffer = result.heroinePlan;
             fandomStoryPlanBuffer = result.fandomStoryPlan;
             fandomHeroinePlanBuffer = result.fandomHeroinePlan;
+            if (result.memory) memoryBuffer = result.memory;
         });
 
         envBuffer = deps.规范化环境信息(envBuffer);
@@ -1686,6 +1692,7 @@ export const 执行响应命令处理 = (
             玩家门派: deps.规范化门派状态(过滤玩家本人门派成员(sectBuffer, charBuffer?.姓名)),
             任务列表: 规范化任务列表自动结算(Array.isArray(tasksBuffer) ? tasksBuffer : []),
             约定列表: Array.isArray(agreementsBuffer) ? agreementsBuffer : [],
+            记忆系统: memoryBuffer,
             剧情: storyBuffer,
             剧情规划: deps.规范化剧情规划状态(storyPlanBuffer),
             女主剧情规划: deps.规范化女主剧情规划状态(heroinePlanBuffer),

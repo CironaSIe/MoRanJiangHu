@@ -162,17 +162,19 @@ export const SandboxedCard: React.FC<SandboxedCardProps> = ({
 
     // ─── 高度自适应兜底 ───
 
+    const iframeHeightRef = useRef(iframeHeight);
+    useEffect(() => { iframeHeightRef.current = iframeHeight; }, [iframeHeight]);
+
     useEffect(() => {
         if (!isReady || !iframeRef.current) return;
         const iframe = iframeRef.current;
 
-        // 定期读取 iframe 内容高度作为兜底
         const measureHeight = () => {
             try {
                 const doc = iframe.contentDocument;
                 if (doc?.body) {
                     const h = doc.body.scrollHeight;
-                    if (h > 0 && h !== iframeHeight) {
+                    if (h > 0 && h !== iframeHeightRef.current) {
                         setIframeHeight(Math.min(h, maxHeight || 2000));
                     }
                 }
@@ -181,16 +183,14 @@ export const SandboxedCard: React.FC<SandboxedCardProps> = ({
             }
         };
 
-        // 初始测量
         const timer = setTimeout(measureHeight, 200);
-        // 定时检查（弥补 ResizeObserver 在 iframe 内失效的情况）
         const interval = setInterval(measureHeight, 2000);
 
         return () => {
             clearTimeout(timer);
             clearInterval(interval);
         };
-    }, [isReady, maxHeight, iframeHeight]);
+    }, [isReady, maxHeight]);
 
     // ─── 渲染 ───
 

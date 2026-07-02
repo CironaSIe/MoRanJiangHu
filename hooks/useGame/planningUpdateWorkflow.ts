@@ -250,6 +250,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         let heroinePlanBuffer = deps.规范化女主剧情规划状态(params.heroinePlan);
         let fandomStoryPlanBuffer = deps.规范化同人剧情规划状态(params.fandomStoryPlan);
         let fandomHeroinePlanBuffer = deps.规范化同人女主剧情规划状态(params.fandomHeroinePlan);
+        let memoryBuffer = deps.规范化记忆系统(deps.记忆系统);
 
         (Array.isArray(params.commands) ? params.commands : []).forEach((cmd) => {
             const result = applyStateCommand(
@@ -268,7 +269,8 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
                 agreementsBuffer,
                 cmd.key,
                 cmd.value,
-                cmd.action
+                cmd.action,
+                memoryBuffer
             );
             charBuffer = result.char;
             envBuffer = result.env;
