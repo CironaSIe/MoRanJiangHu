@@ -379,21 +379,24 @@ export const 解析地图自动更新命令 = (rawText: string, currentWorld?: a
         const action = match[1].toLowerCase() as TavernCommand['action'];
         const key = (match[2] || '').trim();
         if (!/^世界\.地图层级(?:$|\s|\[|\.)/.test(key) && !/^gameState\.世界\.地图层级(?:$|\s|\[|\.)/.test(key)) return;
-        if (action !== 'push' && action !== 'set' && action !== 'delete') return;
+        if (action !== 'push' && action !== 'set' && action !== 'delete' && action !== 'add') return;
         const value = action === 'delete' ? undefined : 解析命令值(match[3] || '');
-        if (action === 'push') {
+        if (action === 'push' || action === 'add') {
             if (!value || typeof value !== 'object' || Array.isArray(value)) return;
             const name = 取文本((value as any).名称);
             if (!name || existingNames.has(name)) return;
             const parent = 取文本((value as any).父级ID);
             result.push({
-                action,
+                action: 'push',
                 key: '世界.地图层级',
                 value: {
                     名称: name,
                     层级: 规范化层级((value as any).层级),
                     父级ID: parent ? (idByName.get(parent) || parent) : '',
-                    描述: 取文本((value as any).描述)
+                    描述: 取文本((value as any).描述),
+                    控制势力: 取文本((value as any).控制势力) || undefined,
+                    势力影响: 取文本((value as any).势力影响) || undefined,
+                    势力标签: Array.isArray((value as any).势力标签) ? (value as any).势力标签 : undefined,
                 }
             });
             return;

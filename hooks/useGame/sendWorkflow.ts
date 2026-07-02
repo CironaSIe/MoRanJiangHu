@@ -617,8 +617,9 @@ const 执行主剧情流式请求带空闲超时 = async <T,>(
             task(requestController.signal, markStreamActivity),
             new Promise<T>((resolve, reject) => {
                 rejectTimeout = (reason?: any) => {
-                    if (reason && typeof reason === 'object' && 'response' in reason && 'rawText' in reason) {
-                        resolve(reason as T);
+                    // 仅当错误是带有完整响应结果的特殊错误时才恢复（如标签协议失败但已有完整草稿）
+                    if (reason instanceof Error && 'response' in reason && 'rawText' in reason && (reason as any).response) {
+                        resolve((reason as any).response as T);
                         return;
                     }
                     reject(reason);
