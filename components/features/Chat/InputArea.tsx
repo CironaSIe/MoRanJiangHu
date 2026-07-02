@@ -185,6 +185,34 @@ interface Props {
     stageStreamMode?: Record<string, 'stream' | 'non-stream'>;
 }
 
+type StageFailureHandler = (params: {
+    stageId: string;
+    stageLabel: string;
+    errorText?: string;
+    manualAttempt?: number;
+}) => Promise<'retry' | 'skip'>;
+
+const 处理阶段失败决策: StageFailureHandler = async (params) => {
+    if (params.stageId === 'planning' && (params.manualAttempt || 1) <= 1) {
+        return 'skip';
+    }
+    const message = `${params.stageLabel}请求失败：\n\n${params.errorText || '未知错误'}\n\n选择"重试"会重新执行当前阶段；选择"跳过"会继续后续阶段。`;
+    const requestConfirm = (globalThis as any).__inputAreaRequestConfirm as ((opts: any) => Promise<boolean>) | undefined;
+    if (requestConfirm) {
+        const accepted = await requestConfirm({
+            title: `${params.stageLabel}失败`,
+            message,
+            confirmText: '重试',
+            cancelText: '跳过'
+        });
+        return accepted ? 'retry' : 'skip';
+    }
+    if (typeof window !== 'undefined') {
+        return window.confirm(`${message}\n\n按"确定"重试，按"取消"跳过。`) ? 'retry' : 'skip';
+    }
+    return 'skip';
+};
+
 const InputArea: React.FC<Props> = ({
     onSend,
     onStop,
@@ -386,25 +414,7 @@ const InputArea: React.FC<Props> = ({
                 onPlanningProgress: (progress) => 记录并设置队列进度('planning', progress, setPlanningProgress),
                 onVariableGenerationProgress: (progress) => 记录并设置队列进度('variable', progress, setVariableGenerationProgress),
                 onMapUpdateProgress: (progress) => 记录并设置队列进度('map', progress, setMapUpdateProgress),
-                onStageFailureDecision: async (params) => {
-                    if (params.stageId === 'planning' && (params.manualAttempt || 1) <= 1) {
-                        return 'skip';
-                    }
-                    const message = `${params.stageLabel}请求失败：\n\n${params.errorText || '未知错误'}\n\n选择“重试”会重新执行当前阶段；选择“跳过”会继续后续阶段。`;
-                    if (requestConfirm) {
-                        const accepted = await requestConfirm({
-                            title: `${params.stageLabel}失败`,
-                            message,
-                            confirmText: '重试',
-                            cancelText: '跳过'
-                        });
-                        return accepted ? 'retry' : 'skip';
-                    }
-                    if (typeof window !== 'undefined') {
-                        return window.confirm(`${message}\n\n按“确定”重试，按“取消”跳过。`) ? 'retry' : 'skip';
-                    }
-                    return 'skip';
-                }
+                onStageFailureDecision: 处理阶段失败决策,
             });
             if (result?.cancelled && result.needRecallConfirm && result.preparedRecallTag) {
                 recallAutoRetried = true;
@@ -416,25 +426,7 @@ const InputArea: React.FC<Props> = ({
                     onPlanningProgress: (progress) => 记录并设置队列进度('planning.retry', progress, setPlanningProgress),
                     onVariableGenerationProgress: (progress) => 记录并设置队列进度('variable.retry', progress, setVariableGenerationProgress),
                     onMapUpdateProgress: (progress) => 记录并设置队列进度('map.retry', progress, setMapUpdateProgress),
-                    onStageFailureDecision: async (params) => {
-                        if (params.stageId === 'planning' && (params.manualAttempt || 1) <= 1) {
-                            return 'skip';
-                        }
-                        const message = `${params.stageLabel}请求失败：\n\n${params.errorText || '未知错误'}\n\n选择“重试”会重新执行当前阶段；选择“跳过”会继续后续阶段。`;
-                        if (requestConfirm) {
-                            const accepted = await requestConfirm({
-                                title: `${params.stageLabel}失败`,
-                                message,
-                                confirmText: '重试',
-                                cancelText: '跳过'
-                            });
-                            return accepted ? 'retry' : 'skip';
-                        }
-                        if (typeof window !== 'undefined') {
-                            return window.confirm(`${message}\n\n按“确定”重试，按“取消”跳过。`) ? 'retry' : 'skip';
-                        }
-                        return 'skip';
-                    }
+                    onStageFailureDecision: 处理阶段失败决策,
                 });
             }
             if (result?.cancelled) {

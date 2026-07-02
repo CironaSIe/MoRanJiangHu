@@ -114,9 +114,13 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
         if (!Number.isFinite(parsed)) return fallback;
         return Math.max(0, Math.min(100, parsed));
     };
+    const isFirstRenderRef = useRef(true);
     useEffect(() => {
-        setForm(settings);
-        setWordCountDraft(String(settings.字数要求 ?? ''));
+        if (isFirstRenderRef.current) {
+            isFirstRenderRef.current = false;
+            setForm(settings);
+            setWordCountDraft(String(settings.字数要求 ?? ''));
+        }
     }, [settings]);
 
     useEffect(() => {
@@ -146,9 +150,12 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
         setTimeout(() => setShowSuccess(false), 2000);
     };
 
+    const formRef = useRef(form);
+    useEffect(() => { formRef.current = form; }, [form]);
     const 实时应用更新 = (patch: Partial<游戏设置结构>) => {
-        const next = { ...form, ...patch };
+        const next = { ...formRef.current, ...patch };
         setForm(next);
+        formRef.current = next;
         onSave(next);
     };
 
@@ -509,12 +516,18 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <label className="text-sm text-wuxia-cyan font-bold">字数要求</label>
-                    <input 
+                    <input
                         type="text"
                         inputMode="numeric"
                         value={wordCountDraft}
                         onChange={(e) => {
-                            setWordCountDraft(e.target.value.replace(/[^\d]/g, ''));
+                            const raw = e.target.value.replace(/[^\d]/g, '');
+                            setWordCountDraft(raw);
+                            const parsed = Number(raw);
+                            if (Number.isFinite(parsed) && parsed > 0) {
+                                setForm(prev => ({ ...prev, 字数要求: Math.max(50, Math.floor(parsed)) }));
+                                onSave({ ...form, 字数要求: Math.max(50, Math.floor(parsed)) });
+                            }
                         }}
                         onBlur={提交字数要求}
                         onKeyDown={(e) => {
@@ -973,9 +986,11 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                         setForm(prev => ({ ...prev, 额外提示词: nextValue }));
                     }}
                     onBlur={(e) => {
-                        const next = { ...form, 额外提示词: e.currentTarget.value };
-                        setForm(next);
-                        onSave(next);
+                        setForm(prev => {
+                            const next = { ...prev, 额外提示词: e.currentTarget.value };
+                            onSave(next);
+                            return next;
+                        });
                     }}
                     className="w-full h-32 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all resize-none custom-scrollbar"
                     placeholder="在此输入需要追加到 Prompt 最后的特殊指令，例如：'严禁使用现代词汇'..."

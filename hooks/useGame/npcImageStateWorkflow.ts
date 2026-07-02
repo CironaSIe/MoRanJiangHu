@@ -746,7 +746,18 @@ export const 创建NPC图片状态工作流 = (deps: NPC图片状态工作流依
     };
 
     const 追加NPC生图任务 = (task: NPC生图任务记录) => {
-        deps.设置NPC生图任务队列((prev: any) => [task, ...(Array.isArray(prev) ? prev : [])].slice(0, 100));
+        deps.设置NPC生图任务队列((prev: any) => {
+            const list = Array.isArray(prev) ? prev : [];
+            // 去重：同NPC+同构图+同部位且仍在排队/运行中的任务不重复添加
+            const dedupeKey = `${task.NPC标识}|${task.构图}|${task.部位 || ''}`;
+            const isDuplicate = list.some((t) =>
+                t?.状态 === 'queued' || t?.状态 === 'running'
+                    ? `${t.NPC标识}|${t.构图}|${t.部位 || ''}` === dedupeKey
+                    : false
+            );
+            if (isDuplicate) return list;
+            return [task, ...list].slice(0, 100);
+        });
     };
 
     const 更新NPC生图任务 = (taskId: string, updater: (task: NPC生图任务记录) => NPC生图任务记录) => {
