@@ -644,4 +644,4 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
     );
 };
 
-export default ChatList;
+export default React.memo(ChatList);

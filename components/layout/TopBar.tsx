@@ -796,4 +796,4 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
     );
 };
 
-export default TopBar;
+export default React.memo(TopBar);
