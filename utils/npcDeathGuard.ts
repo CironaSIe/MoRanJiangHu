@@ -44,10 +44,19 @@ const 收集NPC死亡命令状态 = (commands: TavernCommand[]) => {
         const state = ensure(index);
         const wholeObject = !field;
 
-        const isHpZero = (field === '当前血量' && Number(cmd?.value) === 0) || (wholeObject && Number(cmd?.value?.当前血量) === 0);
-        const isDeath = (死亡状态字段正则.test(field) || wholeObject) && 死亡判定词正则.test(valueText);
-        const isDeathTime = field === '死亡时间' && typeof cmd?.value === 'string' && cmd.value.trim().length > 0;
-        const isDeathDesc = field === '死亡描述' && typeof cmd?.value === 'string' && cmd.value.trim().length > 0;
+        const isHpZero = (field === '当前血量' && cmd?.value !== '' && cmd?.value !== undefined && Number(cmd?.value) === 0)
+            || (wholeObject && cmd?.value && typeof cmd.value === 'object' && Number(cmd.value.当前血量) === 0);
+        // wholeObject时不对整个JSON序列化文本做正则，仅检查特定字段的值
+        const deathFieldValue = wholeObject && cmd?.value && typeof cmd.value === 'object'
+            ? String(cmd.value.状态 || cmd.value.生死状态 || cmd.value.生命状态 || cmd.value.死亡描述 || '')
+            : valueText;
+        const isDeath = (死亡状态字段正则.test(field) || wholeObject) && 死亡判定词正则.test(deathFieldValue);
+        const isDeathTime = (field === '死亡时间' || (wholeObject && cmd?.value && typeof cmd?.value === 'object' && cmd.value.死亡时间))
+            && typeof (wholeObject ? cmd?.value?.死亡时间 : cmd?.value) === 'string'
+            && String(wholeObject ? cmd?.value?.死亡时间 : cmd?.value).trim().length > 0;
+        const isDeathDesc = (field === '死亡描述' || (wholeObject && cmd?.value && typeof cmd?.value === 'object' && cmd.value.死亡描述))
+            && typeof (wholeObject ? cmd?.value?.死亡描述 : cmd?.value) === 'string'
+            && String(wholeObject ? cmd?.value?.死亡描述 : cmd?.value).trim().length > 0;
 
         if (isHpZero) { state.hpZero = true; state.deathCommandIndices.add(commandIndex); }
         if (isDeath) { state.death = true; state.deathCommandIndices.add(commandIndex); }
