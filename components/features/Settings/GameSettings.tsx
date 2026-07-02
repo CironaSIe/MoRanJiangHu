@@ -13,8 +13,7 @@ interface Props {
     journeyDayCount?: number;
     onRepairGameInitialTime?: (nextTime: string) => 游戏初始时间修复结果 | Promise<游戏初始时间修复结果>;
     requestConfirm?: (options: { title?: string; message: string; confirmText?: string; cancelText?: string; danger?: boolean }) => Promise<boolean>;
-    性别比例演变预设?: boolean;
-    叙事平静值配置预设?: 叙事平静值配置结构 | null;
+    当前性别比例?: { [key: string]: number } | string | null;
     当前叙事平静值?: 叙事状态结构 | null;
 }
 
@@ -45,7 +44,7 @@ export const 提交游戏初始时间修复 = async (params: {
     return params.onRepair(canonical);
 };
 
-const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, currentGameTime, journeyDayCount, onRepairGameInitialTime, requestConfirm, 性别比例演变预设, 叙事平静值配置预设, 当前叙事平静值 }) => {
+const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, currentGameTime, journeyDayCount, onRepairGameInitialTime, requestConfirm, 当前性别比例, 当前叙事平静值 }) => {
     const [form, setForm] = useState<游戏设置结构>(settings);
     const [wordCountDraft, setWordCountDraft] = useState(() => String(settings.字数要求 ?? ''));
     const [initialTimeDraft, setInitialTimeDraft] = useState('');
@@ -963,19 +962,18 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                     <div>
                         <div className="text-sm text-wuxia-cyan font-bold">性别比例自动演变</div>
                         <div className="text-xs text-gray-400 mt-1">开启后，世界演变环节会根据剧情自动调整性别比例（世界级+地点级），并生成对应的个体性转命令；关闭后性别比例不受AI自动调整。</div>
-                        {性别比例演变预设 != null && (
-                            <div className="text-xs text-amber-400/80 mt-1">
-                                ⚙ 创意工坊叙事要求已锁定为{性别比例演变预设 ? '开启' : '关闭'}，此开关暂不可调整
-                            </div>
-                        )}
                     </div>
                     <ToggleSwitch
-                        checked={性别比例演变预设 != null ? 性别比例演变预设 : form.性别比例自动演变 === true}
-                        onChange={性别比例演变预设 != null ? undefined : (next) => 实时应用更新({ 性别比例自动演变: next })}
-                        disabled={性别比例演变预设 != null}
+                        checked={form.性别比例自动演变 === true}
+                        onChange={(next) => 实时应用更新({ 性别比例自动演变: next })}
                         ariaLabel="切换性别比例自动演变"
                     />
                 </div>
+                {当前性别比例 && (
+                    <div className="text-xs text-gray-500 border-t border-white/10 pt-2 mt-2">
+                        当前世界性别比例：{typeof 当前性别比例 === 'string' ? 当前性别比例 : Object.entries(当前性别比例).filter(([, v]) => typeof v === 'number' && v > 0).map(([k, v]) => `${k}=${v}`).join(' / ')}
+                    </div>
+                )}
             </div>
 
             <div className="space-y-2">
@@ -999,12 +997,7 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
             </div>
 
             <div className="pt-6 border-t border-wuxia-gold/20 mt-8 space-y-4">
-                <div className="flex items-center justify-between">
-                    <div className="text-base font-bold text-wuxia-gold">叙事平静值</div>
-                    {叙事平静值配置预设 != null && (
-                        <div className="text-xs text-amber-400/80">⚙ 创意工坊已锁定（前往创意工坊卸载对应模块后可调整）</div>
-                    )}
-                </div>
+                <div className="text-base font-bold text-wuxia-gold">叙事平静值</div>
                 <div className="text-xs text-gray-400">监控连续无剧情波折的回合数。当平静计数达到最低触发阈值后，按等分区段向 AI 注入推进文本，引导剧情自然发展。AI 输出 <code className="text-wuxia-cyan">&lt;情节事件&gt;</code> 标签（介入/退出/结束→归零，延续→+1，无标签→+2）驱动计数器。</div>
 
                 {当前叙事平静值 != null && (
@@ -1028,8 +1021,8 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                     </div>
                     <ToggleSwitch
                         checked={form.叙事平静值配置?.启用 === true}
-                        onChange={叙事平静值配置预设 != null ? undefined : (next) => 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 启用: next } })}
-                        disabled={叙事平静值配置预设 != null}
+                        onChange={(next) => 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 启用: next } })}
+
                         ariaLabel="切换叙事平静值"
                     />
                 </div>
@@ -1044,10 +1037,9 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                                     min={1}
                                     max={10}
                                     value={calmValueDrafts['无标签增量'] ?? String(form.叙事平静值配置?.无标签增量 ?? 2)}
-                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => setCalmValueDrafts(prev => ({ ...prev, '无标签增量': e.target.value }))}
+                                    onChange={(e) => setCalmValueDrafts(prev => ({ ...prev, '无标签增量': e.target.value }))}
                                     onBlur={() => { const v = Math.max(1, Math.min(10, Number(calmValueDrafts['无标签增量']) || 2)); setCalmValueDrafts(prev => { const next = { ...prev }; delete next['无标签增量']; return next; }); 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 无标签增量: v } }); }}
-                                    disabled={叙事平静值配置预设 != null}
-                                    className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all disabled:opacity-60"
+                                    className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all"
                                 />
                             </div>
                             <div>
@@ -1057,10 +1049,9 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                                     min={1}
                                     max={10}
                                     value={calmValueDrafts['延续增量'] ?? String(form.叙事平静值配置?.延续增量 ?? 1)}
-                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => setCalmValueDrafts(prev => ({ ...prev, '延续增量': e.target.value }))}
+                                    onChange={(e) => setCalmValueDrafts(prev => ({ ...prev, '延续增量': e.target.value }))}
                                     onBlur={() => { const v = Math.max(1, Math.min(10, Number(calmValueDrafts['延续增量']) || 1)); setCalmValueDrafts(prev => { const next = { ...prev }; delete next['延续增量']; return next; }); 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 延续增量: v } }); }}
-                                    disabled={叙事平静值配置预设 != null}
-                                    className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all disabled:opacity-60"
+                                    className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all"
                                 />
                             </div>
                             <div>
@@ -1070,10 +1061,9 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                                     min={10}
                                     max={99}
                                     value={calmValueDrafts['上限'] ?? String(form.叙事平静值配置?.上限 ?? 32)}
-                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => setCalmValueDrafts(prev => ({ ...prev, '上限': e.target.value }))}
+                                    onChange={(e) => setCalmValueDrafts(prev => ({ ...prev, '上限': e.target.value }))}
                                     onBlur={() => { const v = Math.max(Number(form.叙事平静值配置?.最低触发阈值 ?? 12) + 1, Math.min(99, Number(calmValueDrafts['上限']) || 32)); setCalmValueDrafts(prev => { const next = { ...prev }; delete next['上限']; return next; }); 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 上限: v } }); }}
-                                    disabled={叙事平静值配置预设 != null}
-                                    className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all disabled:opacity-60"
+                                    className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all"
                                 />
                             </div>
                             <div>
@@ -1083,10 +1073,9 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                                     min={1}
                                     max={50}
                                     value={calmValueDrafts['最低触发阈值'] ?? String(form.叙事平静值配置?.最低触发阈值 ?? 12)}
-                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => setCalmValueDrafts(prev => ({ ...prev, '最低触发阈值': e.target.value }))}
+                                    onChange={(e) => setCalmValueDrafts(prev => ({ ...prev, '最低触发阈值': e.target.value }))}
                                     onBlur={() => { const v = Math.max(1, Math.min(Number(form.叙事平静值配置?.上限 ?? 32) - 1, Number(calmValueDrafts['最低触发阈值']) || 12)); setCalmValueDrafts(prev => { const next = { ...prev }; delete next['最低触发阈值']; return next; }); 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 最低触发阈值: v } }); }}
-                                    disabled={叙事平静值配置预设 != null}
-                                    className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all disabled:opacity-60"
+                                    className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all"
                                 />
                             </div>
                         </div>
@@ -1099,28 +1088,25 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                                     <input
                                         type="text"
                                         value={text}
-                                        onChange={叙事平静值配置预设 != null ? undefined : (e) => {
+                                        onChange={(e) => {
                                             const next = [...(form.叙事平静值配置?.阈值文本 || [])];
                                             next[i] = e.target.value;
                                             实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 阈值文本: next } });
                                         }}
-                                        disabled={叙事平静值配置预设 != null}
-                                        className="flex-1 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white text-sm outline-none rounded-md transition-all disabled:opacity-60"
+                                        className="flex-1 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white text-sm outline-none rounded-md transition-all"
                                     />
                                     <button
-                                        onClick={叙事平静值配置预设 != null ? undefined : () => {
+                                        onClick={() => {
                                             const next = (form.叙事平静值配置?.阈值文本 || []).filter((_, idx) => idx !== i);
                                             实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 阈值文本: next } });
                                         }}
-                                        className="text-xs text-red-400 hover:text-red-300 px-2 shrink-0 disabled:opacity-60"
-                                        disabled={叙事平静值配置预设 != null}
+                                        className="text-xs text-red-400 hover:text-red-300 px-2 shrink-0"
                                     >删除</button>
                                 </div>
                             ))}
                             <button
-                                onClick={叙事平静值配置预设 != null ? undefined : () => 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 阈值文本: [...(form.叙事平静值配置?.阈值文本 || []), ''] } })}
-                                className="text-xs text-wuxia-cyan hover:text-wuxia-gold transition-colors disabled:opacity-60"
-                                disabled={叙事平静值配置预设 != null}
+                                onClick={() => 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 阈值文本: [...(form.叙事平静值配置?.阈值文本 || []), ''] } })}
+                                className="text-xs text-wuxia-cyan hover:text-wuxia-gold transition-colors"
                             >+ 添加段落</button>
                         </div>
                     </div>

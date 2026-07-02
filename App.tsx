@@ -3630,8 +3630,9 @@ const App: React.FC = () => {
                             currentGameTime={currentEnvTime}
                             journeyDayCount={currentJourneyDayCount}
                             currentStory={state.剧情}
-                            openingConfig={state.开局配置}
+                             openingConfig={state.开局配置}
                              contextSnapshot={contextSnapshot}
+                             当前性别比例={state.世界?.性别比例 ?? null}
                              当前叙事平静值={state.叙事平静值 ?? null}
                              onSaveApi={actions.saveSettings}
                              onSaveVisual={actions.saveVisualSettings}
@@ -3679,6 +3680,7 @@ const App: React.FC = () => {
                             currentStory={state.剧情}
                             openingConfig={state.开局配置}
                             contextSnapshot={contextSnapshot}
+                            当前性别比例={state.世界?.性别比例 ?? null}
                             当前叙事平静值={state.叙事平静值 ?? null}
                             onSaveApi={actions.saveSettings}
                             onSaveVisual={actions.saveVisualSettings}

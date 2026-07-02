@@ -81,6 +81,7 @@ interface Props {
     currentStory?: 剧情系统结构;
     openingConfig?: OpeningConfig;
     contextSnapshot?: ContextSnapshot;
+    当前性别比例?: { [key: string]: number } | string | null;
     当前叙事平静值?: 叙事状态结构 | null;
     onSaveApi: (config: 接口设置结构) => void;
     onSaveVisual: (config: 视觉设置结构) => void;
@@ -109,7 +110,7 @@ interface Props {
 
 const MobileSettingsModal: React.FC<Props> = ({
     activeTab, onTabChange, onClose,
-    apiConfig, visualConfig, gameConfig, memoryConfig, prompts, festivals, currentTheme, history, memorySystem, socialList, runtimeState, gameInitialTime, currentGameTime, journeyDayCount, currentStory, openingConfig, contextSnapshot, 当前叙事平静值 = null,
+    apiConfig, visualConfig, gameConfig, memoryConfig, prompts, festivals, currentTheme, history, memorySystem, socialList, runtimeState, gameInitialTime, currentGameTime, journeyDayCount, currentStory, openingConfig, contextSnapshot, 当前性别比例 = null, 当前叙事平静值 = null,
     onSaveApi, onSaveVisual, onSaveGame, onSaveMemory, onDeleteMemory, onRefineMemories, onRegenerateMapFromMemory, onCreateNpc, onSaveNpc, onDeleteNpc, onRestoreNpcBackup, onStartNpcMemorySummary, onUploadNpcImage, onReplaceVariableSection, onApplyVariableCommand, onRepairGameInitialTime, onUpdatePrompts, onUpdateFestivals, onThemeChange,
     onReturnToHome, isHome, returnHomeSaving = false, requestConfirm
 }) => {
@@ -232,7 +233,7 @@ const MobileSettingsModal: React.FC<Props> = ({
                 </div>
             );
         }
-         if (activeTab === 'game' && gameConfig && onSaveGame) return <GameSettings settings={gameConfig} onSave={onSaveGame} gameInitialTime={gameInitialTime} currentGameTime={currentGameTime} journeyDayCount={journeyDayCount} onRepairGameInitialTime={onRepairGameInitialTime} requestConfirm={requestConfirm} 性别比例演变预设={openingConfig?.modeRuntimeProfile?.性别比例演变预设} 叙事平静值配置预设={openingConfig?.modeRuntimeProfile?.叙事平静值配置 ?? null} 当前叙事平静值={当前叙事平静值} />;
+         if (activeTab === 'game' && gameConfig && onSaveGame) return <GameSettings settings={gameConfig} onSave={onSaveGame} gameInitialTime={gameInitialTime} currentGameTime={currentGameTime} journeyDayCount={journeyDayCount} onRepairGameInitialTime={onRepairGameInitialTime} requestConfirm={requestConfirm} 当前性别比例={当前性别比例 ?? null} 当前叙事平静值={当前叙事平静值} />;
         if (activeTab === 'reality' && gameConfig && onSaveGame) return <RealitySettings settings={gameConfig} onSave={onSaveGame} />;
         if (activeTab === 'tavern_preset' && gameConfig && onSaveGame) return <TavernPresetSettings settings={gameConfig} onSave={onSaveGame} apiConfig={apiConfig} onSaveApi={onSaveApi} />;
         if (activeTab === 'memory' && memoryConfig && onSaveMemory) return <MemorySettings settings={memoryConfig} onSave={onSaveMemory} />;
