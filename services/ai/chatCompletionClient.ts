@@ -1701,11 +1701,16 @@ const 请求OpenAI家族文本 = async (
             }
         }
 
+        // 兜底超时：防止 AI 端点挂起导致整个流程卡死（5 分钟）
+        const 兜底超时信号 = AbortSignal.timeout(300_000);
+        const 合并信号 = signal
+            ? AbortSignal.any([signal, 兜底超时信号])
+            : 兜底超时信号;
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: requestHeaders,
             body: requestBody,
-            signal
+            signal: 合并信号
         });
 
         if (!response.ok) {

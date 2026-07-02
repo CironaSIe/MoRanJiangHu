@@ -1363,6 +1363,7 @@ export const 执行主剧情发送工作流 = async (
         skipFailureDecision?: boolean;
     }): Promise<{ completed: boolean; result?: T }> => {
         let manualAttempt = 0;
+        const maxManualAttempts = 5;
         while (true) {
             if (controller.signal.aborted) {
                 throw controller.signal.reason || new DOMException('Aborted', 'AbortError');
@@ -1409,6 +1410,11 @@ export const 执行主剧情发送工作流 = async (
                     throw controller.signal.reason || new DOMException('Aborted', 'AbortError');
                 }
                 if (decision === 'retry') {
+                    if (manualAttempt >= maxManualAttempts) {
+                        params.onError?.(`${errorText}（已重试 ${maxManualAttempts} 次，自动跳过）`);
+                        params.onSkip?.(errorText);
+                        return { completed: false };
+                    }
                     continue;
                 }
                 params.onSkip?.(errorText);

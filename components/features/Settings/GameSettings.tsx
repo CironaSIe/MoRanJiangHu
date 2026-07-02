@@ -1002,7 +1002,7 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                 <div className="flex items-center justify-between">
                     <div className="text-base font-bold text-wuxia-gold">叙事平静值</div>
                     {叙事平静值配置预设 != null && (
-                        <div className="text-xs text-amber-400/80">⚙ 创意工坊已锁定</div>
+                        <div className="text-xs text-amber-400/80">⚙ 创意工坊已锁定（前往创意工坊卸载对应模块后可调整）</div>
                     )}
                 </div>
                 <div className="text-xs text-gray-400">监控连续无剧情波折的回合数。当平静计数达到最低触发阈值后，按等分区段向 AI 注入推进文本，引导剧情自然发展。AI 输出 <code className="text-wuxia-cyan">&lt;情节事件&gt;</code> 标签（介入/退出/结束→归零，延续→+1，无标签→+2）驱动计数器。</div>
