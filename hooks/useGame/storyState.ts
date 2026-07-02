@@ -2010,26 +2010,6 @@ export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
                 }))
                 .filter((item) => item.标题 || item.归档内容.length > 0)
             : [],
-        地图: Array.isArray(world?.地图)
-            ? world.地图
-                .map((item: any) => ({
-                    名称: 取文本(item?.名称),
-                    坐标: 取文本(item?.坐标),
-                    描述: 取文本(item?.描述),
-                    归属: 规范化地点归属(item?.归属),
-                    内部建筑: 取字符串数组(item?.内部建筑)
-                }))
-                .filter((item) => item.名称 || item.描述)
-            : [],
-        建筑: Array.isArray(world?.建筑)
-            ? world.建筑
-                .map((item: any) => ({
-                    名称: 取文本(item?.名称),
-                    描述: 取文本(item?.描述),
-                    归属: 规范化地点归属(item?.归属)
-                }))
-                .filter((item) => item.名称 || item.描述)
-            : [],
         地图层级: Array.isArray(world?.地图层级) ? world.地图层级 : [],
         // 势力系统：标准化处理，确保每个势力项结构完整
         势力列表: 标准化势力列表(world?.势力列表),
