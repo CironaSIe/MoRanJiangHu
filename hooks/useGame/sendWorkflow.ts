@@ -1036,11 +1036,15 @@ const 计算本回合目标计数 = (
     if (tags.length === 0) {
         return Math.min(当前计数 + 无标签增量, 上限);
     }
-    const candidates = tags.map(t => {
-        if (t.prefix === '介入' || t.prefix === '退出' || t.prefix === '结束') return 0;
+    const 有重置事件 = tags.some(t => t.prefix === '介入' || t.prefix === '退出' || t.prefix === '结束');
+    if (有重置事件) {
+        return 0;
+    }
+    const 有延续事件 = tags.some(t => t.prefix === '延续');
+    if (有延续事件) {
         return Math.min(当前计数 + 延续增量, 上限);
-    });
-    return Math.min(...candidates);
+    }
+    return Math.min(当前计数 + 无标签增量, 上限);
 };
 
 export const 执行主剧情发送工作流 = async (

@@ -53,6 +53,7 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
     const [repairBusy, setRepairBusy] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [openMenu, setOpenMenu] = useState<'perspective' | 'style' | 'ntl' | 'mainStoryMode' | 'shortBodyHandling' | null>(null);
+    const [calmValueDrafts, setCalmValueDrafts] = useState<Record<string, string>>({});
     const rootRef = useRef<HTMLDivElement | null>(null);
 
     const 叙事人称选项: Array<{ value: 游戏设置结构['叙事人称']; label: string }> = [
@@ -1042,8 +1043,9 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                                     type="number"
                                     min={1}
                                     max={10}
-                                    value={form.叙事平静值配置?.无标签增量 ?? 2}
-                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 无标签增量: Math.max(1, Number(e.target.value) || 2) } })}
+                                    value={calmValueDrafts['无标签增量'] ?? String(form.叙事平静值配置?.无标签增量 ?? 2)}
+                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => setCalmValueDrafts(prev => ({ ...prev, '无标签增量': e.target.value }))}
+                                    onBlur={() => { const v = Math.max(1, Math.min(10, Number(calmValueDrafts['无标签增量']) || 2)); setCalmValueDrafts(prev => { const next = { ...prev }; delete next['无标签增量']; return next; }); 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 无标签增量: v } }); }}
                                     disabled={叙事平静值配置预设 != null}
                                     className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all disabled:opacity-60"
                                 />
@@ -1054,8 +1056,9 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                                     type="number"
                                     min={1}
                                     max={10}
-                                    value={form.叙事平静值配置?.延续增量 ?? 1}
-                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 延续增量: Math.max(1, Number(e.target.value) || 1) } })}
+                                    value={calmValueDrafts['延续增量'] ?? String(form.叙事平静值配置?.延续增量 ?? 1)}
+                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => setCalmValueDrafts(prev => ({ ...prev, '延续增量': e.target.value }))}
+                                    onBlur={() => { const v = Math.max(1, Math.min(10, Number(calmValueDrafts['延续增量']) || 1)); setCalmValueDrafts(prev => { const next = { ...prev }; delete next['延续增量']; return next; }); 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 延续增量: v } }); }}
                                     disabled={叙事平静值配置预设 != null}
                                     className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all disabled:opacity-60"
                                 />
@@ -1066,8 +1069,9 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                                     type="number"
                                     min={10}
                                     max={99}
-                                    value={form.叙事平静值配置?.上限 ?? 32}
-                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 上限: Math.max(10, Number(e.target.value) || 32) } })}
+                                    value={calmValueDrafts['上限'] ?? String(form.叙事平静值配置?.上限 ?? 32)}
+                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => setCalmValueDrafts(prev => ({ ...prev, '上限': e.target.value }))}
+                                    onBlur={() => { const v = Math.max(Number(form.叙事平静值配置?.最低触发阈值 ?? 12) + 1, Math.min(99, Number(calmValueDrafts['上限']) || 32)); setCalmValueDrafts(prev => { const next = { ...prev }; delete next['上限']; return next; }); 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 上限: v } }); }}
                                     disabled={叙事平静值配置预设 != null}
                                     className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all disabled:opacity-60"
                                 />
@@ -1078,8 +1082,9 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                                     type="number"
                                     min={1}
                                     max={50}
-                                    value={form.叙事平静值配置?.最低触发阈值 ?? 12}
-                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 最低触发阈值: Math.max(1, Number(e.target.value) || 12) } })}
+                                    value={calmValueDrafts['最低触发阈值'] ?? String(form.叙事平静值配置?.最低触发阈值 ?? 12)}
+                                    onChange={叙事平静值配置预设 != null ? undefined : (e) => setCalmValueDrafts(prev => ({ ...prev, '最低触发阈值': e.target.value }))}
+                                    onBlur={() => { const v = Math.max(1, Math.min(Number(form.叙事平静值配置?.上限 ?? 32) - 1, Number(calmValueDrafts['最低触发阈值']) || 12)); setCalmValueDrafts(prev => { const next = { ...prev }; delete next['最低触发阈值']; return next; }); 实时应用更新({ 叙事平静值配置: { ...(form.叙事平静值配置 || {}), 最低触发阈值: v } }); }}
                                     disabled={叙事平静值配置预设 != null}
                                     className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all disabled:opacity-60"
                                 />

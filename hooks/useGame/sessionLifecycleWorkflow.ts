@@ -361,7 +361,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         mode: 'all' | 'step',
         _openingStreaming: boolean = true,
         openingExtraPrompt: string = '',
-        options?: 世界生成选项,
+        options?: 世界生成选项 & { skipWorkshopPresetApply?: boolean },
         activeModuleExtraRules?: string
     ) => {
         const promptPool = (Array.isArray(deps.prompts) && deps.prompts.length > 0) ? deps.prompts : await deps.ensurePromptsLoaded();
@@ -377,8 +377,9 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
             }));
         }
         // 将创意工坊题材模式预设写入游戏设置（存入存档），用户后续可在游戏内设置中覆盖
+        // 快速重开时跳过，避免覆盖用户已修改的设置
         const 题材预设 = openingConfig?.modeRuntimeProfile;
-        if (题材预设) {
+        if (题材预设 && !options?.skipWorkshopPresetApply) {
             const 预设键值: Record<string, any> = {};
             if (typeof 题材预设.性别比例演变预设 === 'boolean') {
                 预设键值.性别比例自动演变 = 题材预设.性别比例演变预设;
@@ -481,7 +482,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 'step',
                 openingStreaming,
                 openingExtraPrompt,
-                { 清空前端变量: true },
+                { 清空前端变量: true, skipWorkshopPresetApply: true },
                 restoredRuntime.activeModuleExtraRules
             );
             return;
@@ -521,7 +522,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
             'all',
             openingStreaming,
             openingExtraPrompt,
-            { 清空前端变量: true },
+            { 清空前端变量: true, skipWorkshopPresetApply: true },
             restoredRuntime.activeModuleExtraRules
         );
     };
