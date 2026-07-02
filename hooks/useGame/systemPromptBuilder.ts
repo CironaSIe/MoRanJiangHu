@@ -6,15 +6,14 @@ import type {
     游戏设置结构,
     OpeningConfig,
     世界书作用域,
-    世界书结构,
-    叙事状态结构,
-    叙事平静值配置结构
+    世界书结构
 } from '../../types';
 import { 规范化记忆配置 } from './memoryUtils';
 import { 格式化短期记忆展示文本 } from './memoryUtils';
 import { 构建NPC上下文 } from './npcContext';
 import { normalizeCanonicalGameTime, 环境时间转标准串, 结构化时间转标准串 } from './timeUtils';
 import { 计算游戏历程天数 } from '../../utils/gameTimeJourney';
+import { 规范化游戏设置 } from '../../utils/gameSettings';
 
 const 解析标准时间为天数片段 = (raw?: string): { year: number; month: number; day: number; hour: number; minute: number } | null => {
     const canonical = normalizeCanonicalGameTime(raw || '');
@@ -29,7 +28,6 @@ const 解析标准时间为天数片段 = (raw?: string): { year: number; month:
         minute: Number(match[5])
     };
 };
-import { 规范化游戏设置, 计算远处联动阈值, 计算当前阈值文本 } from '../../utils/gameSettings';
 import {
     构建世界书注入文本,
     世界书本体槽位
@@ -104,7 +102,6 @@ export type 系统提示词上下文片段 = {
     门派状态: string;
     任务状态: string;
     约定状态: string;
-    叙事状态: string;
 };
 
 export type 系统提示词构建结果 = {
@@ -164,8 +161,8 @@ const 序列化展示上下文 = (value: unknown): string => JSON.stringify(
     null,
     2
 ).replace(
-    /^(\s*)"(\[\d+\])":\s*\d+,?$/gm,
-    '$1"$2"'
+    /^(\s*)"(\[\d+\])":\s*\d+,?\s*$/gm,
+    (match, indent, key) => `${indent}"`
 );
 
 const 树状上下文缩进 = (depth: number): string => '  '.repeat(depth);
@@ -656,9 +653,7 @@ export const 构建系统提示词 = ({
                 关联地点: 取数组(event?.关联地点),
                 关联分解组: 取数组(event?.关联分解组),
                 关联分歧线: 取数组(event?.关联分歧线),
-                当前状态: 取文本(event?.当前状态),
-                主角参与度: typeof event?.主角参与度 === 'number' && Number.isFinite(event.主角参与度) ? Math.max(0, Math.min(1, event.主角参与度)) : 0,
-                触发距离: 取文本(event?.触发距离) || (typeof event?.主角参与度 === 'number' && Number.isFinite(event.主角参与度) ? (event.主角参与度 <= 0.2 ? '远处' : event.主角参与度 <= 0.5 ? '附近' : '当场') : '远处')
+                当前状态: 取文本(event?.当前状态)
             })),
             进行中事件: 取数组(world?.进行中事件).map((event: any, idx: number) => ({
                 索引: idx,
@@ -673,9 +668,7 @@ export const 构建系统提示词 = ({
                 关联势力: 取数组(event?.关联势力),
                 关联地点: 取数组(event?.关联地点),
                 关联分解组: 取数组(event?.关联分解组),
-                关联分歧线: 取数组(event?.关联分歧线),
-                主角参与度: typeof event?.主角参与度 === 'number' && Number.isFinite(event.主角参与度) ? Math.max(0, Math.min(1, event.主角参与度)) : 0,
-                触发距离: 取文本(event?.触发距离) || (typeof event?.主角参与度 === 'number' && Number.isFinite(event.主角参与度) ? (event.主角参与度 <= 0.2 ? '远处' : event.主角参与度 <= 0.5 ? '附近' : '当场') : '远处')
+                关联分歧线: 取数组(event?.关联分歧线)
             })),
             已结算事件: 取数组(world?.已结算事件).map((event: any, idx: number) => ({
                 索引: idx,
@@ -690,8 +683,7 @@ export const 构建系统提示词 = ({
                 关联势力: 取数组(event?.关联势力),
                 关联地点: 取数组(event?.关联地点),
                 关联分解组: 取数组(event?.关联分解组),
-                关联分歧线: 取数组(event?.关联分歧线),
-                主角参与度: typeof event?.主角参与度 === 'number' && Number.isFinite(event.主角参与度) ? Math.max(0, Math.min(1, event.主角参与度)) : undefined
+                关联分歧线: 取数组(event?.关联分歧线)
             })),
             世界镜头规划: 取数组(world?.世界镜头规划).map((item: any, idx: number) => ({
                 索引: idx,
@@ -704,9 +696,7 @@ export const 构建系统提示词 = ({
                 关联分解组: 取数组(item?.关联分解组),
                 关联分歧线: 取数组(item?.关联分歧线),
                 沉淀内容: 取数组(item?.沉淀内容),
-                当前状态: 取文本(item?.当前状态),
-                主角参与度: typeof item?.主角参与度 === 'number' && Number.isFinite(item.主角参与度) ? Math.max(0, Math.min(1, item.主角参与度)) : undefined,
-                触发距离: 取文本(item?.触发距离) || undefined
+                当前状态: 取文本(item?.当前状态)
             })),
             江湖史册: 取数组(world?.江湖史册).map((event: any, idx: number) => ({
                 索引: idx,
@@ -723,97 +713,6 @@ export const 构建系统提示词 = ({
 
         return 包装树状上下文('世界', 裁剪修炼体系上下文数据(orderedWorld, normalizedGameConfig));
     };
-    const 构建世界事件分档上下文 = (payload: any): string => {
-        const world = 规范化世界状态(payload?.世界);
-        const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
-        const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
-        const 取参与度 = (value: any): number => {
-            const n = Number(value);
-            return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0;
-        };
-        const 事件列表 = [
-            ...取数组(world?.待执行事件).map((e: any) => ({
-                名: 取文本(e?.事件名),
-                说明: 取文本(e?.事件说明),
-                参与度: 取参与度(e?.主角参与度),
-                状态: '待执行'
-            })),
-            ...取数组(world?.进行中事件).map((e: any) => ({
-                名: 取文本(e?.事件名),
-                说明: 取文本(e?.当前进展) || 取文本(e?.事件说明),
-                参与度: 取参与度(e?.主角参与度),
-                状态: '进行中'
-            }))
-        ];
-        if (事件列表.length === 0) return '';
-        const 远处 = 事件列表.filter(e => e.参与度 <= 0.2);
-        const 附近 = 事件列表.filter(e => e.参与度 > 0.2 && e.参与度 <= 0.5);
-        const 当场 = 事件列表.filter(e => e.参与度 > 0.5);
-        const 片段: string[] = [];
-        if (远处.length > 0) {
-            片段.push('【远处传闻】（主角只能通过听说/公告/他人转述获知，不得写成亲眼看见或恰好路过现场）\n'
-                + 远处.map(e => `- ${e.名}（${e.状态}）：${e.说明}`).join('\n'));
-        }
-        if (附近.length > 0) {
-            片段.push('【附近动静】（主角可能路过遇见，不强制）\n'
-                + 附近.map(e => `- ${e.名}（${e.状态}）：${e.说明}`).join('\n'));
-        }
-        if (当场.length > 0) {
-            片段.push('【当前事件】（主角在场或直接相关）\n'
-                + 当场.map(e => `- ${e.名}（${e.状态}）：${e.说明}`).join('\n'));
-        }
-        return 片段.length > 0 ? `【世界事件分档】\n${片段.join('\n\n')}` : '';
-    };
-    const 获取当前活跃事件名 = (情节事件记录: string[]): string | null => {
-        if (!Array.isArray(情节事件记录)) return null;
-        for (let i = 情节事件记录.length - 1; i >= 0; i--) {
-            const entry = 情节事件记录[i];
-            if (typeof entry !== 'string') continue;
-            const im = entry.match(/介入[：:]\s*(.+)/);
-            if (!im) continue;
-            const 事件名 = im[1].trim();
-            const later = 情节事件记录.slice(i + 1);
-            const hasExit = later.some(e => typeof e === 'string' && (e.includes(`退出：${事件名}`) || e.includes(`结束：${事件名}`)));
-            if (!hasExit) return 事件名;
-        }
-        return null;
-    };
-    const 构建叙事状态文本 = (payload: any): string => {
-        const config = payload?.叙事平静值配置 as 叙事平静值配置结构 | undefined;
-        if (!config?.启用) return '';
-        const ns = payload?.叙事平静值 as 叙事状态结构 | undefined;
-        const 计数 = ns?.平静计数 ?? 0;
-        if (计数 < (config.最低触发阈值 ?? 12)) return '';
-        const 活跃事件 = 获取当前活跃事件名(ns?.情节事件记录 || []);
-        const text = 计算当前阈值文本(计数, config);
-        const parts: string[] = [];
-        if (活跃事件) parts.push(`当前：${活跃事件}（仍在进行）`);
-        if (text) parts.push(text);
-        if (计数 >= 计算远处联动阈值(config)) {
-            const world = 规范化世界状态(payload?.世界);
-            const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
-            const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
-            const 远处线索 = [
-                ...取数组(world?.待执行事件).filter((e: any) => (Number(e?.主角参与度) || 0) <= 0.2),
-                ...取数组(world?.进行中事件).filter((e: any) => (Number(e?.主角参与度) || 0) <= 0.2)
-            ].slice(0, 2);
-            if (远处线索.length > 0) {
-                parts.push('远处动向：' + 远处线索.map((e: any) => `${取文本(e?.事件名)}（${取文本(e?.当前进展) || 取文本(e?.事件说明)}）`).join('；'));
-            }
-        }
-        return parts.join('\n');
-    };
-    const 构建叙事平静值标签协议 = (): string => [
-        '<叙事平静值标签协议>',
-        '- 当前已启用叙事平静值系统；本回合允许输出 `<情节事件>` 顶层标签，用于标记正文节奏，不写给玩家选择或后续建议。',
-        '- `<情节事件>` 不受"最多 1 次"限制：一个回合中可多次出现；每条只写一个标签动作（介入/退出/结束/延续）。',
-        '- 格式：`<情节事件>介入：事件名</情节事件>` / `<情节事件>退出：事件名</情节事件>` / `<情节事件>结束：事件名</情节事件>` / `<情节事件>延续：事件名</情节事件>`。',
-        '- "介入"：新的因果链进入叙事；"延续"：同一事件连续进行且无新因果分支；"退出"：主角明确放弃或脱离该事件但事件本身未结束；"结束"：事件本身终结或解决。',
-        '- 标签放在 `<正文>` 之后、`<短期记忆>` 之前；同一场面连续进行时，每回合输出相同的「延续：事件名」。',
-        '- 退出不等于普通场景切换。短暂离开后仍会回来继续同一事件，应使用「延续」而非「退出→介入」。',
-        '- 每回合结束前评估当前叙事节奏，至少输出一个 `<情节事件>` 标签；连续无标签会被系统判定为平淡。',
-        '</叙事平静值标签协议>'
-    ].join('\n');
     const 构建战斗状态文本 = (payload: any) => {
         const battle = 规范化战斗状态(payload?.战斗);
         const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
@@ -1546,7 +1445,6 @@ export const 构建系统提示词 = ({
     const formatPrompt = formatPromptEntries.map(item => item.content).filter(Boolean).join('\n\n');
     const outputProtocolPromptRaw = [
         formatPrompt || 渲染提示词文本(获取输出协议提示词(effectivePromptPool)),
-        normalizedGameConfig.叙事平静值配置?.启用 === true ? 构建叙事平静值标签协议() : '',
         worldbookInjection.commandRuleText,
         worldbookInjection.outputRuleText
     ]
@@ -1672,8 +1570,6 @@ export const 构建系统提示词 = ({
         ? 构建女主剧情规划文本(statePayload)
         : '';
     const contextWorldState = 构建世界状态文本(statePayload);
-    const contextWorldEventTiers = 构建世界事件分档上下文(statePayload);
-    const contextNarrativeState = 构建叙事状态文本(statePayload);
     const contextEnvironmentState = 构建环境状态文本(statePayload);
     const contextRoleState = 构建角色状态文本(statePayload);
     const contextBattleState = 构建战斗状态文本(statePayload);
@@ -1705,8 +1601,6 @@ export const 构建系统提示词 = ({
             contextNPCData,
             contextHeroinePlan,
             contextWorldState,
-            contextWorldEventTiers,
-            contextNarrativeState,
             contextEnvironmentState,
             contextRoleState,
             contextBattleState,
@@ -1744,8 +1638,7 @@ export const 构建系统提示词 = ({
             战斗状态: contextBattleState,
             门派状态: contextSectState,
             任务状态: contextTaskState,
-            约定状态: contextAgreementState,
-            叙事状态: contextNarrativeState
+            约定状态: contextAgreementState
         }
     };
 };

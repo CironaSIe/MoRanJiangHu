@@ -51,10 +51,20 @@ const 地图层级集合 = new Set<string>(地图层级顺序);
 
 const 取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
+const 层级别名映射: Record<string, string> = {
+    '具体地点': '区地点',
+    '室内': '子地点',
+    '房间': '子地点',
+    '地点': '区地点',
+    '区域': '区地点',
+    '建筑': '子地点',
+    '房屋': '子地点',
+    '空间': '子地点',
+    '场所': '子地点',
+};
 const 规范化层级 = (value: unknown): string => {
     const text = 取文本(value);
-    if (text === '具体地点') return '区地点';
-    if (text === '室内' || text === '房间') return '子地点';
+    if (层级别名映射[text]) return 层级别名映射[text];
     return 地图层级集合.has(text) ? text : '区地点';
 };
 
