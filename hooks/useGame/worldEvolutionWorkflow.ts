@@ -185,8 +185,8 @@ export const 执行世界演变更新工作流 = async (
         const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
         const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
         const 远处候选 = [
-            ...取数组(worldForHints?.待执行事件).filter((e: any) => (Number(e?.主角参与度) || 0) <= 0.5),
-            ...取数组(worldForHints?.进行中事件).filter((e: any) => (Number(e?.主角参与度) || 0) <= 0.5)
+            ...取数组(worldForHints?.待执行事件).filter((e: any) => (Number(e?.主角参与度) || 0) <= 0.2),
+            ...取数组(worldForHints?.进行中事件).filter((e: any) => (Number(e?.主角参与度) || 0) <= 0.2)
         ].slice(0, 2);
         for (const e of 远处候选) {
             const 名 = 取文本(e?.事件名);
@@ -317,6 +317,7 @@ export const 执行世界演变更新工作流 = async (
 
         await 后台让出主线程();
         检查世界演变中断(params?.signal);
+        // 优先级：创意工坊预设 > 游戏设置 > false。注意：?? 只在 null/undefined 时穿透，预设明确为 false 时优先于游戏设置
         const genderEvolutionEnabled = (deps.开局配置?.modeRuntimeProfile?.性别比例演变预设 ?? worldRuntimeGameConfig.性别比例自动演变 ?? false) === true;
         const worldContextPayload = {
             worldPrompt,

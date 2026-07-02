@@ -3,6 +3,7 @@ import { 游戏设置结构, 叙事平静值配置结构, 叙事状态结构 } f
 import GameButton from '../../ui/GameButton';
 import ToggleSwitch from '../../ui/ToggleSwitch';
 import { normalizeCanonicalGameTime } from '../../../hooks/useGame/timeUtils';
+import { 计算当前阈值文本 } from '../../../utils/gameSettings';
 
 interface Props {
     settings: 游戏设置结构;
@@ -995,7 +996,7 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                     <div className="rounded-md border border-white/10 bg-black/30 px-3 py-2 text-xs">
                         <div className="flex items-center gap-4">
                             <span className="text-gray-400">当前平静计数：<span className="text-wuxia-gold font-bold">{当前叙事平静值.平静计数}</span></span>
-                            <span className="text-gray-400">阈值文本：<span className="text-gray-300">{form.叙事平静值配置?.阈值文本?.[Math.min(Math.max(0, Math.floor((当前叙事平静值.平静计数 - (form.叙事平静值配置?.最低触发阈值 ?? 12)) / Math.max(1, ((form.叙事平静值配置?.上限 ?? 32) - (form.叙事平静值配置?.最低触发阈值 ?? 12)) / Math.max(1, (form.叙事平静值配置?.阈值文本?.length ?? 1))))), (form.叙事平静值配置?.阈值文本?.length ?? 1) - 1)] ?? '暂无'}</span></span>
+                            <span className="text-gray-400">阈值文本：<span className="text-gray-300">{计算当前阈值文本(当前叙事平静值.平静计数, form.叙事平静值配置) || '暂无'}</span></span>
                         </div>
                         {Array.isArray(当前叙事平静值.情节事件记录) && 当前叙事平静值.情节事件记录.length > 0 && (
                             <div className="mt-1.5 text-gray-500">

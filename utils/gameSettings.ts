@@ -325,6 +325,20 @@ export const 规范化叙事平静值配置 = (
     };
 };
 
+export const 计算当前阈值文本 = (计数: number, config: 叙事平静值配置结构 | undefined | null): string => {
+    if (!config) return '';
+    const 下限 = typeof config.最低触发阈值 === 'number' && Number.isFinite(config.最低触发阈值) ? config.最低触发阈值 : 12;
+    const 上限 = typeof config.上限 === 'number' && Number.isFinite(config.上限) ? config.上限 : 32;
+    const 文本列表 = Array.isArray(config.阈值文本) ? config.阈值文本 : [];
+    if (计数 < 下限) return '';
+    if (文本列表.length === 0 || 计数 >= 上限) {
+        return 文本列表[文本列表.length - 1] || '一切如常，只是似乎有什么事要发生了。';
+    }
+    const 段宽 = (上限 - 下限) / 文本列表.length;
+    const 段索引 = Math.min(文本列表.length - 1, Math.floor((计数 - 下限) / 段宽));
+    return 文本列表[段索引] || '';
+};
+
 export const 计算远处联动阈值 = (config: 叙事平静值配置结构 | undefined | null): number => {
     if (!config) return Infinity;
     const 下限 = typeof config.最低触发阈值 === 'number' && Number.isFinite(config.最低触发阈值)
@@ -405,6 +419,7 @@ export const 规范化游戏设置 = (
             fallback.独立APIGPT模式 || 默认独立APIGPT模式设置
         ),
         额外提示词: 规范化额外提示词(source.额外提示词, fallback.额外提示词),
+        性别比例自动演变: 读取布尔(source.性别比例自动演变, fallback.性别比例自动演变 === true),
         叙事平静值配置: 规范化叙事平静值配置(source.叙事平静值配置, fallback.叙事平静值配置)
     };
 };
