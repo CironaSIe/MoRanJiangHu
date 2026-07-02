@@ -106,6 +106,7 @@ import { use世界演变控制 } from './useGame/worldEvolutionControl';
 import { normalizeCanonicalGameTime, 环境时间转标准串, 提取环境月日, 结构化时间转标准串 } from './useGame/timeUtils';
 import { 构建NPC上下文, 提取NPC生图基础数据, 提取NPC香闺秘档部位生图数据, 提取主角生图基础数据 } from './useGame/npcContext';
 import { 应用NPC记忆总结, 构建手动NPC记忆总结候选, 构建自动NPC记忆总结候选, 构建NPC记忆总结回退文案 } from './useGame/npcMemorySummary';
+import { deepClone as 深拷贝 } from '../utils/deepClone';
 import { 规范化游戏设置 } from '../utils/gameSettings';
 import { 规范化视觉设置 } from '../utils/visualSettings';
 import { 默认图片管理设置, 规范化图片管理设置 } from '../utils/imageManagerSettings';
@@ -545,6 +546,7 @@ export const useGame = () => {
     const 前台发送序号Ref = useRef(0);
     const 最近变量生成上下文Ref = useRef<变量生成上下文缓存项[]>([]);
     const NPC生图进行中Ref = useRef<Set<string>>(new Set());
+    const NPC生图运行中计数Ref = useRef({ current: 0 });
     const 主角生图进行中Ref = useRef<Set<string>>(new Set());
     const 主角自动生图处理器Ref = useRef<(player: 角色数据结构) => void>(() => undefined);
     const 主角每回合生图检查器Ref = useRef<(player: 角色数据结构) => void>(() => undefined);
@@ -576,6 +578,7 @@ export const useGame = () => {
         生图存档作用域Ref.current = `image_scope_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         场景生图自动应用任务Ref.current = '';
         NPC生图进行中Ref.current.clear();
+        NPC生图运行中计数Ref.current.current = 0;
         主角生图进行中Ref.current.clear();
         NPC香闺秘档生图进行中Ref.current.clear();
         NPC自动生图签名Ref.current.clear();
@@ -644,15 +647,6 @@ export const useGame = () => {
     }, [loading, view, gameConfig.启用回合提示音]);
 
     // --- Actions ---
-    const 深拷贝 = <T,>(data: T): T => {
-        if (data === undefined || data === null) {
-            return data;
-        }
-        if (typeof structuredClone === 'function') {
-            return structuredClone(data);
-        }
-        return JSON.parse(JSON.stringify(data)) as T;
-    };
     const 重置自动存档状态 = () => {
         最近自动存档时间戳Ref.current = 0;
         最近自动存档签名Ref.current = '';
@@ -2092,6 +2086,7 @@ export const useGame = () => {
             读取文生图功能配置,
             NPC符合自动生图条件,
             NPC生图进行中集合: NPC生图进行中Ref.current,
+            NPC生图运行中计数: NPC生图运行中计数Ref.current,
             提取NPC生图基础数据: (targetNpc) => 提取NPC生图基础数据附带私密描述(targetNpc, {
                 cultivationSystemEnabled: 读取修炼体系开关()
             }),
@@ -2129,6 +2124,7 @@ export const useGame = () => {
             接口配置是否可用,
             读取文生图功能配置,
             NPC私密部位生图进行中集合: NPC香闺秘档生图进行中Ref.current,
+            NPC生图运行中计数: NPC生图运行中计数Ref.current,
             提取NPC香闺秘档部位生图数据: (targetNpc, targetPart) => 提取NPC香闺秘档部位生图数据(targetNpc, targetPart, {
                 cultivationSystemEnabled: 读取修炼体系开关()
             }),

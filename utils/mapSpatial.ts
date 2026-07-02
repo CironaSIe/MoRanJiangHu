@@ -717,48 +717,59 @@ const 规划避让建筑正交路径 = (
     const routeSegment = (from: 地图坐标点结构, to: 地图坐标点结构): 地图坐标点结构[] => {
         const start = nearestFreeCell(from);
         const end = nearestFreeCell(to);
-        const queue = [start];
-        const cameFrom = new Map<string, string>();
-        const visited = new Set([点位键(start)]);
         const dirs = [
             { x: 1, y: 0 },
             { x: -1, y: 0 },
             { x: 0, y: 1 },
             { x: 0, y: -1 },
-        ].sort((left, right) => {
-            const leftScore = Math.abs(end.x - (start.x + left.x)) + Math.abs(end.y - (start.y + left.y));
-            const rightScore = Math.abs(end.x - (start.x + right.x)) + Math.abs(end.y - (start.y + right.y));
-            return leftScore - rightScore;
-        });
-        while (queue.length > 0) {
-            const current = queue.shift()!;
-            if (current.x === end.x && current.y === end.y) break;
+        ];
+        const 曼哈顿距离 = (a: 地图坐标点结构, b: 地图坐标点结构) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+        const openList: Array<{ x: number; y: number; g: number; f: number }> = [
+            { x: start.x, y: start.y, g: 0, f: 曼哈顿距离(start, end) }
+        ];
+        const cameFrom = new Map<string, string>();
+        const gScore = new Map<string, number>();
+        gScore.set(点位键(start), 0);
+        const visited = new Set<string>();
+        while (openList.length > 0) {
+            let bestIdx = 0;
+            for (let i = 1; i < openList.length; i += 1) {
+                if (openList[i].f < openList[bestIdx].f) bestIdx = i;
+            }
+            const current = openList[bestIdx];
+            openList.splice(bestIdx, 1);
+            const currentKey = `${current.x},${current.y}`;
+            if (current.x === end.x && current.y === end.y) {
+                const path: 地图坐标点结构[] = [{ x: end.x, y: end.y }];
+                let cursor = currentKey;
+                while (cursor !== 点位键(start)) {
+                    const prev = cameFrom.get(cursor);
+                    if (!prev) break;
+                    const [px, py] = prev.split(',').map(Number);
+                    path.push({ x: px, y: py });
+                    cursor = prev;
+                }
+                return 简化正交路径(path.reverse());
+            }
+            visited.add(currentKey);
             dirs.forEach((dir) => {
-                const next = { x: current.x + dir.x, y: current.y + dir.y };
-                if (next.x < 0 || next.x > maxX || next.y < 0 || next.y > maxY) return;
-                if (blocked(next.x, next.y)) return;
-                const key = 点位键(next);
-                if (visited.has(key)) return;
-                visited.add(key);
-                cameFrom.set(key, 点位键(current));
-                queue.push(next);
+                const nx = current.x + dir.x;
+                const ny = current.y + dir.y;
+                if (nx < 0 || nx > maxX || ny < 0 || ny > maxY) return;
+                if (blocked(nx, ny)) return;
+                const nextKey = `${nx},${ny}`;
+                if (visited.has(nextKey)) return;
+                const tentativeG = current.g + 1;
+                const existingG = gScore.get(nextKey);
+                if (existingG !== undefined && tentativeG >= existingG) return;
+                cameFrom.set(nextKey, currentKey);
+                gScore.set(nextKey, tentativeG);
+                openList.push({ x: nx, y: ny, g: tentativeG, f: tentativeG + 曼哈顿距离({ x: nx, y: ny }, end) });
             });
         }
-        const endKey = 点位键(end);
-        if (!visited.has(endKey)) {
-            const mid = blocked(start.x, end.y) ? { x: end.x, y: start.y } : { x: start.x, y: end.y };
-            return 简化正交路径([start, nearestFreeCell(mid), end]);
-        }
-        const path: 地图坐标点结构[] = [end];
-        let cursor = endKey;
-        while (cursor !== 点位键(start)) {
-            const prev = cameFrom.get(cursor);
-            if (!prev) break;
-            const [x, y] = prev.split(',').map(Number);
-            path.push({ x, y });
-            cursor = prev;
-        }
-        return 简化正交路径(path.reverse());
+        // Fallback: A*未找到路径时使用L形路径
+        const mid = blocked(start.x, end.y) ? { x: end.x, y: start.y } : { x: start.x, y: end.y };
+        return 简化正交路径([start, nearestFreeCell(mid), end]);
     };
 
     const routed: 地图坐标点结构[] = [];

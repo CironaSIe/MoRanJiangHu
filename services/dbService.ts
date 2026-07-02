@@ -1988,15 +1988,19 @@ export const 读取存档列表 = async (): Promise<存档结构[]> => {
     return new Promise((resolve, reject) => {
         const transaction = db.transaction([STORE_NAME], 'readonly');
         const store = transaction.objectStore(STORE_NAME);
-        const request = store.getAll();
-        
-        request.onsuccess = () => {
-            const list = request.result as 存档结构[];
-            // Sort by timestamp desc
-            list.sort((a, b) => b.时间戳 - a.时间戳);
-            resolve(list);
+        const list: 存档结构[] = [];
+        const cursorRequest = store.openCursor();
+        cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (cursor) {
+                list.push(cursor.value as 存档结构);
+                cursor.continue();
+            } else {
+                list.sort((a, b) => b.时间戳 - a.时间戳);
+                resolve(list);
+            }
         };
-        request.onerror = () => reject(request.error);
+        cursorRequest.onerror = () => reject(cursorRequest.error);
     });
 };
 
