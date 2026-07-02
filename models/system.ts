@@ -737,6 +737,7 @@ export interface ModeRuntimeProfile {
         migrationCleanupRules: string[];
     };
     性别比例演变预设?: boolean; // 题材模式建议值，游戏设置中未显式设置时使用
+    叙事平静值配置?: 叙事平静值配置结构; // 题材模式可覆盖的叙事平静值配置
 }
 
 export interface OpeningConfig {

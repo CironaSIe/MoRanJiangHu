@@ -3611,27 +3611,28 @@ const App: React.FC = () => {
                 <div className={desktopRightDetailClass}>
                 <懒加载边界>
                     {isMobile ? (
-                        <MobileSettingsModal
-                            activeTab={state.activeTab}
-                            onTabChange={setters.setActiveTab}
-                            onClose={closeSettings}
-                            apiConfig={state.apiConfig}
-                            visualConfig={state.visualConfig}
-                            gameConfig={state.gameConfig}
-                            memoryConfig={state.memoryConfig}
-                            prompts={state.prompts}
-                            festivals={state.festivals}
-                            currentTheme={state.currentTheme}
-                            history={state.历史记录}
-                            memorySystem={state.记忆系统}
-                            socialList={state.社交}
-                            runtimeState={runtimeStateSections}
-                            gameInitialTime={state.游戏初始时间}
-                            currentGameTime={currentEnvTime}
-                            journeyDayCount={currentJourneyDayCount}
-                            currentStory={state.剧情}
-                            openingConfig={state.开局配置}
-                            contextSnapshot={contextSnapshot}
+                            <MobileSettingsModal
+                             activeTab={state.activeTab}
+                             onTabChange={setters.setActiveTab}
+                             onClose={closeSettings}
+                             apiConfig={state.apiConfig}
+                             visualConfig={state.visualConfig}
+                             gameConfig={state.gameConfig}
+                             memoryConfig={state.memoryConfig}
+                             prompts={state.prompts}
+                             festivals={state.festivals}
+                             currentTheme={state.currentTheme}
+                             history={state.历史记录}
+                             memorySystem={state.记忆系统}
+                             socialList={state.社交}
+                             runtimeState={runtimeStateSections}
+                             gameInitialTime={state.游戏初始时间}
+                             currentGameTime={currentEnvTime}
+                             journeyDayCount={currentJourneyDayCount}
+                             currentStory={state.剧情}
+                             openingConfig={state.开局配置}
+                             contextSnapshot={contextSnapshot}
+                             当前叙事平静值={state.叙事平静值 ?? null}
                             onSaveApi={actions.saveSettings}
                             onSaveVisual={actions.saveVisualSettings}
                             onSaveGame={actions.saveGameSettings}
@@ -3657,27 +3658,28 @@ const App: React.FC = () => {
                             returnHomeSaving={returnHomeSaving}
                         />
                     ) : (
-                        <SettingsModal
-                            activeTab={state.activeTab}
-                            onTabChange={setters.setActiveTab}
-                            onClose={closeSettings}
-                            apiConfig={state.apiConfig}
-                            visualConfig={state.visualConfig}
-                            gameConfig={state.gameConfig}
-                            memoryConfig={state.memoryConfig}
-                            prompts={state.prompts}
-                            festivals={state.festivals}
-                            currentTheme={state.currentTheme}
-                            history={state.历史记录}
-                            memorySystem={state.记忆系统}
-                            socialList={state.社交}
-                            runtimeState={runtimeStateSections}
-                            gameInitialTime={state.游戏初始时间}
-                            currentGameTime={currentEnvTime}
-                            journeyDayCount={currentJourneyDayCount}
-                            currentStory={state.剧情}
-                            openingConfig={state.开局配置}
-                            contextSnapshot={contextSnapshot}
+                            <SettingsModal
+                             activeTab={state.activeTab}
+                             onTabChange={setters.setActiveTab}
+                             onClose={closeSettings}
+                             apiConfig={state.apiConfig}
+                             visualConfig={state.visualConfig}
+                             gameConfig={state.gameConfig}
+                             memoryConfig={state.memoryConfig}
+                             prompts={state.prompts}
+                             festivals={state.festivals}
+                             currentTheme={state.currentTheme}
+                             history={state.历史记录}
+                             memorySystem={state.记忆系统}
+                             socialList={state.社交}
+                             runtimeState={runtimeStateSections}
+                             gameInitialTime={state.游戏初始时间}
+                             currentGameTime={currentEnvTime}
+                             journeyDayCount={currentJourneyDayCount}
+                             currentStory={state.剧情}
+                             openingConfig={state.开局配置}
+                             contextSnapshot={contextSnapshot}
+                             当前叙事平静值={state.叙事平静值 ?? null}
                             onSaveApi={actions.saveSettings}
                             onSaveVisual={actions.saveVisualSettings}
                             onSaveGame={actions.saveGameSettings}
