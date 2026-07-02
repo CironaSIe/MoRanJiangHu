@@ -1005,7 +1005,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             allowedGeneratedGenders: [...默认开局生成性别列表],
             lockGeneratedGenders: false
         },
-         validation: {
+        validation: {
             bannedWords: items.bannedItemKeywords,
             conflictChecks: ['货币口径冲突', '组织称呼冲突', '物品题材冲突', '地图地点冲突', '生图服饰时代冲突'],
             migrationCleanupRules: items.bannedItemKeywords.map((keyword) => `清理或替换不合题材关键词：${keyword}`)
