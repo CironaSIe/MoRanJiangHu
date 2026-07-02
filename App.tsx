@@ -3627,33 +3627,34 @@ const App: React.FC = () => {
                             journeyDayCount={currentJourneyDayCount}
                             currentStory={state.剧情}
                             openingConfig={state.开局配置}
-                            contextSnapshot={contextSnapshot}
-                            onSaveApi={actions.saveSettings}
-                            onSaveVisual={actions.saveVisualSettings}
-                            onSaveGame={actions.saveGameSettings}
-                            onSaveMemory={actions.saveMemorySettings}
-                            onDeleteMemory={handleDeleteMemory}
-                            onRefineMemories={stableRefineMemories}
-                            onRegenerateMapFromMemory={handleRegenerateMapFromMemory}
-                            onCreateNpc={actions.createNpcManually}
-                            onSaveNpc={actions.updateNpcManually}
-                            onDeleteNpc={actions.deleteNpcManually}
-                            onRestoreNpcBackup={actions.restoreNpcVariableBackup}
-                            onStartNpcMemorySummary={actions.handleQueueManualNpcMemorySummary}
-                            onUploadNpcImage={actions.uploadNpcImageToSlot}
-                            onReplaceVariableSection={actions.updateRuntimeVariableSection}
-                            onApplyVariableCommand={actions.applyRuntimeVariableCommand}
-                            onRepairGameInitialTime={actions.修正游戏初始时间}
-                            onUpdatePrompts={actions.updatePrompts}
-                            onUpdateFestivals={actions.updateFestivals}
-                            onThemeChange={setters.setCurrentTheme}
-                            requestConfirm={requestConfirm}
-                            onReturnToHome={handleReturnToHomeFromSettings}
-                            isHome={state.view === 'home'}
-                            returnHomeSaving={returnHomeSaving}
-                        />
-                    ) : (
-                        <SettingsModal
+                             contextSnapshot={contextSnapshot}
+                             当前叙事平静值={state.叙事平静值 ?? null}
+                             onSaveApi={actions.saveSettings}
+                             onSaveVisual={actions.saveVisualSettings}
+                             onSaveGame={actions.saveGameSettings}
+                             onSaveMemory={actions.saveMemorySettings}
+                             onDeleteMemory={handleDeleteMemory}
+                             onRefineMemories={stableRefineMemories}
+                             onRegenerateMapFromMemory={handleRegenerateMapFromMemory}
+                             onCreateNpc={actions.createNpcManually}
+                             onSaveNpc={actions.updateNpcManually}
+                             onDeleteNpc={actions.deleteNpcManually}
+                             onRestoreNpcBackup={actions.restoreNpcVariableBackup}
+                             onStartNpcMemorySummary={actions.handleQueueManualNpcMemorySummary}
+                             onUploadNpcImage={actions.uploadNpcImageToSlot}
+                             onReplaceVariableSection={actions.updateRuntimeVariableSection}
+                             onApplyVariableCommand={actions.applyRuntimeVariableCommand}
+                             onRepairGameInitialTime={actions.修正游戏初始时间}
+                             onUpdatePrompts={actions.updatePrompts}
+                             onUpdateFestivals={actions.updateFestivals}
+                             onThemeChange={setters.setCurrentTheme}
+                             requestConfirm={requestConfirm}
+                             onReturnToHome={handleReturnToHomeFromSettings}
+                             isHome={state.view === 'home'}
+                             returnHomeSaving={returnHomeSaving}
+                         />
+                     ) : (
+                         <SettingsModal
                             activeTab={state.activeTab}
                             onTabChange={setters.setActiveTab}
                             onClose={closeSettings}
@@ -3674,6 +3675,7 @@ const App: React.FC = () => {
                             currentStory={state.剧情}
                             openingConfig={state.开局配置}
                             contextSnapshot={contextSnapshot}
+                            当前叙事平静值={state.叙事平静值 ?? null}
                             onSaveApi={actions.saveSettings}
                             onSaveVisual={actions.saveVisualSettings}
                             onSaveGame={actions.saveGameSettings}

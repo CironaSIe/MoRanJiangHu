@@ -1,6 +1,7 @@
 import type { CurrencySystem, CurrencyUnit, ModeRuntimeProfile, 题材模式类型, 性别比例配置, 开局生成性别类型 } from '../models/system';
 import { 获取题材模式配置, 规范化题材模式 } from '../data/workshopThemes/topicModeThemeData';
 import { 获取世界观货币层级配置 } from './currencyDisplay';
+import { 默认游戏设置, 规范化叙事平静值配置 } from './gameSettings';
 
 const 默认开局生成性别列表: 开局生成性别类型[] = ['男', '女', '男娘', '扶她'];
 
@@ -893,7 +894,8 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
             bannedWords: 拆分模式配置短语(raw?.validation?.bannedWords).length ? 拆分模式配置短语(raw.validation.bannedWords) : official.validation.bannedWords,
             conflictChecks: 拆分模式配置短语(raw?.validation?.conflictChecks).length ? 拆分模式配置短语(raw.validation.conflictChecks) : official.validation.conflictChecks,
             migrationCleanupRules: 拆分模式配置短语(raw?.validation?.migrationCleanupRules).length ? 拆分模式配置短语(raw.validation.migrationCleanupRules) : official.validation.migrationCleanupRules
-        }
+        },
+        叙事平静值配置: 规范化叙事平静值配置(raw?.叙事平静值配置, official.叙事平静值配置)
     };
 };
 
@@ -1007,7 +1009,9 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             bannedWords: items.bannedItemKeywords,
             conflictChecks: ['货币口径冲突', '组织称呼冲突', '物品题材冲突', '地图地点冲突', '生图服饰时代冲突'],
             migrationCleanupRules: items.bannedItemKeywords.map((keyword) => `清理或替换不合题材关键词：${keyword}`)
-        }
+        },
+        性别比例演变预设: false,
+        叙事平静值配置: 默认游戏设置.叙事平静值配置
     };
 };
 

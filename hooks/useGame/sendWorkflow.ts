@@ -1978,7 +1978,7 @@ export const 执行主剧情发送工作流 = async (
         }
 
         let 本回合更新后的叙事平静值: 叙事状态结构 | null = null;
-        const 叙事平静值配置 = 规范化游戏设置(currentState.gameConfig)?.叙事平静值配置;
+        const 叙事平静值配置 = currentState.叙事平静值配置 ?? 规范化游戏设置(currentState.gameConfig)?.叙事平静值配置;
         if (叙事平静值配置?.启用) {
             const 当前叙事状态 = currentState.叙事平静值 || { 平静计数: 0, 情节事件记录: [] };
             const 本回合事件列表 = 提取全部情节事件(rawAiText);

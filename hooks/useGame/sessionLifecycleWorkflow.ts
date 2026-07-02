@@ -13,6 +13,7 @@ import type {
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取主剧情接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 获取快速重开运行时恢复参数 } from '../../utils/customNewGamePresets';
+import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 执行开场剧情生成工作流 } from './openingStoryWorkflow';
 import { 执行世界生成工作流 } from './worldGenerationWorkflow';
 
@@ -364,6 +365,20 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 ...prev,
                 activeModuleExtraRules: activeModuleExtraRules.trim()
             }));
+        }
+        // 将创意工坊题材模式预设写入游戏设置（存入存档），用户后续可在游戏内设置中覆盖
+        const 题材预设 = openingConfig?.modeRuntimeProfile;
+        if (题材预设) {
+            const 预设键值: Record<string, any> = {};
+            if (typeof 题材预设.性别比例演变预设 === 'boolean') {
+                预设键值.性别比例自动演变 = 题材预设.性别比例演变预设;
+            }
+            if (题材预设.叙事平静值配置 && typeof 题材预设.叙事平静值配置 === 'object') {
+                预设键值.叙事平静值配置 = 题材预设.叙事平静值配置;
+            }
+            if (Object.keys(预设键值).length > 0) {
+                deps.设置游戏设置((prev: any) => 规范化游戏设置({ ...prev, ...预设键值 }));
+            }
         }
         return 执行世界生成工作流(
             worldConfig,

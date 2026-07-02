@@ -29,7 +29,7 @@ const 解析标准时间为天数片段 = (raw?: string): { year: number; month:
         minute: Number(match[5])
     };
 };
-import { 规范化游戏设置, 计算远处联动阈值 } from '../../utils/gameSettings';
+import { 规范化游戏设置, 计算远处联动阈值, 计算当前阈值文本 } from '../../utils/gameSettings';
 import {
     构建世界书注入文本,
     世界书本体槽位
@@ -783,19 +783,9 @@ export const 构建系统提示词 = ({
         if (!config?.启用) return '';
         const ns = payload?.叙事平静值 as 叙事状态结构 | undefined;
         const 计数 = ns?.平静计数 ?? 0;
-        const 下限 = config.最低触发阈值 ?? 12;
-        const 上限 = config.上限 ?? 32;
-        const 文本列表 = Array.isArray(config.阈值文本) ? config.阈值文本 : [];
-        if (计数 < 下限) return '';
+        if (计数 < (config.最低触发阈值 ?? 12)) return '';
         const 活跃事件 = 获取当前活跃事件名(ns?.情节事件记录 || []);
-        let text = '';
-        if (文本列表.length === 0 || 计数 >= 上限) {
-            text = 文本列表[文本列表.length - 1] || '一切如常，只是似乎有什么事要发生了。';
-        } else {
-            const 段宽 = (上限 - 下限) / 文本列表.length;
-            const 段索引 = Math.min(文本列表.length - 1, Math.floor((计数 - 下限) / 段宽));
-            text = 文本列表[段索引] || '';
-        }
+        const text = 计算当前阈值文本(计数, config);
         const parts: string[] = [];
         if (活跃事件) parts.push(`当前：${活跃事件}（仍在进行）`);
         if (text) parts.push(text);

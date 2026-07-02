@@ -395,7 +395,7 @@ export default defineConfig(({ mode }) => {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
     },
     build: {
-      chunkSizeWarningLimit: 1800,
+      chunkSizeWarningLimit: 2500,
       rollupOptions: {
         output: {
           manualChunks(id) {
@@ -428,8 +428,27 @@ export default defineConfig(({ mode }) => {
               return 'item-library';
             }
 
-            if (normalizedId.includes('/prompts/')) {
-              return 'prompts';
+            if (
+              normalizedId.endsWith('/services/ai/imageTasks.ts') ||
+              normalizedId.endsWith('/services/ai/itemImageGeneration.ts') ||
+              normalizedId.endsWith('/services/ai/imageGenerationDiagnostics.ts') ||
+              normalizedId.endsWith('/services/ai/imageBackendRegistry.ts') ||
+              normalizedId.endsWith('/services/ai/openaiImageTest.ts') ||
+              normalizedId.endsWith('/services/ai/comfyWorkflowValidation.ts')
+            ) {
+              return 'ai-image';
+            }
+
+            if (normalizedId.includes('/prompts/runtime/')) {
+              return 'prompts-runtime';
+            }
+
+            if (
+              normalizedId.includes('/prompts/core/') ||
+              normalizedId.includes('/prompts/stats/') ||
+              normalizedId.includes('/prompts/writing/')
+            ) {
+              return 'prompts-core';
             }
 
             if (
@@ -438,7 +457,7 @@ export default defineConfig(({ mode }) => {
               normalizedId.endsWith('/utils/modeRuntimeProfile.ts') ||
               normalizedId.endsWith('/utils/promptFeatureToggles.ts')
             ) {
-              return 'prompts';
+              return 'prompts-core';
             }
 
             if (

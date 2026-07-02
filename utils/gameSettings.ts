@@ -259,9 +259,10 @@ export const 默认游戏设置: 游戏设置结构 = {
             '一切如常，远处似乎有些变化。（2 个方向）',
             '太长时间没有变化了，或许该有些新的事。（3 个方向）',
             '风平浪静得太久了，可以有些新的动向了。（4 个方向）',
-            '一切如常，只是似乎有什么事要发生了。'
+             '一切如常，只是似乎有什么事要发生了。'
         ]
-    }
+    },
+    性别比例自动演变: false
 };
 
 export const 解析酒馆预设角色ID = (
@@ -304,7 +305,7 @@ export const 规范化酒馆预设列表 = (
     }, []);
 };
 
-const 规范化叙事平静值配置 = (
+export const 规范化叙事平静值配置 = (
     raw: any,
     fallback: 叙事平静值配置结构
 ): 叙事平静值配置结构 => {
@@ -323,6 +324,20 @@ const 规范化叙事平静值配置 = (
             ? Math.round(source.最低触发阈值) : (fallback?.最低触发阈值 ?? 12),
         阈值文本: sourceTexts.length > 0 ? sourceTexts : fallbackTexts
     };
+};
+
+export const 计算当前阈值文本 = (计数: number, config: 叙事平静值配置结构 | undefined | null): string => {
+    if (!config) return '';
+    const 下限 = typeof config.最低触发阈值 === 'number' && Number.isFinite(config.最低触发阈值) ? config.最低触发阈值 : 12;
+    const 上限 = typeof config.上限 === 'number' && Number.isFinite(config.上限) ? config.上限 : 32;
+    const 文本列表 = Array.isArray(config.阈值文本) ? config.阈值文本 : [];
+    if (计数 < 下限) return '';
+    if (文本列表.length === 0 || 计数 >= 上限) {
+        return 文本列表[文本列表.length - 1] || '一切如常，只是似乎有什么事要发生了。';
+    }
+    const 段宽 = (上限 - 下限) / 文本列表.length;
+    const 段索引 = Math.min(文本列表.length - 1, Math.floor((计数 - 下限) / 段宽));
+    return 文本列表[段索引] || '';
 };
 
 export const 计算远处联动阈值 = (config: 叙事平静值配置结构 | undefined | null): number => {
