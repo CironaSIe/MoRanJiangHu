@@ -135,6 +135,7 @@ export const 创建变量校准协调器 = (deps: 变量生成工作流依赖) =
         worldEvolutionUpdated?: boolean;
         extraPromptAppend?: string;
         onProgress?: (progress: 变量生成进度) => void;
+        signal?: AbortSignal;
     }) => {
         if (!deps.变量生成功能已启用(deps.apiConfig)) {
             return null;
@@ -148,6 +149,9 @@ export const 创建变量校准协调器 = (deps: 变量生成工作流依赖) =
         }
         const controller = new AbortController();
         deps.variableGenerationAbortControllerRef.current = controller;
+        const 合并信号 = params.signal
+            ? AbortSignal.any([controller.signal, params.signal])
+            : controller.signal;
         deps.set变量生成中(true);
         params.onProgress?.({ phase: 'start', text: '正在执行独立变量生成...' });
         记录变量生成诊断('info', 'start', {
@@ -273,14 +277,14 @@ export const 创建变量校准协调器 = (deps: 变量生成工作流依赖) =
                     worldEvolutionUpdated: params.worldEvolutionUpdated === true,
                     worldbooks: deps.世界书列表,
                     openingConfig: deps.开局配置,
-                    signal: controller.signal,
+                    signal: 合并信号,
                     extraPromptAppend: params.extraPromptAppend,
                     recentRounds,
                     isOpeningRound,
                     onStreamDelta: 变量计算非流式
                         ? undefined
                         : (_delta: string, accumulated: string) => {
-                            if (controller.signal.aborted) return;
+                            if (合并信号.aborted) return;
                             最近流式文本 = accumulated;
                             流式空闲重置回调?.();
                             推送流式进度();

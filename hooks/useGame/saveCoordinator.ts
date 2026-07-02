@@ -504,26 +504,26 @@ const 构建自动存档签名 = (
         memory?: 记忆系统结构;
     } | undefined,
     currentState: 存档协调当前状态,
-    deps: Pick<存档协调依赖, '构建完整地点文本' | '规范化环境信息' | '规范化记忆系统'>
+    _deps: Pick<存档协调依赖, '构建完整地点文本' | '规范化环境信息' | '规范化记忆系统'>
 ): string => {
     const historyBase = Array.isArray(snapshot?.history)
         ? snapshot.history
         : (Array.isArray(currentState.历史记录) ? currentState.历史记录 : []);
-    const envBase = snapshot?.env
-        ? deps.规范化环境信息(snapshot.env)
-        : deps.规范化环境信息(currentState.环境);
-    const memoryBase = snapshot?.memory
-        ? deps.规范化记忆系统(snapshot.memory)
-        : deps.规范化记忆系统(currentState.记忆系统);
+    // 轻量级签名：直接读取原始字段，不做规范化（规范化在创建存档数据时执行一次即可）
+    const envRaw = snapshot?.env || currentState.环境;
+    const memoryRaw = snapshot?.memory || currentState.记忆系统;
     const historySize = historyBase.length;
     const latestMsg = historySize > 0 ? historyBase[historySize - 1] : null;
     const latestDigest = latestMsg
         ? `${latestMsg.role}:${latestMsg.timestamp}:${(latestMsg.content || '').toString().slice(0, 30)}`
         : 'none';
-    const timeText = 环境时间转标准串(envBase) || '';
-    const locationText = deps.构建完整地点文本(envBase) || '';
-    const memoryRound = Array.isArray(memoryBase?.回忆档案) ? memoryBase.回忆档案.length : 0;
-    const memorySize = `${memoryBase.即时记忆?.length || 0}/${memoryBase.短期记忆?.length || 0}/${memoryBase.中期记忆?.length || 0}/${memoryBase.长期记忆?.length || 0}`;
+    const timeText = 环境时间转标准串(envRaw) || '';
+    const locationText = [envRaw?.具体地点, envRaw?.小地点, envRaw?.中地点, envRaw?.大地点]
+        .map((item: unknown) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean)
+        .join('/');
+    const memoryRound = Array.isArray((memoryRaw as any)?.回忆档案) ? (memoryRaw as any).回忆档案.length : 0;
+    const memorySize = `${(memoryRaw as any)?.即时记忆?.length || 0}/${(memoryRaw as any)?.短期记忆?.length || 0}/${(memoryRaw as any)?.中期记忆?.length || 0}/${(memoryRaw as any)?.长期记忆?.length || 0}`;
     return `${timeText}|${locationText}|${historySize}|${memoryRound}|${memorySize}|${latestDigest}`;
 };
 

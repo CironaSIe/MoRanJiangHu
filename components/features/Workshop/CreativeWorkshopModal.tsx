@@ -926,6 +926,8 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
             const isBaseModeChange = field.path.join('.') === 'identity.baseMode' && 题材模式顺序.includes(parsedValue as 题材模式类型);
             if (isBaseModeChange) {
                 const nextMode = parsedValue as 题材模式类型;
+                const confirmed = window.confirm(`切换基础模式将重置所有运行时配置为"${nextMode}"的默认值，当前自定义内容将丢失。\n\n是否继续？`);
+                if (!confirmed) return prev;
                 return {
                     ...prev,
                     mode: nextMode,

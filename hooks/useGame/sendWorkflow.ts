@@ -2047,6 +2047,10 @@ export const 执行主剧情发送工作流 = async (
 
         deps.set后台队列处理中(true);
         后台队列已启动 = true;
+        // 后台队列阶段级超时（用户可配置，单位秒）
+        const 超时配置 = currentState.gameConfig.后台队列超时配置;
+        const 变量生成超时信号 = AbortSignal.timeout((超时配置?.变量生成超时秒 ?? 120) * 1000);
+        const 地图更新超时信号 = AbortSignal.timeout((超时配置?.地图更新超时秒 ?? 90) * 1000);
         void (async () => {
             try {
                 const 文章优化开启 = deps.文章优化功能已开启();
@@ -2183,7 +2187,8 @@ export const 执行主剧情发送工作流 = async (
                         inputTokens,
                         responseDurationSec: deps.计算回复耗时秒(mainRequestStartedAt),
                         worldEvolutionUpdated: false,
-                        onProgress: options?.onVariableGenerationProgress
+                        onProgress: options?.onVariableGenerationProgress,
+                        signal: 变量生成超时信号,
                     }),
                     onError: (errorText) => {
                         options?.onVariableGenerationProgress?.({
@@ -2487,7 +2492,7 @@ export const 执行主剧情发送工作流 = async (
                                 worldbooks: currentState.世界书列表,
                                 currentResponse: mapContextResponse,
                                 stateBase: stateSnapshot,
-                                signal: controller.signal
+                                signal: 地图更新超时信号
                             });
                             if (result.phase === 'error') {
                                 const wrappedError = new Error(result.statusText || '地图更新失败');

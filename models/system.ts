@@ -1137,6 +1137,14 @@ export interface 叙事平静值配置结构 {
     阈值文本: string[];          // 从最低触发阈值到上限等分若干段，每段一个文本（默认 6 段）
 }
 
+export interface 后台队列超时配置结构 {
+    变量生成超时秒: number;     // 默认 120
+    地图更新超时秒: number;     // 默认 90
+    文章优化超时秒: number;     // 默认 180
+    动态世界超时秒: number;     // 默认 120
+    规划分析超时秒: number;     // 默认 120
+}
+
 export interface 游戏设置结构 {
     字数要求: number; // Minimum logs body length
     字数不足处理方式?: '重新生成' | '仅提示'; // Whether short body should trigger regeneration or only a warning
@@ -1189,6 +1197,7 @@ export interface 游戏设置结构 {
     activeModuleExtraRules?: string; // Creative workshop module safety/usage rules, injected as system_rule
     性别比例自动演变?: boolean; // 是否允许世界演变自动更新世界性别比例，默认false；未设置时使用题材预设
     叙事平静值配置?: 叙事平静值配置结构; // Narrative blandness value config
+    后台队列超时配置?: 后台队列超时配置结构; // 后台各阶段超时配置（秒）
 }
 
 export interface 记忆配置结构 {

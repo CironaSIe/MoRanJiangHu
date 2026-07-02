@@ -1,5 +1,35 @@
 # MoRanJiangHu Agent Notes
 
+## Documentation Maintenance Rules
+
+### Mechanism Analysis Documents
+
+When the project adds or modifies important mechanisms, corresponding mechanism analysis documents should be maintained in the `docs/` directory.
+
+**Document List** (`docs/` directory):
+- `AI集成与提示词系统机制分析.md` — API calls, prompt building, DeepSeek/GPT/Gemini compatibility
+- `状态管理与持久化机制分析.md` — Save/load/rollback, IndexedDB, cloud sync
+- `战斗与地图系统机制分析.md` — Combat flow, six-layer map tree, A* pathfinding, map updates
+- `NPC社交与记忆系统机制分析.md` — NPC structure, four-layer memory, image generation workflow, location sync
+- `任务与门派系统机制分析.md` — Task types, sect contributions, appointment system, auction house
+- `UI组件与渲染系统机制分析.md` — Layout, themes, mobile adaptation, modal system
+- `在线功能与创意工坊机制分析.md` — Online status, Creative Workshop, novel decomposition, cloud sync
+- `题材模式与配置系统机制分析.md` — 8 topic modes, OpeningConfig, ModeRuntimeProfile
+- `创意工坊字段完整参考.md` — All fields' paths, types, default values, behavior descriptions
+- `修改计划.md` — Overall modification plan and execution records
+
+**Maintenance Principles**:
+- After modifying mechanism code, update the corresponding mechanism analysis document
+- When adding new fields or features, first update the consumer-facing document, then update related mechanism documents
+- Delete outdated documents to avoid confusion from coexisting old/new documents
+- File paths and line numbers in documents should stay current (verifiable with serena tools)
+
+### Post-Modification Checklist
+After modifying code, in addition to `npm run build` compilation verification, also check:
+1. Whether any corresponding mechanism analysis documents need updating
+2. Whether "Relevant Files" in AGENTS.md needs supplementation
+3. Whether any expired documents need cleanup
+
 ## Communication Language Rule
 
 - Always communicate with the user in Chinese (中文).

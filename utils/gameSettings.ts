@@ -1,4 +1,4 @@
-import { 游戏设置结构, 叙事平静值配置结构 } from '../types';
+import { 游戏设置结构, 叙事平静值配置结构, 后台队列超时配置结构 } from '../types';
 import { 默认额外系统提示词, 旧版默认额外系统提示词 } from '../prompts/runtime/defaults';
 import { 获取酒馆预设顺序, 规范化酒馆预设 } from './tavernPreset';
 
@@ -262,7 +262,14 @@ export const 默认游戏设置: 游戏设置结构 = {
              '一切如常，只是似乎有什么事要发生了。'
         ]
     },
-    性别比例自动演变: false
+    性别比例自动演变: false,
+    后台队列超时配置: {
+        变量生成超时秒: 120,
+        地图更新超时秒: 90,
+        文章优化超时秒: 180,
+        动态世界超时秒: 120,
+        规划分析超时秒: 120,
+    }
 };
 
 export const 解析酒馆预设角色ID = (
@@ -323,6 +330,23 @@ export const 规范化叙事平静值配置 = (
         最低触发阈值: typeof source.最低触发阈值 === 'number' && Number.isFinite(source.最低触发阈值) && source.最低触发阈值 >= 0
             ? Math.round(source.最低触发阈值) : (fallback?.最低触发阈值 ?? 12),
         阈值文本: sourceTexts.length > 0 ? sourceTexts : fallbackTexts
+    };
+};
+
+const 规范化后台队列超时秒 = (value: unknown, fallback: number): number => {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : fallback;
+};
+
+const 规范化后台队列超时配置 = (raw: any, fallback: any): 后台队列超时配置结构 => {
+    const s = raw && typeof raw === 'object' ? raw : {};
+    const f = fallback && typeof fallback === 'object' ? fallback : {};
+    return {
+        变量生成超时秒: 规范化后台队列超时秒(s.变量生成超时秒, f.变量生成超时秒 ?? 120),
+        地图更新超时秒: 规范化后台队列超时秒(s.地图更新超时秒, f.地图更新超时秒 ?? 90),
+        文章优化超时秒: 规范化后台队列超时秒(s.文章优化超时秒, f.文章优化超时秒 ?? 180),
+        动态世界超时秒: 规范化后台队列超时秒(s.动态世界超时秒, f.动态世界超时秒 ?? 120),
+        规划分析超时秒: 规范化后台队列超时秒(s.规划分析超时秒, f.规划分析超时秒 ?? 120),
     };
 };
 
@@ -422,6 +446,7 @@ export const 规范化游戏设置 = (
         ),
         额外提示词: 规范化额外提示词(source.额外提示词, fallback.额外提示词),
         性别比例自动演变: 读取布尔(source.性别比例自动演变, fallback.性别比例自动演变 === true),
-        叙事平静值配置: 规范化叙事平静值配置(source.叙事平静值配置, fallback.叙事平静值配置)
+        叙事平静值配置: 规范化叙事平静值配置(source.叙事平静值配置, fallback.叙事平静值配置),
+        后台队列超时配置: 规范化后台队列超时配置(source.后台队列超时配置, fallback.后台队列超时配置)
     };
 };

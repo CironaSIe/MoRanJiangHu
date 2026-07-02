@@ -976,6 +976,37 @@ const GameSettings: React.FC<Props> = ({ settings, onSave, gameInitialTime, curr
                 )}
             </div>
 
+            <div className="pt-6 border-t border-wuxia-gold/20 mt-8 space-y-4">
+                <div className="text-base font-bold text-wuxia-gold">后台队列超时</div>
+                <div className="text-xs text-gray-400">设置后台各阶段的最大等待时间（秒）。超时后自动跳过该阶段，不阻塞后续步骤。手动触发不受限制。</div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {([
+                        ['变量生成超时秒', '变量生成', 120],
+                        ['地图更新超时秒', '地图更新', 90],
+                        ['文章优化超时秒', '文章优化', 180],
+                        ['动态世界超时秒', '动态世界', 120],
+                        ['规划分析超时秒', '规划分析', 120],
+                    ] as const).map(([key, label, def]) => (
+                        <div key={key}>
+                            <label className="text-xs text-gray-400">{label}</label>
+                            <input
+                                type="number"
+                                min={10}
+                                max={600}
+                                value={calmValueDrafts[key] ?? String(form.后台队列超时配置?.[key] ?? def)}
+                                onChange={(e) => setCalmValueDrafts(prev => ({ ...prev, [key]: e.target.value }))}
+                                onBlur={() => {
+                                    const v = Math.max(10, Math.min(600, Number(calmValueDrafts[key]) || def));
+                                    setCalmValueDrafts(prev => { const n = { ...prev }; delete n[key]; return n; });
+                                    实时应用更新({ 后台队列超时配置: { ...(form.后台队列超时配置 || {}), [key]: v } });
+                                }}
+                                className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-2 text-white outline-none rounded-md transition-all"
+                            />
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             <div className="space-y-2">
                 <label className="text-sm text-wuxia-cyan font-bold">额外要求提示词 (Custom Prompt)</label>
                 <textarea 
