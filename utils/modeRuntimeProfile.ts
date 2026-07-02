@@ -895,6 +895,7 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
             conflictChecks: 拆分模式配置短语(raw?.validation?.conflictChecks).length ? 拆分模式配置短语(raw.validation.conflictChecks) : official.validation.conflictChecks,
             migrationCleanupRules: 拆分模式配置短语(raw?.validation?.migrationCleanupRules).length ? 拆分模式配置短语(raw.validation.migrationCleanupRules) : official.validation.migrationCleanupRules
         },
+        性别比例演变预设: typeof raw?.性别比例演变预设 === 'boolean' ? raw.性别比例演变预设 : official.性别比例演变预设,
         叙事平静值配置: 规范化叙事平静值配置(raw?.叙事平静值配置, official.叙事平静值配置)
     };
 };

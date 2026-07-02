@@ -421,6 +421,7 @@ export const 规范化游戏设置 = (
             fallback.独立APIGPT模式 || 默认独立APIGPT模式设置
         ),
         额外提示词: 规范化额外提示词(source.额外提示词, fallback.额外提示词),
+        性别比例自动演变: 读取布尔(source.性别比例自动演变, fallback.性别比例自动演变 === true),
         叙事平静值配置: 规范化叙事平静值配置(source.叙事平静值配置, fallback.叙事平静值配置)
     };
 };
